@@ -46,7 +46,7 @@ export function ProductCard({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       whileHover={{ y: -10 }}
-      className="group relative bg-white rounded-3xl overflow-hidden shadow-lg transition-shadow hover:shadow-2xl h-full flex flex-col"
+      className="group relative bg-transparent h-full flex flex-col"
     >
       {/* Badge */}
       {badge && (
@@ -71,7 +71,7 @@ export function ProductCard({
 
       {/* Image Container */}
       <Link to={`/product/${id}`} className="block relative">
-        <div className="relative aspect-[3/4] overflow-hidden bg-gray-50 group/img">
+        <div className="relative aspect-[3/4] overflow-hidden bg-gray-50 rounded-[2rem] group/img">
           <motion.img
             whileHover={{ scale: 1.05 }}
             transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
@@ -100,7 +100,7 @@ export function ProductCard({
       </Link>
 
       {/* Product Info */}
-      <div className="p-4 flex flex-col flex-1 justify-between gap-3">
+      <div className="pt-4 pb-2 px-1 flex flex-col flex-1 justify-between gap-3">
         <div className="space-y-2">
           <Link to={`/product/${id}`}>
             <h3 className="text-sm sm:text-base font-medium text-gray-800 line-clamp-2 hover:text-[#D4AF37] transition-colors leading-tight min-h-[2.5rem]">

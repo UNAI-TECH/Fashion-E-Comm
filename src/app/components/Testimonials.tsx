@@ -6,15 +6,15 @@ const testimonials = [
     id: 1,
     name: 'Sophia Martinez',
     role: 'Fashion Blogger',
-    image: 'https://images.unsplash.com/photo-1590905775253-a4f0f3c426ff?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21hbiUyMHRlc3RpbW9uaWFsJTIwcG9ydHJhaXQlMjBzbWlsZXxlbnwxfHx8fDE3NzQyNzQ0ODV8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-    review: 'LUXE has completely transformed my wardrobe. The quality is exceptional and the designs are absolutely stunning!',
+    image: '/feedback_profile_sophia.jpg',
+    review: 'Aanya Fashions has completely transformed my wardrobe. The quality is exceptional and the designs are absolutely stunning!',
     rating: 5,
   },
   {
     id: 2,
     name: 'Emma Johnson',
     role: 'Marketing Director',
-    image: 'https://images.unsplash.com/photo-1590905775253-a4f0f3c426ff?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21hbiUyMHRlc3RpbW9uaWFsJTIwcG9ydHJhaXQlMjBzbWlsZXxlbnwxfHx8fDE3NzQyNzQ0ODV8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
+    image: '/feedback_profile_emma.jpg',
     review: 'I love how every piece makes me feel confident and beautiful. The attention to detail is remarkable.',
     rating: 5,
   },
@@ -22,7 +22,7 @@ const testimonials = [
     id: 3,
     name: 'Isabella Chen',
     role: 'Entrepreneur',
-    image: 'https://images.unsplash.com/photo-1590905775253-a4f0f3c426ff?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21hbiUyMHRlc3RpbW9uaWFsJTIwcG9ydHJhaXQlMjBzbWlsZXxlbnwxfHx8fDE3NzQyNzQ0ODV8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
+    image: '/feedback_profile_isabella.jpg',
     review: 'Finally found a brand that understands modern women. Elegant, trendy, and comfortable all at once!',
     rating: 5,
   },
@@ -52,24 +52,24 @@ export function Testimonials() {
             What Our Clients Say
           </h2>
           <p className="text-gray-600 max-w-2xl mx-auto text-lg">
-            Join thousands of satisfied customers who love their LUXE experience
+            Join thousands of satisfied customers who love their Aanya Fashions experience
           </p>
         </motion.div>
 
         {/* Testimonials Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {testimonials.map((testimonial, index) => (
-            <motion.div
+             <motion.div
               key={testimonial.id}
               initial={{ opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: index * 0.1 }}
               whileHover={{ y: -10 }}
-              className="relative"
+              className="relative h-full flex flex-col"
             >
               {/* Card */}
-              <div className="bg-gradient-to-br from-[#FFF0F5] to-white p-8 rounded-3xl shadow-lg border border-[#FFD6E8]/30 relative overflow-hidden">
+              <div className="flex-1 flex flex-col bg-gradient-to-br from-[#FFF0F5] to-white p-8 rounded-3xl shadow-lg border border-[#FFD6E8]/30 relative overflow-hidden">
                 {/* Quote Icon */}
                 <motion.div
                   initial={{ scale: 0, rotate: -180 }}
@@ -81,28 +81,30 @@ export function Testimonials() {
                   <Quote className="w-20 h-20 text-[#D4AF37]" />
                 </motion.div>
 
-                {/* Rating */}
-                <div className="flex gap-1 mb-4">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ scale: 0, rotate: -180 }}
-                      whileInView={{ scale: 1, rotate: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: index * 0.1 + i * 0.05 }}
-                    >
-                      <Star className="w-5 h-5 fill-[#D4AF37] text-[#D4AF37]" />
-                    </motion.div>
-                  ))}
+                <div className="flex-1">
+                  {/* Rating */}
+                  <div className="flex gap-1 mb-4">
+                    {[...Array(testimonial.rating)].map((_, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ scale: 0, rotate: -180 }}
+                        whileInView={{ scale: 1, rotate: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: index * 0.1 + i * 0.05 }}
+                      >
+                        <Star className="w-5 h-5 fill-[#D4AF37] text-[#D4AF37]" />
+                      </motion.div>
+                    ))}
+                  </div>
+
+                  {/* Review */}
+                  <p className="text-gray-700 mb-6 leading-relaxed relative z-10">
+                    "{testimonial.review}"
+                  </p>
                 </div>
 
-                {/* Review */}
-                <p className="text-gray-700 mb-6 leading-relaxed relative z-10">
-                  "{testimonial.review}"
-                </p>
-
                 {/* Divider */}
-                <div className="h-px bg-gradient-to-r from-transparent via-[#FFD6E8] to-transparent mb-6" />
+                <div className="h-px bg-gradient-to-r from-transparent via-[#FFD6E8] to-transparent mb-6 mt-auto" />
 
                 {/* Author */}
                 <div className="flex items-center gap-4">
@@ -110,7 +112,7 @@ export function Testimonials() {
                     whileHover={{ scale: 1.1, rotate: 5 }}
                     className="relative"
                   >
-                    <div className="w-14 h-14 rounded-full overflow-hidden ring-2 ring-[#FFD6E8] ring-offset-2">
+                    <div className="w-14 h-14 rounded-2xl overflow-hidden ring-2 ring-[#FFD6E8] ring-offset-2">
                       <img
                         src={testimonial.image}
                         alt={testimonial.name}

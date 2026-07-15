@@ -17,7 +17,7 @@ export function LoadingAnimation() {
             backgroundClip: 'text'
           }}
         >
-          LUXE
+          AANYA
         </motion.div>
 
         {/* Loading Dots */}

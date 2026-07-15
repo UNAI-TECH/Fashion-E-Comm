@@ -1,18 +1,17 @@
-import { useState } from 'react';
 import { motion } from 'motion/react';
 import { ProductCard } from './ProductCard';
 import { ProductSkeleton } from './Skeleton';
-import { fetchProducts, Product } from '../data/products';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
+import { Product } from '../data/products';
+
+const CATEGORY_ORDER = ['Sarees', 'Western', 'Tradition', 'Maxi', 'Lehengas', 'Salwar Sets', 'Kurtis'];
 
 export function TrendingCollection({ products, isLoading }: { products: Product[], isLoading: boolean }) {
-  const [selectedCategory, setSelectedCategory] = useState('All');
-
-  const categories = ['All', 'Sarees', 'Kurtis', 'Lehengas', 'Salwar Sets', 'Western'];
-
-  const filteredProducts = selectedCategory === 'All' 
-    ? products 
-    : products.filter(p => p.category === selectedCategory);
+  // Pick exactly one product per category in the defined order
+  const displayProducts = CATEGORY_ORDER.reduce<Product[]>((acc, cat) => {
+    const match = products.find(p => p.category === cat);
+    if (match) acc.push(match);
+    return acc;
+  }, []);
 
   return (
     <section className="py-20 px-4" style={{ background: 'linear-gradient(to bottom, #FFFFFF, #FFF0F5)' }}>
@@ -35,46 +34,20 @@ export function TrendingCollection({ products, isLoading }: { products: Product[
           <h2 className="font-serif text-4xl sm:text-5xl md:text-6xl mb-4 text-[#1A1A1A]">
             Trending Collection
           </h2>
-          <p className="text-gray-600 max-w-2xl mx-auto text-lg mb-12">
+          <p className="text-gray-600 max-w-2xl mx-auto text-lg">
             Discover what's hot this season. Handpicked styles that everyone's loving.
           </p>
-
-          <Tabs defaultValue="All" className="w-full" onValueChange={setSelectedCategory}>
-            <div className="flex justify-center mb-12">
-              <TabsList className="bg-white/50 backdrop-blur-sm p-1 rounded-2xl border border-gray-100 shadow-sm">
-                {categories.map(cat => (
-                  <TabsTrigger 
-                    key={cat} 
-                    value={cat}
-                    className="px-8 py-2.5 rounded-xl text-sm font-medium transition-all data-[state=active]:bg-[#1A1A1A] data-[state=active]:text-white data-[state=active]:shadow-lg"
-                  >
-                    {cat}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
-              {isLoading ? (
-                [...Array(8)].map((_, i) => <ProductSkeleton key={i} />)
-              ) : filteredProducts.length > 0 ? (
-                filteredProducts.map((product) => (
-                  <ProductCard key={product.id} {...product} />
-                ))
-              ) : (
-                <div className="col-span-full py-20 text-center">
-                  <p className="text-gray-500 italic text-lg mb-4">No {selectedCategory !== 'All' ? selectedCategory : 'products'} available at the moment.</p>
-                  <button 
-                    onClick={() => setSelectedCategory('All')}
-                    className="text-[#D4AF37] font-bold hover:underline"
-                  >
-                    View All Products
-                  </button>
-                </div>
-              )}
-            </div>
-          </Tabs>
         </motion.div>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
+          {isLoading ? (
+            [...Array(7)].map((_, i) => <ProductSkeleton key={i} />)
+          ) : (
+            displayProducts.map((product) => (
+              <ProductCard key={product.id} {...product} />
+            ))
+          )}
+        </div>
       </div>
     </section>
   );

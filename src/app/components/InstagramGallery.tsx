@@ -67,7 +67,7 @@ export function InstagramGallery() {
             whileTap={{ scale: 0.95 }}
             className="inline-block px-8 py-3 bg-gradient-to-r from-[#D4AF37] to-[#FFD6E8] text-white rounded-full shadow-lg"
           >
-            @luxe_fashion
+            @aanya_fashions
           </motion.a>
         </motion.div>
 
@@ -124,13 +124,16 @@ export function InstagramGallery() {
           <p className="text-gray-600 mb-4">
             Tag us in your photos for a chance to be featured!
           </p>
-          <motion.button
+          <motion.a
+            href="https://instagram.com"
+            target="_blank"
+            rel="noopener noreferrer"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="px-8 py-3 bg-white border-2 border-[#D4AF37] text-[#D4AF37] rounded-full hover:bg-[#D4AF37] hover:text-white transition-colors shadow-md"
+            className="inline-block px-8 py-3 bg-white border-2 border-[#D4AF37] text-[#D4AF37] rounded-full hover:bg-[#D4AF37] hover:text-white transition-all shadow-md text-sm font-bold text-center"
           >
             View on Instagram
-          </motion.button>
+          </motion.a>
         </motion.div>
       </div>
     </section>

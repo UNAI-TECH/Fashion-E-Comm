@@ -8,6 +8,7 @@ import { ContactPage } from "./pages/ContactPage";
 import { CategoryPage } from "./pages/CategoryPage";
 import { OrdersPage } from "./pages/OrdersPage";
 import { RootLayout } from "./components/RootLayout";
+import { AboutPage } from "./pages/AboutPage";
 import { AdminLogin } from "./pages/admin/AdminLogin";
 import { AdminRoute } from "./components/admin/AdminRoute";
 import { AdminLayout } from "./components/admin/AdminLayout";
@@ -44,7 +45,9 @@ export const router = createBrowserRouter([
       { path: "/lehengas", Component: CategoryPage },
       { path: "/salwar-sets", Component: CategoryPage },
       { path: "/western", Component: CategoryPage },
-      { path: "/about", Component: Home },
+      { path: "/tradition", Component: CategoryPage },
+      { path: "/maxi", Component: CategoryPage },
+      { path: "/about", Component: AboutPage },
       { path: "/admin/login", Component: AdminLogin },
       {
         path: "/admin",

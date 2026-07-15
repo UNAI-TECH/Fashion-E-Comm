@@ -51,55 +51,64 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
 
             <div className="grid grid-cols-1 md:grid-cols-2 max-h-[90vh] overflow-y-auto">
               {/* Image */}
-              <div className="relative aspect-square md:aspect-auto bg-[#F5F5DC]/20">
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  className="w-full h-full object-cover"
-                />
+              <div className="relative aspect-square bg-white p-6 flex items-center justify-center border-r border-gray-100">
+                <div className="border border-[#D4AF37] p-2 w-full h-full flex items-center justify-center bg-white rounded-2xl shadow-sm">
+                  <img
+                    src={product.image}
+                    alt={product.name}
+                    className="w-full h-full object-contain rounded-xl"
+                  />
+                </div>
               </div>
 
               {/* Content */}
-              <div className="p-8">
-                <h2 className="font-serif text-3xl mb-4 text-[#1A1A1A]">
+              <div className="p-8 space-y-4">
+                <span className="text-[#D4AF37] uppercase tracking-[0.2em] text-[10px] font-bold block mb-1">Aanya Fashions</span>
+                <h2 className="font-serif text-3xl text-[#1A1A1A]">
                   {product.name}
                 </h2>
+                <div className="w-12 h-px bg-[#D4AF37]"></div>
 
                 {/* Rating */}
-                <div className="flex items-center gap-2 mb-6">
+                <div className="flex items-center gap-2">
                   {[...Array(5)].map((_, i) => (
                     <Star
                       key={i}
-                      className={`w-4 h-4 ${
+                      className={`w-3.5 h-3.5 ${
                         i < Math.floor(product.rating)
                           ? 'fill-[#D4AF37] text-[#D4AF37]'
                           : 'text-gray-300'
                       }`}
                     />
                   ))}
-                  <span className="text-sm text-gray-600">({product.rating})</span>
+                  <span className="text-xs text-gray-500 font-medium">({product.rating} customer rating)</span>
                 </div>
 
+                {/* Description Quote */}
+                <p className="text-gray-600 italic text-sm border-l-2 border-[#D4AF37] pl-3 py-1 bg-gray-50/50 rounded-r-lg">
+                  "{product.description || 'Premium quality traditional wear crafted with elegance.'}"
+                </p>
+
                 {/* Price */}
-                <div className="flex items-center gap-3 mb-6">
-                  <span className="text-3xl text-[#D4AF37]">${product.price}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl text-[#D4AF37] font-serif">₹{product.price.toLocaleString('en-IN')}</span>
                   {product.originalPrice && (
-                    <span className="text-xl text-gray-400 line-through">
-                      ${product.originalPrice}
+                    <span className="text-lg text-gray-400 line-through">
+                      ₹{product.originalPrice.toLocaleString('en-IN')}
                     </span>
                   )}
                 </div>
 
                 {/* Colors */}
-                <div className="mb-8">
-                  <h3 className="text-sm mb-3 text-gray-600">Available Colors</h3>
-                  <div className="flex gap-2">
+                <div>
+                  <h3 className="text-xs mb-2 text-gray-500 uppercase tracking-wider font-bold">Colors</h3>
+                  <div className="flex gap-1.5">
                     {product.colors.map((color, index) => (
                       <motion.button
                         key={index}
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
-                        className="w-10 h-10 rounded-full border-2 border-gray-300 hover:border-[#D4AF37]"
+                        className="w-8 h-8 rounded-full border border-gray-300 hover:border-[#D4AF37]"
                         style={{ backgroundColor: color }}
                       />
                     ))}
@@ -107,7 +116,7 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
                 </div>
 
                 {/* Buttons */}
-                <div className="flex gap-3">
+                <div className="flex gap-3 pt-2">
                   <motion.button
                     onClick={() => {
                       addToCart(product);
@@ -115,9 +124,9 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
                     }}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="flex-1 px-6 py-3 bg-[#D4AF37] text-white rounded-full flex items-center justify-center gap-2"
+                    className="flex-1 h-11 bg-white text-[#D4AF37] border border-[#D4AF37] font-bold text-xs tracking-wider uppercase flex items-center justify-center gap-2 hover:bg-[#D4AF37] hover:text-white transition-all duration-300"
                   >
-                    <ShoppingBag className="w-5 h-5" />
+                    <ShoppingBag className="w-4 h-4" />
                     Add to Cart
                   </motion.button>
                   <motion.button
@@ -128,15 +137,15 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
                         await addToWishlist(product as any);
                       }
                     }}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    className={`w-12 h-12 border-2 rounded-full flex items-center justify-center transition-colors ${
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className={`w-11 h-11 border flex items-center justify-center transition-colors ${
                       isInWishlist(product.id) 
                         ? 'border-red-500 bg-red-50 text-red-500' 
-                        : 'border-gray-300 text-gray-400 hover:border-[#D4AF37] hover:text-[#D4AF37]'
+                        : 'border-gray-200 text-gray-400 hover:border-[#D4AF37] hover:text-[#D4AF37] bg-white'
                     }`}
                   >
-                    <Heart className={`w-5 h-5 ${isInWishlist(product.id) ? 'fill-current' : ''}`} />
+                    <Heart className={`w-4 h-4 ${isInWishlist(product.id) ? 'fill-current' : ''}`} />
                   </motion.button>
                 </div>
 
@@ -144,7 +153,7 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
                 <motion.a
                   href={`/product/${product.id}`}
                   whileHover={{ x: 5 }}
-                  className="block mt-6 text-center text-[#D4AF37] hover:underline"
+                  className="block text-center text-xs font-bold text-[#D4AF37] hover:underline uppercase tracking-wider pt-2"
                 >
                   View Full Details →
                 </motion.a>

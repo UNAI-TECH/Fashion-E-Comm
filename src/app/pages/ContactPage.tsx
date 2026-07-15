@@ -72,7 +72,7 @@ export function ContactPage() {
                 </div>
                 <h3 className="font-serif text-2xl text-[#1A1A1A] mb-2">Email</h3>
                 <p className="text-gray-600 mb-2">We'll respond within 24 hours.</p>
-                <p className="text-lg font-medium text-[#D4AF37]">support@luxefashion.in</p>
+                <p className="text-lg font-medium text-[#D4AF37]">support@aanyafashions.in</p>
               </div>
 
               <div className="bg-white p-8 rounded-3xl shadow-sm hover:shadow-md transition-shadow">

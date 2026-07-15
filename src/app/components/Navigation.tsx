@@ -15,6 +15,9 @@ export function Navigation() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
+  const [isCollectionOpen, setIsCollectionOpen] = useState(false);
+  const [isMobileCollectionOpen, setIsMobileCollectionOpen] = useState(false);
+  const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -69,95 +72,232 @@ export function Navigation() {
     { name: 'Lehengas', path: '/category/lehengas' },
     { name: 'Salwar Sets', path: '/category/salwar-sets' },
     { name: 'Western', path: '/category/western' },
+    { name: 'About Us', path: '/about' },
     { name: 'Contact', path: '/contact' },
   ];
 
 
   return (
     <>
+      {/* 1. Standalone Logo (Left corner, transparent and crisp) */}
+      <Link to="/" className="hidden lg:block absolute top-0 left-0 z-[40] pointer-events-none">
+        <motion.div
+          whileHover={{ scale: 1.05 }}
+          className="flex items-center h-20 sm:h-28 lg:h-44 cursor-pointer pointer-events-auto"
+        >
+          <img
+            src="/logo_aanya.png"
+            alt="Aanya Fashions Logo"
+            className="h-full w-auto object-contain"
+          />
+        </motion.div>
+      </Link>
+
+      {/* 2. Desktop Standalone Center Navigation Pill Bar */}
+      <div className="hidden lg:flex fixed top-6 left-1/2 -translate-x-1/2 z-[40] items-center space-x-1 bg-white/90 backdrop-blur-md p-1 px-2 rounded-full border border-white/30 shadow-md">
+        <Link to="/">
+          <motion.span
+            whileHover={{ scale: 1.03 }}
+            className={`inline-block px-4 py-1.5 text-xs font-bold tracking-wider uppercase cursor-pointer rounded-full transition-all duration-300 ${
+              location.pathname === '/'
+                ? 'bg-[#800000] text-white shadow-sm'
+                : 'text-gray-700 hover:text-[#800000] hover:bg-gray-50'
+            }`}
+          >
+            Home
+          </motion.span>
+        </Link>
+
+        <Link to="/about">
+          <motion.span
+            whileHover={{ scale: 1.03 }}
+            className={`inline-block px-4 py-1.5 text-xs font-bold tracking-wider uppercase cursor-pointer rounded-full transition-all duration-300 ${
+              location.pathname === '/about'
+                ? 'bg-[#800000] text-white shadow-sm'
+                : 'text-gray-700 hover:text-[#800000] hover:bg-gray-50'
+            }`}
+          >
+            About Us
+          </motion.span>
+        </Link>
+
+        {/* Collection Dropdown Link */}
+        <div 
+          className="relative group"
+          onMouseEnter={() => setIsCollectionOpen(true)}
+          onMouseLeave={() => setIsCollectionOpen(false)}
+        >
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            className={`px-4 py-1.5 text-xs font-bold tracking-wider uppercase cursor-pointer flex items-center gap-1 rounded-full transition-all duration-300 ${
+              location.pathname.startsWith('/category/')
+                ? 'bg-[#800000] text-white shadow-sm'
+                : 'text-gray-700 hover:text-[#800000] hover:bg-gray-50'
+            }`}
+          >
+            Collection <ChevronDown className="w-3 h-3" />
+          </motion.button>
+
+          {/* Dropdown Menu */}
+          <AnimatePresence>
+            {isCollectionOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                transition={{ duration: 0.2 }}
+                className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-44 bg-white/95 backdrop-blur-md rounded-2xl border border-gray-100 shadow-xl overflow-hidden py-2 z-[60]"
+              >
+                {[
+                  { name: 'Sarees', path: '/category/sarees' },
+                  { name: 'Western', path: '/category/western' },
+                  { name: 'Lehengas', path: '/category/lehengas' },
+                  { name: 'Kurtis', path: '/category/kurtis' },
+                  { name: 'Salwar Sets', path: '/category/salwar-sets' },
+                  { name: 'Tradition', path: '/category/tradition' },
+                  { name: 'Maxi', path: '/category/maxi' },
+                ].map((sub) => (
+                  <Link 
+                    key={sub.name} 
+                    to={sub.path}
+                    className={`block px-5 py-2 text-xs font-semibold hover:bg-gray-50 transition-colors ${
+                      location.pathname === sub.path ? 'text-[#800000] bg-gray-50/50' : 'text-gray-700 hover:text-[#800000]'
+                    }`}
+                  >
+                    {sub.name}
+                  </Link>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        <Link to="/contact">
+          <motion.span
+            whileHover={{ scale: 1.03 }}
+            className={`inline-block px-4 py-1.5 text-xs font-bold tracking-wider uppercase cursor-pointer rounded-full transition-all duration-300 ${
+              location.pathname === '/contact'
+                ? 'bg-[#800000] text-white shadow-sm'
+                : 'text-gray-700 hover:text-[#800000] hover:bg-gray-50'
+            }`}
+          >
+            Contact
+          </motion.span>
+        </Link>
+      </div>
+
+      {/* 3. Desktop Standalone Right Icons Pill Bar */}
+      <div className="hidden lg:flex fixed top-6 right-8 z-[40] items-center space-x-1 bg-white/90 backdrop-blur-md p-1 px-2 rounded-full border border-white/30 shadow-md">
+        {/* Search - first position */}
+        <motion.button
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setIsSearchOpen(true)}
+          className="p-1.5 text-gray-700 hover:text-[#800000] hover:bg-white rounded-full transition-all"
+          aria-label="Search"
+        >
+          <Search className="w-4 h-4" />
+        </motion.button>
+        <motion.button
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setIsWishlistOpen(true)}
+          className="p-1.5 text-gray-700 hover:text-[#800000] hover:bg-white rounded-full transition-all relative"
+          aria-label="Wishlist"
+        >
+          <Heart className="w-4 h-4" />
+          <motion.span
+            initial={{ scale: 0 }}
+            animate={{ scale: wishlistCount > 0 ? 1 : 0 }}
+            className="absolute top-0 right-0 w-3.5 h-3.5 bg-[#800000] text-white text-[7px] font-bold rounded-full flex items-center justify-center border border-white"
+          >
+            {wishlistCount}
+          </motion.span>
+        </motion.button>
+        <Link to="/cart">
+          <motion.button
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.95 }}
+            className="relative p-1.5 text-gray-700 hover:text-[#D4AF37] hover:bg-white rounded-full transition-all group"
+            aria-label="Cart"
+          >
+            <ShoppingBag className="w-4 h-4 group-hover:scale-105 transition-transform" />
+            <motion.span
+              initial={{ scale: 0 }}
+              animate={{ scale: cartCount > 0 ? 1 : 0 }}
+              className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-[#D4AF37] text-white text-[9px] font-bold rounded-full flex items-center justify-center border border-white shadow-sm"
+            >
+              {cartCount}
+            </motion.span>
+          </motion.button>
+        </Link>
+        <Link to="/orders">
+          <motion.button
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.95 }}
+            className="p-1.5 text-gray-700 hover:text-[#800000] hover:bg-white rounded-full transition-all"
+            aria-label="Profile/Orders"
+          >
+            <User className="w-4 h-4" />
+          </motion.button>
+        </Link>
+      </div>
+
+      {/* 4. Mobile Unified Navigation Pill (Mobile only) */}
       <motion.nav
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.6, ease: 'easeOut' }}
-        className={`fixed left-0 right-0 z-[40] transition-all duration-500 ${isScrolled
-            ? 'top-0 bg-white shadow-lg'
-            : 'top-12 bg-white/40 backdrop-blur-md border-b border-white/20'
-          }`}
+        className={`lg:hidden fixed z-[40] transition-all duration-500 top-4 left-4 right-4 bg-white/90 backdrop-blur-md border border-white/30 shadow-md ${
+          isMobileMenuOpen ? 'rounded-[2rem]' : 'rounded-full'
+        }`}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20">
-            {/* Logo */}
-            <Link to="/" className="flex items-center">
+        <div className="w-full px-4 sm:px-6">
+          <div className="flex items-center justify-between h-16">
+            {/* Logo inside pill nav - always shown on mobile for balanced branding */}
+            <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center">
               <motion.div
-                whileHover={{ scale: 1.05 }}
-                className="font-serif text-3xl sm:text-4xl tracking-tighter font-extrabold"
-                style={{
-                  background: 'linear-gradient(135deg, var(--maroon) 0%, var(--gold) 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text'
-                }}
+                whileHover={{ scale: 1.04 }}
+                className="flex items-center h-11 sm:h-12"
               >
-                AfforX
+                <img
+                  src="/logo_aanya.png"
+                  alt="Aanya Fashions Logo"
+                  className="h-full w-auto object-contain"
+                />
               </motion.div>
             </Link>
 
-            {/* Desktop Menu */}
-            <div className="hidden lg:flex items-center space-x-8">
-              {menuItems.map((item) => (
-                <Link key={item.name} to={item.path}>
-                  <motion.span
-                    whileHover={{ y: -2 }}
-                    className={`text-sm font-bold tracking-wide cursor-pointer transition-colors ${location.pathname === item.path
-                        ? 'text-[#800000]'
-                        : 'text-gray-900 hover:text-[#800000]'
-                      }`}
-                  >
-                    {item.name}
-                  </motion.span>
-                </Link>
-              ))}
-            </div>
-
-            {/* Icons */}
-            <div className="flex items-center space-x-4 sm:space-x-6">
+            {/* Mobile menu button */}
+            <div className="flex items-center space-x-1 bg-transparent p-0.5 sm:space-x-1.5 ml-auto">
               <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setIsSearchOpen(true)}
-                className="text-gray-900 hover:text-[#800000] transition-colors"
-                aria-label="Search"
-              >
-                <Search className="w-5 h-5" />
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.1 }}
+                whileHover={{ scale: 1.08 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setIsWishlistOpen(true)}
-                className="hidden sm:block text-gray-900 hover:text-[#800000] transition-colors relative"
+                className="p-1.5 text-gray-700 hover:text-[#800000] hover:bg-white rounded-full transition-all relative"
                 aria-label="Wishlist"
               >
-                <Heart className="w-5 h-5" />
+                <Heart className="w-4 h-4" />
                 <motion.span
                   initial={{ scale: 0 }}
                   animate={{ scale: wishlistCount > 0 ? 1 : 0 }}
-                  className="absolute -top-1 -right-1 w-4 h-4 bg-[#800000] text-white text-[8px] font-bold rounded-full flex items-center justify-center border border-white"
+                  className="absolute top-0 right-0 w-3.5 h-3.5 bg-[#800000] text-white text-[7px] font-bold rounded-full flex items-center justify-center border border-white"
                 >
                   {wishlistCount}
                 </motion.span>
               </motion.button>
               <Link to="/cart">
                 <motion.button
-                  whileHover={{ scale: 1.1 }}
+                  whileHover={{ scale: 1.08 }}
                   whileTap={{ scale: 0.95 }}
-                  className="relative p-2 text-gray-700 hover:text-[#D4AF37] transition-colors group"
+                  className="relative p-1.5 text-gray-700 hover:text-[#D4AF37] hover:bg-white rounded-full transition-all group"
                   aria-label="Cart"
                 >
-                  <ShoppingBag className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                  <ShoppingBag className="w-4 h-4 group-hover:scale-105 transition-transform" />
                   <motion.span
                     initial={{ scale: 0 }}
                     animate={{ scale: cartCount > 0 ? 1 : 0 }}
-                    className="absolute -top-1 -right-1 w-5 h-5 bg-[#D4AF37] text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white shadow-sm"
+                    className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-[#D4AF37] text-white text-[9px] font-bold rounded-full flex items-center justify-center border border-white shadow-sm"
                   >
                     {cartCount}
                   </motion.span>
@@ -165,24 +305,22 @@ export function Navigation() {
               </Link>
               <Link to="/orders">
                 <motion.button
-                  whileHover={{ scale: 1.1 }}
+                  whileHover={{ scale: 1.08 }}
                   whileTap={{ scale: 0.95 }}
-                  className="hidden sm:block text-gray-900 hover:text-[#800000] transition-colors"
+                  className="p-1.5 text-gray-700 hover:text-[#800000] hover:bg-white rounded-full transition-all"
                   aria-label="Profile/Orders"
                 >
-                  <User className="w-5 h-5" />
+                  <User className="w-4 h-4" />
                 </motion.button>
               </Link>
-
-              {/* Mobile menu button */}
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="lg:hidden text-gray-900"
+                className="p-1.5 text-gray-900"
                 aria-label="Menu"
               >
-                {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </motion.button>
             </div>
           </div>
@@ -192,15 +330,15 @@ export function Navigation() {
         <AnimatePresence>
           {isMobileMenuOpen && (
             <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-              className="lg:hidden overflow-hidden bg-white border-t border-gray-100 shadow-2xl"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="overflow-hidden bg-white border-t border-gray-100 rounded-b-[2rem]"
             >
-              <div className="px-6 py-10 space-y-8">
+              <div className="px-6 py-8 space-y-6">
                 {/* Mobile Quick Links */}
-                <div className="grid grid-cols-4 gap-4 mb-8">
+                <div className="grid grid-cols-4 gap-4 mb-4">
                   {[
                     { icon: Search, label: 'Search', onClick: () => { setIsSearchOpen(true); setIsMobileMenuOpen(false); } },
                     { icon: Heart, label: 'Wishlist', onClick: () => { setIsWishlistOpen(true); setIsMobileMenuOpen(false); } },
@@ -214,48 +352,85 @@ export function Navigation() {
                           if (item.onClick) item.onClick();
                           if (item.path) {
                             setIsMobileMenuOpen(false);
-                            // Navigation handled by Link wrapper if path exists
                           }
                         }}
-                        className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-900 shadow-sm"
+                        className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-900 shadow-sm"
                       >
                         {item.path ? (
                           <Link to={item.path} className="w-full h-full flex items-center justify-center">
-                            <item.icon className="w-6 h-6" />
+                            <item.icon className="w-5 h-5" />
                           </Link>
                         ) : (
-                          <item.icon className="w-6 h-6" />
+                          <item.icon className="w-5 h-5" />
                         )}
                       </motion.button>
-                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{item.label}</span>
+                      <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{item.label}</span>
                     </div>
                   ))}
                 </div>
 
-                <div className="space-y-4">
-                  {menuItems.map((item) => (
-                    <Link
-                      key={item.name}
-                      to={item.path}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="block"
+                <div className="space-y-3">
+                  <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="block">
+                    <div className={`text-base font-bold py-1 ${location.pathname === '/' ? 'text-[#800000]' : 'text-gray-800'}`}>
+                      Home
+                    </div>
+                  </Link>
+
+                  {/* Mobile Collapsible Collection */}
+                  <div>
+                    <button 
+                      onClick={() => setIsMobileCollectionOpen(!isMobileCollectionOpen)}
+                      className="w-full text-left py-1 text-base font-bold flex items-center justify-between text-gray-800"
                     >
-                      <motion.div
-                        whileHover={{ x: 10 }}
-                        className={`text-2xl font-serif py-2 flex items-center justify-between group ${location.pathname === item.path
-                            ? 'text-[#800000]'
-                            : 'text-gray-900'
-                          }`}
-                      >
-                        {item.name}
-                        <ArrowRight className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </motion.div>
-                    </Link>
-                  ))}
+                      Collection <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isMobileCollectionOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    <AnimatePresence>
+                      {isMobileCollectionOpen && (
+                        <motion.div 
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="pl-4 border-l border-gray-100 mt-2 space-y-2 overflow-hidden"
+                        >
+                          {[
+                            { name: 'Sarees', path: '/category/sarees' },
+                            { name: 'Western', path: '/category/western' },
+                            { name: 'Lehengas', path: '/category/lehengas' },
+                            { name: 'Kurtis', path: '/category/kurtis' },
+                            { name: 'Salwar Sets', path: '/category/salwar-sets' },
+                            { name: 'Tradition', path: '/category/tradition' },
+                            { name: 'Maxi', path: '/category/maxi' },
+                          ].map((sub) => (
+                            <Link 
+                              key={sub.name} 
+                              to={sub.path} 
+                              onClick={() => setIsMobileMenuOpen(false)}
+                              className={`block text-sm py-1 ${location.pathname === sub.path ? 'text-[#800000] font-bold' : 'text-gray-600'}`}
+                            >
+                              {sub.name}
+                            </Link>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  <Link to="/about" onClick={() => setIsMobileMenuOpen(false)} className="block">
+                    <div className={`text-base font-bold py-1 ${location.pathname === '/about' ? 'text-[#800000]' : 'text-gray-800'}`}>
+                      About Us
+                    </div>
+                  </Link>
+
+                  <Link to="/contact" onClick={() => setIsMobileMenuOpen(false)} className="block">
+                    <div className={`text-base font-bold py-1 ${location.pathname === '/contact' ? 'text-[#800000]' : 'text-gray-800'}`}>
+                      Contact
+                    </div>
+                  </Link>
                 </div>
 
-                <div className="pt-8 border-t border-gray-100">
-                  <Link to="/contact" onClick={() => setIsMobileMenuOpen(false)} className="block py-4 px-6 bg-[#800000] text-white rounded-2xl text-center font-bold shadow-lg">
+                <div className="pt-4 border-t border-gray-100">
+                  <Link to="/contact" onClick={() => setIsMobileMenuOpen(false)} className="block py-2.5 px-6 bg-[#800000] text-white rounded-xl text-center text-sm font-bold shadow-md">
                     Contact Us
                   </Link>
                 </div>

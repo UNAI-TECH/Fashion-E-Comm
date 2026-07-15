@@ -7,35 +7,35 @@ const categories = [
     id: 1,
     name: 'Sarees',
     path: '/category/sarees',
-    image: 'https://images.unsplash.com/photo-1756483551860-2b312666ac53?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxpbmRpYW4lMjB3b21hbiUyMHNhcmVlJTIwZmFzaGlvbnxlbnwxfHx8fDE3NzQ0MTczMjV8MA&ixlib=rb-4.1.0&q=80&w=1080',
+    image: '/saree_category_stacked.jpg',
     cta: 'Shop Collection',
   },
   {
     id: 2,
     name: 'Kurtis',
     path: '/category/kurtis',
-    image: 'https://images.unsplash.com/photo-1768803968262-320d4752966f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxpbmRpYW4lMjB3b21hbiUyMGt1cnRpJTIwZmFzaGlvbnxlbnwxfHx8fDE3NzQ0MTczMjV8MA&ixlib=rb-4.1.0&q=80&w=1080',
+    image: '/kurti_category_green.jpg',
     cta: 'Shop Now',
   },
   {
     id: 3,
     name: 'Lehengas',
     path: '/category/lehengas',
-    image: 'https://images.unsplash.com/photo-1767955694884-d4bf352c23c2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxpbmRpYW4lMjBsZWhlbmdhJTIwZmFzaGlvbnxlbnwxfHx8fDE3NzQ0MTczMjV8MA&ixlib=rb-4.1.0&q=80&w=1080',
+    image: '/lehenga_category_pink.jpg',
     cta: 'Explore Styles',
   },
   {
     id: 4,
     name: 'Western',
     path: '/category/western',
-    image: 'https://images.unsplash.com/photo-1759840278511-f73a3d62fb9f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxpbmRpYW4lMjB3b21hbiUyMHdlc3Rlcm4lMjBkcmVzc3xlbnwxfHx8fDE3NzQ0MTczMzB8MA&ixlib=rb-4.1.0&q=80&w=1080',
+    image: '/western_category_casual.jpg',
     cta: 'View Trends',
   },
 ];
 
 export function FeaturedCategories() {
   return (
-    <section className="py-20 px-4 bg-white">
+    <section className="py-20 px-4 bg-white" id="collections">
       <div className="max-w-7xl mx-auto">
         {/* Section Header */}
         <motion.div
@@ -74,7 +74,7 @@ export function FeaturedCategories() {
             >
               <Link to={category.path}>
                 <motion.div
-                  className="relative aspect-[3/4] rounded-3xl overflow-hidden shadow-lg"
+                  className="relative aspect-square rounded-[3rem] overflow-hidden shadow-lg"
                 >
                   {/* Image */}
                   <motion.div

@@ -3,134 +3,99 @@ import { ArrowRight } from 'lucide-react';
 
 export function MotionBanner() {
   return (
-    <section className="relative h-screen overflow-hidden bg-black">
-      {/* Video-like animated background */}
-      <div className="absolute inset-0">
-        <motion.div
-          initial={{ scale: 1.2 }}
-          animate={{ 
-            scale: [1.2, 1, 1.2],
-            x: [0, -50, 0],
-          }}
-          transition={{
-            duration: 20,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-          className="w-full h-full"
-        >
-          <img
-            src="https://images.unsplash.com/photo-1769981271695-bb3d766ee419?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmYXNoaW9uJTIwZGVzaWduZXIlMjBjbG90aGluZyUyMHJhY2t8ZW58MXx8fHwxNzc0Mjc0NDg0fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
-            alt="Fashion Collection"
-            className="w-full h-full object-cover"
-          />
-        </motion.div>
+    <section className="relative w-full min-h-[620px] md:min-h-0 md:aspect-[19/8] flex flex-col md:flex-row items-center overflow-hidden bg-[#F1CBD3] py-12 md:py-0">
+      {/* Background Image - bottom-aligned on mobile, right-aligned on desktop */}
+      <div className="absolute bottom-0 right-0 w-full h-[45%] md:h-full md:w-[55%] pointer-events-none z-0">
+        <img
+          src="/hero_new.png"
+          alt="Fashion Collection"
+          className="w-full h-full object-contain object-bottom md:object-right"
+        />
       </div>
 
-      {/* Gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
+      {/* Transparent spacer overlay */}
+      <div className="absolute inset-0 bg-transparent pointer-events-none" />
 
-      {/* Animated content */}
-      <div className="relative z-10 h-full flex items-center">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="max-w-2xl">
-            {/* Animated text reveals */}
+      {/* Content wrapper - centered on mobile, left-aligned on desktop */}
+      <div className="relative z-10 w-full px-6 sm:px-12 md:px-16 lg:px-24 flex items-center h-full">
+        <div className="max-w-md mx-auto md:mx-0 md:max-w-lg lg:max-w-xl text-center md:text-left">
+          {/* Animated text decoration line */}
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="mb-4 flex justify-center md:justify-start"
+          >
             <motion.div
-              initial={{ opacity: 0, x: -50 }}
-              whileInView={{ opacity: 1, x: 0 }}
+              initial={{ width: 0 }}
+              whileInView={{ width: '80px' }}
               viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
-              className="mb-6"
+              transition={{ delay: 0.3, duration: 0.8 }}
+              className="h-1 bg-[#D4AF37]"
+            />
+          </motion.div>
+
+          {/* Headline */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="mb-4"
+          >
+            <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl text-[#1A1A1A] leading-tight">
+              New Season
+              <br />
+              <span className="text-[#800000]">Collection</span>
+            </h2>
+          </motion.div>
+
+          {/* Description */}
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2, duration: 0.8 }}
+            className="text-xs sm:text-sm md:text-base text-gray-700 mb-6 leading-relaxed max-w-sm sm:max-w-md md:max-w-none mx-auto md:mx-0"
+          >
+            Discover the latest trends in women's fashion. Curated pieces that blend timeless elegance with contemporary style.
+          </motion.p>
+
+          {/* Buttons */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.4, duration: 0.8 }}
+            className="flex flex-wrap justify-center md:justify-start gap-3"
+          >
+            <motion.button
+              onClick={() => window.location.href = '/category/all'}
+              whileHover={{ scale: 1.03, x: 5 }}
+              whileTap={{ scale: 0.97 }}
+              className="group px-5 py-3 bg-[#1A1A1A] text-white rounded-none flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-all hover:bg-[#800000]"
             >
+              Shop Collection
               <motion.div
-                initial={{ width: 0 }}
-                whileInView={{ width: '100px' }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.3, duration: 0.8 }}
-                className="h-1 bg-[#D4AF37] mb-8"
-              />
-              
-              <h2 className="font-serif text-5xl sm:text-6xl md:text-7xl text-white mb-6 leading-tight">
-                New Season
-                <br />
-                <span style={{ color: '#D4AF37' }}>Collection</span>
-              </h2>
-            </motion.div>
-
-            <motion.p
-              initial={{ opacity: 0, x: -50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.4, duration: 0.8 }}
-              className="text-xl text-gray-200 mb-8 leading-relaxed"
-            >
-              Discover the latest trends in women's fashion. Curated pieces that blend timeless elegance with contemporary style.
-            </motion.p>
-
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.6, duration: 0.8 }}
-              className="flex flex-wrap gap-4"
-            >
-              <motion.button
-                onClick={() => window.location.href = '/category/all'}
-                whileHover={{ scale: 1.05, x: 10 }}
-                whileTap={{ scale: 0.95 }}
-                className="group px-8 py-4 bg-white text-black rounded-none flex items-center gap-3 text-lg transition-all hover:bg-[#D4AF37] hover:text-white"
+                animate={{ x: [0, 4, 0] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
               >
-                Shop Collection
-                <motion.div
-                  animate={{ x: [0, 5, 0] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                >
-                  <ArrowRight className="w-5 h-5" />
-                </motion.div>
-              </motion.button>
+                <ArrowRight className="w-4 h-4" />
+              </motion.div>
+            </motion.button>
 
-              <motion.button
-                onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-8 py-4 bg-transparent border-2 border-white text-white rounded-none text-lg hover:bg-white hover:text-black transition-all"
-              >
-                Learn More
-              </motion.button>
-            </motion.div>
-          </div>
+            <motion.button
+              onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              className="px-5 py-3 bg-transparent border border-[#1A1A1A] text-[#1A1A1A] rounded-none text-xs font-bold uppercase tracking-wider hover:bg-[#1A1A1A] hover:text-white transition-all"
+            >
+              Learn More
+            </motion.button>
+          </motion.div>
         </div>
       </div>
-
-      {/* Animated scroll indicator */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1, y: [0, 10, 0] }}
-        transition={{
-          opacity: { delay: 1, duration: 1 },
-          y: { duration: 2, repeat: Infinity, ease: 'easeInOut' },
-        }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white text-sm tracking-widest"
-      >
-        <div className="flex flex-col items-center gap-2">
-          <span>SCROLL</span>
-          <div className="w-px h-12 bg-white/50" />
-        </div>
-      </motion.div>
-
-      {/* Parallax elements */}
-      <motion.div
-        animate={{
-          y: [0, -30, 0],
-          opacity: [0.3, 0.6, 0.3],
-        }}
-        transition={{
-          duration: 8,
-          repeat: Infinity,
-          ease: 'easeInOut',
-        }}
-        className="absolute top-1/4 right-1/4 w-64 h-64 bg-[#D4AF37]/10 rounded-full blur-3xl"
-      />
     </section>
   );
 }

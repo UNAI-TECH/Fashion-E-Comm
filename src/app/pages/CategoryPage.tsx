@@ -38,7 +38,7 @@ export function CategoryPage() {
       <AnnouncementBar />
       <Navigation />
       
-      <main className="pt-32 pb-20 px-4 max-w-7xl mx-auto">
+      <main className="pt-44 sm:pt-48 lg:pt-52 pb-20 px-4 max-w-7xl mx-auto">
         {/* Breadcrumbs */}
         <div className="flex items-center gap-2 text-sm text-gray-500 mb-8">
           <Link to="/" className="hover:text-[#D4AF37]">Home</Link>

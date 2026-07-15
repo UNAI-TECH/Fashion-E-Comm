@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router';
 import { Navigation } from '../components/Navigation';
 import { AnnouncementBar } from '../components/AnnouncementBar';
 import { HeroSection } from '../components/HeroSection';
 import { FeaturedCategories } from '../components/FeaturedCategories';
 import { TrendingCollection } from '../components/TrendingCollection';
-import { StylePicks } from '../components/StylePicks';
-import { FlashSale } from '../components/FlashSale';
 import { MotionBanner } from '../components/MotionBanner';
 import { Testimonials } from '../components/Testimonials';
 import { InstagramGallery } from '../components/InstagramGallery';
@@ -15,6 +14,7 @@ import { fetchProducts, Product } from '../data/products';
 export function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const location = useLocation();
 
   useEffect(() => {
     async function loadAllProducts() {
@@ -32,6 +32,18 @@ export function Home() {
     loadAllProducts();
   }, []);
 
+  useEffect(() => {
+    if (!isLoading && location.hash) {
+      const id = location.hash.substring(1);
+      const element = document.getElementById(id);
+      if (element) {
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      }
+    }
+  }, [location, isLoading]);
+
   return (
     <div className="min-h-screen">
       <AnnouncementBar />
@@ -39,9 +51,7 @@ export function Home() {
       <HeroSection />
       <FeaturedCategories />
       <MotionBanner />
-      <TrendingCollection products={products.slice(0, 8)} isLoading={isLoading} />
-      <StylePicks products={products.slice(8, 12)} isLoading={isLoading} />
-      <FlashSale products={products.slice(12, 16)} isLoading={isLoading} />
+      <TrendingCollection products={products} isLoading={isLoading} />
       <Testimonials />
       <InstagramGallery />
       <Footer />
