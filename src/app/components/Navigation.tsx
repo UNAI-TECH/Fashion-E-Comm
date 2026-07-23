@@ -247,7 +247,7 @@ export function Navigation() {
       <Link to="/" className="hidden lg:block absolute top-0 left-0 z-[40] pointer-events-none">
         <motion.div
           whileHover={{ scale: 1.05 }}
-          className="flex items-center h-20 sm:h-28 lg:h-44 cursor-pointer pointer-events-auto"
+          className="flex items-center h-12 sm:h-16 lg:h-20 cursor-pointer pointer-events-auto"
         >
           <img
             src="/logo_aanya.png"
@@ -835,12 +835,12 @@ export function Navigation() {
             className="fixed inset-0 z-[200] bg-[#FDFBF7] overflow-y-auto animate-fade-in"
           >
             {/* Header */}
-            <div className="sticky top-0 z-20 flex items-center justify-between px-6 sm:px-8 pt-6 sm:pt-4 pb-2 bg-[#FDFBF7]/90 backdrop-blur-md">
-              <Link to="/" onClick={() => setIsCartOpen(false)} className="w-24 h-24 sm:w-32 sm:h-32 flex items-center justify-start pointer-events-auto">
+            <div className="sticky top-0 z-20 flex items-center justify-between px-6 sm:px-8 py-3 bg-[#FDFBF7]/90 backdrop-blur-md border-b border-gray-100/30">
+              <Link to="/" onClick={() => setIsCartOpen(false)} className="h-10 sm:h-12 flex items-center justify-start pointer-events-auto">
                 <img
                   src="/logo_aanya.png"
                   alt="Aanya Fashions Logo"
-                  className="w-full h-full object-contain"
+                  className="h-full w-auto object-contain"
                 />
               </Link>
               <button
@@ -916,12 +916,12 @@ export function Navigation() {
             className="fixed inset-0 z-[200] bg-[#FDFBF7] overflow-y-auto animate-fade-in"
           >
             {/* Header */}
-            <div className="sticky top-0 z-20 flex items-center justify-between px-6 sm:px-8 pt-6 sm:pt-4 pb-2 bg-[#FDFBF7]/90 backdrop-blur-md">
-              <Link to="/" onClick={() => setIsAccountOpen(false)} className="w-24 h-24 sm:w-32 sm:h-32 flex items-center justify-start pointer-events-auto">
+            <div className="sticky top-0 z-20 flex items-center justify-between px-6 sm:px-8 py-3 bg-[#FDFBF7]/90 backdrop-blur-md border-b border-gray-100/30">
+              <Link to="/" onClick={() => setIsAccountOpen(false)} className="h-10 sm:h-12 flex items-center justify-start pointer-events-auto">
                 <img
                   src="/logo_aanya.png"
                   alt="Aanya Fashions Logo"
-                  className="w-full h-full object-contain"
+                  className="h-full w-auto object-contain"
                 />
               </Link>
               <button
