@@ -79,7 +79,6 @@ export function ProductCard({
                   e.preventDefault();
                   e.stopPropagation();
                   addToCart(product);
-                  window.dispatchEvent(new CustomEvent('open-cart'));
                 }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -115,7 +114,6 @@ export function ProductCard({
                   e.preventDefault();
                   e.stopPropagation();
                   addToCart(product);
-                  window.dispatchEvent(new CustomEvent('open-cart'));
                 }}
                 className="lg:hidden p-2 bg-[#1A1A1A] text-white rounded-lg shadow-sm active:scale-95 transition-transform"
               >
