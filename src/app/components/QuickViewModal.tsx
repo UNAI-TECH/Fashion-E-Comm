@@ -127,24 +127,6 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
                     <ShoppingBag className="w-4 h-4" />
                     Add to Cart
                   </motion.button>
-                  <motion.button
-                    onClick={async () => {
-                      if (isInWishlist(product.id)) {
-                        await removeFromWishlist(product.id);
-                      } else {
-                        await addToWishlist(product as any);
-                      }
-                    }}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className={`w-11 h-11 border flex items-center justify-center transition-colors ${
-                      isInWishlist(product.id) 
-                        ? 'border-red-500 bg-red-50 text-red-500' 
-                        : 'border-gray-200 text-gray-400 hover:border-[#D4AF37] hover:text-[#D4AF37] bg-white'
-                    }`}
-                  >
-                    <Heart className={`w-4 h-4 ${isInWishlist(product.id) ? 'fill-current' : ''}`} />
-                  </motion.button>
                 </div>
 
                 {/* View Full Details */}

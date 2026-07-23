@@ -204,11 +204,19 @@ export function ProductPage() {
     loadProduct();
   }, [id]);
 
-  const handleAddToCart = async () => {
+  const handleAddToCart = () => {
     if (product) {
-      await addToWishlist(product);
-      toast.success(`${product.name} saved to your Wishlist Collection!`);
-      window.dispatchEvent(new CustomEvent('open-wishlist'));
+      addToCart({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        originalPrice: product.originalPrice || product.compare_at_price,
+        image: product.image,
+        rating: product.rating,
+        colors: product.colors
+      } as any);
+      toast.success(`${product.name} added to your Cart!`);
+      window.dispatchEvent(new CustomEvent('open-cart'));
     }
   };
 
@@ -348,19 +356,7 @@ export function ProductPage() {
                   whileTap={{ scale: 0.98 }} 
                   className="flex-1 h-14 bg-[#FFF9E6] hover:bg-[#F5E6BE] text-[#800000] border-2 border-[#F5E6BE] rounded-2xl font-black text-xs tracking-[0.15em] uppercase shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
-                  <Heart className="w-4 h-4 text-[#800000] fill-[#800000]/20" /> Add to Wishlist
-                </motion.button>
-                <motion.button 
-                  onClick={handleWishlistToggle} 
-                  whileHover={{ scale: 1.02 }} 
-                  whileTap={{ scale: 0.98 }} 
-                  className={`w-14 h-14 rounded-2xl border-2 flex items-center justify-center transition-all cursor-pointer ${
-                    isInWishlist(product.id) 
-                      ? 'border-rose-400 bg-rose-100 text-rose-600 shadow-sm' 
-                      : 'border-amber-200 text-amber-700 hover:border-amber-400 bg-[#FFF9E6]'
-                  }`}
-                >
-                  <Heart className={`w-5 h-5 ${isInWishlist(product.id) ? 'fill-current text-rose-600' : ''}`} />
+                  <ShoppingBag className="w-4 h-4 text-[#800000]" /> Add to Bag
                 </motion.button>
               </div>
 

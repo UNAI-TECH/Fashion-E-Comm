@@ -59,15 +59,7 @@ export function ProductCard({
         </motion.div>
       )}
 
-      {/* Wishlist Button */}
-      <motion.button
-        onClick={handleWishlistToggle}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-        className="absolute top-4 right-4 z-10 w-10 h-10 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-      >
-        <Heart className={`w-5 h-5 transition-colors ${isInWishlist(id) ? 'fill-red-500 text-red-500' : 'text-gray-800'}`} />
-      </motion.button>
+
 
       {/* Image Container */}
       <Link to={`/product/${id}`} className="block relative">

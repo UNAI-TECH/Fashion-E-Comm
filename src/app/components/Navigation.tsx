@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, User, Package, Heart, ChevronDown, ArrowRight, X, Phone, Plus, Minus, Trash2, Menu, Clock, ArrowLeft } from 'lucide-react';
+import { Search, User, Package, Heart, ChevronDown, ArrowRight, X, Phone, Plus, Minus, Trash2, Menu, Clock, ArrowLeft, ShoppingBag } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import { useWishlist } from '../contexts/WishlistContext';
 import { Link, useLocation, useNavigate } from 'react-router';
@@ -80,16 +80,16 @@ export function Navigation() {
       setIsScrolled(window.scrollY > 50);
     };
 
-    const handleOpenWishlist = () => {
-      setIsWishlistOpen(true);
+    const handleOpenCart = () => {
+      setIsCartOpen(true);
     };
 
     window.addEventListener('scroll', handleScroll);
-    window.addEventListener('open-wishlist', handleOpenWishlist);
+    window.addEventListener('open-cart', handleOpenCart);
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('open-wishlist', handleOpenWishlist);
+      window.removeEventListener('open-cart', handleOpenCart);
     };
   }, []);
 
@@ -321,11 +321,16 @@ export function Navigation() {
         <motion.button
           whileHover={{ scale: 1.08 }}
           whileTap={{ scale: 0.95 }}
-          onClick={() => setIsWishlistOpen(true)}
+          onClick={() => setIsCartOpen(true)}
           className="p-1.5 text-gray-700 hover:text-[#800000] hover:bg-white rounded-full transition-all relative"
-          aria-label="Wishlist"
+          aria-label="Cart"
         >
-          <Heart className="w-4 h-4 text-rose-600 fill-rose-100" />
+          <ShoppingBag className="w-4 h-4 text-gray-700" />
+          {cartCount > 0 && (
+            <span className="absolute -top-1 -right-1 bg-[#800000] text-white text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+              {cartCount}
+            </span>
+          )}
         </motion.button>
         <Link to="/orders">
           <motion.button
@@ -337,16 +342,15 @@ export function Navigation() {
             <Package className="w-4 h-4 text-emerald-700" />
           </motion.button>
         </Link>
-        <Link to="/contact">
-          <motion.button
-            whileHover={{ scale: 1.08 }}
-            whileTap={{ scale: 0.95 }}
-            className="p-1.5 text-gray-700 hover:text-[#800000] hover:bg-white rounded-full transition-all"
-            aria-label="Contact"
-          >
-            <Phone className="w-4 h-4" />
-          </motion.button>
-        </Link>
+        <motion.a
+          href="tel:+918838226394"
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.95 }}
+          className="p-1.5 text-gray-700 hover:text-[#800000] hover:bg-white rounded-full transition-all flex items-center justify-center cursor-pointer"
+          aria-label="Call Owner"
+        >
+          <Phone className="w-4 h-4" />
+        </motion.a>
       </div>
 
       {/* 4. Mobile Unified Navigation Pill (Mobile only) */}
@@ -502,21 +506,26 @@ export function Navigation() {
                     <span className="text-[9px] font-black text-amber-700 uppercase tracking-wider">Search</span>
                   </div>
 
-                  {/* Wishlist Action */}
+                  {/* Cart Action */}
                   <div className="flex flex-col items-center gap-1.5 w-full">
                     <motion.button
                       whileHover={{ scale: 1.08 }}
                       whileTap={{ scale: 0.92 }}
                       onClick={() => {
                         setIsMobileMenuOpen(false);
-                        setIsWishlistOpen(true);
+                        setIsCartOpen(true);
                       }}
                       className="w-11 h-11 bg-rose-100/90 border border-rose-300 text-rose-600 rounded-2xl flex items-center justify-center shadow-sm hover:bg-rose-200/90 transition-all relative"
-                      aria-label="Wishlist"
+                      aria-label="Cart"
                     >
-                      <Heart className="w-5 h-5 stroke-[2.5] fill-rose-200" />
+                      <ShoppingBag className="w-5 h-5 stroke-[2.5]" />
+                      {cartCount > 0 && (
+                        <span className="absolute -top-1.5 -right-1.5 bg-[#800000] text-white text-[9px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-white">
+                          {cartCount}
+                        </span>
+                      )}
                     </motion.button>
-                    <span className="text-[9px] font-black text-rose-700 uppercase tracking-wider">Wishlist</span>
+                    <span className="text-[9px] font-black text-rose-700 uppercase tracking-wider">Cart</span>
                   </div>
 
                   {/* My Orders Action */}
