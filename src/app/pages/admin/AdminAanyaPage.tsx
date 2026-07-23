@@ -246,26 +246,26 @@ export function AdminAanyaPage() {
       <motion.aside
         animate={{ width: sidebarOpen ? 240 : 72 }}
         transition={{ duration: 0.25, ease: 'easeInOut' }}
-        className="flex-shrink-0 bg-[#1A0A0A] flex flex-col h-full z-30 overflow-hidden"
+        className="flex-shrink-0 bg-white border-r border-gray-100 flex flex-col h-full z-30 overflow-hidden shadow-sm"
       >
         {/* Logo area */}
-        <div className="flex items-center gap-3 px-4 py-5 border-b border-white/10 min-h-[80px]">
-          <Link to="/">
-            <img src="/logo_aanya.png" alt="Aanya Logo" className="h-11 w-11 object-contain flex-shrink-0 invert brightness-200" />
+        <div className="flex items-center gap-3 px-4 py-4 border-b border-gray-100 min-h-[88px]">
+          <Link to="/" className="flex-shrink-0">
+            <img src="/logo_aanya.png" alt="Aanya Logo" className="h-16 w-auto object-contain" />
           </Link>
           <AnimatePresence>
             {sidebarOpen && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 className="overflow-hidden whitespace-nowrap">
-                <div className="text-white font-serif font-bold text-base leading-tight">Aanya Fashions</div>
-                <div className="text-[#D4AF37] text-xs font-bold uppercase tracking-widest">Admin Portal</div>
+                <div className="text-gray-900 font-serif font-bold text-sm leading-tight">Aanya Fashions</div>
+                <div className="text-gray-400 text-xs font-bold uppercase tracking-widest">Admin Portal</div>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
 
         {/* Nav links */}
-        <nav className="flex-1 py-6 px-2 space-y-1 overflow-y-auto">
+        <nav className="flex-1 py-5 px-2 space-y-1 overflow-y-auto">
           {NAV_ITEMS.map(item => {
             const isActive = activeTab === item.id;
             return (
@@ -273,13 +273,13 @@ export function AdminAanyaPage() {
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
                 title={!sidebarOpen ? item.label : undefined}
-                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all group cursor-pointer ${
+                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all cursor-pointer ${
                   isActive
-                    ? 'bg-[#800000] text-white shadow-lg shadow-[#800000]/30'
-                    : 'text-gray-400 hover:text-white hover:bg-white/8'
+                    ? 'bg-pink-100 text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-900 hover:bg-rose-50'
                 }`}
               >
-                <span className="flex-shrink-0">{item.icon}</span>
+                <span className={`flex-shrink-0 ${isActive ? 'text-pink-500' : ''}`}>{item.icon}</span>
                 <AnimatePresence>
                   {sidebarOpen && (
                     <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -289,7 +289,7 @@ export function AdminAanyaPage() {
                   )}
                 </AnimatePresence>
                 {isActive && sidebarOpen && (
-                  <div className="ml-auto w-1.5 h-1.5 bg-[#D4AF37] rounded-full flex-shrink-0" />
+                  <div className="ml-auto w-2 h-2 bg-pink-400 rounded-full flex-shrink-0" />
                 )}
               </button>
             );
@@ -297,9 +297,9 @@ export function AdminAanyaPage() {
         </nav>
 
         {/* Bottom actions */}
-        <div className="px-2 pb-6 space-y-1 border-t border-white/10 pt-4">
+        <div className="px-2 pb-6 space-y-1 border-t border-gray-100 pt-4">
           <Link to="/"
-            className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/8 transition-all"
+            className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-rose-50 transition-all"
             title={!sidebarOpen ? 'Storefront' : undefined}
           >
             <Store className="w-5 h-5 flex-shrink-0" />
@@ -307,7 +307,7 @@ export function AdminAanyaPage() {
           </Link>
           <button
             onClick={() => setSidebarOpen(prev => !prev)}
-            className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/8 transition-all cursor-pointer"
+            className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-rose-50 transition-all cursor-pointer"
             title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
           >
             {sidebarOpen
