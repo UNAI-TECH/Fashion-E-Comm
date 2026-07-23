@@ -834,9 +834,13 @@ export function Navigation() {
             transition={{ duration: 0.22, ease: [0.25, 1, 0.5, 1] }}
             className="fixed inset-0 z-[200] bg-[#FDFBF7] flex flex-col overflow-hidden animate-fade-in"
           >            {/* Header */}
-            <div className="flex items-center justify-between px-6 sm:px-8 pt-12 sm:pt-10 pb-4 border-b border-gray-100 bg-white shadow-sm">
-              <Link to="/" onClick={() => setIsCartOpen(false)} className="flex items-center">
-                <img src="/logo_aanya.png" alt="Aanya Fashions" className="h-10 sm:h-12 w-auto object-contain" />
+            <div className="flex items-center justify-between px-6 sm:px-8 pt-6 sm:pt-8 pb-4 border-b border-gray-100 bg-white shadow-sm h-24">
+              <Link to="/" onClick={() => setIsCartOpen(false)} className="flex items-center h-16 sm:h-20">
+                <img
+                  src="/logo_aanya.png"
+                  alt="Aanya Fashions Logo"
+                  className="h-full w-auto object-contain font-bold"
+                />
               </Link>
               <h2 className="text-base font-serif text-lg sm:text-xl font-bold text-gray-900 tracking-wide">My Shopping Cart</h2>
               <button
@@ -912,9 +916,13 @@ export function Navigation() {
             className="fixed inset-0 z-[200] bg-[#FDFBF7] flex flex-col overflow-hidden animate-fade-in"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-6 sm:px-8 pt-12 sm:pt-10 pb-4 border-b border-gray-100 bg-white shadow-sm">
-              <Link to="/" onClick={() => setIsAccountOpen(false)} className="flex items-center">
-                <img src="/logo_aanya.png" alt="Aanya Fashions" className="h-10 sm:h-12 w-auto object-contain" />
+            <div className="flex items-center justify-between px-6 sm:px-8 pt-6 sm:pt-8 pb-4 border-b border-gray-100 bg-white shadow-sm h-24">
+              <Link to="/" onClick={() => setIsAccountOpen(false)} className="flex items-center h-16 sm:h-20">
+                <img
+                  src="/logo_aanya.png"
+                  alt="Aanya Fashions Logo"
+                  className="h-full w-auto object-contain font-bold"
+                />
               </Link>
               <h2 className="text-base font-serif text-lg sm:text-xl font-bold text-gray-900 tracking-wide">My Account Profile</h2>
               <button
