@@ -338,6 +338,35 @@ export function ProductPage() {
                 )}
               </div>
 
+              {/* Size Selector */}
+              <div className="space-y-3 py-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs uppercase tracking-widest text-gray-400 font-bold">Select Size</span>
+                  {selectedSize && (
+                    <span className="text-xs font-bold text-[#800000] bg-rose-50 px-2.5 py-0.5 rounded-full border border-rose-100">
+                      Selected: {selectedSize}
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {['S', 'M', 'L', 'XL', 'XXL', 'XXXL'].map((size) => (
+                    <motion.button
+                      key={size}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setSelectedSize(size)}
+                      className={`h-11 px-4 border text-xs font-black transition-all rounded-xl cursor-pointer ${
+                        selectedSize === size
+                          ? 'border-[#800000] bg-[#800000] text-white shadow-sm'
+                          : 'border-gray-200 text-gray-800 hover:border-gray-400 hover:bg-gray-50'
+                      }`}
+                    >
+                      {size}
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+
               {/* Quantity */}
               <div className="flex items-center gap-4 py-2">
                 <span className="text-xs uppercase tracking-widest text-gray-400 font-bold">Quantity</span>

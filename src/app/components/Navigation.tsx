@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, User, Package, Heart, ChevronDown, ArrowRight, X, Phone, Plus, Minus, Trash2, Menu, Clock, ArrowLeft, ShoppingBag } from 'lucide-react';
+import { Search, User, Package, Heart, ChevronDown, ArrowRight, X, Phone, Plus, Minus, Trash2, Menu, Clock, ArrowLeft, ShoppingBag, Camera } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import { useWishlist } from '../contexts/WishlistContext';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { supabase } from '../../lib/supabase';
 import { Product, fetchProducts } from '../data/products';
+import { toast } from 'sonner';
 
 export function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
@@ -28,6 +29,44 @@ export function Navigation() {
   });
   const location = useLocation();
   const navigate = useNavigate();
+
+  const [isAccountOpen, setIsAccountOpen] = useState(false);
+  const [profileDetails, setProfileDetails] = useState(() => {
+    try {
+      const saved = localStorage.getItem('user_profile_details');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return {
+      name: 'Aanya Dev',
+      gender: 'Female',
+      phone: '+91 88382 26394',
+      email: 'aanya.dev@example.com',
+      address: '12, Luxury Heritage Lane, Silk Weaver Colony, Chennai, Tamil Nadu - 600001'
+    };
+  });
+  const [profileImage, setProfileImage] = useState(() => {
+    return localStorage.getItem('user_profile_image') || 'https://images.unsplash.com/photo-1594744803329-e58b31de215f?q=80&w=300';
+  });
+
+  const handleProfileImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const resultStr = reader.result as string;
+        setProfileImage(resultStr);
+        localStorage.setItem('user_profile_image', resultStr);
+        toast.success('Profile picture updated!');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSaveProfile = () => {
+    localStorage.setItem('user_profile_details', JSON.stringify(profileDetails));
+    toast.success('Profile details saved successfully!');
+    setIsAccountOpen(false);
+  };
 
   // Always navigate to full collection / category page on search submit
   const handleSearchSubmit = (query: string) => {
@@ -342,6 +381,15 @@ export function Navigation() {
             <Package className="w-4 h-4 text-emerald-700" />
           </motion.button>
         </Link>
+        <motion.button
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setIsAccountOpen(true)}
+          className="p-1.5 text-gray-700 hover:text-[#800000] hover:bg-white rounded-full transition-all"
+          aria-label="Account"
+        >
+          <User className="w-4 h-4 text-gray-700" />
+        </motion.button>
         <motion.a
           href="tel:+918838226394"
           whileHover={{ scale: 1.08 }}
@@ -543,14 +591,18 @@ export function Navigation() {
 
                   {/* Account Action */}
                   <div className="flex flex-col items-center gap-1.5 w-full">
-                    <Link
-                      to="/orders"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="w-11 h-11 bg-indigo-100/90 border border-indigo-300 text-indigo-600 rounded-2xl flex items-center justify-center shadow-sm hover:bg-indigo-200/90 transition-all"
+                    <motion.button
+                      whileHover={{ scale: 1.08 }}
+                      whileTap={{ scale: 0.92 }}
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        setIsAccountOpen(true);
+                      }}
+                      className="w-11 h-11 bg-indigo-100/90 border border-indigo-300 text-indigo-600 rounded-2xl flex items-center justify-center shadow-sm hover:bg-indigo-200/90 transition-all cursor-pointer"
                       aria-label="Account"
                     >
                       <User className="w-5 h-5 stroke-[2.5]" />
-                    </Link>
+                    </motion.button>
                     <span className="text-[9px] font-black text-indigo-700 uppercase tracking-wider">Account</span>
                   </div>
                 </div>
@@ -915,6 +967,134 @@ export function Navigation() {
                     Checkout <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Account Drawer Overlay */}
+      <AnimatePresence>
+        {isAccountOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-lg flex justify-end"
+          >
+            <motion.div 
+              initial={{ x: 400 }}
+              animate={{ x: 0 }}
+              exit={{ x: 400 }}
+              className="w-full max-w-md bg-white h-full shadow-2xl flex flex-col pt-16 sm:pt-20"
+            >
+              {/* Header */}
+              <div className="px-6 sm:px-8 pb-6 border-b border-gray-100 flex items-center justify-between">
+                <div>
+                  <h2 className="font-serif text-2xl sm:text-3xl text-gray-900 mb-1">My Profile</h2>
+                  <p className="text-gray-500 text-xs sm:text-sm">Manage your basic account details</p>
+                </div>
+                <button 
+                  onClick={() => setIsAccountOpen(false)}
+                  className="p-2.5 sm:p-3 hover:bg-gray-100 rounded-full transition-colors border border-gray-100"
+                  aria-label="Close profile"
+                >
+                  <X className="w-5 h-5 sm:w-6 sm:h-6 text-gray-700" />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 space-y-6">
+                {/* Center Profile Image with Upload */}
+                <div className="flex flex-col items-center justify-center space-y-3 py-4">
+                  <div className="relative group w-28 h-28 rounded-full overflow-hidden border-2 border-[#D4AF37] shadow-md bg-gray-100 flex items-center justify-center">
+                    <img 
+                      src={profileImage} 
+                      alt={profileDetails.name} 
+                      className="w-full h-full object-cover" 
+                    />
+                    <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-[10px] font-bold cursor-pointer transition-opacity duration-300">
+                      <Camera className="w-5 h-5 mb-1" />
+                      <span>CHANGE</span>
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        className="hidden" 
+                        onChange={handleProfileImageUpload} 
+                      />
+                    </label>
+                  </div>
+                  <span className="text-xs text-gray-400">Click picture to upload new photo</span>
+                </div>
+
+                {/* Form Details */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1.5">Full Name</label>
+                    <input 
+                      type="text" 
+                      value={profileDetails.name}
+                      onChange={(e) => setProfileDetails({ ...profileDetails, name: e.target.value })}
+                      className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1.5">Gender</label>
+                    <select 
+                      value={profileDetails.gender}
+                      onChange={(e) => setProfileDetails({ ...profileDetails, gender: e.target.value })}
+                      className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all cursor-pointer"
+                    >
+                      <option value="Female">Female</option>
+                      <option value="Male">Male</option>
+                      <option value="Non-binary">Non-binary</option>
+                      <option value="Prefer not to say">Prefer not to say</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1.5">Phone Number</label>
+                    <input 
+                      type="text" 
+                      value={profileDetails.phone}
+                      onChange={(e) => setProfileDetails({ ...profileDetails, phone: e.target.value })}
+                      className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1.5">Email ID</label>
+                    <input 
+                      type="email" 
+                      value={profileDetails.email}
+                      onChange={(e) => setProfileDetails({ ...profileDetails, email: e.target.value })}
+                      className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1.5">Shipping Address</label>
+                    <textarea 
+                      value={profileDetails.address}
+                      rows={3}
+                      onChange={(e) => setProfileDetails({ ...profileDetails, address: e.target.value })}
+                      className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all resize-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Save Footer */}
+              <div className="p-6 sm:p-8 border-t border-gray-100 space-y-3 bg-white">
+                <motion.button 
+                  onClick={handleSaveProfile}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full py-4 bg-gradient-to-r from-[#800000] to-[#990000] text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md hover:from-black hover:to-[#800000] transition-all cursor-pointer text-center block"
+                >
+                  Save Profile Details
+                </motion.button>
               </div>
             </motion.div>
           </motion.div>

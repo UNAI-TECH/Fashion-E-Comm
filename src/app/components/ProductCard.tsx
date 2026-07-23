@@ -72,54 +72,56 @@ export function ProductCard({
             className="w-full h-full object-cover object-top"
           />
 
-          {/* Quick Action Overlay (Desktop) */}
-          <div className="absolute inset-x-0 bottom-0 p-4 translate-y-full lg:group-hover/img:translate-y-0 transition-transform duration-300 ease-out bg-gradient-to-t from-black/50 to-transparent flex flex-col gap-2">
-            <motion.button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                addToCart(product);
-              }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="w-full py-2.5 bg-white text-gray-900 rounded-lg flex items-center justify-center gap-2 shadow-sm text-xs font-bold"
-            >
-              <ShoppingBag className="w-4 h-4" />
-              Add to Bag
-            </motion.button>
-          </div>
-        </div>
-      </Link>
-
-      {/* Product Info */}
-      <div className="pt-4 pb-2 px-1 flex flex-col flex-1 justify-between gap-3">
-        <div className="space-y-2">
-          <Link to={`/product/${id}`}>
-            <h3 className="text-sm sm:text-base font-medium text-gray-800 line-clamp-2 hover:text-[#D4AF37] transition-colors leading-tight min-h-[2.5rem]">
-              {name}
-            </h3>
-          </Link>
-
-          {/* Price & Add to Cart (Mobile optimized) */}
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex flex-col">
-              <span className="text-lg font-bold text-[#1A1A1A]">₹{price}</span>
-              {originalPrice && (
-                <span className="text-xs text-gray-400 line-through">₹{originalPrice}</span>
-              )}
+            {/* Quick Action Overlay (Desktop) */}
+            <div className="absolute inset-x-0 bottom-0 p-4 translate-y-full lg:group-hover/img:translate-y-0 transition-transform duration-300 ease-out bg-gradient-to-t from-black/50 to-transparent flex flex-col gap-2">
+              <motion.button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  addToCart(product);
+                  window.dispatchEvent(new CustomEvent('open-cart'));
+                }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full py-2.5 bg-white text-gray-900 rounded-lg flex items-center justify-center gap-2 shadow-sm text-xs font-bold"
+              >
+                <ShoppingBag className="w-4 h-4" />
+                Add to Bag
+              </motion.button>
             </div>
-            
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                addToCart(product);
-              }}
-              className="lg:hidden p-2 bg-[#1A1A1A] text-white rounded-lg shadow-sm active:scale-95 transition-transform"
-            >
-              <ShoppingBag className="w-4 h-4" />
-            </button>
           </div>
+        </Link>
+
+        {/* Product Info */}
+        <div className="pt-4 pb-2 px-1 flex flex-col flex-1 justify-between gap-3">
+          <div className="space-y-2">
+            <Link to={`/product/${id}`}>
+              <h3 className="text-sm sm:text-base font-medium text-gray-800 line-clamp-2 hover:text-[#D4AF37] transition-colors leading-tight min-h-[2.5rem]">
+                {name}
+              </h3>
+            </Link>
+
+            {/* Price & Add to Cart (Mobile optimized) */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-col">
+                <span className="text-lg font-bold text-[#1A1A1A]">₹{price}</span>
+                {originalPrice && (
+                  <span className="text-xs text-gray-400 line-through">₹{originalPrice}</span>
+                )}
+              </div>
+              
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  addToCart(product);
+                  window.dispatchEvent(new CustomEvent('open-cart'));
+                }}
+                className="lg:hidden p-2 bg-[#1A1A1A] text-white rounded-lg shadow-sm active:scale-95 transition-transform"
+              >
+                <ShoppingBag className="w-4 h-4" />
+              </button>
+            </div>
         </div>
 
         {/* Rating and Colors */}
