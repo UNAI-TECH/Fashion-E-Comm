@@ -53,9 +53,9 @@ export function CartPage() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
-                      className="bg-white p-4 rounded-2xl shadow-sm flex gap-4 items-center border border-gray-100"
+                      className="bg-white p-4 rounded-none shadow-sm flex gap-6 items-center border border-gray-100"
                     >
-                      <div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-50 flex-shrink-0 aspect-square">
+                      <div className="w-32 h-32 rounded-none overflow-hidden bg-gray-50 flex-shrink-0 aspect-square">
                         <img
                           src={item.image}
                           alt={item.name}

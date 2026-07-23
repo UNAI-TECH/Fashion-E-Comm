@@ -835,12 +835,12 @@ export function Navigation() {
             className="fixed inset-0 z-[200] bg-[#FDFBF7] flex flex-col overflow-hidden animate-fade-in"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-6 sm:px-8 pt-12 sm:pt-10 pb-4 bg-transparent">
-              <Link to="/" onClick={() => setIsCartOpen(false)} className="h-10 sm:h-12 flex items-center justify-start pointer-events-auto">
+            <div className="flex items-center justify-between px-6 sm:px-8 pt-6 sm:pt-4 pb-4 bg-transparent">
+              <Link to="/" onClick={() => setIsCartOpen(false)} className="w-24 h-24 sm:w-32 sm:h-32 flex items-center justify-start pointer-events-auto">
                 <img
                   src="/logo_aanya.png"
                   alt="Aanya Fashions Logo"
-                  className="h-full w-auto object-contain mix-blend-multiply"
+                  className="w-full h-full object-contain mix-blend-multiply"
                 />
               </Link>
               <button
@@ -857,8 +857,8 @@ export function Navigation() {
               <div className="w-full max-w-xl space-y-6 h-fit my-4">
                 {cartItems.length > 0 ? (
                   cartItems.map((item) => (
-                    <div key={item.id} className="bg-white p-4 rounded-none shadow-sm flex gap-4 items-center border border-gray-100">
-                      <div className="w-20 h-20 rounded-none overflow-hidden bg-gray-50 flex-shrink-0 aspect-square">
+                    <div key={item.id} className="bg-white p-4 rounded-none shadow-sm flex gap-6 items-center border border-gray-100">
+                      <div className="w-32 h-32 rounded-none overflow-hidden bg-gray-50 flex-shrink-0 aspect-square">
                         <img
                           src={item.image}
                           alt={item.name}
@@ -916,9 +916,13 @@ export function Navigation() {
             className="fixed inset-0 z-[200] bg-[#FDFBF7] flex flex-col overflow-hidden animate-fade-in"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-6 sm:px-8 pt-12 sm:pt-10 pb-4 border-b border-gray-100 bg-white shadow-sm">
-              <Link to="/" onClick={() => setIsAccountOpen(false)} className="font-serif text-xl sm:text-2xl font-bold text-gray-900 tracking-wide hover:text-[#800000] transition-colors">
-                Aanya
+            <div className="flex items-center justify-between px-6 sm:px-8 pt-6 sm:pt-4 pb-4 bg-transparent">
+              <Link to="/" onClick={() => setIsAccountOpen(false)} className="w-24 h-24 sm:w-32 sm:h-32 flex items-center justify-start pointer-events-auto">
+                <img
+                  src="/logo_aanya.png"
+                  alt="Aanya Fashions Logo"
+                  className="w-full h-full object-contain mix-blend-multiply"
+                />
               </Link>
               <h2 className="text-base font-serif text-lg sm:text-xl font-bold text-gray-900 tracking-wide">My Account Profile</h2>
               <button
