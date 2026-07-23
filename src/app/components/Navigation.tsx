@@ -936,17 +936,17 @@ export function Navigation() {
             {/* Body */}
             <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-8 flex justify-center">
               <div className="w-full max-w-xl space-y-8 h-fit my-4 p-4">
-                {/* Center Profile Image with Upload */}
+                {/* Center Profile Image with Auto-Adjusting Shape */}
                 <div className="flex flex-col items-center justify-center space-y-3 pb-4">
-                  <div className="relative group w-32 h-32 rounded-full overflow-hidden border-4 border-[#D4AF37] shadow-md bg-gray-100 flex items-center justify-center cursor-pointer">
+                  <div className="relative group w-48 rounded-2xl overflow-hidden border-4 border-[#D4AF37] shadow-md bg-gray-50 flex items-center justify-center cursor-pointer transition-all duration-300">
                     <img 
                       src={profileImage} 
                       alt={profileDetails.name} 
-                      className="w-full h-full object-cover" 
+                      className="w-full h-auto object-contain" 
                     />
-                    <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-[10px] font-bold cursor-pointer transition-opacity duration-300">
-                      <Camera className="w-5 h-5 mb-1" />
-                      <span>CHANGE</span>
+                    <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-xs font-bold cursor-pointer transition-opacity duration-300">
+                      <Camera className="w-6 h-6 mb-1.5" />
+                      <span>CHANGE PHOTO</span>
                       <input 
                         type="file" 
                         accept="image/*" 
@@ -955,7 +955,7 @@ export function Navigation() {
                       />
                     </label>
                   </div>
-                  <span className="text-xs font-semibold text-gray-400">Click avatar image to upload new photo</span>
+                  <span className="text-xs font-semibold text-gray-400">Click image to upload new photo</span>
                 </div>
 
                 {/* Form Details */}
