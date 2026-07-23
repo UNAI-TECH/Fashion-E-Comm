@@ -207,7 +207,7 @@ const MOCK_PRODUCTS: Product[] = [
     price: 4999,
     compare_at_price: 6999,
     originalPrice: 6999,
-    category: 'Salwar Sets',
+    category: 'Tradition',
     image: '/salwar_ss3.jpg',
     images: ['/salwar_ss3.jpg'],
     rating: 4.9,
@@ -363,7 +363,7 @@ const MOCK_PRODUCTS: Product[] = [
     price: 4999,
     compare_at_price: 6999,
     originalPrice: 6999,
-    category: 'Tradition',
+    category: 'Salwar Sets',
     image: '/tradition_t2.jpg',
     images: ['/tradition_t2.jpg'],
     rating: 4.7,
@@ -486,31 +486,9 @@ export async function fetchProducts(category?: string) {
     if (targetStem.endsWith('es')) targetStem = targetStem.slice(0, -2);
     else if (targetStem.endsWith('s') && targetStem.length > 3) targetStem = targetStem.slice(0, -1);
 
-    const synonymTerms = [rawTarget, targetStem];
-    if (rawTarget.includes('kurt') || rawTarget.includes('kurtah') || rawTarget.includes('anarkali')) {
-      synonymTerms.push('kurti', 'kurta', 'kurtis', 'kurtas', 'kurtha', 'kurthas', 'anarkali');
-    }
-    if (rawTarget.includes('sare') || rawTarget.includes('sari')) {
-      synonymTerms.push('saree', 'sari', 'sarees', 'saris');
-    }
-    if (rawTarget.includes('leheng') || rawTarget.includes('lehang') || rawTarget.includes('choli')) {
-      synonymTerms.push('lehenga', 'lehanga', 'lehengas', 'lehangas', 'choli');
-    }
-    if (rawTarget.includes('salwar') || rawTarget.includes('suit') || rawTarget.includes('patiala')) {
-      synonymTerms.push('salwar', 'suit', 'suits', 'set', 'sets', 'patiala');
-    }
-    if (rawTarget.includes('maxi') || rawTarget.includes('gown')) {
-      synonymTerms.push('maxi', 'gown', 'gowns');
-    }
-
     return fetched.filter(p => {
       const pCat = (p.category || '').toLowerCase().replace(/-/g, ' ');
-      const pName = (p.name || '').toLowerCase();
-      const pDesc = (p.description || '').toLowerCase();
-
-      return synonymTerms.some(term => 
-        pCat.includes(term) || pName.includes(term) || pDesc.includes(term)
-      );
+      return pCat === rawTarget || pCat === targetStem || pCat.replace(/\s+/g, '') === rawTarget.replace(/\s+/g, '');
     }).slice(0, 5); // Return only 5 items per collection
   }
 
