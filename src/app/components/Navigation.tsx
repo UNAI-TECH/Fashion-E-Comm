@@ -835,11 +835,14 @@ export function Navigation() {
             className="fixed inset-0 z-[200] bg-[#FDFBF7] flex flex-col overflow-hidden animate-fade-in"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-6 sm:px-8 pt-12 sm:pt-10 pb-4 border-b border-gray-100 bg-white shadow-sm">
-              <Link to="/" onClick={() => setIsCartOpen(false)} className="font-serif text-xl sm:text-2xl font-bold text-gray-900 tracking-wide hover:text-[#800000] transition-colors">
-                Aanya
+            <div className="flex items-center justify-between px-6 sm:px-8 pt-12 sm:pt-10 pb-4 bg-transparent">
+              <Link to="/" onClick={() => setIsCartOpen(false)} className="h-10 sm:h-12 flex items-center justify-start pointer-events-auto">
+                <img
+                  src="/logo_aanya.png"
+                  alt="Aanya Fashions Logo"
+                  className="h-full w-auto object-contain mix-blend-multiply"
+                />
               </Link>
-              <h2 className="text-base font-serif text-lg sm:text-xl font-bold text-gray-900 tracking-wide">My Shopping Cart</h2>
               <button
                 onClick={() => setIsCartOpen(false)}
                 className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors border border-gray-200"
@@ -854,8 +857,8 @@ export function Navigation() {
               <div className="w-full max-w-xl space-y-6 h-fit my-4">
                 {cartItems.length > 0 ? (
                   cartItems.map((item) => (
-                    <div key={item.id} className="bg-white p-4 rounded-2xl shadow-sm flex gap-4 items-center border border-gray-100">
-                      <div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-50 flex-shrink-0 aspect-square">
+                    <div key={item.id} className="bg-white p-4 rounded-none shadow-sm flex gap-4 items-center border border-gray-100">
+                      <div className="w-20 h-20 rounded-none overflow-hidden bg-gray-50 flex-shrink-0 aspect-square">
                         <img
                           src={item.image}
                           alt={item.name}
@@ -884,13 +887,13 @@ export function Navigation() {
                     </div>
                   ))
                 ) : (
-                  <div className="text-center py-20 bg-white rounded-3xl shadow-sm p-8">
+                  <div className="text-center py-20 bg-white rounded-none shadow-sm p-8">
                     <ShoppingBag className="w-16 h-16 text-gray-300 mx-auto mb-6" />
                     <h2 className="text-2xl font-serif text-gray-800 mb-4">Your cart is empty</h2>
                     <p className="text-gray-500 mb-8">Explore our collections and add your favorite styles.</p>
                     <button
                       onClick={() => setIsCartOpen(false)}
-                      className="px-8 py-3 bg-[#800000] text-white rounded-full font-medium"
+                      className="px-8 py-3 bg-[#800000] text-white rounded-none font-medium"
                     >
                       Continue Shopping
                     </button>
@@ -898,34 +901,6 @@ export function Navigation() {
                 )}
               </div>
             </div>
-
-            {/* Footer */}
-            {cartItems.length > 0 && (
-              <div className="p-6 sm:p-8 border-t border-gray-100 bg-white shadow-md flex justify-center">
-                <div className="w-full max-w-xl flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="text-left">
-                    <span className="text-xs uppercase tracking-wider text-gray-400 font-bold block">Total Amount</span>
-                    <span className="text-2xl sm:text-3xl font-serif text-[#800000]">₹{cartItems.reduce((sum, item) => sum + item.price, 0).toLocaleString()}</span>
-                  </div>
-                  <div className="flex gap-3 w-full sm:w-auto">
-                    <Link 
-                      to="/cart"
-                      onClick={() => setIsCartOpen(false)}
-                      className="px-6 py-4 bg-white text-gray-900 border border-gray-200 rounded-full font-bold text-xs text-center hover:bg-gray-100 transition-all flex items-center justify-center cursor-pointer uppercase tracking-wider"
-                    >
-                      Full Cart Page
-                    </Link>
-                    <Link 
-                      to="/checkout"
-                      onClick={() => setIsCartOpen(false)}
-                      className="px-8 py-4 bg-[#800000] text-white rounded-full font-bold text-xs text-center hover:bg-black transition-all hover:shadow-lg active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer uppercase tracking-wider"
-                    >
-                      Proceed to Checkout <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            )}
           </motion.div>
         )}
       </AnimatePresence>
