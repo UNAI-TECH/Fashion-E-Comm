@@ -861,7 +861,7 @@ export function Navigation() {
 
             {/* Body */}
             <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-8 flex justify-center">
-              <div className="w-full max-w-xl space-y-8 bg-white p-6 sm:p-10 rounded-[2.5rem] shadow-md border border-gray-100 h-fit my-4">
+              <div className="w-full max-w-xl space-y-8 h-fit my-4 p-4">
                 {/* Center Profile Image with Upload */}
                 <div className="flex flex-col items-center justify-center space-y-3">
                   <div className="relative group w-32 h-32 rounded-full overflow-hidden border-4 border-[#D4AF37] shadow-md bg-gray-100 flex items-center justify-center cursor-pointer">
