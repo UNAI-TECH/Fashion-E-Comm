@@ -252,7 +252,7 @@ export function Navigation() {
           <img
             src="/logo_aanya.png"
             alt="Aanya Fashions Logo"
-            className="h-full w-auto object-contain mix-blend-multiply brightness-[1.12] contrast-[1.1]"
+            className="h-full w-auto object-contain"
           />
         </motion.div>
       </Link>
@@ -405,7 +405,7 @@ export function Navigation() {
                 <img
                   src="/logo_aanya.png"
                   alt="Aanya Fashions Logo"
-                  className="h-full w-auto object-contain brightness-[1.12] contrast-[1.1] drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.05)] mix-blend-multiply"
+                  className="h-full w-auto object-contain brightness-[1.02] contrast-110 drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.05)]"
                 />
               </motion.div>
             </Link>
@@ -840,7 +840,7 @@ export function Navigation() {
                 <img
                   src="/logo_aanya.png"
                   alt="Aanya Fashions Logo"
-                  className="w-full h-full object-contain mix-blend-multiply brightness-[1.12] contrast-[1.1]"
+                  className="w-full h-full object-contain"
                 />
               </Link>
               <button
@@ -921,7 +921,7 @@ export function Navigation() {
                 <img
                   src="/logo_aanya.png"
                   alt="Aanya Fashions Logo"
-                  className="w-full h-full object-contain mix-blend-multiply brightness-[1.12] contrast-[1.1]"
+                  className="w-full h-full object-contain"
                 />
               </Link>
               <h2 className="text-base font-serif text-lg sm:text-xl font-bold text-gray-900 tracking-wide">My Account Profile</h2>
@@ -937,6 +937,27 @@ export function Navigation() {
             {/* Body */}
             <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-8 flex justify-center">
               <div className="w-full max-w-xl space-y-8 h-fit my-4 p-4">
+                {/* Center Profile Image with Upload */}
+                <div className="flex flex-col items-center justify-center space-y-3 pb-4">
+                  <div className="relative group w-32 h-32 rounded-full overflow-hidden border-4 border-[#D4AF37] shadow-md bg-gray-100 flex items-center justify-center cursor-pointer">
+                    <img 
+                      src={profileImage} 
+                      alt={profileDetails.name} 
+                      className="w-full h-full object-cover" 
+                    />
+                    <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-[10px] font-bold cursor-pointer transition-opacity duration-300">
+                      <Camera className="w-5 h-5 mb-1" />
+                      <span>CHANGE</span>
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        className="hidden" 
+                        onChange={handleProfileImageUpload} 
+                      />
+                    </label>
+                  </div>
+                  <span className="text-xs font-semibold text-gray-400">Click avatar image to upload new photo</span>
+                </div>
 
                 {/* Form Details */}
                 <div className="space-y-5">
