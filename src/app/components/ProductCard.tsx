@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
 import { Heart, ShoppingBag, Eye, Star } from 'lucide-react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { useCart } from '../contexts/CartContext';
 import { useWishlist } from '../contexts/WishlistContext';
 
@@ -27,6 +27,7 @@ export function ProductCard({
 }: ProductCardProps) {
   const { addToCart } = useCart();
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
+  const navigate = useNavigate();
 
   const product = { id, name, price, originalPrice, image, rating, colors, badge } as any;
 
@@ -79,6 +80,7 @@ export function ProductCard({
                   e.preventDefault();
                   e.stopPropagation();
                   addToCart(product);
+                  navigate('/cart');
                 }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -114,6 +116,7 @@ export function ProductCard({
                   e.preventDefault();
                   e.stopPropagation();
                   addToCart(product);
+                  navigate('/cart');
                 }}
                 className="lg:hidden p-2 bg-[#1A1A1A] text-white rounded-lg shadow-sm active:scale-95 transition-transform"
               >

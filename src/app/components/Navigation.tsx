@@ -836,41 +836,35 @@ export function Navigation() {
 
 
 
-      {/* Account Drawer Overlay */}
+      {/* Account Full Screen Overlay */}
       <AnimatePresence>
         {isAccountOpen && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-lg flex justify-end"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 30 }}
+            transition={{ duration: 0.22, ease: [0.25, 1, 0.5, 1] }}
+            className="fixed inset-0 z-[200] bg-[#FDFBF7] flex flex-col overflow-hidden animate-fade-in"
           >
-            <motion.div 
-              initial={{ x: 400 }}
-              animate={{ x: 0 }}
-              exit={{ x: 400 }}
-              className="w-full max-w-md bg-white h-full shadow-2xl flex flex-col pt-16 sm:pt-20"
-            >
-              {/* Header */}
-              <div className="px-6 sm:px-8 pb-6 border-b border-gray-100 flex items-center justify-between">
-                <div>
-                  <h2 className="font-serif text-2xl sm:text-3xl text-gray-900 mb-1">My Profile</h2>
-                  <p className="text-gray-500 text-xs sm:text-sm">Manage your basic account details</p>
-                </div>
-                <button 
-                  onClick={() => setIsAccountOpen(false)}
-                  className="p-2.5 sm:p-3 hover:bg-gray-100 rounded-full transition-colors border border-gray-100"
-                  aria-label="Close profile"
-                >
-                  <X className="w-5 h-5 sm:w-6 sm:h-6 text-gray-700" />
-                </button>
-              </div>
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 sm:px-8 pt-12 sm:pt-10 pb-4 border-b border-gray-100 bg-white shadow-sm">
+              <button
+                onClick={() => setIsAccountOpen(false)}
+                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors border border-gray-200"
+                aria-label="Close profile"
+              >
+                <ArrowLeft className="w-5 h-5 text-gray-700" />
+              </button>
+              <h2 className="text-base font-serif text-xl sm:text-2xl font-bold text-gray-900 tracking-wide">My Account Profile</h2>
+              <div className="w-10" />
+            </div>
 
-              {/* Body */}
-              <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 space-y-6">
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-8 flex justify-center">
+              <div className="w-full max-w-xl space-y-8 bg-white p-6 sm:p-10 rounded-[2.5rem] shadow-md border border-gray-100 h-fit my-4">
                 {/* Center Profile Image with Upload */}
-                <div className="flex flex-col items-center justify-center space-y-3 py-4">
-                  <div className="relative group w-28 h-28 rounded-full overflow-hidden border-2 border-[#D4AF37] shadow-md bg-gray-100 flex items-center justify-center">
+                <div className="flex flex-col items-center justify-center space-y-3">
+                  <div className="relative group w-32 h-32 rounded-full overflow-hidden border-4 border-[#D4AF37] shadow-md bg-gray-100 flex items-center justify-center cursor-pointer">
                     <img 
                       src={profileImage} 
                       alt={profileDetails.name} 
@@ -887,53 +881,57 @@ export function Navigation() {
                       />
                     </label>
                   </div>
-                  <span className="text-xs text-gray-400">Click picture to upload new photo</span>
+                  <span className="text-xs font-semibold text-gray-400">Click avatar image to upload new photo</span>
                 </div>
 
                 {/* Form Details */}
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1.5">Full Name</label>
-                    <input 
-                      type="text" 
-                      value={profileDetails.name}
-                      onChange={(e) => setProfileDetails({ ...profileDetails, name: e.target.value })}
-                      className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all"
-                    />
+                <div className="space-y-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1.5">Full Name</label>
+                      <input 
+                        type="text" 
+                        value={profileDetails.name}
+                        onChange={(e) => setProfileDetails({ ...profileDetails, name: e.target.value })}
+                        className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1.5">Gender</label>
+                      <select 
+                        value={profileDetails.gender}
+                        onChange={(e) => setProfileDetails({ ...profileDetails, gender: e.target.value })}
+                        className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all cursor-pointer"
+                      >
+                        <option value="Female">Female</option>
+                        <option value="Male">Male</option>
+                        <option value="Non-binary">Non-binary</option>
+                        <option value="Prefer not to say">Prefer not to say</option>
+                      </select>
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1.5">Gender</label>
-                    <select 
-                      value={profileDetails.gender}
-                      onChange={(e) => setProfileDetails({ ...profileDetails, gender: e.target.value })}
-                      className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all cursor-pointer"
-                    >
-                      <option value="Female">Female</option>
-                      <option value="Male">Male</option>
-                      <option value="Non-binary">Non-binary</option>
-                      <option value="Prefer not to say">Prefer not to say</option>
-                    </select>
-                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1.5">Phone Number</label>
+                      <input 
+                        type="text" 
+                        value={profileDetails.phone}
+                        onChange={(e) => setProfileDetails({ ...profileDetails, phone: e.target.value })}
+                        className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all"
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1.5">Phone Number</label>
-                    <input 
-                      type="text" 
-                      value={profileDetails.phone}
-                      onChange={(e) => setProfileDetails({ ...profileDetails, phone: e.target.value })}
-                      className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1.5">Email ID</label>
-                    <input 
-                      type="email" 
-                      value={profileDetails.email}
-                      onChange={(e) => setProfileDetails({ ...profileDetails, email: e.target.value })}
-                      className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all"
-                    />
+                    <div>
+                      <label className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1.5">Email ID</label>
+                      <input 
+                        type="email" 
+                        value={profileDetails.email}
+                        onChange={(e) => setProfileDetails({ ...profileDetails, email: e.target.value })}
+                        className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all"
+                      />
+                    </div>
                   </div>
 
                   <div>
@@ -945,21 +943,20 @@ export function Navigation() {
                       className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all resize-none"
                     />
                   </div>
+                  
+                  <div className="pt-4 border-t border-gray-50">
+                    <motion.button 
+                      onClick={handleSaveProfile}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="w-full py-4 bg-gradient-to-r from-[#800000] to-[#990000] text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md hover:from-black hover:to-[#800000] transition-all cursor-pointer text-center block"
+                    >
+                      Save Profile Details
+                    </motion.button>
+                  </div>
                 </div>
               </div>
-
-              {/* Save Footer */}
-              <div className="p-6 sm:p-8 border-t border-gray-100 space-y-3 bg-white">
-                <motion.button 
-                  onClick={handleSaveProfile}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full py-4 bg-gradient-to-r from-[#800000] to-[#990000] text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md hover:from-black hover:to-[#800000] transition-all cursor-pointer text-center block"
-                >
-                  Save Profile Details
-                </motion.button>
-              </div>
-            </motion.div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
