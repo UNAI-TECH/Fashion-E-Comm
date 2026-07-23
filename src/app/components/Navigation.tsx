@@ -836,15 +836,17 @@ export function Navigation() {
           >
             {/* Header */}
             <div className="flex items-center justify-between px-6 sm:px-8 pt-12 sm:pt-10 pb-4 border-b border-gray-100 bg-white shadow-sm">
+              <Link to="/" onClick={() => setIsCartOpen(false)} className="font-serif text-xl sm:text-2xl font-bold text-gray-900 tracking-wide hover:text-[#800000] transition-colors">
+                Aanya
+              </Link>
+              <h2 className="text-base font-serif text-lg sm:text-xl font-bold text-gray-900 tracking-wide">My Shopping Cart</h2>
               <button
                 onClick={() => setIsCartOpen(false)}
                 className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors border border-gray-200"
                 aria-label="Close cart"
               >
-                <ArrowLeft className="w-5 h-5 text-gray-700" />
+                <X className="w-5 h-5 text-gray-700" />
               </button>
-              <h2 className="text-base font-serif text-xl sm:text-2xl font-bold text-gray-900 tracking-wide">My Shopping Cart</h2>
-              <div className="w-10" />
             </div>
 
             {/* Body */}
@@ -853,7 +855,7 @@ export function Navigation() {
                 {cartItems.length > 0 ? (
                   cartItems.map((item) => (
                     <div key={item.id} className="bg-white p-4 rounded-2xl shadow-sm flex gap-4 items-center border border-gray-100">
-                      <div className="w-16 h-20 rounded-xl overflow-hidden bg-gray-50 flex-shrink-0">
+                      <div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-50 flex-shrink-0 aspect-square">
                         <img
                           src={item.image}
                           alt={item.name}
@@ -940,41 +942,22 @@ export function Navigation() {
           >
             {/* Header */}
             <div className="flex items-center justify-between px-6 sm:px-8 pt-12 sm:pt-10 pb-4 border-b border-gray-100 bg-white shadow-sm">
+              <Link to="/" onClick={() => setIsAccountOpen(false)} className="font-serif text-xl sm:text-2xl font-bold text-gray-900 tracking-wide hover:text-[#800000] transition-colors">
+                Aanya
+              </Link>
+              <h2 className="text-base font-serif text-lg sm:text-xl font-bold text-gray-900 tracking-wide">My Account Profile</h2>
               <button
                 onClick={() => setIsAccountOpen(false)}
                 className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors border border-gray-200"
                 aria-label="Close profile"
               >
-                <ArrowLeft className="w-5 h-5 text-gray-700" />
+                <X className="w-5 h-5 text-gray-700" />
               </button>
-              <h2 className="text-base font-serif text-xl sm:text-2xl font-bold text-gray-900 tracking-wide">My Account Profile</h2>
-              <div className="w-10" />
             </div>
 
             {/* Body */}
             <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-8 flex justify-center">
               <div className="w-full max-w-xl space-y-8 h-fit my-4 p-4">
-                {/* Center Profile Image with Upload */}
-                <div className="flex flex-col items-center justify-center space-y-3">
-                  <div className="relative group w-32 h-32 rounded-full overflow-hidden border-4 border-[#D4AF37] shadow-md bg-gray-100 flex items-center justify-center cursor-pointer">
-                    <img 
-                      src={profileImage} 
-                      alt={profileDetails.name} 
-                      className="w-full h-full object-cover" 
-                    />
-                    <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-[10px] font-bold cursor-pointer transition-opacity duration-300">
-                      <Camera className="w-5 h-5 mb-1" />
-                      <span>CHANGE</span>
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        className="hidden" 
-                        onChange={handleProfileImageUpload} 
-                      />
-                    </label>
-                  </div>
-                  <span className="text-xs font-semibold text-gray-400">Click avatar image to upload new photo</span>
-                </div>
 
                 {/* Form Details */}
                 <div className="space-y-5">

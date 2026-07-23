@@ -55,7 +55,7 @@ export function CartPage() {
                       exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
                       className="bg-white p-4 rounded-2xl shadow-sm flex gap-4 items-center border border-gray-100"
                     >
-                      <div className="w-16 h-20 rounded-xl overflow-hidden bg-gray-50 flex-shrink-0">
+                      <div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-50 flex-shrink-0 aspect-square">
                         <img
                           src={item.image}
                           alt={item.name}
