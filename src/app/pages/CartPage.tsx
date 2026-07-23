@@ -53,58 +53,35 @@ export function CartPage() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
-                      className="bg-white p-4 sm:p-6 rounded-3xl shadow-sm flex flex-col sm:flex-row gap-6 items-center sm:items-start"
+                      className="bg-white p-4 rounded-2xl shadow-sm flex gap-4 items-center border border-gray-100"
                     >
-                      <div className="w-full sm:w-32 h-40 sm:h-32 rounded-xl overflow-hidden bg-gray-50 flex-shrink-0">
+                      <div className="w-16 h-20 rounded-xl overflow-hidden bg-gray-50 flex-shrink-0">
                         <img
                           src={item.image}
                           alt={item.name}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                          className="w-full h-full object-cover"
                         />
                       </div>
 
                       {/* Product Details */}
-                      <div className="flex-grow flex flex-col justify-between">
-                        <div className="flex justify-between items-start gap-4">
-                          <div>
-                            <Link to={`/product/${item.id}`}>
-                              <h3 className="font-serif text-xl text-gray-900 group-hover:text-[#D4AF37] transition-colors">
-                                {item.name}
-                              </h3>
-                            </Link>
-                            <p className="text-gray-500 text-sm">{item.category}</p>
-                          </div>
-                          <button
-                            onClick={() => removeItem(item.id)}
-                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all duration-200"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
-                        </div>
-
-                        <div className="flex justify-between items-center mt-6 sm:mt-0">
-                          <div className="flex items-center gap-4 bg-gray-50 p-1.5 rounded-full border border-gray-100">
-                            <motion.button
-                              whileTap={{ scale: 0.9 }}
-                              onClick={() => updateQuantity(item.id, -1)}
-                              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white transition-colors"
-                            >
-                              <Minus className="w-4 h-4" />
-                            </motion.button>
-                            <span className="w-8 text-center font-bold text-gray-900">{item.quantity}</span>
-                            <motion.button
-                              whileTap={{ scale: 0.9 }}
-                              onClick={() => updateQuantity(item.id, 1)}
-                              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white transition-colors"
-                            >
-                              <Plus className="w-4 h-4" />
-                            </motion.button>
-                          </div>
-                          
-                          <div className="text-xl font-medium text-[#D4AF37]">
-                            ₹{(item.price * item.quantity).toLocaleString('en-IN')}
+                      <div className="flex-grow flex items-center justify-between min-w-0">
+                        <div className="space-y-1 min-w-0 pr-4">
+                          <Link to={`/product/${item.id}`}>
+                            <h3 className="font-serif text-base text-gray-900 hover:text-[#D4AF37] transition-colors truncate">
+                              {item.name}
+                            </h3>
+                          </Link>
+                          <div className="text-sm font-bold text-[#D4AF37]">
+                            ₹{item.price.toLocaleString('en-IN')}
                           </div>
                         </div>
+                        <button
+                          onClick={() => removeItem(item.id)}
+                          className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all duration-200 flex-shrink-0"
+                          aria-label="Remove item"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
                       </div>
                     </motion.div>
                   ))}

@@ -357,8 +357,8 @@ export function Navigation() {
         <motion.button
           whileHover={{ scale: 1.08 }}
           whileTap={{ scale: 0.95 }}
-          onClick={() => setIsCartOpen(true)}
-          className="p-1.5 text-gray-700 hover:text-[#800000] hover:bg-white rounded-full transition-all relative"
+          onClick={() => navigate('/cart')}
+          className="p-1.5 text-gray-700 hover:text-[#800000] hover:bg-white rounded-full transition-all relative cursor-pointer"
           aria-label="Cart"
         >
           <ShoppingBag className="w-4 h-4 text-gray-700" />
@@ -549,9 +549,9 @@ export function Navigation() {
                       whileTap={{ scale: 0.92 }}
                       onClick={() => {
                         setIsMobileMenuOpen(false);
-                        setIsCartOpen(true);
+                        navigate('/cart');
                       }}
-                      className="w-11 h-11 bg-rose-100/90 border border-rose-300 text-rose-600 rounded-2xl flex items-center justify-center shadow-sm hover:bg-rose-200/90 transition-all relative"
+                      className="w-11 h-11 bg-rose-100/90 border border-rose-300 text-rose-600 rounded-2xl flex items-center justify-center shadow-sm hover:bg-rose-200/90 transition-all relative cursor-pointer"
                       aria-label="Cart"
                     >
                       <ShoppingBag className="w-5 h-5 stroke-[2.5]" />
@@ -834,132 +834,7 @@ export function Navigation() {
         )}
       </AnimatePresence>
 
-      {/* Cart Drawer Overlay */}
-      <AnimatePresence>
-        {isCartOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-lg flex justify-end"
-          >
-            <motion.div 
-              initial={{ x: 400 }}
-              animate={{ x: 0 }}
-              exit={{ x: 400 }}
-              className="w-full max-w-md bg-white h-full shadow-2xl flex flex-col pt-16 sm:pt-20"
-            >
-              {/* Header */}
-              <div className="px-6 sm:px-8 pb-6 border-b border-gray-100 flex items-center justify-between">
-                <div>
-                  <h2 className="font-serif text-2xl sm:text-3xl text-gray-900 mb-1">Shopping Bag</h2>
-                  <p className="text-gray-500 text-xs sm:text-sm">{cartCount} items selected</p>
-                </div>
-                <button 
-                  onClick={() => setIsCartOpen(false)}
-                  className="p-2.5 sm:p-3 hover:bg-gray-100 rounded-full transition-colors"
-                  aria-label="Close bag"
-                >
-                  <X className="w-5 h-5 sm:w-6 sm:h-6 text-gray-500" />
-                </button>
-              </div>
 
-              {/* Body / Items List */}
-              <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 space-y-5">
-                {cartItems.length > 0 ? (
-                  cartItems.map((item) => (
-                    <div key={item.id} className="flex gap-4 group bg-gray-50/60 p-3 rounded-2xl border border-gray-100/80">
-                      <div className="w-20 h-26 rounded-xl bg-gray-100 overflow-hidden relative flex-shrink-0">
-                        <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                      </div>
-                      <div className="flex-1 flex flex-col justify-between py-0.5">
-                        <div>
-                          <div className="flex items-start justify-between gap-2">
-                            <h3 className="font-serif text-sm sm:text-base text-gray-900 font-semibold line-clamp-1">{item.name}</h3>
-                            <button 
-                              onClick={() => removeItem(item.id)}
-                              className="text-gray-400 hover:text-red-600 transition-colors p-1"
-                              aria-label="Remove item"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                          <p className="text-gray-500 text-xs">{item.category}</p>
-                          <p className="text-[#800000] font-bold text-sm mt-1">₹{item.price.toLocaleString()}</p>
-                        </div>
-                        
-                        <div className="flex items-center gap-3 mt-2">
-                          <div className="flex items-center border border-gray-200 rounded-lg bg-white">
-                            <button 
-                              onClick={() => updateQuantity(item.id, -1)}
-                              className="p-1 hover:bg-gray-100 text-gray-600 transition-colors rounded-l-lg"
-                              aria-label="Decrease quantity"
-                            >
-                              <Minus className="w-3.5 h-3.5" />
-                            </button>
-                            <span className="px-3 text-xs font-bold text-gray-900">{item.quantity}</span>
-                            <button 
-                              onClick={() => updateQuantity(item.id, 1)}
-                              className="p-1 hover:bg-gray-100 text-gray-600 transition-colors rounded-r-lg"
-                              aria-label="Increase quantity"
-                            >
-                              <Plus className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                          <span className="text-xs text-gray-400">Total: ₹{(item.price * item.quantity).toLocaleString()}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="h-full flex flex-col items-center justify-center text-center opacity-40 py-12">
-                    <ShoppingBag className="w-16 h-16 sm:w-20 sm:h-20 mb-4 stroke-1 text-gray-400" />
-                    <p className="text-lg sm:text-xl font-serif text-gray-800">Your shopping bag is empty</p>
-                    <p className="text-xs text-gray-500 mt-1">Explore our collections and add your favorite styles.</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Footer */}
-              <div className="p-6 sm:p-8 border-t border-gray-100 bg-gray-50/80 space-y-4">
-                {cartItems.length > 0 && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs text-gray-500">
-                      <span>Subtotal</span>
-                      <span>₹{cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0).toLocaleString()}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-gray-500">
-                      <span>Shipping</span>
-                      <span className="text-emerald-600 font-medium">Free</span>
-                    </div>
-                    <div className="flex items-center justify-between text-base font-bold text-gray-900 pt-2 border-t border-gray-200">
-                      <span>Total Amount</span>
-                      <span className="text-[#800000]">₹{cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0).toLocaleString()}</span>
-                    </div>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-3 pt-1">
-                  <Link 
-                    to="/cart"
-                    onClick={() => setIsCartOpen(false)}
-                    className="w-full py-3 bg-white text-gray-900 border border-gray-200 rounded-xl font-bold text-xs text-center hover:bg-gray-100 transition-all flex items-center justify-center"
-                  >
-                    Full Bag Page
-                  </Link>
-                  <Link 
-                    to="/cart"
-                    onClick={() => setIsCartOpen(false)}
-                    className="w-full py-3 bg-[#800000] text-white rounded-xl font-bold text-xs text-center hover:bg-black transition-all hover:shadow-lg active:scale-95 flex items-center justify-center gap-1.5"
-                  >
-                    Checkout <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Account Drawer Overlay */}
       <AnimatePresence>
