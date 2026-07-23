@@ -247,7 +247,7 @@ export function Navigation() {
       <Link to="/" className="hidden lg:block absolute top-0 left-0 z-[40] pointer-events-none">
         <motion.div
           whileHover={{ scale: 1.05 }}
-          className="flex items-center h-12 sm:h-16 lg:h-20 cursor-pointer pointer-events-auto"
+          className="flex items-center h-16 sm:h-20 lg:h-28 cursor-pointer pointer-events-auto"
         >
           <img
             src="/logo_aanya.png"
@@ -400,7 +400,7 @@ export function Navigation() {
             <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center flex-shrink-0 ml-1">
               <motion.div
                 whileHover={{ scale: 1.04 }}
-                className="flex items-center h-8 sm:h-9"
+                className="flex items-center h-10 sm:h-11"
               >
                 <img
                   src="/logo_aanya.png"
@@ -835,8 +835,8 @@ export function Navigation() {
             className="fixed inset-0 z-[200] bg-[#FDFBF7] overflow-y-auto animate-fade-in"
           >
             {/* Header */}
-            <div className="sticky top-0 z-20 flex items-center justify-between px-6 sm:px-8 py-3 bg-[#FDFBF7]/90 backdrop-blur-md border-b border-gray-100/30">
-              <Link to="/" onClick={() => setIsCartOpen(false)} className="h-10 sm:h-12 flex items-center justify-start pointer-events-auto">
+            <div className="sticky top-0 z-20 flex items-center justify-between px-6 sm:px-8 py-1.5 bg-[#FDFBF7]/90 backdrop-blur-md border-b border-gray-100/30">
+              <Link to="/" onClick={() => setIsCartOpen(false)} className="h-14 sm:h-18 flex items-center justify-start pointer-events-auto">
                 <img
                   src="/logo_aanya.png"
                   alt="Aanya Fashions Logo"
@@ -916,8 +916,8 @@ export function Navigation() {
             className="fixed inset-0 z-[200] bg-[#FDFBF7] overflow-y-auto animate-fade-in"
           >
             {/* Header */}
-            <div className="sticky top-0 z-20 flex items-center justify-between px-6 sm:px-8 py-3 bg-[#FDFBF7]/90 backdrop-blur-md border-b border-gray-100/30">
-              <Link to="/" onClick={() => setIsAccountOpen(false)} className="h-10 sm:h-12 flex items-center justify-start pointer-events-auto">
+            <div className="sticky top-0 z-20 flex items-center justify-between px-6 sm:px-8 py-1.5 bg-[#FDFBF7]/90 backdrop-blur-md border-b border-gray-100/30">
+              <Link to="/" onClick={() => setIsAccountOpen(false)} className="h-14 sm:h-18 flex items-center justify-start pointer-events-auto">
                 <img
                   src="/logo_aanya.png"
                   alt="Aanya Fashions Logo"
