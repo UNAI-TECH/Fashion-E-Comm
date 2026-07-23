@@ -477,33 +477,8 @@ const MOCK_PRODUCTS: Product[] = [
 ];
 
 export async function fetchProducts(category?: string) {
-  let fetched: Product[] = [];
-  try {
-    const { data, error } = await supabase.from('products').select('*');
-    if (!error && data && data.length > 0) {
-      fetched = data.map(p => {
-        const itemImages = (p.images && p.images.length > 0) 
-          ? p.images 
-          : (p.image_url ? [p.image_url] : (p.image ? [p.image] : [PLACEHOLDER_IMAGE]));
-        return {
-          ...p,
-          image: itemImages[0],
-          images: itemImages,
-          price: p.price,
-          originalPrice: p.compare_at_price || p.original_price || p.price,
-          colors: p.colors || ['#D4AF37'],
-          rating: p.rating || 4.8,
-          status: p.status || 'Published'
-        };
-      });
-    }
-  } catch (err) {
-    console.error('Supabase fetch failed:', err);
-  }
-
-  if (fetched.length === 0) {
-    fetched = MOCK_PRODUCTS;
-  }
+  // Always use MOCK_PRODUCTS to keep exactly 5 items per collection with their local images
+  let fetched: Product[] = MOCK_PRODUCTS;
 
   if (category && category !== 'all') {
     const rawTarget = category.toLowerCase().replace(/-/g, ' ');
@@ -536,7 +511,7 @@ export async function fetchProducts(category?: string) {
       return synonymTerms.some(term => 
         pCat.includes(term) || pName.includes(term) || pDesc.includes(term)
       );
-    });
+    }).slice(0, 5); // Return only 5 items per collection
   }
 
   return fetched;
