@@ -216,7 +216,7 @@ export function ProductPage() {
         colors: product.colors
       } as any);
       toast.success(`${product.name} added to your Cart!`);
-      navigate('/cart');
+      window.dispatchEvent(new CustomEvent('open-cart'));
     }
   };
 
