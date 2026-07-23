@@ -354,34 +354,34 @@ export function Navigation() {
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.6, ease: 'easeOut' }}
-        className={`lg:hidden fixed z-[40] transition-all duration-500 top-4 left-4 right-4 bg-white border-0 shadow-md ${
+        className={`lg:hidden fixed z-[40] transition-all duration-500 top-4 left-4 right-4 bg-white border border-gray-200/60 shadow-[0_4px_15px_rgba(0,0,0,0.06)] ${
           isMobileMenuOpen ? 'rounded-[2rem]' : 'rounded-full'
         }`}
       >
-        <div className="w-full px-1.5 sm:px-3 py-1 bg-white rounded-full">
+        <div className="w-full px-3 py-1 bg-white rounded-full">
           <div className="flex items-center justify-between h-14">
             
-            {/* Left side: Logo (Only image, styled bold and visible) */}
-            <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center flex-shrink-0">
+            {/* Left side: Logo */}
+            <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center flex-shrink-0 ml-1">
               <motion.div
                 whileHover={{ scale: 1.04 }}
-                className="flex items-center h-9 sm:h-10"
+                className="flex items-center h-8 sm:h-9"
               >
                 <img
                   src="/logo_aanya.png"
                   alt="Aanya Fashions Logo"
-                  className="h-full w-auto object-contain brightness-[1.02] contrast-110 drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.08)]"
+                  className="h-full w-auto object-contain brightness-[1.02] contrast-110 drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.05)]"
                 />
               </motion.div>
             </Link>
 
             {/* Center: Navigation Links (Home, About, Collection, Contact) */}
-            <div className="flex-1 flex items-center justify-evenly px-0.5 overflow-hidden">
+            <div className="flex-1 flex items-center justify-center gap-2 xs:gap-3 sm:gap-4 px-1.5 overflow-hidden">
               <Link 
                 to="/" 
                 onClick={() => setIsMobileMenuOpen(false)} 
-                className={`px-3 py-1.5 text-[11px] sm:text-[13px] font-black uppercase tracking-wide whitespace-nowrap text-center rounded-full transition-all ${
-                  location.pathname === '/' ? 'bg-[#FFF0F5] text-[#D4AF37] border border-[#F5E6BE]' : 'text-gray-950 hover:text-[#D4AF37]'
+                className={`px-1 py-1 text-[10px] xs:text-[11px] sm:text-xs font-black uppercase tracking-wide whitespace-nowrap text-center transition-all ${
+                  location.pathname === '/' ? 'text-[#800000]' : 'text-[#002D62] hover:text-[#800000]'
                 }`}
               >
                 Home
@@ -389,8 +389,8 @@ export function Navigation() {
               <Link 
                 to="/about" 
                 onClick={() => setIsMobileMenuOpen(false)} 
-                className={`px-3 py-1.5 text-[11px] sm:text-[13px] font-black uppercase tracking-wide whitespace-nowrap text-center rounded-full transition-all ${
-                  location.pathname === '/about' ? 'bg-[#FFF0F5] text-[#D4AF37] border border-[#F5E6BE]' : 'text-gray-950 hover:text-[#D4AF37]'
+                className={`px-1 py-1 text-[10px] xs:text-[11px] sm:text-xs font-black uppercase tracking-wide whitespace-nowrap text-center transition-all ${
+                  location.pathname === '/about' ? 'text-[#800000]' : 'text-[#002D62] hover:text-[#800000]'
                 }`}
               >
                 About
@@ -400,17 +400,17 @@ export function Navigation() {
                   setIsMobileMenuOpen(false);
                   setIsMobileCollectionOpen(!isMobileCollectionOpen);
                 }} 
-                className={`px-3 py-1.5 text-[11px] sm:text-[13px] font-black uppercase tracking-wide whitespace-nowrap text-center rounded-full transition-all flex items-center gap-0.5 ${
-                  location.pathname.startsWith('/category/') ? 'bg-[#FFF0F5] text-[#D4AF37] border border-[#F5E6BE]' : 'text-gray-950 hover:text-[#D4AF37]'
+                className={`px-1 py-1 text-[10px] xs:text-[11px] sm:text-xs font-black uppercase tracking-wide whitespace-nowrap text-center transition-all flex items-center gap-0.5 ${
+                  location.pathname.startsWith('/category/') ? 'text-[#800000]' : 'text-[#002D62] hover:text-[#800000]'
                 }`}
               >
-                Collection <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${isMobileCollectionOpen ? 'rotate-180' : ''}`} />
+                Collection <ChevronDown className={`w-3 h-3 stroke-[3.5] transition-transform duration-300 ${location.pathname.startsWith('/category/') ? 'text-[#800000]' : 'text-[#002D62]'}`} style={{ transform: isMobileCollectionOpen ? 'rotate(180deg)' : 'none' }} />
               </button>
               <Link 
                 to="/contact" 
                 onClick={() => setIsMobileMenuOpen(false)} 
-                className={`px-3 py-1.5 text-[11px] sm:text-[13px] font-black uppercase tracking-wide whitespace-nowrap text-center rounded-full transition-all ${
-                  location.pathname === '/contact' ? 'bg-[#FFF0F5] text-[#D4AF37] border border-[#F5E6BE]' : 'text-gray-950 hover:text-[#D4AF37]'
+                className={`px-1 py-1 text-[10px] xs:text-[11px] sm:text-xs font-black uppercase tracking-wide whitespace-nowrap text-center transition-all ${
+                  location.pathname === '/contact' ? 'text-[#800000]' : 'text-[#002D62] hover:text-[#800000]'
                 }`}
               >
                 Contact
@@ -418,18 +418,18 @@ export function Navigation() {
             </div>
 
             {/* Right side: 3-Line Menu CTA Button */}
-            <div className="flex items-center p-0.5 flex-shrink-0">
+            <div className="flex items-center flex-shrink-0 mr-1">
               <motion.button
                 whileHover={{ scale: 1.08 }}
                 whileTap={{ scale: 0.92 }}
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="w-8 h-8 flex items-center justify-center bg-[#FFF9E6] border border-[#F5E6BE] text-[#800000] rounded-full shadow-sm hover:bg-[#F5E6BE]/40 transition-all"
+                className="w-9 h-9 flex items-center justify-center bg-[#FEF5E7] border border-[#EAD5A0]/80 text-[#800000] rounded-full shadow-sm hover:bg-[#EAD5A0]/30 transition-all"
                 aria-label="Toggle Menu Features"
               >
                 {isMobileMenuOpen ? (
-                  <X className="w-4 h-4 text-[#800000]" />
+                  <X className="w-[18px] h-[18px] text-[#800000]" />
                 ) : (
-                  <Menu className="w-4 h-4 text-[#800000]" />
+                  <Menu className="w-[18px] h-[18px] text-[#800000]" />
                 )}
               </motion.button>
             </div>
