@@ -51,7 +51,7 @@ interface DerivedUser {
 
 /* ─── Category colours ─── */
 const CAT_COLORS: Record<string, string> = {
-  Sarees: '#800000', Kurtis: '#D4AF37', Lehengas: '#002D62',
+  Sarees: '#EC4899', Kurtis: '#D4AF37', Lehengas: '#002D62',
   'Salwar Sets': '#047857', Western: '#7C3AED', Maxi: '#c2410c',
 };
 
@@ -220,7 +220,7 @@ export function AdminAanyaPage() {
     switch ((status || '').toLowerCase()) {
       case 'delivered':  return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
       case 'shipped':    return 'bg-blue-50 text-blue-700 border border-blue-200';
-      case 'cancelled':  return 'bg-red-50 text-red-600 border border-red-200';
+      case 'cancelled':  return 'bg-pink-50 text-pink-600 border border-pink-200';
       case 'completed':  return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
       default:           return 'bg-amber-50 text-amber-700 border border-amber-200';
     }
@@ -340,7 +340,7 @@ export function AdminAanyaPage() {
               {isLoading ? 'Syncing…' : 'Refresh'}
             </button>
             <button onClick={() => setIsAddOpen(true)}
-              className="flex items-center gap-2 px-5 py-2 bg-[#800000] hover:bg-black text-white rounded-full text-xs font-bold shadow-md transition-all">
+              className="flex items-center gap-2 px-5 py-2 bg-[#EC4899] hover:bg-pink-600 text-white rounded-full text-xs font-bold shadow-md transition-all">
               <Plus className="w-4 h-4" /> Add Product
             </button>
           </div>
@@ -357,7 +357,7 @@ export function AdminAanyaPage() {
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
                   { label: 'Total Revenue', value: `₹${totalRevenue.toLocaleString('en-IN')}`, icon: <IndianRupee className="w-5 h-5" />, color: 'text-[#D4AF37]', bg: 'bg-amber-50', sub: `${payments.length} payment records` },
-                  { label: 'Total Orders', value: `${orders.length}`, icon: <ShoppingBag className="w-5 h-5" />, color: 'text-[#800000]', bg: 'bg-rose-50', sub: `${orders.filter(o => o.status === 'Delivered').length} delivered` },
+                  { label: 'Total Orders', value: `${orders.length}`, icon: <ShoppingBag className="w-5 h-5" />, color: 'text-[#EC4899]', bg: 'bg-rose-50', sub: `${orders.filter(o => o.status === 'Delivered').length} delivered` },
                   { label: 'Products', value: `${dbProducts.length}`, icon: <Package className="w-5 h-5" />, color: 'text-blue-700', bg: 'bg-blue-50', sub: `${dbProducts.filter(p => p.status === 'Published').length} published` },
                   { label: 'Customers', value: `${customers.length}`, icon: <Users className="w-5 h-5" />, color: 'text-emerald-700', bg: 'bg-emerald-50', sub: 'from order records' },
                 ].map(({ label, value, icon, color, bg, sub }) => (
@@ -384,15 +384,15 @@ export function AdminAanyaPage() {
                       <h3 className="font-serif text-base font-bold text-gray-900">Weekly Revenue</h3>
                       <p className="text-xs text-gray-400">Live from orders table</p>
                     </div>
-                    <span className="text-xs font-bold text-[#800000] bg-rose-50 px-3 py-1 rounded-full">INR ₹</span>
+                    <span className="text-xs font-bold text-[#EC4899] bg-rose-50 px-3 py-1 rounded-full">INR ₹</span>
                   </div>
                   <div className="h-56">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={weeklyData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                         <defs>
                           <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#800000" stopOpacity={0.25} />
-                            <stop offset="95%" stopColor="#800000" stopOpacity={0} />
+                            <stop offset="5%" stopColor="#EC4899" stopOpacity={0.25} />
+                            <stop offset="95%" stopColor="#EC4899" stopOpacity={0} />
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
@@ -400,8 +400,8 @@ export function AdminAanyaPage() {
                         <YAxis axisLine={false} tickLine={false} stroke="#9CA3AF" fontSize={11} />
                         <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}
                           formatter={(v: any) => [`₹${Number(v).toLocaleString('en-IN')}`, 'Revenue']} />
-                        <Area type="monotone" dataKey="revenue" stroke="#800000" strokeWidth={2.5}
-                          fillOpacity={1} fill="url(#revGrad)" dot={{ r: 3, fill: '#800000', strokeWidth: 0 }} />
+                        <Area type="monotone" dataKey="revenue" stroke="#EC4899" strokeWidth={2.5}
+                          fillOpacity={1} fill="url(#revGrad)" dot={{ r: 3, fill: '#EC4899', strokeWidth: 0 }} />
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
@@ -458,7 +458,7 @@ export function AdminAanyaPage() {
                         <YAxis axisLine={false} tickLine={false} stroke="#9CA3AF" fontSize={11} />
                         <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}
                           formatter={(v: any) => [`₹${Number(v).toLocaleString('en-IN')}`, 'Revenue']} />
-                        <Bar dataKey="revenue" fill="#800000" radius={[6, 6, 0, 0]} maxBarSize={48} />
+                        <Bar dataKey="revenue" fill="#EC4899" radius={[6, 6, 0, 0]} maxBarSize={48} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -471,7 +471,7 @@ export function AdminAanyaPage() {
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-serif text-base font-bold text-gray-900">Recent Orders</h3>
                     <button onClick={() => setActiveTab('orders')}
-                      className="text-xs font-bold text-[#800000] hover:underline flex items-center gap-1">
+                      className="text-xs font-bold text-[#EC4899] hover:underline flex items-center gap-1">
                       All Orders <ChevronRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -494,7 +494,7 @@ export function AdminAanyaPage() {
                             <tr key={o.id} className="hover:bg-gray-50/60 transition-colors">
                               <td className="p-3 font-mono text-xs font-bold text-gray-800">#{String(o.id).slice(0, 8)}</td>
                               <td className="p-3 font-medium">{name}</td>
-                              <td className="p-3 font-bold text-[#800000]">₹{(o.total_amount || 0).toLocaleString('en-IN')}</td>
+                              <td className="p-3 font-bold text-[#EC4899]">₹{(o.total_amount || 0).toLocaleString('en-IN')}</td>
                               <td className="p-3"><span className={`px-2.5 py-1 rounded-full text-xs font-bold ${badge(o.status)}`}>{o.status || 'Pending'}</span></td>
                               <td className="p-3 text-xs text-gray-400">{new Date(o.created_at).toLocaleDateString('en-IN')}</td>
                             </tr>
@@ -520,10 +520,10 @@ export function AdminAanyaPage() {
                   <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
                   <input type="text" placeholder="Search products…"
                     value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#800000]/20 transition-all" />
+                    className="w-full pl-10 pr-4 py-2.5 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#EC4899]/20 transition-all" />
                 </div>
                 <button onClick={() => setIsAddOpen(true)}
-                  className="px-5 py-2.5 bg-[#800000] text-white rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-black transition-all shadow-sm">
+                  className="px-5 py-2.5 bg-[#EC4899] text-white rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-pink-600 transition-all shadow-sm">
                   <Plus className="w-4 h-4" /> Add Product
                 </button>
               </div>
@@ -555,7 +555,7 @@ export function AdminAanyaPage() {
                           </div>
                           {/* Delete button */}
                           <button onClick={() => deleteProduct(product.id)}
-                            className="absolute top-2 right-2 p-1.5 bg-white/90 hover:bg-red-50 hover:text-red-600 text-gray-500 rounded-lg shadow-sm transition-all opacity-0 group-hover:opacity-100">
+                            className="absolute top-2 right-2 p-1.5 bg-white/90 hover:bg-pink-50 hover:text-pink-500 text-gray-500 rounded-lg shadow-sm transition-all opacity-0 group-hover:opacity-100">
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                           {/* Category tag */}
@@ -568,7 +568,7 @@ export function AdminAanyaPage() {
                         <div className="p-3 space-y-1">
                           <h4 className="font-serif font-bold text-gray-900 text-sm leading-tight line-clamp-2">{product.name}</h4>
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[#800000] font-bold text-sm">₹{(product.price || 0).toLocaleString('en-IN')}</span>
+                            <span className="text-[#EC4899] font-bold text-sm">₹{(product.price || 0).toLocaleString('en-IN')}</span>
                             {product.compare_at_price && (
                               <span className="text-gray-400 line-through text-xs">₹{product.compare_at_price.toLocaleString('en-IN')}</span>
                             )}
@@ -616,14 +616,14 @@ export function AdminAanyaPage() {
                                 <div className="text-xs flex items-center gap-1 text-gray-600"><Phone className="w-3 h-3" />{addr.phone || '—'}</div>
                                 <div className="text-xs flex items-center gap-1 text-gray-400"><Mail className="w-3 h-3" />{addr.email || '—'}</div>
                               </td>
-                              <td className="p-4 font-bold text-[#800000]">₹{(order.total_amount || 0).toLocaleString('en-IN')}</td>
+                              <td className="p-4 font-bold text-[#EC4899]">₹{(order.total_amount || 0).toLocaleString('en-IN')}</td>
                               <td className="p-4 text-xs text-gray-600">{order.payment_method || '—'}</td>
                               <td className="p-4"><span className={`px-2.5 py-1 rounded-full text-xs font-bold ${badge(order.status)}`}>{order.status || 'Pending'}</span></td>
                               <td className="p-4 text-xs text-gray-400 whitespace-nowrap">{new Date(order.created_at).toLocaleDateString('en-IN')}</td>
                               <td className="p-4">
                                 <select value={order.status || 'Pending'}
                                   onChange={e => updateOrderStatus(order.id, e.target.value)}
-                                  className="px-2.5 py-1.5 bg-gray-50 rounded-lg text-xs font-bold border border-gray-200 outline-none cursor-pointer focus:ring-2 focus:ring-[#800000]/20">
+                                  className="px-2.5 py-1.5 bg-gray-50 rounded-lg text-xs font-bold border border-gray-200 outline-none cursor-pointer focus:ring-2 focus:ring-[#EC4899]/20">
                                   <option value="Pending">Pending</option>
                                   <option value="Order Placed">Order Placed</option>
                                   <option value="Shipped">Shipped</option>
@@ -652,7 +652,7 @@ export function AdminAanyaPage() {
                   {customers.map(cust => (
                     <motion.div key={cust.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                       className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex gap-4">
-                      <div className="w-14 h-14 bg-[#800000]/10 text-[#800000] rounded-2xl flex items-center justify-center font-bold text-xl flex-shrink-0 uppercase">
+                      <div className="w-14 h-14 bg-[#EC4899]/10 text-[#EC4899] rounded-2xl flex items-center justify-center font-bold text-xl flex-shrink-0 uppercase">
                         {cust.name[0]}
                       </div>
                       <div className="flex-1 min-w-0 space-y-1.5">
@@ -683,7 +683,7 @@ export function AdminAanyaPage() {
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                   <div className="p-5 border-b border-gray-100">
                     <h3 className="font-serif text-base font-bold text-gray-900">Payment Records ({payments.length})</h3>
-                    <p className="text-xs text-gray-400 mt-0.5">Total collected: <span className="text-[#800000] font-bold">₹{payments.reduce((s, p) => s + (p.amount || 0), 0).toLocaleString('en-IN')}</span></p>
+                    <p className="text-xs text-gray-400 mt-0.5">Total collected: <span className="text-[#EC4899] font-bold">₹{payments.reduce((s, p) => s + (p.amount || 0), 0).toLocaleString('en-IN')}</span></p>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm text-gray-700">
@@ -702,7 +702,7 @@ export function AdminAanyaPage() {
                             <td className="p-4">
                               <span className="px-2.5 py-1 bg-gray-100 text-gray-700 rounded-lg text-xs font-bold">{p.method || '—'}</span>
                             </td>
-                            <td className="p-4 font-bold text-[#800000]">₹{(p.amount || 0).toLocaleString('en-IN')}</td>
+                            <td className="p-4 font-bold text-[#EC4899]">₹{(p.amount || 0).toLocaleString('en-IN')}</td>
                             <td className="p-4"><span className={`px-2.5 py-1 rounded-full text-xs font-bold ${badge(p.status)}`}>{p.status || 'Pending'}</span></td>
                             <td className="p-4 text-xs text-gray-400 whitespace-nowrap">{new Date(p.created_at).toLocaleDateString('en-IN')}</td>
                           </tr>
@@ -727,16 +727,16 @@ export function AdminAanyaPage() {
               className="bg-[#FDFBF7] rounded-3xl shadow-2xl max-w-lg w-full relative my-8 overflow-hidden">
 
               {/* Modal header */}
-              <div className="bg-[#1A0A0A] px-6 py-5 flex items-center justify-between">
+              <div className="bg-pink-50 border-b border-pink-100 px-6 py-5 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <img src="/logo_aanya.png" alt="Aanya" className="h-10 w-10 object-contain invert brightness-200" />
+                  <img src="/logo_aanya.png" alt="Aanya" className="h-12 w-auto object-contain" />
                   <div>
-                    <h3 className="font-serif text-base font-bold text-white">Add New Product</h3>
-                    <p className="text-xs text-[#D4AF37]">Saved directly to Supabase catalog</p>
+                    <h3 className="font-serif text-base font-bold text-gray-900">Add New Product</h3>
+                    <p className="text-xs text-pink-400 font-medium">Saved directly to Supabase catalog</p>
                   </div>
                 </div>
                 <button onClick={() => setIsAddOpen(false)}
-                  className="p-2 rounded-full hover:bg-white/10 text-gray-300 transition-all">
+                  className="p-2 rounded-full hover:bg-pink-100 text-gray-500 transition-all">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -747,7 +747,7 @@ export function AdminAanyaPage() {
                   <label className="block text-xs uppercase tracking-wider font-bold text-gray-500 mb-1.5">Product Title *</label>
                   <input type="text" required placeholder="e.g. Royal Maroon Silk Saree"
                     value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#800000]/20" />
+                    className="w-full px-4 py-2.5 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#EC4899]/20" />
                 </div>
 
                 {/* Category + Price */}
@@ -755,7 +755,7 @@ export function AdminAanyaPage() {
                   <div>
                     <label className="block text-xs uppercase tracking-wider font-bold text-gray-500 mb-1.5">Category</label>
                     <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}
-                      className="w-full px-4 py-2.5 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#800000]/20 cursor-pointer">
+                      className="w-full px-4 py-2.5 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#EC4899]/20 cursor-pointer">
                       {['Sarees','Kurtis','Lehengas','Salwar Sets','Western','Maxi'].map(c => <option key={c}>{c}</option>)}
                     </select>
                   </div>
@@ -763,7 +763,7 @@ export function AdminAanyaPage() {
                     <label className="block text-xs uppercase tracking-wider font-bold text-gray-500 mb-1.5">Selling Price (₹) *</label>
                     <input type="number" required min="1" placeholder="e.g. 4999"
                       value={form.price} onChange={e => setForm({ ...form, price: e.target.value })}
-                      className="w-full px-4 py-2.5 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#800000]/20" />
+                      className="w-full px-4 py-2.5 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#EC4899]/20" />
                   </div>
                 </div>
 
@@ -772,7 +772,7 @@ export function AdminAanyaPage() {
                   <label className="block text-xs uppercase tracking-wider font-bold text-gray-500 mb-1.5">Original / MRP (₹) — optional</label>
                   <input type="number" min="1" placeholder="e.g. 6999"
                     value={form.compare_at_price} onChange={e => setForm({ ...form, compare_at_price: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#800000]/20" />
+                    className="w-full px-4 py-2.5 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#EC4899]/20" />
                 </div>
 
                 {/* Image URL + vertical preview side-by-side */}
@@ -783,7 +783,7 @@ export function AdminAanyaPage() {
                       <input type="url" placeholder="https://example.com/image.jpg"
                         value={form.image_url}
                         onChange={e => { setForm({ ...form, image_url: e.target.value }); setImgPreview(e.target.value); }}
-                        className="w-full px-4 py-2.5 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#800000]/20" />
+                        className="w-full px-4 py-2.5 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#EC4899]/20" />
                       <p className="text-xs text-gray-400">Paste any HTTPS image URL — preview shows portrait format</p>
                     </div>
                     {/* Vertical portrait preview */}
@@ -805,7 +805,7 @@ export function AdminAanyaPage() {
                   <label className="block text-xs uppercase tracking-wider font-bold text-gray-500 mb-1.5">Description</label>
                   <textarea rows={2} placeholder="Fabric, embroidery, care instructions…"
                     value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#800000]/20 resize-none" />
+                    className="w-full px-4 py-2.5 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#EC4899]/20 resize-none" />
                 </div>
 
                 <div className="flex justify-end gap-3 pt-2">
@@ -814,7 +814,7 @@ export function AdminAanyaPage() {
                     Cancel
                   </button>
                   <button type="submit" disabled={adding}
-                    className="px-6 py-2.5 bg-[#800000] text-white rounded-full text-xs font-bold uppercase tracking-wider hover:bg-black transition-all shadow-md disabled:opacity-60 flex items-center gap-2">
+                    className="px-6 py-2.5 bg-[#EC4899] text-white rounded-full text-xs font-bold uppercase tracking-wider hover:bg-pink-600 transition-all shadow-md disabled:opacity-60 flex items-center gap-2">
                     {adding ? <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Publishing…</> : 'Publish to Store'}
                   </button>
                 </div>
