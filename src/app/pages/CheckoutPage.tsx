@@ -56,8 +56,20 @@ export function CheckoutPage() {
         .from('orders')
         .insert({
           user_id: user.id,
-          total_price: total,
-          status: 'Pending'
+          total_amount: total,
+          status: 'Pending',
+          payment_method: paymentMethod === 'upi' ? 'UPI' : paymentMethod === 'cod' ? 'COD' : 'Card',
+          payment_status: paymentMethod === 'cod' ? 'Pending' : 'Success',
+          shipping_address: {
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            email: formData.email,
+            phone: formData.phone,
+            address: formData.address,
+            city: formData.city,
+            state: formData.state,
+            pincode: formData.pincode,
+          }
         })
         .select()
         .single();

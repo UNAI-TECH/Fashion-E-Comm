@@ -116,30 +116,43 @@ export function Footer() {
               {/* Contact Us */}
               <div className="col-span-1 space-y-3 md:space-y-6">
                 <h4 className="text-[10px] md:text-sm font-extrabold text-gray-900 tracking-wider uppercase">CONTACT US</h4>
-                <div className="space-y-2 md:space-y-4 text-left">
-                  <div className="flex items-center gap-2">
-                    <Phone className="w-3.5 h-3.5 text-gray-600 flex-shrink-0" />
-                    <div>
-                      <p className="text-xs text-gray-500 font-bold hidden md:block">PHONE</p>
-                      <p className="text-[10px] md:text-sm text-gray-800 font-medium">+91 98765 43210</p>
+                <div className="space-y-2.5 md:space-y-4 text-left">
+                  <a href="tel:+918838226394" className="flex items-center gap-2 group hover:text-[#D4AF37] transition-colors">
+                    <div className="w-6 h-6 bg-[#FFF0F5] text-[#D4AF37] rounded-full flex items-center justify-center flex-shrink-0 group-hover:bg-[#D4AF37] group-hover:text-white transition-all">
+                      <Phone className="w-3 h-3 stroke-[2.2]" />
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Mail className="w-3.5 h-3.5 text-gray-600 flex-shrink-0" />
                     <div>
-                      <p className="text-xs text-gray-500 font-bold hidden md:block">EMAIL</p>
-                      <p className="text-[10px] md:text-sm text-gray-800 font-medium">support@aanyafashions.in</p>
+                      <p className="text-[10px] text-gray-400 font-bold hidden md:block uppercase tracking-wider">PHONE (TAP TO CALL)</p>
+                      <p className="text-[10px] md:text-sm text-gray-900 font-bold group-hover:text-[#D4AF37] transition-colors">+91 88382 26394</p>
                     </div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <MapPin className="w-3.5 h-3.5 text-gray-600 mt-0.5 flex-shrink-0" />
+                  </a>
+
+                  <a href="mailto:owner@aanyafashions.com" className="flex items-center gap-2 group hover:text-[#D4AF37] transition-colors">
+                    <div className="w-6 h-6 bg-[#FFF0F5] text-[#D4AF37] rounded-full flex items-center justify-center flex-shrink-0 group-hover:bg-[#D4AF37] group-hover:text-white transition-all">
+                      <Mail className="w-3 h-3 stroke-[2.2]" />
+                    </div>
                     <div>
-                      <p className="text-xs text-gray-500 font-bold hidden md:block">ADDRESS</p>
-                      <p className="text-[10px] md:text-sm text-gray-800 font-medium leading-tight">
-                        123, Fashion Street, Mumbai - 400001
+                      <p className="text-[10px] text-gray-400 font-bold hidden md:block uppercase tracking-wider">EMAIL (TAP TO EMAIL)</p>
+                      <p className="text-[10px] md:text-sm text-gray-900 font-bold group-hover:text-[#D4AF37] transition-colors">owner@aanyafashions.com</p>
+                    </div>
+                  </a>
+
+                  <a 
+                    href="https://www.google.com/maps/search/?api=1&query=Fashion+Street+Bandra+West+Mumbai" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="flex items-start gap-2 group hover:text-[#D4AF37] transition-colors"
+                  >
+                    <div className="w-6 h-6 bg-[#FFF0F5] text-[#D4AF37] rounded-full flex items-center justify-center mt-0.5 flex-shrink-0 group-hover:bg-[#D4AF37] group-hover:text-white transition-all">
+                      <MapPin className="w-3 h-3 stroke-[2.2]" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-gray-400 font-bold hidden md:block uppercase tracking-wider">ADDRESS (TAP FOR MAP)</p>
+                      <p className="text-[10px] md:text-sm text-gray-900 font-bold leading-tight group-hover:text-[#D4AF37] transition-colors">
+                        123, Fashion Street, Mumbai - 400050 🗺️
                       </p>
                     </div>
-                  </div>
+                  </a>
                 </div>
               </div>
             </div>

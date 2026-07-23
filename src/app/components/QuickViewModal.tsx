@@ -16,11 +16,9 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const [selectedImage, setSelectedImage] = useState(0);
 
-  if (!isOpen || !product) return null;
-
   return (
     <AnimatePresence>
-      {isOpen && (
+      {isOpen && product && (
         <>
           {/* Backdrop */}
           <motion.div

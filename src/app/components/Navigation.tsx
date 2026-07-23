@@ -1,68 +1,196 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, User, ShoppingBag, Heart, ChevronDown, ArrowRight } from 'lucide-react';
+import { Search, User, Package, Heart, ChevronDown, ArrowRight, X, Phone, Plus, Minus, Trash2, Menu, Clock, ArrowLeft } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import { useWishlist } from '../contexts/WishlistContext';
-import { Link, useLocation } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { supabase } from '../../lib/supabase';
-import { Product } from '../data/products';
+import { Product, fetchProducts } from '../data/products';
 
 export function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const { cartCount, addToCart } = useCart();
+  const { cartItems, cartCount, addToCart, updateQuantity, removeItem } = useCart();
   const { wishlistItems, wishlistCount, removeFromWishlist } = useWishlist();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCollectionOpen, setIsCollectionOpen] = useState(false);
   const [isMobileCollectionOpen, setIsMobileCollectionOpen] = useState(false);
   const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [searchHistory, setSearchHistory] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('search_history') || '[]'); } catch { return []; }
+  });
   const location = useLocation();
+  const navigate = useNavigate();
+
+  // Always navigate to full collection / category page on search submit
+  const handleSearchSubmit = (query: string) => {
+    if (!query.trim()) return;
+    addToHistory(query.trim());
+    setIsSearchOpen(false);
+    setSearchQuery('');
+    
+    const queryLower = query.trim().toLowerCase();
+    const matchedProduct = allProducts.find(product => {
+      const nameLower = (product.name || '').toLowerCase();
+      const categoryLower = (product.category || '').toLowerCase();
+      return nameLower.includes(queryLower) || categoryLower.includes(queryLower);
+    });
+
+    const targetCategory = matchedProduct?.category || query.trim();
+    navigate(`/category/${encodeURIComponent(targetCategory.toLowerCase())}`);
+  };
+
+  // Load all catalog products when search opens
+  useEffect(() => {
+    if (!isSearchOpen) return;
+    fetchProducts().then(products => setAllProducts(products));
+  }, [isSearchOpen]);
+
+  const addToHistory = (query: string) => {
+    if (!query.trim()) return;
+    setSearchHistory(prev => {
+      const updated = [query, ...prev.filter(h => h !== query)].slice(0, 8);
+      localStorage.setItem('search_history', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const removeFromHistory = (item: string) => {
+    setSearchHistory(prev => {
+      const updated = prev.filter(h => h !== item);
+      localStorage.setItem('search_history', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const clearHistory = () => {
+    setSearchHistory([]);
+    localStorage.removeItem('search_history');
+  };
 
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
     };
 
+    const handleOpenWishlist = () => {
+      setIsWishlistOpen(true);
+    };
+
     window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener('open-wishlist', handleOpenWishlist);
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('open-wishlist', handleOpenWishlist);
+    };
   }, []);
 
   useEffect(() => {
     const searchProducts = async () => {
-      if (searchQuery.length < 2) {
+      const queryTrimmed = searchQuery.trim();
+      if (queryTrimmed.length === 0) {
         setSearchResults([]);
         return;
       }
 
       setIsSearching(true);
       try {
-        const { data, error } = await supabase
+        const queryLower = queryTrimmed.toLowerCase();
+        
+        // Synonym & category expansion helper (handles spellings like kurtha, kurti, saree, sari, lehanga, etc.)
+        const getSearchTerms = (query: string): string[] => {
+          const q = query.toLowerCase().trim();
+          const terms = [q];
+
+          if (q.endsWith('es')) terms.push(q.slice(0, -2));
+          if (q.endsWith('s')) terms.push(q.slice(0, -1));
+
+          // Kurtas / Kurtis / Kurthas / Anarkali
+          if (q.includes('kurt') || q.includes('kurtah') || q.includes('anarkali')) {
+            terms.push('kurti', 'kurta', 'kurtis', 'kurtas', 'kurtha', 'kurthas', 'anarkali');
+          }
+
+          // Sarees / Sari / Sare
+          if (q.includes('sare') || q.includes('sari')) {
+            terms.push('saree', 'sari', 'sarees', 'saris');
+          }
+
+          // Lehengas / Lehanga / Ghagra / Choli
+          if (q.includes('leheng') || q.includes('lehang') || q.includes('choli')) {
+            terms.push('lehenga', 'lehanga', 'lehengas', 'lehangas', 'choli');
+          }
+
+          // Salwar / Suit / Suits / Patiala / Set
+          if (q.includes('salwar') || q.includes('suit') || q.includes('patiala')) {
+            terms.push('salwar', 'suit', 'suits', 'set', 'sets', 'patiala');
+          }
+
+          // Maxi / Gown
+          if (q.includes('maxi') || q.includes('gown')) {
+            terms.push('maxi', 'gown', 'gowns');
+          }
+
+          // Western
+          if (q.includes('west') || q.includes('western') || q.includes('blouse')) {
+            terms.push('western', 'blouse', 'culottes');
+          }
+
+          return Array.from(new Set(terms.filter(Boolean)));
+        };
+
+        const searchTerms = getSearchTerms(queryLower);
+        const primaryStem = searchTerms[1] || queryLower;
+
+        // 1. Always load mock catalog
+        const mockProducts = await fetchProducts();
+
+        // 2. Also query Supabase in parallel using primary search term
+        const { data: dbData } = await supabase
           .from('products')
-          .select('*')
-          .eq('status', 'Published')
-          .ilike('name', `%${searchQuery}%`)
-          .limit(6);
+          .select('id, name, category, description, price, images, image_url, status')
+          .or(`name.ilike.%${primaryStem}%,category.ilike.%${primaryStem}%`);
 
-        if (error) throw error;
+        // 3. Combine and deduplicate
+        const allItems = [...mockProducts, ...(dbData || [])];
+        const uniqueItems = Array.from(new Map(allItems.map(item => [item.id, item])).values());
 
-        setSearchResults((data || []).map((p: any) => ({
-          ...p,
-          image: (p.images && p.images.length > 0) ? p.images[0] : (p.image_url || '')
-        })));
+        // 4. Filter: match ANY search term in name, category, or description
+        const results = uniqueItems.filter(product => {
+          const nameLower = (product.name || '').toLowerCase();
+          const categoryLower = (product.category || '').toLowerCase();
+          const descLower = (product.description || '').toLowerCase();
+
+          return searchTerms.some(term =>
+            nameLower.includes(term) ||
+            categoryLower.includes(term) ||
+            descLower.includes(term)
+          );
+        });
+
+        setSearchResults(
+          results.map((p: any) => ({
+            ...p,
+            image: (p.images && p.images.length > 0) ? p.images[0] : (p.image_url || p.image || ''),
+          }))
+        );
       } catch (err) {
         console.error('Search error:', err);
+        setSearchResults([]);
       } finally {
         setIsSearching(false);
       }
     };
 
-    const debounce = setTimeout(searchProducts, 300);
-    return () => clearTimeout(debounce);
+    const timer = setTimeout(searchProducts, 200);
+    return () => clearTimeout(timer);
   }, [searchQuery]);
 
   const menuItems = [
@@ -97,74 +225,69 @@ export function Navigation() {
       <div className="hidden lg:flex fixed top-6 left-1/2 -translate-x-1/2 z-[40] items-center space-x-1 bg-white/90 backdrop-blur-md p-1 px-2 rounded-full border border-white/30 shadow-md">
         <Link to="/">
           <motion.span
-            whileHover={{ scale: 1.03 }}
-            className={`inline-block px-4 py-1.5 text-xs font-bold tracking-wider uppercase cursor-pointer rounded-full transition-all duration-300 ${
-              location.pathname === '/'
-                ? 'bg-[#800000] text-white shadow-sm'
-                : 'text-gray-700 hover:text-[#800000] hover:bg-gray-50'
+            whileHover={{ scale: 1.05 }}
+            className={`px-4 py-2 text-[11px] sm:text-[13px] font-black uppercase tracking-wide rounded-full transition-all inline-block ${
+              location.pathname === '/' ? 'bg-[#FFF0F5] text-[#D4AF37] border border-[#F5E6BE] shadow-sm' : 'text-gray-950 hover:bg-[#FFF0F5] hover:text-[#D4AF37]'
             }`}
           >
             Home
           </motion.span>
         </Link>
-
         <Link to="/about">
           <motion.span
-            whileHover={{ scale: 1.03 }}
-            className={`inline-block px-4 py-1.5 text-xs font-bold tracking-wider uppercase cursor-pointer rounded-full transition-all duration-300 ${
-              location.pathname === '/about'
-                ? 'bg-[#800000] text-white shadow-sm'
-                : 'text-gray-700 hover:text-[#800000] hover:bg-gray-50'
+            whileHover={{ scale: 1.05 }}
+            className={`px-4 py-2 text-[11px] sm:text-[13px] font-black uppercase tracking-wide rounded-full transition-all inline-block ${
+              location.pathname === '/about' ? 'bg-[#FFF0F5] text-[#D4AF37] border border-[#F5E6BE] shadow-sm' : 'text-gray-950 hover:bg-[#FFF0F5] hover:text-[#D4AF37]'
             }`}
           >
-            About Us
+            About
           </motion.span>
         </Link>
 
-        {/* Collection Dropdown Link */}
+        {/* Collection Category Dropdown (Desktop) */}
         <div 
-          className="relative group"
+          className="relative"
           onMouseEnter={() => setIsCollectionOpen(true)}
           onMouseLeave={() => setIsCollectionOpen(false)}
         >
           <motion.button
-            whileHover={{ scale: 1.03 }}
-            className={`px-4 py-1.5 text-xs font-bold tracking-wider uppercase cursor-pointer flex items-center gap-1 rounded-full transition-all duration-300 ${
-              location.pathname.startsWith('/category/')
-                ? 'bg-[#800000] text-white shadow-sm'
-                : 'text-gray-700 hover:text-[#800000] hover:bg-gray-50'
+            whileHover={{ scale: 1.05 }}
+            className={`px-4 py-2 text-[11px] sm:text-[13px] font-black uppercase tracking-wide rounded-full transition-all flex items-center gap-1.5 cursor-pointer ${
+              location.pathname.startsWith('/category/') ? 'bg-[#FFF0F5] text-[#D4AF37] border border-[#F5E6BE] shadow-sm' : 'text-gray-950 hover:bg-[#FFF0F5] hover:text-[#D4AF37]'
             }`}
           >
-            Collection <ChevronDown className="w-3 h-3" />
+            Collection
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${isCollectionOpen ? 'rotate-180' : ''}`} />
           </motion.button>
 
-          {/* Dropdown Menu */}
           <AnimatePresence>
             {isCollectionOpen && (
               <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
                 transition={{ duration: 0.2 }}
-                className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-44 bg-white/95 backdrop-blur-md rounded-2xl border border-gray-100 shadow-xl overflow-hidden py-2 z-[60]"
+                className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-100/80 p-2 space-y-1 z-50"
               >
                 {[
-                  { name: 'Sarees', path: '/category/sarees' },
-                  { name: 'Western', path: '/category/western' },
-                  { name: 'Lehengas', path: '/category/lehengas' },
-                  { name: 'Kurtis', path: '/category/kurtis' },
-                  { name: 'Salwar Sets', path: '/category/salwar-sets' },
-                  { name: 'Tradition', path: '/category/tradition' },
+                  { name: 'Kurti', path: '/category/kurtis' },
+                  { name: 'Saree', path: '/category/sarees' },
+                  { name: 'Salwar Set', path: '/category/salwar-sets' },
                   { name: 'Maxi', path: '/category/maxi' },
-                ].map((sub) => (
-                  <Link 
-                    key={sub.name} 
-                    to={sub.path}
-                    className={`block px-5 py-2 text-xs font-semibold hover:bg-gray-50 transition-colors ${
-                      location.pathname === sub.path ? 'text-[#800000] bg-gray-50/50' : 'text-gray-700 hover:text-[#800000]'
+                  { name: 'Lehengas', path: '/category/lehengas' },
+                  { name: 'Western', path: '/category/western' },
+                ].map((category) => (
+                  <Link
+                    key={category.name}
+                    to={category.path}
+                    onClick={() => setIsCollectionOpen(false)}
+                    className={`block px-4 py-2 text-xs font-bold rounded-xl transition-all ${
+                      location.pathname === category.path
+                        ? 'bg-[#FFF0F5] text-[#D4AF37] font-black border border-[#F5E6BE]'
+                        : 'text-gray-700 hover:bg-[#FFF0F5] hover:text-[#D4AF37]'
                     }`}
                   >
-                    {sub.name}
+                    {category.name}
                   </Link>
                 ))}
               </motion.div>
@@ -174,11 +297,9 @@ export function Navigation() {
 
         <Link to="/contact">
           <motion.span
-            whileHover={{ scale: 1.03 }}
-            className={`inline-block px-4 py-1.5 text-xs font-bold tracking-wider uppercase cursor-pointer rounded-full transition-all duration-300 ${
-              location.pathname === '/contact'
-                ? 'bg-[#800000] text-white shadow-sm'
-                : 'text-gray-700 hover:text-[#800000] hover:bg-gray-50'
+            whileHover={{ scale: 1.05 }}
+            className={`px-4 py-2 text-[11px] sm:text-[13px] font-black uppercase tracking-wide rounded-full transition-all inline-block ${
+              location.pathname === '/contact' ? 'bg-[#FFF0F5] text-[#D4AF37] border border-[#F5E6BE] shadow-sm' : 'text-gray-950 hover:bg-[#FFF0F5] hover:text-[#D4AF37]'
             }`}
           >
             Contact
@@ -186,9 +307,8 @@ export function Navigation() {
         </Link>
       </div>
 
-      {/* 3. Desktop Standalone Right Icons Pill Bar */}
-      <div className="hidden lg:flex fixed top-6 right-8 z-[40] items-center space-x-1 bg-white/90 backdrop-blur-md p-1 px-2 rounded-full border border-white/30 shadow-md">
-        {/* Search - first position */}
+      {/* 3. Desktop Standalone Quick Action Pill (Top Right Corner) */}
+      <div className="hidden lg:flex fixed top-6 right-8 z-[40] items-center space-x-1 bg-white/90 backdrop-blur-md p-1.5 px-3 rounded-full border border-white/30 shadow-md">
         <motion.button
           whileHover={{ scale: 1.08 }}
           whileTap={{ scale: 0.95 }}
@@ -205,40 +325,26 @@ export function Navigation() {
           className="p-1.5 text-gray-700 hover:text-[#800000] hover:bg-white rounded-full transition-all relative"
           aria-label="Wishlist"
         >
-          <Heart className="w-4 h-4" />
-          <motion.span
-            initial={{ scale: 0 }}
-            animate={{ scale: wishlistCount > 0 ? 1 : 0 }}
-            className="absolute top-0 right-0 w-3.5 h-3.5 bg-[#800000] text-white text-[7px] font-bold rounded-full flex items-center justify-center border border-white"
-          >
-            {wishlistCount}
-          </motion.span>
+          <Heart className="w-4 h-4 text-rose-600 fill-rose-100" />
         </motion.button>
-        <Link to="/cart">
-          <motion.button
-            whileHover={{ scale: 1.08 }}
-            whileTap={{ scale: 0.95 }}
-            className="relative p-1.5 text-gray-700 hover:text-[#D4AF37] hover:bg-white rounded-full transition-all group"
-            aria-label="Cart"
-          >
-            <ShoppingBag className="w-4 h-4 group-hover:scale-105 transition-transform" />
-            <motion.span
-              initial={{ scale: 0 }}
-              animate={{ scale: cartCount > 0 ? 1 : 0 }}
-              className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-[#D4AF37] text-white text-[9px] font-bold rounded-full flex items-center justify-center border border-white shadow-sm"
-            >
-              {cartCount}
-            </motion.span>
-          </motion.button>
-        </Link>
         <Link to="/orders">
           <motion.button
             whileHover={{ scale: 1.08 }}
             whileTap={{ scale: 0.95 }}
-            className="p-1.5 text-gray-700 hover:text-[#800000] hover:bg-white rounded-full transition-all"
-            aria-label="Profile/Orders"
+            className="p-1.5 text-gray-700 hover:text-emerald-700 hover:bg-white rounded-full transition-all relative group cursor-pointer"
+            aria-label="My Orders"
           >
-            <User className="w-4 h-4" />
+            <Package className="w-4 h-4 text-emerald-700" />
+          </motion.button>
+        </Link>
+        <Link to="/contact">
+          <motion.button
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.95 }}
+            className="p-1.5 text-gray-700 hover:text-[#800000] hover:bg-white rounded-full transition-all"
+            aria-label="Contact"
+          >
+            <Phone className="w-4 h-4" />
           </motion.button>
         </Link>
       </div>
@@ -252,141 +358,114 @@ export function Navigation() {
           isMobileMenuOpen ? 'rounded-[2rem]' : 'rounded-full'
         }`}
       >
-        <div className="w-full px-2 sm:px-3 py-1 bg-white rounded-full">
+        <div className="w-full px-1.5 sm:px-3 py-1 bg-white rounded-full">
           <div className="flex items-center justify-between h-14">
             
             {/* Left side: Logo (Only image, styled bold and visible) */}
             <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center flex-shrink-0">
               <motion.div
                 whileHover={{ scale: 1.04 }}
-                className="flex items-center h-10 sm:h-11"
+                className="flex items-center h-9 sm:h-10"
               >
                 <img
                   src="/logo_aanya.png"
                   alt="Aanya Fashions Logo"
-                  className="h-full w-auto object-contain"
+                  className="h-full w-auto object-contain brightness-[1.02] contrast-110 drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.08)]"
                 />
               </motion.div>
             </Link>
 
-            {/* Center: Navigation Links (Home, About Us, Collection, Contact) */}
-            <div className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-1">
+            {/* Center: Navigation Links (Home, About, Collection, Contact) */}
+            <div className="flex-1 flex items-center justify-evenly px-0.5 overflow-hidden">
               <Link 
                 to="/" 
-                onClick={() => { setIsMobileMenuOpen(false); setIsMobileCollectionOpen(false); }} 
-                className={`text-[9px] sm:text-[10px] font-black uppercase tracking-wider transition-colors duration-300 ${location.pathname === '/' ? 'text-[#800000]' : 'text-gray-950 hover:text-[#800000]'}`}
+                onClick={() => setIsMobileMenuOpen(false)} 
+                className={`px-3 py-1.5 text-[11px] sm:text-[13px] font-black uppercase tracking-wide whitespace-nowrap text-center rounded-full transition-all ${
+                  location.pathname === '/' ? 'bg-[#FFF0F5] text-[#D4AF37] border border-[#F5E6BE]' : 'text-gray-950 hover:text-[#D4AF37]'
+                }`}
               >
                 Home
               </Link>
               <Link 
                 to="/about" 
-                onClick={() => { setIsMobileMenuOpen(false); setIsMobileCollectionOpen(false); }} 
-                className={`text-[9px] sm:text-[10px] font-black uppercase tracking-wider transition-colors duration-300 ${location.pathname === '/about' ? 'text-[#800000]' : 'text-gray-950 hover:text-[#800000]'}`}
+                onClick={() => setIsMobileMenuOpen(false)} 
+                className={`px-3 py-1.5 text-[11px] sm:text-[13px] font-black uppercase tracking-wide whitespace-nowrap text-center rounded-full transition-all ${
+                  location.pathname === '/about' ? 'bg-[#FFF0F5] text-[#D4AF37] border border-[#F5E6BE]' : 'text-gray-950 hover:text-[#D4AF37]'
+                }`}
               >
-                About Us
+                About
               </Link>
               <button 
-                onClick={() => setIsMobileCollectionOpen(!isMobileCollectionOpen)}
-                className={`text-[9px] sm:text-[10px] font-black uppercase tracking-wider transition-colors duration-300 ${location.pathname.startsWith('/category/') ? 'text-[#800000]' : 'text-gray-950 hover:text-[#800000]'}`}
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  setIsMobileCollectionOpen(!isMobileCollectionOpen);
+                }} 
+                className={`px-3 py-1.5 text-[11px] sm:text-[13px] font-black uppercase tracking-wide whitespace-nowrap text-center rounded-full transition-all flex items-center gap-0.5 ${
+                  location.pathname.startsWith('/category/') ? 'bg-[#FFF0F5] text-[#D4AF37] border border-[#F5E6BE]' : 'text-gray-950 hover:text-[#D4AF37]'
+                }`}
               >
-                Collection
+                Collection <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${isMobileCollectionOpen ? 'rotate-180' : ''}`} />
               </button>
               <Link 
                 to="/contact" 
-                onClick={() => { setIsMobileMenuOpen(false); setIsMobileCollectionOpen(false); }} 
-                className={`text-[9px] sm:text-[10px] font-black uppercase tracking-wider transition-colors duration-300 ${location.pathname === '/contact' ? 'text-[#800000]' : 'text-gray-950 hover:text-[#800000]'}`}
+                onClick={() => setIsMobileMenuOpen(false)} 
+                className={`px-3 py-1.5 text-[11px] sm:text-[13px] font-black uppercase tracking-wide whitespace-nowrap text-center rounded-full transition-all ${
+                  location.pathname === '/contact' ? 'bg-[#FFF0F5] text-[#D4AF37] border border-[#F5E6BE]' : 'text-gray-950 hover:text-[#D4AF37]'
+                }`}
               >
                 Contact
               </Link>
             </div>
 
-            {/* Right side: Icons (Search, Wishlist, Cart, Account, Menu) */}
-            <div className="flex items-center space-x-0.5 sm:space-x-1 bg-transparent p-0.5 flex-shrink-0">
+            {/* Right side: 3-Line Menu CTA Button */}
+            <div className="flex items-center p-0.5 flex-shrink-0">
               <motion.button
                 whileHover={{ scale: 1.08 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setIsSearchOpen(true)}
-                className="p-1 text-gray-700 hover:text-[#800000] hover:bg-white rounded-full transition-all"
-                aria-label="Search"
+                whileTap={{ scale: 0.92 }}
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="w-8 h-8 flex items-center justify-center bg-[#FFF9E6] border border-[#F5E6BE] text-[#800000] rounded-full shadow-sm hover:bg-[#F5E6BE]/40 transition-all"
+                aria-label="Toggle Menu Features"
               >
-                <Search className="w-3.5 h-3.5" />
+                {isMobileMenuOpen ? (
+                  <X className="w-4 h-4 text-[#800000]" />
+                ) : (
+                  <Menu className="w-4 h-4 text-[#800000]" />
+                )}
               </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.08 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setIsWishlistOpen(true)}
-                className="p-1 text-gray-700 hover:text-[#800000] hover:bg-white rounded-full transition-all relative"
-                aria-label="Wishlist"
-              >
-                <Heart className="w-3.5 h-3.5" />
-                <motion.span
-                  initial={{ scale: 0 }}
-                  animate={{ scale: wishlistCount > 0 ? 1 : 0 }}
-                  className="absolute top-0 right-0 w-3 h-3 bg-[#800000] text-white text-[6px] font-bold rounded-full flex items-center justify-center border border-white"
-                >
-                  {wishlistCount}
-                </motion.span>
-              </motion.button>
-              <Link to="/cart">
-                <motion.button
-                  whileHover={{ scale: 1.08 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="relative p-1 text-gray-700 hover:text-[#D4AF37] hover:bg-white rounded-full transition-all group"
-                  aria-label="Cart"
-                >
-                  <ShoppingBag className="w-3.5 h-3.5 group-hover:scale-105 transition-transform" />
-                  <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: cartCount > 0 ? 1 : 0 }}
-                    className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-[#D4AF37] text-white text-[7px] font-bold rounded-full flex items-center justify-center border border-white shadow-sm"
-                  >
-                    {cartCount}
-                  </motion.span>
-                </motion.button>
-              </Link>
-              <Link to="/orders">
-                <motion.button
-                  whileHover={{ scale: 1.08 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="p-1 text-gray-700 hover:text-[#800000] hover:bg-white rounded-full transition-all"
-                  aria-label="Profile/Orders"
-                >
-                  <User className="w-3.5 h-3.5" />
-                </motion.button>
-              </Link>
             </div>
 
           </div>
         </div>
 
-        {/* Inline Mobile Collection dropdown */}
+        {/* Inline Mobile Collection Categories Dropdown Menu */}
         <AnimatePresence>
           {isMobileCollectionOpen && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              className="px-4 pb-3 flex flex-wrap gap-1.5 justify-center pt-2 bg-white rounded-b-[2rem]"
+              transition={{ duration: 0.25 }}
+              className="px-3 py-3.5 bg-white rounded-b-[2rem] border-t border-gray-100 flex flex-wrap justify-center gap-2 shadow-lg"
             >
               {[
-                { name: 'Sarees', path: '/category/sarees' },
-                { name: 'Western', path: '/category/western' },
+                { name: 'Kurti', path: '/category/kurtis' },
+                { name: 'Saree', path: '/category/sarees' },
+                { name: 'Salwar Set', path: '/category/salwar-sets' },
+                { name: 'Maxi', path: '/category/maxi' },
                 { name: 'Lehengas', path: '/category/lehengas' },
-                { name: 'Kurtis', path: '/category/kurtis' },
-                { name: 'Salwar Sets', path: '/category/salwar-sets' },
-              ].map((sub) => (
+                { name: 'Western', path: '/category/western' },
+              ].map((item) => (
                 <Link
-                  key={sub.name}
-                  to={sub.path}
-                  onClick={() => {
-                    setIsMobileCollectionOpen(false);
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`text-[9px] px-2.5 py-1 bg-white hover:bg-gray-100 text-gray-800 rounded-full font-bold border border-gray-100/50 ${
-                    location.pathname === sub.path ? 'text-[#800000] border-[#800000]/20' : ''
+                  key={item.name}
+                  to={item.path}
+                  onClick={() => setIsMobileCollectionOpen(false)}
+                  className={`text-[10px] font-bold px-3 py-1.5 rounded-full border transition-all ${
+                    location.pathname === item.path
+                      ? 'bg-[#800000] text-white border-[#800000]'
+                      : 'bg-gray-50 hover:bg-[#FFF0F5] text-gray-800 hover:text-[#800000] border-gray-200/80 hover:border-[#800000]/30'
                   }`}
                 >
-                  {sub.name}
+                  {item.name}
                 </Link>
               ))}
             </motion.div>
@@ -397,109 +476,74 @@ export function Navigation() {
         <AnimatePresence>
           {isMobileMenuOpen && (
             <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="overflow-hidden bg-white border-t border-gray-100 rounded-b-[2rem]"
+              className="overflow-hidden bg-white border-t border-gray-100 rounded-b-[2rem] shadow-xl"
             >
-              <div className="px-6 py-8 space-y-6">
-                {/* Mobile Quick Links */}
-                <div className="grid grid-cols-4 gap-4 mb-4">
-                  {[
-                    { icon: Search, label: 'Search', onClick: () => { setIsSearchOpen(true); setIsMobileMenuOpen(false); } },
-                    { icon: Heart, label: 'Wishlist', onClick: () => { setIsWishlistOpen(true); setIsMobileMenuOpen(false); } },
-                    { icon: ShoppingBag, label: 'Cart', path: '/cart' },
-                    { icon: User, label: 'Account', path: '/orders' }
-                  ].map((item, idx) => (
-                    <div key={idx} className="flex flex-col items-center gap-2">
-                      <motion.button
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => {
-                          if (item.onClick) item.onClick();
-                          if (item.path) {
-                            setIsMobileMenuOpen(false);
-                          }
-                        }}
-                        className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-900 shadow-sm"
-                      >
-                        {item.path ? (
-                          <Link to={item.path} className="w-full h-full flex items-center justify-center">
-                            <item.icon className="w-5 h-5" />
-                          </Link>
-                        ) : (
-                          <item.icon className="w-5 h-5" />
-                        )}
-                      </motion.button>
-                      <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{item.label}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="space-y-3">
-                  <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="block">
-                    <div className={`text-base font-bold py-1 ${location.pathname === '/' ? 'text-[#800000]' : 'text-gray-800'}`}>
-                      Home
-                    </div>
-                  </Link>
-
-                  {/* Mobile Collapsible Collection */}
-                  <div>
-                    <button 
-                      onClick={() => setIsMobileCollectionOpen(!isMobileCollectionOpen)}
-                      className="w-full text-left py-1 text-base font-bold flex items-center justify-between text-gray-800"
+              <div className="px-6 py-6 space-y-4">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Quick Actions</p>
+                <div className="grid grid-cols-4 gap-3 justify-items-center">
+                  {/* Search Action */}
+                  <div className="flex flex-col items-center gap-1.5 w-full">
+                    <motion.button
+                      whileHover={{ scale: 1.08 }}
+                      whileTap={{ scale: 0.92 }}
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        setIsSearchOpen(true);
+                      }}
+                      className="w-11 h-11 bg-amber-100/90 border border-amber-300 text-amber-600 rounded-2xl flex items-center justify-center shadow-sm hover:bg-amber-200/90 transition-all"
+                      aria-label="Search"
                     >
-                      Collection <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isMobileCollectionOpen ? 'rotate-180' : ''}`} />
-                    </button>
-                    
-                    <AnimatePresence>
-                      {isMobileCollectionOpen && (
-                        <motion.div 
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          className="pl-4 border-l border-gray-100 mt-2 space-y-2 overflow-hidden"
-                        >
-                          {[
-                            { name: 'Sarees', path: '/category/sarees' },
-                            { name: 'Western', path: '/category/western' },
-                            { name: 'Lehengas', path: '/category/lehengas' },
-                            { name: 'Kurtis', path: '/category/kurtis' },
-                            { name: 'Salwar Sets', path: '/category/salwar-sets' },
-                            { name: 'Tradition', path: '/category/tradition' },
-                            { name: 'Maxi', path: '/category/maxi' },
-                          ].map((sub) => (
-                            <Link 
-                              key={sub.name} 
-                              to={sub.path} 
-                              onClick={() => setIsMobileMenuOpen(false)}
-                              className={`block text-sm py-1 ${location.pathname === sub.path ? 'text-[#800000] font-bold' : 'text-gray-600'}`}
-                            >
-                              {sub.name}
-                            </Link>
-                          ))}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                      <Search className="w-5 h-5 stroke-[2.5]" />
+                    </motion.button>
+                    <span className="text-[9px] font-black text-amber-700 uppercase tracking-wider">Search</span>
                   </div>
 
-                  <Link to="/about" onClick={() => setIsMobileMenuOpen(false)} className="block">
-                    <div className={`text-base font-bold py-1 ${location.pathname === '/about' ? 'text-[#800000]' : 'text-gray-800'}`}>
-                      About Us
-                    </div>
-                  </Link>
+                  {/* Wishlist Action */}
+                  <div className="flex flex-col items-center gap-1.5 w-full">
+                    <motion.button
+                      whileHover={{ scale: 1.08 }}
+                      whileTap={{ scale: 0.92 }}
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        setIsWishlistOpen(true);
+                      }}
+                      className="w-11 h-11 bg-rose-100/90 border border-rose-300 text-rose-600 rounded-2xl flex items-center justify-center shadow-sm hover:bg-rose-200/90 transition-all relative"
+                      aria-label="Wishlist"
+                    >
+                      <Heart className="w-5 h-5 stroke-[2.5] fill-rose-200" />
+                    </motion.button>
+                    <span className="text-[9px] font-black text-rose-700 uppercase tracking-wider">Wishlist</span>
+                  </div>
 
-                  <Link to="/contact" onClick={() => setIsMobileMenuOpen(false)} className="block">
-                    <div className={`text-base font-bold py-1 ${location.pathname === '/contact' ? 'text-[#800000]' : 'text-gray-800'}`}>
-                      Contact
-                    </div>
-                  </Link>
-                </div>
+                  {/* My Orders Action */}
+                  <div className="flex flex-col items-center gap-1.5 w-full">
+                    <Link
+                      to="/orders"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="w-11 h-11 bg-emerald-100/90 border border-emerald-300 text-emerald-600 rounded-2xl flex items-center justify-center shadow-sm hover:bg-emerald-200/90 transition-all relative"
+                      aria-label="My Orders"
+                    >
+                      <Package className="w-5 h-5 stroke-[2.5]" />
+                    </Link>
+                    <span className="text-[9px] font-black text-emerald-700 uppercase tracking-wider">Orders</span>
+                  </div>
 
-                <div className="pt-4 border-t border-gray-100">
-                  <Link to="/contact" onClick={() => setIsMobileMenuOpen(false)} className="block py-2.5 px-6 bg-[#800000] text-white rounded-xl text-center text-sm font-bold shadow-md">
-                    Contact Us
-                  </Link>
+                  {/* Account Action */}
+                  <div className="flex flex-col items-center gap-1.5 w-full">
+                    <Link
+                      to="/orders"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="w-11 h-11 bg-indigo-100/90 border border-indigo-300 text-indigo-600 rounded-2xl flex items-center justify-center shadow-sm hover:bg-indigo-200/90 transition-all"
+                      aria-label="Account"
+                    >
+                      <User className="w-5 h-5 stroke-[2.5]" />
+                    </Link>
+                    <span className="text-[9px] font-black text-indigo-700 uppercase tracking-wider">Account</span>
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -507,109 +551,243 @@ export function Navigation() {
         </AnimatePresence>
       </motion.nav>
 
-      {/* Search Overlay */}
+      {/* Full-Screen Search Overlay */}
       <AnimatePresence>
         {isSearchOpen && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-lg flex items-start justify-center pt-20 px-4"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 30 }}
+            transition={{ duration: 0.22, ease: [0.25, 1, 0.5, 1] }}
+            className="fixed inset-0 z-[200] bg-white flex flex-col overflow-hidden"
           >
-            <motion.div 
-              initial={{ y: -50, scale: 0.95 }}
-              animate={{ y: 0, scale: 1 }}
-              exit={{ y: -50, scale: 0.95 }}
-              className="w-full max-w-3xl bg-white rounded-[3rem] p-10 shadow-2xl relative overflow-hidden"
-            >
-              <button 
-                onClick={() => setIsSearchOpen(false)}
-                className="absolute top-8 right-8 p-3 hover:bg-gray-100 rounded-full transition-colors"
-                aria-label="Close search"
+            {/* Header */}
+            <div className="flex items-center gap-4 px-4 sm:px-8 pt-12 sm:pt-10 pb-4 border-b border-gray-100">
+              <button
+                onClick={() => { setIsSearchOpen(false); setSearchQuery(''); }}
+                className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors flex-shrink-0"
+                aria-label="Back"
               >
-                <X className="w-8 h-8 text-gray-400 hover:text-gray-900" />
+                <ArrowLeft className="w-5 h-5 text-gray-700" />
               </button>
-              
-              <div className="mb-10">
-                <h2 className="font-serif text-4xl mb-4 text-gray-900">Search Products</h2>
-                <p className="text-gray-500">Find your perfect fashion piece in seconds.</p>
-              </div>
-              
-              <div className="relative mb-10">
+              <h2 className="flex-1 text-center text-base font-semibold text-gray-900 tracking-wide">Search</h2>
+              <div className="w-9" />
+            </div>
+
+            {/* Search Input */}
+            <div className="px-4 sm:px-8 pt-4 pb-2">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="text"
                   autoFocus
-                  placeholder="What are you looking for?"
-                  className="w-full text-2xl py-6 px-10 pr-20 bg-gray-50 rounded-3xl border-2 border-transparent focus:border-[#D4AF37] outline-none transition-all placeholder:text-gray-300"
+                  placeholder="Search women's wear..."
+                  className="w-full pl-11 pr-10 py-3.5 bg-rose-50 rounded-2xl text-sm text-gray-800 placeholder:text-rose-300 outline-none focus:bg-white focus:ring-2 focus:ring-[#800000]/25 border border-rose-100 focus:border-[#800000]/30 transition-all"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleSearchSubmit(searchQuery); }}
                 />
-                <button className="absolute right-4 top-1/2 -translate-y-1/2 w-14 h-14 bg-[#800000] text-white rounded-2xl flex items-center justify-center hover:bg-black transition-all hover:scale-105 shadow-xl">
-                  <Search className="w-8 h-8" />
-                </button>
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full bg-gray-300 hover:bg-gray-400 transition-colors"
+                  >
+                    <X className="w-3 h-3 text-white" />
+                  </button>
+                )}
               </div>
-              
-              <div className="space-y-6 max-h-[50vh] overflow-y-auto pr-4 -mr-4">
-                {isSearching ? (
-                  <div className="flex justify-center py-10">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#800000]"></div>
-                  </div>
-                ) : searchResults.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {searchResults.map((product) => (
-                      <Link 
-                        key={product.id} 
-                        to={`/product/${product.id}`}
-                        onClick={() => setIsSearchOpen(false)}
-                        className="group flex gap-4 p-4 rounded-3xl hover:bg-gray-50 transition-all border border-transparent hover:border-gray-100"
-                      >
-                        <div className="w-20 h-28 aspect-[3/4] rounded-2xl overflow-hidden shadow-sm bg-gray-100">
-                          <img 
-                            src={product.image} 
-                            alt={product.name} 
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
-                          />
-                        </div>
-                        <div className="flex-1 py-1">
-                          <h3 className="font-serif text-lg text-gray-900 group-hover:text-[#800000] transition-colors">{product.name}</h3>
-                          <p className="text-gray-500 text-sm mb-2">{product.category}</p>
-                          <div className="flex items-center justify-between">
-                            <p className="text-[#800000] font-bold">₹{product.price.toLocaleString()}</p>
-                            <span className="text-[10px] uppercase tracking-widest text-[#D4AF37] font-bold">View Styles</span>
-                          </div>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                ) : searchQuery.length >= 2 ? (
-                  <div className="text-center py-10 opacity-40">
-                    <p className="text-xl font-serif">No styles found for "{searchQuery}"</p>
-                  </div>
-                ) : (
-                  <>
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-[0.2em]">Popular Tags</p>
-                    <div className="flex flex-wrap gap-3">
-                      {['Wedding Saree', 'Anarkali Kurti', 'Bridal Lehenga', 'Western Gown', 'Silk', 'Embroidered'].map((tag) => (
-                        <button 
-                          key={tag}
-                          onClick={() => setSearchQuery(tag)}
-                          className="px-6 py-3 bg-gray-50 hover:bg-[#FFF0F5] hover:text-[#800000] rounded-full text-sm font-semibold transition-all border border-gray-100 hover:border-[#800000]/20"
+            </div>
+
+            {/* Scrollable content */}
+            <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-4">
+
+              {searchQuery.trim().length === 0 ? (
+                <>
+                  {/* Suggestions */}
+                  <div className="mb-6">
+                    <p className="text-sm font-semibold text-gray-800 mb-3">Suggestions</p>
+                    <div className="flex flex-wrap gap-2.5">
+                      {[
+                        { label: 'Sarees',       bg: '#FEF2F2', color: '#991B1B' },
+                        { label: 'Kurtis',       bg: '#FFFBEB', color: '#92400E' },
+                        { label: 'Lehengas',     bg: '#F5F3FF', color: '#5B21B6' },
+                        { label: 'Salwar Set',   bg: '#ECFDF5', color: '#065F46' },
+                        { label: 'Western',      bg: '#EFF6FF', color: '#1D4ED8' },
+                        { label: 'Maxi',         bg: '#FDF2F8', color: '#9D174D' },
+                      ].map(({ label, bg, color }) => (
+                        <button
+                          key={label}
+                          onClick={() => handleSearchSubmit(label)}
+                          className="px-5 py-2 rounded-2xl text-sm font-semibold transition-all hover:opacity-80 active:scale-95 shadow-sm"
+                          style={{ background: bg, color }}
                         >
-                          {tag}
+                          {label}
                         </button>
                       ))}
                     </div>
-                  </>
-                )}
-              </div>
-            </motion.div>
+                  </div>
+
+                  {/* History */}
+                  {searchHistory.length > 0 && (
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-sm font-semibold text-gray-800">History</p>
+                        <button onClick={clearHistory} className="text-xs font-medium text-[#800000] hover:underline">
+                          Clear all
+                        </button>
+                      </div>
+                      <div className="space-y-0.5">
+                        {searchHistory.map((item) => (
+                          <div
+                            key={item}
+                            className="flex items-center gap-3 py-3 px-1 group hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
+                            onClick={() => handleSearchSubmit(item)}
+                          >
+                            <Clock className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                            <span className="flex-1 text-sm text-gray-700">{item}</span>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); removeFromHistory(item); }}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                            >
+                              <X className="w-3.5 h-3.5 text-gray-400 hover:text-gray-700" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : isSearching ? (
+                <div className="flex justify-center pt-16">
+                  <div className="w-8 h-8 rounded-full border-2 border-[#800000]/20 border-t-[#800000] animate-spin" />
+                </div>
+              ) : searchResults.length > 0 ? (
+                <div className="space-y-0.5">
+                  {searchResults.map((product) => (
+                    <Link
+                      key={product.id}
+                      to={`/product/${product.id}`}
+                      onClick={() => { addToHistory(product.name); setIsSearchOpen(false); setSearchQuery(''); }}
+                      className="flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-rose-50 transition-colors group"
+                    >
+                      <div>
+                        <p className="text-sm font-medium text-gray-800 group-hover:text-[#800000] transition-colors">{product.name}</p>
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-[#800000] transition-colors flex-shrink-0 ml-2" />
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center pt-16">
+                  <p className="text-sm text-gray-400">No results for &ldquo;{searchQuery}&rdquo;</p>
+                  <p className="text-xs text-gray-300 mt-1">Try Sarees, Kurtis, Lehengas or Salwar Suits</p>
+                </div>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Wishlist Overlay */}
+      {/* Full-Screen Wishlist Overlay */}
       <AnimatePresence>
         {isWishlistOpen && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.96 }}
+            transition={{ duration: 0.25 }}
+            className="fixed inset-0 z-[200] bg-white w-full h-full overflow-y-auto flex flex-col"
+          >
+            {/* Header */}
+            <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md px-6 sm:px-12 py-5 border-b border-gray-100 flex items-center justify-between shadow-sm">
+              <div>
+                <h2 className="font-serif text-2xl sm:text-3xl font-bold text-gray-900">Saved Wishlist Collection</h2>
+                <p className="text-gray-500 text-xs sm:text-sm">{wishlistItems.length} Saved Fashion Styles</p>
+              </div>
+              <button 
+                onClick={() => setIsWishlistOpen(false)}
+                className="p-3 hover:bg-gray-100 rounded-full transition-colors border border-gray-200"
+                aria-label="Close Wishlist"
+              >
+                <X className="w-6 h-6 text-gray-700" />
+              </button>
+            </div>
+
+            {/* Grid Content with Full Box Images */}
+            <div className="flex-1 max-w-7xl w-full mx-auto p-6 sm:p-10">
+              {wishlistItems.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                  {wishlistItems.map((item) => (
+                    <motion.div 
+                      key={item.id} 
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl transition-all flex flex-col group relative"
+                    >
+                      {/* Full Box Image */}
+                      <div className="w-full h-80 sm:h-96 bg-gray-50 overflow-hidden relative">
+                        <img 
+                          src={item.image} 
+                          alt={item.name} 
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                        />
+                        <button 
+                          onClick={() => removeFromWishlist(item.id)}
+                          className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-md rounded-full shadow-md hover:bg-rose-600 hover:text-white transition-all text-gray-700"
+                          aria-label="Remove item"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Product Details Only */}
+                      <div className="p-5 flex flex-col flex-1 justify-between space-y-3 bg-white">
+                        <div>
+                          <h3 className="font-serif text-lg font-bold text-gray-900 leading-snug line-clamp-1">{item.name}</h3>
+                          <p className="text-2xl font-black text-[#800000] mt-1">₹{item.price.toLocaleString('en-IN')}</p>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 pt-1">
+                          <Link
+                            to={`/product/${item.id}`}
+                            onClick={() => setIsWishlistOpen(false)}
+                            className="flex-1 py-3 bg-gradient-to-r from-[#800000] via-[#990000] to-[#800000] text-white rounded-xl text-xs font-black uppercase tracking-wider text-center shadow-md shadow-[#800000]/20 flex items-center justify-center gap-1.5 cursor-pointer hover:from-black hover:to-[#800000] transition-all"
+                          >
+                            Buy Now <ArrowRight className="w-3.5 h-3.5" />
+                          </Link>
+                          <button
+                            onClick={() => removeFromWishlist(item.id)}
+                            className="px-3 py-3 bg-rose-100/90 hover:bg-rose-600 text-rose-700 hover:text-white rounded-xl text-xs font-black uppercase tracking-wider border border-rose-200 transition-all shadow-sm flex items-center justify-center gap-1 cursor-pointer"
+                            aria-label="Delete saved dress"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" /> Delete
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-24 flex flex-col items-center justify-center text-center opacity-60">
+                  <Heart className="w-24 h-24 mb-4 text-[#800000] stroke-1 fill-rose-50" />
+                  <h3 className="text-2xl font-serif font-bold text-gray-800 mb-2">Your Wishlist is Empty</h3>
+                  <p className="text-sm text-gray-500 max-w-sm mb-6">Explore our latest handcrafted sarees, kurtis, and lehengas to save your favorite styles.</p>
+                  <button
+                    onClick={() => setIsWishlistOpen(false)}
+                    className="px-8 py-3 bg-[#800000] text-white rounded-full font-bold text-xs uppercase tracking-wider shadow-md hover:bg-black transition-all"
+                  >
+                    Browse Collections
+                  </button>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Cart Drawer Overlay */}
+      <AnimatePresence>
+        {isCartOpen && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -620,64 +798,114 @@ export function Navigation() {
               initial={{ x: 400 }}
               animate={{ x: 0 }}
               exit={{ x: 400 }}
-              className="w-full max-w-md bg-white h-full shadow-2xl flex flex-col pt-20"
+              className="w-full max-w-md bg-white h-full shadow-2xl flex flex-col pt-16 sm:pt-20"
             >
-              <div className="px-8 pb-8 border-b border-gray-100 flex items-center justify-between">
+              {/* Header */}
+              <div className="px-6 sm:px-8 pb-6 border-b border-gray-100 flex items-center justify-between">
                 <div>
-                  <h2 className="font-serif text-3xl text-gray-900 mb-1">My Wishlist</h2>
-                  <p className="text-gray-500 text-sm">{wishlistItems.length} styles saved</p>
+                  <h2 className="font-serif text-2xl sm:text-3xl text-gray-900 mb-1">Shopping Bag</h2>
+                  <p className="text-gray-500 text-xs sm:text-sm">{cartCount} items selected</p>
                 </div>
                 <button 
-                  onClick={() => setIsWishlistOpen(false)}
-                  className="p-3 hover:bg-gray-100 rounded-full transition-colors"
+                  onClick={() => setIsCartOpen(false)}
+                  className="p-2.5 sm:p-3 hover:bg-gray-100 rounded-full transition-colors"
+                  aria-label="Close bag"
                 >
-                  <X className="w-6 h-6 text-gray-500" />
+                  <X className="w-5 h-5 sm:w-6 sm:h-6 text-gray-500" />
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto px-8 py-8 space-y-6">
-                {wishlistItems.length > 0 ? (
-                  wishlistItems.map((item) => (
-                    <div key={item.id} className="flex gap-4 group">
-                      <div className="w-24 h-32 rounded-2xl bg-gray-50 overflow-hidden relative border border-gray-100">
-                        <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                        <button 
-                          onClick={() => removeFromWishlist(item.id)}
-                          className="absolute top-2 right-2 p-1.5 bg-white/80 backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
-                        >
-                          <X className="w-3.5 h-3.5 text-gray-500" />
-                        </button>
+              {/* Body / Items List */}
+              <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 space-y-5">
+                {cartItems.length > 0 ? (
+                  cartItems.map((item) => (
+                    <div key={item.id} className="flex gap-4 group bg-gray-50/60 p-3 rounded-2xl border border-gray-100/80">
+                      <div className="w-20 h-26 rounded-xl bg-gray-100 overflow-hidden relative flex-shrink-0">
+                        <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                       </div>
-                      <div className="flex-1 py-1">
-                        <h3 className="font-serif text-lg text-gray-900 mb-1">{item.name}</h3>
-                        <p className="text-[#800000] font-bold mb-3">₹{item.price.toLocaleString()}</p>
-                        <button 
-                          onClick={async () => {
-                            await addToCart(item);
-                            await removeFromWishlist(item.id);
-                          }}
-                          className="text-sm font-bold text-[#D4AF37] hover:text-[#800000] flex items-center gap-2 underline underline-offset-4 decoration-2"
-                        >
-                          Move to Bag <ArrowRight className="w-4 h-4" />
-                        </button>
+                      <div className="flex-1 flex flex-col justify-between py-0.5">
+                        <div>
+                          <div className="flex items-start justify-between gap-2">
+                            <h3 className="font-serif text-sm sm:text-base text-gray-900 font-semibold line-clamp-1">{item.name}</h3>
+                            <button 
+                              onClick={() => removeItem(item.id)}
+                              className="text-gray-400 hover:text-red-600 transition-colors p-1"
+                              aria-label="Remove item"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <p className="text-gray-500 text-xs">{item.category}</p>
+                          <p className="text-[#800000] font-bold text-sm mt-1">₹{item.price.toLocaleString()}</p>
+                        </div>
+                        
+                        <div className="flex items-center gap-3 mt-2">
+                          <div className="flex items-center border border-gray-200 rounded-lg bg-white">
+                            <button 
+                              onClick={() => updateQuantity(item.id, -1)}
+                              className="p-1 hover:bg-gray-100 text-gray-600 transition-colors rounded-l-lg"
+                              aria-label="Decrease quantity"
+                            >
+                              <Minus className="w-3.5 h-3.5" />
+                            </button>
+                            <span className="px-3 text-xs font-bold text-gray-900">{item.quantity}</span>
+                            <button 
+                              onClick={() => updateQuantity(item.id, 1)}
+                              className="p-1 hover:bg-gray-100 text-gray-600 transition-colors rounded-r-lg"
+                              aria-label="Increase quantity"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                          <span className="text-xs text-gray-400">Total: ₹{(item.price * item.quantity).toLocaleString()}</span>
+                        </div>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="h-full flex flex-col items-center justify-center text-center opacity-40">
-                    <Heart className="w-20 h-20 mb-4 stroke-1" />
-                    <p className="text-xl font-serif">Your wishlist is empty</p>
+                  <div className="h-full flex flex-col items-center justify-center text-center opacity-40 py-12">
+                    <ShoppingBag className="w-16 h-16 sm:w-20 sm:h-20 mb-4 stroke-1 text-gray-400" />
+                    <p className="text-lg sm:text-xl font-serif text-gray-800">Your shopping bag is empty</p>
+                    <p className="text-xs text-gray-500 mt-1">Explore our collections and add your favorite styles.</p>
                   </div>
                 )}
               </div>
 
-              <div className="p-8 border-t border-gray-100 bg-gray-50/50">
-                <button 
-                  onClick={() => setIsWishlistOpen(false)}
-                  className="w-full py-4 bg-[#800000] text-white rounded-2xl font-bold hover:bg-black transition-all hover:shadow-xl active:scale-95"
-                >
-                  Continue Shopping
-                </button>
+              {/* Footer */}
+              <div className="p-6 sm:p-8 border-t border-gray-100 bg-gray-50/80 space-y-4">
+                {cartItems.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <span>Subtotal</span>
+                      <span>₹{cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0).toLocaleString()}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <span>Shipping</span>
+                      <span className="text-emerald-600 font-medium">Free</span>
+                    </div>
+                    <div className="flex items-center justify-between text-base font-bold text-gray-900 pt-2 border-t border-gray-200">
+                      <span>Total Amount</span>
+                      <span className="text-[#800000]">₹{cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0).toLocaleString()}</span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <Link 
+                    to="/cart"
+                    onClick={() => setIsCartOpen(false)}
+                    className="w-full py-3 bg-white text-gray-900 border border-gray-200 rounded-xl font-bold text-xs text-center hover:bg-gray-100 transition-all flex items-center justify-center"
+                  >
+                    Full Bag Page
+                  </Link>
+                  <Link 
+                    to="/cart"
+                    onClick={() => setIsCartOpen(false)}
+                    className="w-full py-3 bg-[#800000] text-white rounded-xl font-bold text-xs text-center hover:bg-black transition-all hover:shadow-lg active:scale-95 flex items-center justify-center gap-1.5"
+                  >
+                    Checkout <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
               </div>
             </motion.div>
           </motion.div>

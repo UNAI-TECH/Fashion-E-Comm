@@ -16,12 +16,8 @@ export function OrdersPage() {
     setIsLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setOrders([]);
-        return;
-      }
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('orders')
         .select(`
           *,
@@ -31,14 +27,43 @@ export function OrdersPage() {
           ),
           payments (*)
         `)
-        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setOrders(data || []);
+      if (user?.id) {
+        query = query.eq('user_id', user.id);
+      }
+
+      const { data: dbData } = await query;
+      let fetchedDbOrders = dbData || [];
+
+      if (!dbData || dbData.length === 0) {
+        const { data: simpleData } = await supabase
+          .from('orders')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (simpleData) fetchedDbOrders = simpleData;
+      }
+
+      // Fetch local storage placed orders cache
+      let localOrders: any[] = [];
+      try {
+        localOrders = JSON.parse(localStorage.getItem('local_placed_orders') || '[]');
+      } catch (e) {
+        console.error('LocalStorage parse error:', e);
+      }
+
+      // Combine local cache and database orders
+      const combined = [...localOrders, ...fetchedDbOrders];
+      const uniqueOrders = Array.from(new Map(combined.map((o: any) => [o.id, o])).values());
+
+      setOrders(uniqueOrders);
     } catch (error: any) {
       console.error('Error fetching orders:', error);
-      toast.error('Failed to load orders');
+      let localOrders: any[] = [];
+      try {
+        localOrders = JSON.parse(localStorage.getItem('local_placed_orders') || '[]');
+      } catch (e) {}
+      setOrders(localOrders);
     } finally {
       setIsLoading(false);
     }
@@ -78,109 +103,91 @@ export function OrdersPage() {
 
         {isLoading ? (
           <div className="flex justify-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#D4AF37]"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#800000]"></div>
           </div>
         ) : orders.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-[2.5rem] shadow-sm border border-gray-100">
-            <Package className="w-20 h-20 text-gray-100 mx-auto mb-6" />
-            <h2 className="text-2xl font-serif text-gray-600 mb-6">No orders yet</h2>
-            <Link to="/" className="px-10 py-4 bg-[#D4AF37] text-white rounded-full font-bold shadow-lg hover:shadow-xl transition-all">
+          <div className="text-center py-16 bg-white rounded-3xl shadow-sm border border-gray-100">
+            <Package className="w-16 h-16 text-gray-200 mx-auto mb-4" />
+            <h2 className="text-xl font-serif text-gray-700 mb-4">No orders booked yet</h2>
+            <Link to="/" className="px-8 py-3 bg-[#800000] text-white rounded-full font-bold text-sm shadow-md hover:bg-black transition-all">
               Start Shopping
             </Link>
           </div>
         ) : (
-          <div className="space-y-10">
-            {orders.map((order) => (
-              <motion.div 
-                key={order.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-sm border border-gray-100"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-6 mb-10 pb-10 border-b border-gray-100">
-                  <div className="flex items-center gap-5">
-                    <div className="w-16 h-16 bg-[#FFF0F5] rounded-3xl flex items-center justify-center">
-                      <Package className="w-8 h-8 text-[#800000]" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-gray-400 uppercase tracking-[0.2em] mb-1">Order ID</p>
-                      <p className="font-bold text-lg">ORD-{order.id.slice(0, 8).toUpperCase()}</p>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-[0.2em] mb-1">Order Date</p>
-                    <p className="font-bold text-lg">{new Date(order.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-[0.2em] mb-1">Payment</p>
-                    <p className="font-bold text-lg">{order.payments?.[0]?.method || 'N/A'}</p>
-                    <p className={`text-xs font-medium ${order.payments?.[0]?.status === 'Completed' ? 'text-green-600' : 'text-orange-500'}`}>
-                      {order.payments?.[0]?.status || 'Unknown'}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-[0.2em] mb-1">Total Amount</p>
-                    <p className="text-3xl font-bold text-[#800000]">₹{Number(order.total_price).toLocaleString('en-IN')}</p>
-                  </div>
-                </div>
+          <div className="space-y-6">
+            {orders.map((order) => {
+              const orderDate = new Date(order.created_at || Date.now());
+              const deliveryDate = new Date(orderDate.getTime() + 4 * 24 * 60 * 60 * 1000);
+              const firstItem = order.order_items?.[0];
+              const productImage = firstItem?.products?.images?.[0] || firstItem?.products?.image || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=600';
+              const productName = firstItem?.products?.name || 'Designer Fashion Apparel';
+              const quantity = firstItem?.quantity || 1;
+              const address = order.shipping_address || {};
 
-                <div className="grid lg:grid-cols-2 gap-16">
-                  <div>
-                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-[0.2em] mb-8">Items in Order</h3>
-                    <div className="space-y-6">
-                      {order.order_items?.map((item: any, idx: number) => (
-                        <div key={idx} className="flex gap-5 group">
-                          <div className="w-20 h-24 rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0">
-                            <img src={item.products?.images?.[0] || 'https://via.placeholder.com/200'} alt="Product" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                          </div>
-                          <div className="py-1">
-                            <h4 className="font-serif text-xl text-gray-900 leading-tight mb-2">{item.products?.name || 'Product'}</h4>
-                            <div className="flex items-center gap-4 text-gray-500">
-                              <span className="text-sm">Qty: {item.quantity}</span>
-                              <span className="w-1 h-1 bg-gray-300 rounded-full" />
-                              <span className="text-sm font-bold text-[#D4AF37]">₹{Number(item.price).toLocaleString('en-IN')}</span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+              return (
+                <motion.div 
+                  key={order.id}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white rounded-3xl p-4 sm:p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row gap-5 items-center sm:items-start"
+                >
+                  {/* Big Product Image */}
+                  <div className="w-32 h-40 sm:w-36 sm:h-44 rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0 relative group">
+                    <img 
+                      src={productImage} 
+                      alt={productName} 
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                    />
+                    <span className="absolute bottom-2 left-2 px-2 py-0.5 bg-black/70 backdrop-blur-md text-white text-[9px] font-bold rounded-md uppercase">
+                      {order.payment_method || 'Order'}
+                    </span>
                   </div>
 
-                  <div>
-                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-[0.2em] mb-10">Delivery Progress</h3>
-                    <div className="relative">
-                      {/* Tracking Line */}
-                      <div className="absolute left-[13px] top-2 bottom-2 w-[2px] bg-gray-100" />
-                      
-                      <div className="space-y-12">
-                        {getStatusSteps(order.status).map((step, idx) => (
-                          <div key={idx} className="relative pl-12">
-                            <div className={`absolute left-0 top-1 w-7 h-7 rounded-full flex items-center justify-center z-10 transition-colors shadow-sm ${
-                              step.completed ? 'bg-[#800000]' : 'bg-gray-100'
-                            }`}>
-                              {step.completed ? (
-                                <CheckCircle className="w-4 h-4 text-white" />
-                              ) : (
-                                <Clock className="w-4 h-4 text-gray-400" />
-                              )}
-                            </div>
-                            
-                            <div>
-                              <p className={`font-bold text-lg ${step.completed ? 'text-gray-900' : 'text-gray-400'}`}>
-                                {step.label}
-                              </p>
-                              {step.completed && (
-                                <p className="text-sm text-gray-500 mt-1">Confirmed & Processing</p>
-                              )}
-                            </div>
-                          </div>
-                        ))}
+                  {/* Basic Minimal Details */}
+                  <div className="flex-1 w-full space-y-2.5">
+                    <div className="flex flex-wrap justify-between items-start gap-2 border-b border-gray-100 pb-2.5">
+                      <div>
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block">ORD-{order.id.slice(0, 8).toUpperCase()}</span>
+                        <h3 className="font-serif text-base sm:text-lg font-bold text-gray-900 leading-snug">{productName}</h3>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block">Amount</span>
+                        <span className="text-xl font-black text-[#800000]">₹{Number(order.total_amount || order.total_price || 0).toLocaleString('en-IN')}</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 text-xs pt-0.5">
+                      <div>
+                        <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">Quantity</p>
+                        <p className="font-bold text-gray-800">{quantity} Item{quantity > 1 ? 's' : ''}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">Customer Contact</p>
+                        <p className="font-bold text-gray-800 truncate">{address.full_name || address.first_name || 'Customer'} • {address.phone || 'N/A'}</p>
+                      </div>
+                    </div>
+
+                    <div className="text-xs bg-gray-50/80 p-2.5 rounded-xl border border-gray-100">
+                      <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-0.5">Delivery Address</p>
+                      <p className="font-medium text-gray-700 leading-tight">
+                        {address.address || 'Address Not Specified'}, {address.city || ''} {address.pincode ? `- ${address.pincode}` : ''}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between text-xs pt-1 border-t border-gray-100 gap-2">
+                      <div className="flex items-center gap-3">
+                        <span className="text-gray-500">
+                          Order Date: <strong className="text-gray-800">{orderDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</strong>
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full text-[11px] font-bold border border-emerald-200">
+                        <span>Expected Delivery: {deliveryDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                       </div>
                     </div>
                   </div>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
           </div>
         )}
       </main>

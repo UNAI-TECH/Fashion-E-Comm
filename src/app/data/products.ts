@@ -484,20 +484,21 @@ export async function fetchProducts(category?: string) {
       fetched = data.map(p => {
         const itemImages = (p.images && p.images.length > 0) 
           ? p.images 
-          : (p.image_url ? [p.image_url] : [PLACEHOLDER_IMAGE]);
+          : (p.image_url ? [p.image_url] : (p.image ? [p.image] : [PLACEHOLDER_IMAGE]));
         return {
           ...p,
           image: itemImages[0],
           images: itemImages,
-          originalPrice: p.compare_at_price,
+          price: p.price,
+          originalPrice: p.compare_at_price || p.original_price || p.price,
           colors: p.colors || ['#D4AF37'],
-          rating: p.rating || 4.5,
+          rating: p.rating || 4.8,
           status: p.status || 'Published'
         };
       });
     }
   } catch (err) {
-    console.error('Supabase fetch failed, falling back to mock data:', err);
+    console.error('Supabase fetch failed:', err);
   }
 
   if (fetched.length === 0) {
@@ -505,13 +506,36 @@ export async function fetchProducts(category?: string) {
   }
 
   if (category && category !== 'all') {
-    const target = category.toLowerCase().replace(/-/g, ' ');
+    const rawTarget = category.toLowerCase().replace(/-/g, ' ');
+    let targetStem = rawTarget;
+    if (targetStem.endsWith('es')) targetStem = targetStem.slice(0, -2);
+    else if (targetStem.endsWith('s') && targetStem.length > 3) targetStem = targetStem.slice(0, -1);
+
+    const synonymTerms = [rawTarget, targetStem];
+    if (rawTarget.includes('kurt') || rawTarget.includes('kurtah') || rawTarget.includes('anarkali')) {
+      synonymTerms.push('kurti', 'kurta', 'kurtis', 'kurtas', 'kurtha', 'kurthas', 'anarkali');
+    }
+    if (rawTarget.includes('sare') || rawTarget.includes('sari')) {
+      synonymTerms.push('saree', 'sari', 'sarees', 'saris');
+    }
+    if (rawTarget.includes('leheng') || rawTarget.includes('lehang') || rawTarget.includes('choli')) {
+      synonymTerms.push('lehenga', 'lehanga', 'lehengas', 'lehangas', 'choli');
+    }
+    if (rawTarget.includes('salwar') || rawTarget.includes('suit') || rawTarget.includes('patiala')) {
+      synonymTerms.push('salwar', 'suit', 'suits', 'set', 'sets', 'patiala');
+    }
+    if (rawTarget.includes('maxi') || rawTarget.includes('gown')) {
+      synonymTerms.push('maxi', 'gown', 'gowns');
+    }
+
     return fetched.filter(p => {
-      const pCat = p.category.toLowerCase().replace(/-/g, ' ');
-      return pCat === target || 
-             pCat === target + 's' || 
-             pCat + 's' === target || 
-             pCat.replace(/\s+/g, '') === target.replace(/\s+/g, '');
+      const pCat = (p.category || '').toLowerCase().replace(/-/g, ' ');
+      const pName = (p.name || '').toLowerCase();
+      const pDesc = (p.description || '').toLowerCase();
+
+      return synonymTerms.some(term => 
+        pCat.includes(term) || pName.includes(term) || pDesc.includes(term)
+      );
     });
   }
 
