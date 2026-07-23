@@ -384,7 +384,7 @@ export function ProductPage() {
                   whileTap={{ scale: 0.98 }} 
                   className="flex-1 h-14 bg-[#FFF9E6] hover:bg-[#F5E6BE] text-[#800000] border-2 border-[#F5E6BE] rounded-2xl font-black text-xs tracking-[0.15em] uppercase shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
-                  <ShoppingBag className="w-4 h-4 text-[#800000]" /> Add to Bag
+                  <ShoppingBag className="w-4 h-4 text-[#800000]" /> Add to Cart
                 </motion.button>
               </div>
 

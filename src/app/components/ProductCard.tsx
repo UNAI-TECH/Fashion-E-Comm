@@ -85,7 +85,7 @@ export function ProductCard({
                 className="w-full py-2.5 bg-white text-gray-900 rounded-lg flex items-center justify-center gap-2 shadow-sm text-xs font-bold"
               >
                 <ShoppingBag className="w-4 h-4" />
-                Add to Bag
+                Add to Cart
               </motion.button>
             </div>
           </div>
