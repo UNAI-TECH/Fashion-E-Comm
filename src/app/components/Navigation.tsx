@@ -252,7 +252,7 @@ export function Navigation() {
           <img
             src="/logo_aanya.png"
             alt="Aanya Fashions Logo"
-            className="h-full w-auto object-contain mix-blend-multiply"
+            className="h-full w-auto object-contain mix-blend-multiply brightness-[1.12] contrast-[1.1]"
           />
         </motion.div>
       </Link>
@@ -405,7 +405,7 @@ export function Navigation() {
                 <img
                   src="/logo_aanya.png"
                   alt="Aanya Fashions Logo"
-                  className="h-full w-auto object-contain brightness-[1.02] contrast-110 drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.05)] mix-blend-multiply"
+                  className="h-full w-auto object-contain brightness-[1.12] contrast-[1.1] drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.05)] mix-blend-multiply"
                 />
               </motion.div>
             </Link>
@@ -835,12 +835,12 @@ export function Navigation() {
             className="fixed inset-0 z-[200] bg-[#FDFBF7] flex flex-col overflow-hidden animate-fade-in"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-6 sm:px-8 pt-6 sm:pt-4 pb-4 bg-transparent">
+            <div className="flex items-center justify-between px-6 sm:px-8 pt-6 sm:pt-4 pb-4 bg-[#FDFBF7]">
               <Link to="/" onClick={() => setIsCartOpen(false)} className="w-24 h-24 sm:w-32 sm:h-32 flex items-center justify-start pointer-events-auto">
                 <img
                   src="/logo_aanya.png"
                   alt="Aanya Fashions Logo"
-                  className="w-full h-full object-contain mix-blend-multiply"
+                  className="w-full h-full object-contain mix-blend-multiply brightness-[1.12] contrast-[1.1]"
                 />
               </Link>
               <button
@@ -916,12 +916,12 @@ export function Navigation() {
             className="fixed inset-0 z-[200] bg-[#FDFBF7] flex flex-col overflow-hidden animate-fade-in"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-6 sm:px-8 pt-6 sm:pt-4 pb-4 bg-transparent">
+            <div className="flex items-center justify-between px-6 sm:px-8 pt-6 sm:pt-4 pb-4 bg-[#FDFBF7]">
               <Link to="/" onClick={() => setIsAccountOpen(false)} className="w-24 h-24 sm:w-32 sm:h-32 flex items-center justify-start pointer-events-auto">
                 <img
                   src="/logo_aanya.png"
                   alt="Aanya Fashions Logo"
-                  className="w-full h-full object-contain mix-blend-multiply"
+                  className="w-full h-full object-contain mix-blend-multiply brightness-[1.12] contrast-[1.1]"
                 />
               </Link>
               <h2 className="text-base font-serif text-lg sm:text-xl font-bold text-gray-900 tracking-wide">My Account Profile</h2>
