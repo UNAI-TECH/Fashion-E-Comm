@@ -362,11 +362,6 @@ export function Navigation() {
           aria-label="Cart"
         >
           <ShoppingBag className="w-4 h-4 text-gray-700" />
-          {cartCount > 0 && (
-            <span className="absolute -top-1 -right-1 bg-[#800000] text-white text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
-              {cartCount}
-            </span>
-          )}
         </motion.button>
         <Link to="/orders">
           <motion.button
@@ -555,11 +550,6 @@ export function Navigation() {
                       aria-label="Cart"
                     >
                       <ShoppingBag className="w-5 h-5 stroke-[2.5]" />
-                      {cartCount > 0 && (
-                        <span className="absolute -top-1.5 -right-1.5 bg-[#800000] text-white text-[9px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-white">
-                          {cartCount}
-                        </span>
-                      )}
                     </motion.button>
                     <span className="text-[9px] font-black text-rose-700 uppercase tracking-wider">Cart</span>
                   </div>
@@ -834,105 +824,106 @@ export function Navigation() {
         )}
       </AnimatePresence>
 
-      {/* Cart Drawer Overlay */}
+      {/* Cart Full Screen Overlay */}
       <AnimatePresence>
         {isCartOpen && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-lg flex justify-end"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 30 }}
+            transition={{ duration: 0.22, ease: [0.25, 1, 0.5, 1] }}
+            className="fixed inset-0 z-[200] bg-[#FDFBF7] flex flex-col overflow-hidden animate-fade-in"
           >
-            <motion.div 
-              initial={{ x: 400 }}
-              animate={{ x: 0 }}
-              exit={{ x: 400 }}
-              className="w-full max-w-md bg-white h-full shadow-2xl flex flex-col pt-16 sm:pt-20"
-            >
-              {/* Header */}
-              <div className="px-6 sm:px-8 pb-6 border-b border-gray-100 flex items-center justify-between">
-                <div>
-                  <h2 className="font-serif text-2xl sm:text-3xl text-gray-900 mb-1">Shopping Bag</h2>
-                  <p className="text-gray-500 text-xs sm:text-sm">{cartCount} items selected</p>
-                </div>
-                <button 
-                  onClick={() => setIsCartOpen(false)}
-                  className="p-2.5 sm:p-3 hover:bg-gray-100 rounded-full transition-colors"
-                  aria-label="Close bag"
-                >
-                  <X className="w-5 h-5 sm:w-6 sm:h-6 text-gray-500" />
-                </button>
-              </div>
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 sm:px-8 pt-12 sm:pt-10 pb-4 border-b border-gray-100 bg-white shadow-sm">
+              <button
+                onClick={() => setIsCartOpen(false)}
+                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors border border-gray-200"
+                aria-label="Close cart"
+              >
+                <ArrowLeft className="w-5 h-5 text-gray-700" />
+              </button>
+              <h2 className="text-base font-serif text-xl sm:text-2xl font-bold text-gray-900 tracking-wide">My Shopping Cart</h2>
+              <div className="w-10" />
+            </div>
 
-              {/* Body / Items List */}
-              <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 space-y-4">
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-8 flex justify-center">
+              <div className="w-full max-w-xl space-y-6 h-fit my-4">
                 {cartItems.length > 0 ? (
                   cartItems.map((item) => (
-                    <div key={item.id} className="flex gap-4 items-center bg-gray-50/60 p-3 rounded-2xl border border-gray-100/80">
-                      <div className="w-16 h-20 rounded-xl bg-gray-100 overflow-hidden relative flex-shrink-0">
-                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                    <div key={item.id} className="bg-white p-4 rounded-2xl shadow-sm flex gap-4 items-center border border-gray-100">
+                      <div className="w-16 h-20 rounded-xl overflow-hidden bg-gray-50 flex-shrink-0">
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="w-full h-full object-cover"
+                        />
                       </div>
-                      <div className="flex-1 flex justify-between items-center min-w-0 pr-1">
-                        <div className="min-w-0 pr-4">
-                          <h3 className="font-serif text-sm text-gray-900 font-semibold truncate">{item.name}</h3>
-                          <p className="text-[#800000] font-bold text-xs mt-1">₹{item.price.toLocaleString()}</p>
+
+                      {/* Product Details */}
+                      <div className="flex-grow flex items-center justify-between min-w-0">
+                        <div className="space-y-1 min-w-0 pr-4">
+                          <h3 className="font-serif text-base text-gray-900 truncate">
+                            {item.name}
+                          </h3>
+                          <div className="text-sm font-bold text-[#D4AF37]">
+                            ₹{item.price.toLocaleString('en-IN')}
+                          </div>
                         </div>
-                        <button 
+                        <button
                           onClick={() => removeItem(item.id)}
-                          className="text-gray-400 hover:text-red-600 transition-colors p-2 rounded-full hover:bg-red-50"
+                          className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all duration-200 flex-shrink-0"
                           aria-label="Remove item"
                         >
-                          <Trash2 className="w-4.5 h-4.5" />
+                          <Trash2 className="w-5 h-5" />
                         </button>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="h-full flex flex-col items-center justify-center text-center opacity-40 py-12">
-                    <ShoppingBag className="w-16 h-16 sm:w-20 sm:h-20 mb-4 stroke-1 text-gray-400" />
-                    <p className="text-lg sm:text-xl font-serif text-gray-800">Your shopping bag is empty</p>
-                    <p className="text-xs text-gray-500 mt-1">Explore our collections and add your favorite styles.</p>
+                  <div className="text-center py-20 bg-white rounded-3xl shadow-sm p-8">
+                    <ShoppingBag className="w-16 h-16 text-gray-300 mx-auto mb-6" />
+                    <h2 className="text-2xl font-serif text-gray-800 mb-4">Your cart is empty</h2>
+                    <p className="text-gray-500 mb-8">Explore our collections and add your favorite styles.</p>
+                    <button
+                      onClick={() => setIsCartOpen(false)}
+                      className="px-8 py-3 bg-[#800000] text-white rounded-full font-medium"
+                    >
+                      Continue Shopping
+                    </button>
                   </div>
                 )}
               </div>
+            </div>
 
-              {/* Footer */}
-              <div className="p-6 sm:p-8 border-t border-gray-100 bg-gray-50/80 space-y-4">
-                {cartItems.length > 0 && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs text-gray-500">
-                      <span>Subtotal</span>
-                      <span>₹{cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0).toLocaleString()}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-gray-500">
-                      <span>Shipping</span>
-                      <span className="text-emerald-600 font-medium">Free</span>
-                    </div>
-                    <div className="flex items-center justify-between text-base font-bold text-gray-900 pt-2 border-t border-gray-200">
-                      <span>Total Amount</span>
-                      <span className="text-[#800000]">₹{cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0).toLocaleString()}</span>
-                    </div>
+            {/* Footer */}
+            {cartItems.length > 0 && (
+              <div className="p-6 sm:p-8 border-t border-gray-100 bg-white shadow-md flex justify-center">
+                <div className="w-full max-w-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="text-left">
+                    <span className="text-xs uppercase tracking-wider text-gray-400 font-bold block">Total Amount</span>
+                    <span className="text-2xl sm:text-3xl font-serif text-[#800000]">₹{cartItems.reduce((sum, item) => sum + item.price, 0).toLocaleString()}</span>
                   </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-3 pt-1">
-                  <Link 
-                    to="/cart"
-                    onClick={() => setIsCartOpen(false)}
-                    className="w-full py-3 bg-white text-gray-900 border border-gray-200 rounded-xl font-bold text-xs text-center hover:bg-gray-100 transition-all flex items-center justify-center cursor-pointer"
-                  >
-                    Full Cart Page
-                  </Link>
-                  <Link 
-                    to="/checkout"
-                    onClick={() => setIsCartOpen(false)}
-                    className="w-full py-3 bg-[#800000] text-white rounded-xl font-bold text-xs text-center hover:bg-black transition-all hover:shadow-lg active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    Checkout <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
+                  <div className="flex gap-3 w-full sm:w-auto">
+                    <Link 
+                      to="/cart"
+                      onClick={() => setIsCartOpen(false)}
+                      className="px-6 py-4 bg-white text-gray-900 border border-gray-200 rounded-full font-bold text-xs text-center hover:bg-gray-100 transition-all flex items-center justify-center cursor-pointer uppercase tracking-wider"
+                    >
+                      Full Cart Page
+                    </Link>
+                    <Link 
+                      to="/checkout"
+                      onClick={() => setIsCartOpen(false)}
+                      className="px-8 py-4 bg-[#800000] text-white rounded-full font-bold text-xs text-center hover:bg-black transition-all hover:shadow-lg active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer uppercase tracking-wider"
+                    >
+                      Proceed to Checkout <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
                 </div>
               </div>
-            </motion.div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
