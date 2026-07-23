@@ -924,7 +924,6 @@ export function Navigation() {
                   className="w-full h-full object-contain"
                 />
               </Link>
-              <h2 className="text-base font-serif text-lg sm:text-xl font-bold text-gray-900 tracking-wide">My Account Profile</h2>
               <button
                 onClick={() => setIsAccountOpen(false)}
                 className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors border border-gray-200"
