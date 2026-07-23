@@ -835,12 +835,12 @@ export function Navigation() {
             className="fixed inset-0 z-[200] bg-[#FDFBF7] overflow-y-auto animate-fade-in"
           >
             {/* Header */}
-            <div className="sticky top-0 z-20 flex items-center justify-between px-6 sm:px-8 py-1.5 bg-[#FDFBF7]/90 backdrop-blur-md border-b border-gray-100/30">
-              <Link to="/" onClick={() => setIsCartOpen(false)} className="h-14 sm:h-18 flex items-center justify-start pointer-events-auto">
+            <div className="sticky top-0 z-20 flex items-center justify-between px-6 sm:px-8 py-2 bg-[#FDFBF7]/95 backdrop-blur-md border-b border-gray-100/30">
+              <Link to="/" onClick={() => setIsCartOpen(false)} className="h-20 sm:h-24 flex items-center justify-start pointer-events-auto">
                 <img
                   src="/logo_aanya.png"
                   alt="Aanya Fashions Logo"
-                  className="h-full w-auto object-contain"
+                  className="h-full w-auto object-contain brightness-105 contrast-125 drop-shadow-sm"
                 />
               </Link>
               <button
@@ -916,12 +916,12 @@ export function Navigation() {
             className="fixed inset-0 z-[200] bg-[#FDFBF7] overflow-y-auto animate-fade-in"
           >
             {/* Header */}
-            <div className="sticky top-0 z-20 flex items-center justify-between px-6 sm:px-8 py-1.5 bg-[#FDFBF7]/90 backdrop-blur-md border-b border-gray-100/30">
-              <Link to="/" onClick={() => setIsAccountOpen(false)} className="h-14 sm:h-18 flex items-center justify-start pointer-events-auto">
+            <div className="sticky top-0 z-20 flex items-center justify-between px-6 sm:px-8 py-2 bg-[#FDFBF7]/95 backdrop-blur-md border-b border-gray-100/30">
+              <Link to="/" onClick={() => setIsAccountOpen(false)} className="h-20 sm:h-24 flex items-center justify-start pointer-events-auto">
                 <img
                   src="/logo_aanya.png"
                   alt="Aanya Fashions Logo"
-                  className="h-full w-auto object-contain"
+                  className="h-full w-auto object-contain brightness-105 contrast-125 drop-shadow-sm"
                 />
               </Link>
               <button

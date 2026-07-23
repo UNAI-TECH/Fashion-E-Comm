@@ -21,8 +21,15 @@ export function CartPage() {
       
       <div className="pt-32 pb-20 px-4">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h1 className="font-serif text-4xl sm:text-5xl text-[#1A1A1A] mb-4">Your Shopping Cart</h1>
+          <div className="text-center mb-12 flex flex-col items-center">
+            <Link to="/">
+              <img 
+                src="/logo_aanya.png" 
+                alt="Aanya Fashions Logo" 
+                className="h-20 sm:h-24 w-auto object-contain mb-3 brightness-105 contrast-125 drop-shadow-sm hover:scale-105 transition-transform" 
+              />
+            </Link>
+            <h1 className="font-serif text-4xl sm:text-5xl text-[#1A1A1A] mb-2">Your Shopping Cart</h1>
             <p className="text-gray-600">Review your items and proceed to checkout</p>
           </div>
 

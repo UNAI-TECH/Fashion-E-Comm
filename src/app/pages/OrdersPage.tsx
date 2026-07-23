@@ -88,10 +88,19 @@ export function OrdersPage() {
       <Navigation />
 
       <main className="pt-32 pb-20 px-4 max-w-5xl mx-auto text-gray-900">
-        <div className="flex justify-between items-end mb-12">
-          <div>
-            <h1 className="font-serif text-4xl mb-2">My Orders</h1>
-            <p className="text-gray-500">Track and manage your recent purchases.</p>
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-6 mb-12">
+          <div className="flex items-center gap-4">
+            <Link to="/">
+              <img 
+                src="/logo_aanya.png" 
+                alt="Aanya Fashions Logo" 
+                className="h-20 sm:h-24 w-auto object-contain brightness-105 contrast-125 drop-shadow-sm hover:scale-105 transition-transform" 
+              />
+            </Link>
+            <div>
+              <h1 className="font-serif text-4xl mb-1">My Orders</h1>
+              <p className="text-gray-500">Track and manage your recent purchases.</p>
+            </div>
           </div>
           <button 
             onClick={fetchOrders}
