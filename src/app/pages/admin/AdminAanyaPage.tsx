@@ -12,7 +12,8 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend
 } from 'recharts';
 import { Link } from 'react-router';
-import { supabase } from '../../../lib/supabase';
+import { supabase, supabaseAdmin } from '../../../lib/supabase';
+import { fetchProducts } from '../../data/products';
 import { toast } from 'sonner';
 
 /* ─── Types ─── */
@@ -89,49 +90,107 @@ export function AdminAanyaPage() {
   const emptyForm = { name: '', category: 'Sarees', price: '', compare_at_price: '', image_url: '', description: '', status: 'Published' };
   const [form, setForm] = useState(emptyForm);
 
-  /* ─── Load Supabase data ─── */
+  /* ─── Load Supabase data using service-role client (bypasses RLS) ─── */
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
+      // Use supabaseAdmin (service role) to bypass RLS policies
       const [prodsRes, ordersRes, paymentsRes] = await Promise.all([
-        supabase.from('products').select('*').order('created_at', { ascending: false }),
-        supabase.from('orders').select('*').order('created_at', { ascending: false }),
-        supabase.from('payments').select('*').order('created_at', { ascending: false }),
+        supabaseAdmin.from('products').select('*').order('created_at', { ascending: false }),
+        supabaseAdmin.from('orders').select('*').order('created_at', { ascending: false }),
+        supabaseAdmin.from('payments').select('*').order('created_at', { ascending: false }),
       ]);
 
-      if (prodsRes.error)    console.warn('Products:', prodsRes.error.message);
-      if (ordersRes.error)   console.warn('Orders:',   ordersRes.error.message);
-      if (paymentsRes.error) console.warn('Payments:', paymentsRes.error.message);
+      // Log & toast detailed errors for each table
+      if (prodsRes.error) {
+        console.error('[Admin] Products error:', prodsRes.error);
+        toast.error('Products: ' + prodsRes.error.message);
+      }
+      if (ordersRes.error) {
+        console.error('[Admin] Orders error:', ordersRes.error);
+        toast.error('Orders: ' + ordersRes.error.message);
+      }
+      if (paymentsRes.error) {
+        console.error('[Admin] Payments error:', paymentsRes.error);
+        toast.error('Payments: ' + paymentsRes.error.message);
+      }
 
-      setDbProducts(prodsRes.data || []);
-      const ordersData = ordersRes.data || [];
-      setOrders(ordersData);
+      // --- Products: merge Supabase DB products + local mock catalog ---
+      const dbProdsRaw = prodsRes.data || [];
+      let mockProds: any[] = [];
+      try {
+        mockProds = await fetchProducts();
+      } catch (e) {
+        console.warn('fetchProducts fallback error:', e);
+      }
+      // Normalize mock products to match DbProduct shape
+      const normalizedMock = mockProds.map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        category: p.category,
+        price: p.price,
+        compare_at_price: p.compare_at_price || p.originalPrice || null,
+        images: p.images || (p.image ? [p.image] : []),
+        image_url: p.image || null,
+        description: p.description || null,
+        status: p.status || 'Published',
+        created_at: null,
+      }));
+      // Merge: Supabase DB first (override mocks with same id)
+      const allProdsMap = new Map<string, DbProduct>();
+      normalizedMock.forEach((p: any) => allProdsMap.set(p.id, p));
+      dbProdsRaw.forEach((p: any) => allProdsMap.set(p.id, p));
+      setDbProducts(Array.from(allProdsMap.values()));
+
+      // --- Orders ---
+      const ordersData: Order[] = ordersRes.data || [];
+      // Also check localStorage for any locally cached orders
+      let localOrders: any[] = [];
+      try {
+        localOrders = JSON.parse(localStorage.getItem('local_placed_orders') || '[]');
+      } catch (e) {}
+      const allOrdersMap = new Map<string, Order>();
+      localOrders.forEach((o: any) => allOrdersMap.set(o.id, o));
+      ordersData.forEach((o: any) => allOrdersMap.set(o.id, o));
+      const allOrders = Array.from(allOrdersMap.values());
+      setOrders(allOrders);
+
+      // --- Payments ---
       setPayments(paymentsRes.data || []);
 
-      /* Derive unique customers from orders */
+      // --- Derive customers from orders ---
       const seen = new Set<string>();
       const derived: DerivedUser[] = [];
-      ordersData.forEach((o: Order) => {
-        if (!seen.has(o.user_id)) {
-          seen.add(o.user_id);
+      allOrders.forEach((o: Order) => {
+        const uid = o.user_id || o.id;
+        if (!seen.has(uid)) {
+          seen.add(uid);
           const addr = o.shipping_address || {};
           const name = `${addr.first_name || ''} ${addr.last_name || ''}`.trim() || 'Customer';
           derived.push({
-            id: o.user_id,
+            id: uid,
             email: addr.email || '—',
             name,
             phone: addr.phone || '—',
             city: addr.city || '—',
             state: addr.state || '—',
-            orderCount: ordersData.filter((x: Order) => x.user_id === o.user_id).length,
+            orderCount: allOrders.filter((x: Order) => (x.user_id || x.id) === uid).length,
             created_at: o.created_at,
           });
         }
       });
       setCustomers(derived);
 
+      console.log('[Admin] Loaded:', {
+        products: allProdsMap.size,
+        orders: allOrders.length,
+        payments: (paymentsRes.data || []).length,
+        customers: derived.length,
+      });
+
     } catch (err: any) {
-      toast.error('Failed to load data from Supabase');
+      console.error('[Admin] loadData crash:', err);
+      toast.error('Dashboard load failed: ' + (err.message || 'Unknown error'));
     } finally {
       setIsLoading(false);
     }
@@ -141,8 +200,8 @@ export function AdminAanyaPage() {
 
   /* ─── Update order status → Supabase ─── */
   const updateOrderStatus = async (id: string, status: string) => {
-    const { error } = await supabase.from('orders').update({ status }).eq('id', id);
-    if (error) { toast.error('Update failed'); return; }
+    const { error } = await supabaseAdmin.from('orders').update({ status }).eq('id', id);
+    if (error) { toast.error('Update failed: ' + error.message); return; }
     setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
     toast.success(`Order status → ${status}`);
   };
@@ -150,7 +209,7 @@ export function AdminAanyaPage() {
   /* ─── Delete product → Supabase ─── */
   const deleteProduct = async (id: string) => {
     if (!confirm('Delete this product?')) return;
-    const { error } = await supabase.from('products').delete().eq('id', id);
+    const { error } = await supabaseAdmin.from('products').delete().eq('id', id);
     if (error) { toast.error('Delete failed: ' + error.message); return; }
     setDbProducts(prev => prev.filter(p => p.id !== id));
     toast.success('Product deleted');
@@ -163,7 +222,7 @@ export function AdminAanyaPage() {
     setAdding(true);
     try {
       const img = form.image_url.trim();
-      const { data, error } = await supabase.from('products').insert({
+      const { data, error } = await supabaseAdmin.from('products').insert({
         name: form.name.trim(),
         category: form.category,
         price: parseFloat(form.price),
