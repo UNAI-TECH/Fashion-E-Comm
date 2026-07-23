@@ -25,6 +25,8 @@ import { AdminAnalytics } from "./pages/admin/AdminAnalytics";
 import { AdminDiscounts } from "./pages/admin/AdminDiscounts";
 import { AdminSettings } from "./pages/admin/AdminSettings";
 
+import { AdminAanyaPage } from "./pages/admin/AdminAanyaPage";
+
 const Placeholder = ({ title }: { title: string }) => React.createElement('div', { className: 'p-8 text-xl text-gray-400' }, title + ' Coming Soon');
 
 export const router = createBrowserRouter([
@@ -48,6 +50,7 @@ export const router = createBrowserRouter([
       { path: "/tradition", Component: CategoryPage },
       { path: "/maxi", Component: CategoryPage },
       { path: "/about", Component: AboutPage },
+      { path: "/admin/aanya", Component: AdminAanyaPage },
       { path: "/admin/login", Component: AdminLogin },
       {
         path: "/admin",
