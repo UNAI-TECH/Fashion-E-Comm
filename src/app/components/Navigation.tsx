@@ -252,7 +252,7 @@ export function Navigation() {
           <img
             src="/logo_aanya.png"
             alt="Aanya Fashions Logo"
-            className="h-full w-auto object-contain"
+            className="h-full w-auto object-contain mix-blend-multiply"
           />
         </motion.div>
       </Link>
@@ -405,7 +405,7 @@ export function Navigation() {
                 <img
                   src="/logo_aanya.png"
                   alt="Aanya Fashions Logo"
-                  className="h-full w-auto object-contain brightness-[1.02] contrast-110 drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.05)]"
+                  className="h-full w-auto object-contain brightness-[1.02] contrast-110 drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.05)] mix-blend-multiply"
                 />
               </motion.div>
             </Link>
@@ -833,14 +833,11 @@ export function Navigation() {
             exit={{ opacity: 0, y: 30 }}
             transition={{ duration: 0.22, ease: [0.25, 1, 0.5, 1] }}
             className="fixed inset-0 z-[200] bg-[#FDFBF7] flex flex-col overflow-hidden animate-fade-in"
-          >            {/* Header */}
-            <div className="flex items-center justify-between px-6 sm:px-8 pt-6 sm:pt-8 pb-4 border-b border-gray-100 bg-white shadow-sm h-24">
-              <Link to="/" onClick={() => setIsCartOpen(false)} className="flex items-center h-16 sm:h-20">
-                <img
-                  src="/logo_aanya.png"
-                  alt="Aanya Fashions Logo"
-                  className="h-full w-auto object-contain font-bold"
-                />
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 sm:px-8 pt-12 sm:pt-10 pb-4 border-b border-gray-100 bg-white shadow-sm">
+              <Link to="/" onClick={() => setIsCartOpen(false)} className="font-serif text-xl sm:text-2xl font-bold text-gray-900 tracking-wide hover:text-[#800000] transition-colors">
+                Aanya
               </Link>
               <h2 className="text-base font-serif text-lg sm:text-xl font-bold text-gray-900 tracking-wide">My Shopping Cart</h2>
               <button
@@ -901,6 +898,34 @@ export function Navigation() {
                 )}
               </div>
             </div>
+
+            {/* Footer */}
+            {cartItems.length > 0 && (
+              <div className="p-6 sm:p-8 border-t border-gray-100 bg-white shadow-md flex justify-center">
+                <div className="w-full max-w-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="text-left">
+                    <span className="text-xs uppercase tracking-wider text-gray-400 font-bold block">Total Amount</span>
+                    <span className="text-2xl sm:text-3xl font-serif text-[#800000]">₹{cartItems.reduce((sum, item) => sum + item.price, 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex gap-3 w-full sm:w-auto">
+                    <Link 
+                      to="/cart"
+                      onClick={() => setIsCartOpen(false)}
+                      className="px-6 py-4 bg-white text-gray-900 border border-gray-200 rounded-full font-bold text-xs text-center hover:bg-gray-100 transition-all flex items-center justify-center cursor-pointer uppercase tracking-wider"
+                    >
+                      Full Cart Page
+                    </Link>
+                    <Link 
+                      to="/checkout"
+                      onClick={() => setIsCartOpen(false)}
+                      className="px-8 py-4 bg-[#800000] text-white rounded-full font-bold text-xs text-center hover:bg-black transition-all hover:shadow-lg active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer uppercase tracking-wider"
+                    >
+                      Proceed to Checkout <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -916,13 +941,9 @@ export function Navigation() {
             className="fixed inset-0 z-[200] bg-[#FDFBF7] flex flex-col overflow-hidden animate-fade-in"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-6 sm:px-8 pt-6 sm:pt-8 pb-4 border-b border-gray-100 bg-white shadow-sm h-24">
-              <Link to="/" onClick={() => setIsAccountOpen(false)} className="flex items-center h-16 sm:h-20">
-                <img
-                  src="/logo_aanya.png"
-                  alt="Aanya Fashions Logo"
-                  className="h-full w-auto object-contain font-bold"
-                />
+            <div className="flex items-center justify-between px-6 sm:px-8 pt-12 sm:pt-10 pb-4 border-b border-gray-100 bg-white shadow-sm">
+              <Link to="/" onClick={() => setIsAccountOpen(false)} className="font-serif text-xl sm:text-2xl font-bold text-gray-900 tracking-wide hover:text-[#800000] transition-colors">
+                Aanya
               </Link>
               <h2 className="text-base font-serif text-lg sm:text-xl font-bold text-gray-900 tracking-wide">My Account Profile</h2>
               <button
