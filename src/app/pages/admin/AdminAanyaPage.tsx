@@ -1,18 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  IndianRupee, ShoppingBag, Users, Package, ArrowUpRight, ArrowDownRight,
+  IndianRupee, ShoppingBag, Users, Package, ArrowUpRight,
   Plus, Trash2, Search, Store, X, RefreshCw, ChevronRight,
-  Phone, Mail, MapPin, Sparkles, ImageIcon, LayoutDashboard,
-  ClipboardList, Tag, BarChart2, Settings, LogOut, Menu, ChevronLeft,
-  CreditCard, TrendingUp, Star
+  Phone, Mail, MapPin, ImageIcon, LayoutDashboard,
+  ClipboardList, Menu, ChevronLeft, CreditCard
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend
+  ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar
 } from 'recharts';
 import { Link } from 'react-router';
-import { supabase, supabaseAdmin } from '../../../lib/supabase';
+import { supabaseAdmin } from '../../../lib/supabase';
 import { fetchProducts } from '../../data/products';
 import { toast } from 'sonner';
 
