@@ -16,6 +16,16 @@ import { fetchProducts } from '../../data/products';
 import { toast } from 'sonner';
 
 /* ─── Types ─── */
+interface OrderItem {
+  id: string;
+  product_id: string;
+  quantity: number;
+  price: number;
+  products?: {
+    id: string; name: string; images?: string[]; image_url?: string;
+  };
+}
+
 interface Order {
   id: string;
   user_id: string;
@@ -29,6 +39,7 @@ interface Order {
     address?: string; city?: string; state?: string;
   };
   created_at: string;
+  order_items?: OrderItem[];
 }
 
 interface Payment {
@@ -97,7 +108,7 @@ export function AdminAanyaPage() {
       // Use supabaseAdmin (service role) to bypass RLS policies
       const [prodsRes, ordersRes, paymentsRes] = await Promise.all([
         supabaseAdmin.from('products').select('*').order('created_at', { ascending: false }),
-        supabaseAdmin.from('orders').select('*').order('created_at', { ascending: false }),
+        supabaseAdmin.from('orders').select('*, order_items(*, products(*))').order('created_at', { ascending: false }),
         supabaseAdmin.from('payments').select('*').order('created_at', { ascending: false }),
       ]);
 
@@ -869,28 +880,28 @@ export function AdminAanyaPage() {
                   <X className="w-4 h-4" />
                 </button>
 
-                {/* Header */}
-                <div className="bg-gradient-to-br from-[#800000] to-[#a83232] p-5 text-white">
+                {/* Header - Light cream/gold colors */}
+                <div className="bg-gradient-to-br from-[#FFF8EE] to-[#FFF0D6] border-b border-[#D4AF37]/20 p-5">
                   <div className="flex items-center gap-3">
-                    <div className="w-14 h-14 rounded-full bg-white/20 border-2 border-white/50 flex items-center justify-center text-2xl font-bold uppercase flex-shrink-0">
+                    <div className="w-14 h-14 rounded-full bg-[#D4AF37]/15 border-2 border-[#D4AF37]/40 flex items-center justify-center text-2xl font-bold uppercase flex-shrink-0 text-[#800000]">
                       {selectedCust.name[0]}
                     </div>
                     <div className="min-w-0">
-                      <h2 className="text-lg font-bold truncate">{selectedCust.name}</h2>
-                      <div className="flex items-center gap-1.5 text-white/80 text-xs mt-0.5">
-                        <Phone className="w-3 h-3 flex-shrink-0" />
+                      <h2 className="text-lg font-bold text-gray-900 truncate">{selectedCust.name}</h2>
+                      <div className="flex items-center gap-1.5 text-gray-600 text-xs mt-0.5">
+                        <Phone className="w-3 h-3 flex-shrink-0 text-[#800000]" />
                         <span>{selectedCust.phone}</span>
                       </div>
-                      <div className="flex items-start gap-1.5 text-white/75 text-xs mt-0.5">
-                        <MapPin className="w-3 h-3 flex-shrink-0 mt-0.5" />
+                      <div className="flex items-start gap-1.5 text-gray-500 text-xs mt-0.5">
+                        <MapPin className="w-3 h-3 flex-shrink-0 mt-0.5 text-[#800000]" />
                         <span>{selectedCust.city}{selectedCust.state !== '—' ? `, ${selectedCust.state}` : ''}</span>
                       </div>
                     </div>
                   </div>
                   <div className="mt-3">
-                    <div className="bg-white/20 border border-white/30 rounded-lg px-3 py-1.5 inline-flex items-center gap-2">
-                      <ShoppingBag className="w-3.5 h-3.5" />
-                      <span className="text-sm font-bold">{selectedCust.orderCount} Order{selectedCust.orderCount !== 1 ? 's' : ''}</span>
+                    <div className="bg-[#800000]/10 border border-[#800000]/20 rounded-lg px-3 py-1.5 inline-flex items-center gap-2">
+                      <ShoppingBag className="w-3.5 h-3.5 text-[#800000]" />
+                      <span className="text-sm font-bold text-[#800000]">{selectedCust.orderCount} Order{selectedCust.orderCount !== 1 ? 's' : ''}</span>
                     </div>
                   </div>
                 </div>
@@ -905,26 +916,48 @@ export function AdminAanyaPage() {
                       {custOrders.map(order => {
                         const st = (order.status || 'pending').toLowerCase();
                         const cfg = statusCfg[st] || { cls: 'bg-gray-100 text-gray-600 border-gray-200', label: order.status };
-                        const firstProd = dbProducts[0];
-                        const img = firstProd?.images?.[0] || firstProd?.image_url || '';
-                        return (
-                          <div key={order.id} className="flex items-center gap-3 bg-gray-50 rounded-xl p-2.5 border border-gray-100">
-                            {img ? (
-                              <img src={img} alt="product" className="w-12 h-12 rounded-lg object-cover flex-shrink-0 border border-gray-200" />
-                            ) : (
-                              <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                                <ShoppingBag className="w-5 h-5 text-gray-300" />
+                        // Show each ordered item with its actual product image and name
+                        const items: OrderItem[] = order.order_items || [];
+                        if (items.length === 0) {
+                          return (
+                            <div key={order.id} className="flex items-center gap-3 bg-[#FDFBF7] rounded-xl p-2.5 border border-[#D4AF37]/20">
+                              <div className="w-12 h-12 rounded-lg bg-[#D4AF37]/10 flex items-center justify-center flex-shrink-0 border border-[#D4AF37]/20">
+                                <ShoppingBag className="w-5 h-5 text-[#D4AF37]" />
                               </div>
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <div className="text-xs font-semibold text-gray-700 truncate">Order #{String(order.id).slice(0, 8)}</div>
-                              <div className="text-sm font-bold text-[#800000]">Rs.{(order.total_amount || 0).toLocaleString('en-IN')}</div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-xs font-semibold text-gray-700 truncate">Order #{String(order.id).slice(0, 8)}</div>
+                                <div className="text-sm font-bold text-[#800000]">Rs.{(order.total_amount || 0).toLocaleString('en-IN')}</div>
+                              </div>
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border flex-shrink-0 ${cfg.cls}`}>
+                                {cfg.label}
+                              </span>
                             </div>
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border flex-shrink-0 ${cfg.cls}`}>
-                              {cfg.label}
-                            </span>
-                          </div>
-                        );
+                          );
+                        }
+                        return items.map((item, idx) => {
+                          const prod = item.products;
+                          const img = prod?.images?.[0] || prod?.image_url || '';
+                          const productName = prod?.name || `Product #${String(item.product_id).slice(0, 6)}`;
+                          const itemPrice = item.price || (order.total_amount / (items.length || 1));
+                          return (
+                            <div key={`${order.id}-${idx}`} className="flex items-center gap-3 bg-[#FDFBF7] rounded-xl p-2.5 border border-[#D4AF37]/20">
+                              {img ? (
+                                <img src={img} alt={productName} className="w-12 h-12 rounded-lg object-cover flex-shrink-0 border border-[#D4AF37]/20" />
+                              ) : (
+                                <div className="w-12 h-12 rounded-lg bg-[#D4AF37]/10 flex items-center justify-center flex-shrink-0 border border-[#D4AF37]/20">
+                                  <ShoppingBag className="w-5 h-5 text-[#D4AF37]" />
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <div className="text-xs font-semibold text-gray-800 truncate">{productName}</div>
+                                <div className="text-sm font-bold text-[#800000]">Rs.{(itemPrice * (item.quantity || 1)).toLocaleString('en-IN')}</div>
+                              </div>
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border flex-shrink-0 ${cfg.cls}`}>
+                                {cfg.label}
+                              </span>
+                            </div>
+                          );
+                        });
                       })}
                     </div>
                   )}
