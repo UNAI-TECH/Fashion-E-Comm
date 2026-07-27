@@ -933,33 +933,33 @@ export function Navigation() {
         )}
       </AnimatePresence>
 
-      {/* Account Full Screen Overlay (Direct Account Details Form) */}
+      {/* Account Full Screen Overlay (Direct Account Details Form - Non-Scrolling Fit) */}
       <AnimatePresence>
         {isAccountOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 30 }}
+            exit={{ opacity: 0, y: 20 }}
             transition={{ duration: 0.22, ease: [0.25, 1, 0.5, 1] }}
-            className="fixed inset-0 z-[200] bg-[#FDFBF7] overflow-y-auto animate-fade-in"
+            className="fixed inset-0 z-[200] bg-[#FDFBF7] overflow-hidden flex flex-col justify-between h-screen w-screen p-4 sm:p-6"
           >
             {/* Header - Only Cross Icon at Top Right */}
-            <div className="sticky top-0 z-20 flex items-center justify-end px-6 sm:px-8 py-4 bg-[#FDFBF7]">
+            <div className="flex items-center justify-end w-full flex-shrink-0">
               <button
                 onClick={() => setIsAccountOpen(false)}
-                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors border border-gray-200"
+                className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors border border-gray-200 cursor-pointer"
                 aria-label="Close profile"
               >
                 <X className="w-5 h-5 text-gray-700" />
               </button>
             </div>
 
-            {/* Body - Account Details */}
-            <div className="px-6 sm:px-8 pb-12 flex justify-center">
-              <div className="w-full max-w-xl space-y-8 h-fit my-2 p-4">
+            {/* Body - Account Details (Fits in Viewport) */}
+            <div className="flex-1 flex flex-col items-center justify-center w-full max-w-xl mx-auto py-1 my-auto overflow-hidden">
+              <div className="w-full space-y-4 sm:space-y-5">
                 {/* Center Profile Image with Upload */}
-                <div className="flex flex-col items-center justify-center space-y-3 pb-4">
-                  <div className="relative group w-32 h-32 rounded-full overflow-hidden border-4 border-[#D4AF37] shadow-md bg-gray-100 flex items-center justify-center cursor-pointer">
+                <div className="flex flex-col items-center justify-center space-y-2 pb-1">
+                  <div className="relative group w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-4 border-[#D4AF37] shadow-md bg-gray-100 flex items-center justify-center cursor-pointer">
                     {profileImage ? (
                       <img 
                         src={profileImage} 
@@ -967,10 +967,10 @@ export function Navigation() {
                         className="w-full h-full object-cover object-top" 
                       />
                     ) : (
-                      <User className="w-14 h-14 text-gray-400" />
+                      <User className="w-12 h-12 text-gray-400" />
                     )}
                     <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-[10px] font-bold cursor-pointer transition-opacity duration-300">
-                      <Camera className="w-5 h-5 mb-1" />
+                      <Camera className="w-4 h-4 mb-0.5" />
                       <span>{profileImage ? 'CHANGE' : 'UPLOAD'}</span>
                       <input 
                         type="file" 
@@ -980,29 +980,29 @@ export function Navigation() {
                       />
                     </label>
                   </div>
-                  <span className="text-xs font-semibold text-gray-400">Click avatar image to upload photo</span>
+                  <span className="text-[11px] font-semibold text-gray-400">Click avatar image to upload photo</span>
                 </div>
 
                 {/* Form Details */}
-                <div className="space-y-5">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
-                      <label className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1.5">Full Name</label>
+                      <label className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1">Full Name</label>
                       <input 
                         type="text" 
                         placeholder="Enter full name"
                         value={profileDetails.name}
                         onChange={(e) => setProfileDetails({ ...profileDetails, name: e.target.value })}
-                        className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all text-gray-900"
+                        className="w-full px-3.5 py-2.5 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all text-gray-900"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1.5">Gender</label>
+                      <label className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1">Gender</label>
                       <select 
                         value={profileDetails.gender}
                         onChange={(e) => setProfileDetails({ ...profileDetails, gender: e.target.value })}
-                        className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all cursor-pointer text-gray-900"
+                        className="w-full px-3.5 py-2.5 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all cursor-pointer text-gray-900"
                       >
                         <option value="" disabled>Select Gender</option>
                         <option value="Female">Female</option>
@@ -1013,47 +1013,47 @@ export function Navigation() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
-                      <label className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1.5">Phone Number</label>
+                      <label className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1">Phone Number</label>
                       <input 
                         type="text" 
                         placeholder="Enter phone number"
                         value={profileDetails.phone}
                         onChange={(e) => setProfileDetails({ ...profileDetails, phone: e.target.value })}
-                        className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all text-gray-900"
+                        className="w-full px-3.5 py-2.5 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all text-gray-900"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1.5">Email ID</label>
+                      <label className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1">Email ID</label>
                       <input 
                         type="email" 
                         placeholder="Enter email address"
                         value={profileDetails.email}
                         onChange={(e) => setProfileDetails({ ...profileDetails, email: e.target.value })}
-                        className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all text-gray-900"
+                        className="w-full px-3.5 py-2.5 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all text-gray-900"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1.5">Shipping Address</label>
+                    <label className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1">Shipping Address</label>
                     <textarea 
                       placeholder="Enter shipping address"
                       value={profileDetails.address}
-                      rows={3}
+                      rows={2}
                       onChange={(e) => setProfileDetails({ ...profileDetails, address: e.target.value })}
-                      className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all resize-none text-gray-900"
+                      className="w-full px-3.5 py-2.5 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all resize-none text-gray-900"
                     />
                   </div>
                   
-                  <div className="pt-4">
+                  <div className="pt-2">
                     <motion.button 
                       onClick={handleSaveProfile}
-                      whileHover={{ scale: 1.02 }}
+                      whileHover={{ scale: 1.01 }}
                       whileTap={{ scale: 0.98 }}
-                      className="w-full py-4 bg-gradient-to-r from-[#800000] to-[#990000] text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md hover:from-black hover:to-[#800000] transition-all cursor-pointer text-center block"
+                      className="w-full py-3.5 bg-gradient-to-r from-[#800000] to-[#990000] text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md hover:from-black hover:to-[#800000] transition-all cursor-pointer text-center block"
                     >
                       Save Profile Details
                     </motion.button>
@@ -1061,6 +1061,9 @@ export function Navigation() {
                 </div>
               </div>
             </div>
+            
+            {/* Empty footer flex spacer to ensure clean vertical centering */}
+            <div className="h-2 flex-shrink-0" />
           </motion.div>
         )}
       </AnimatePresence>
