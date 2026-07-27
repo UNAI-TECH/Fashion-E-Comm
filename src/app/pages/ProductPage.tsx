@@ -579,7 +579,7 @@ export function ProductPage() {
                       whileTap={{ scale: 0.98 }}
                       disabled={isSubmitting}
                       onClick={() => handleCreateOrder('Card')}
-                      className="flex-1 py-3.5 bg-gradient-to-r from-[#800000] via-[#990000] to-[#800000] hover:from-black hover:to-[#800000] text-white rounded-2xl font-black uppercase tracking-wider shadow-lg shadow-[#800000]/25 transition-all text-xs flex items-center justify-center gap-2 cursor-pointer"
+                      className="flex-1 py-3.5 bg-[#FFF0F5] border border-[#FFD6E8] text-[#800000] font-black uppercase tracking-wider rounded-2xl text-xs shadow-sm hover:bg-[#FFE4EF] hover:border-[#800000]/30 transition-all flex items-center justify-center gap-2 cursor-pointer"
                     >
                       {isSubmitting ? (
                         <>
@@ -684,7 +684,7 @@ export function ProductPage() {
                       whileTap={{ scale: 0.98 }}
                       disabled={isSubmitting}
                       onClick={() => handleCreateOrder('COD')}
-                      className="flex-1 py-3.5 bg-gradient-to-r from-amber-700 via-amber-800 to-amber-900 hover:from-black hover:to-amber-900 text-white rounded-2xl font-black uppercase tracking-wider shadow-lg shadow-amber-900/20 transition-all text-xs flex items-center justify-center gap-2 cursor-pointer"
+                      className="flex-1 py-3.5 bg-[#FFF0F5] border border-[#FFD6E8] text-[#800000] font-black uppercase tracking-wider rounded-2xl text-xs shadow-sm hover:bg-[#FFE4EF] hover:border-[#800000]/30 transition-all flex items-center justify-center gap-2 cursor-pointer"
                     >
                       {isSubmitting ? (
                         <>

@@ -944,38 +944,38 @@ export function Navigation() {
             className="fixed inset-0 z-[200] bg-[#FDFBF7] overflow-hidden flex flex-col justify-between h-screen w-screen p-3 sm:p-5 select-none"
           >
             {/* Header - Logo on Top Left, Centered My Profile Title, Cross Icon at Top Right */}
-            <div className="grid grid-cols-3 items-center w-full flex-shrink-0 px-1 sm:px-2">
+            <div className="grid grid-cols-3 items-center w-full flex-shrink-0 px-1 sm:px-2 py-1">
               {/* Left: Official Logo */}
               <div className="flex items-center justify-start">
                 <img 
                   src="/logo_aanya.png" 
                   alt="Aanya Fashions Logo" 
-                  className="h-12 sm:h-16 max-h-16 w-auto object-contain brightness-110 contrast-125 drop-shadow-md flex-shrink-0"
+                  className="h-16 sm:h-20 max-h-20 w-auto object-contain brightness-110 contrast-125 drop-shadow-lg flex-shrink-0"
                 />
               </div>
 
-              {/* Center: My Profile Title */}
+              {/* Center: My Profile Title (Big & Bold) */}
               <div className="text-center">
-                <h2 className="text-lg sm:text-xl font-serif font-bold text-gray-900 tracking-tight">My Profile</h2>
+                <h2 className="text-2xl sm:text-3xl font-serif font-black text-gray-900 tracking-tight">My Profile</h2>
               </div>
 
               {/* Right: Close Button */}
               <div className="flex items-center justify-end">
                 <button
                   onClick={() => setIsAccountOpen(false)}
-                  className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors border border-gray-200 cursor-pointer"
+                  className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors border border-gray-200 cursor-pointer"
                   aria-label="Close profile"
                 >
-                  <X className="w-4 h-4 text-gray-700" />
+                  <X className="w-5 h-5 text-gray-700" />
                 </button>
               </div>
             </div>
 
-            {/* Body - Account Details (Fits 100% Cleanly in Viewport) */}
-            <div className="flex-1 flex flex-col items-center justify-center w-full max-w-lg mx-auto py-1 my-auto overflow-hidden">
+            {/* Body - Account Details (Directly below header without huge space) */}
+            <div className="flex-1 flex flex-col items-center justify-start w-full max-w-lg mx-auto pt-1 sm:pt-2 pb-1 overflow-hidden">
               <div className="w-full space-y-3 sm:space-y-4">
                 {/* Center Full Round Circle Profile Image with Upload */}
-                <div className="flex flex-col items-center justify-center space-y-1.5 pb-1">
+                <div className="flex flex-col items-center justify-center space-y-1 pb-1">
                   <div className="relative group w-28 h-28 sm:w-32 sm:h-32 aspect-square rounded-full overflow-hidden border-4 border-[#D4AF37] shadow-lg bg-gray-100 flex items-center justify-center flex-shrink-0 cursor-pointer">
                     {profileImage ? (
                       <img 
