@@ -231,7 +231,7 @@ export function AdminAanyaPage() {
         products: allProdsMap.size,
         orders: allOrders.length,
         payments: (paymentsRes.data || []).length,
-        customers: derived.length,
+        customers: customerMap.size,
       });
 
     } catch (err: any) {
