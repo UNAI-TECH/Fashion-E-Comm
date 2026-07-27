@@ -950,7 +950,7 @@ export function Navigation() {
                 <img 
                   src="/logo_aanya.png" 
                   alt="Aanya Fashions Logo" 
-                  className="h-8 sm:h-10 w-auto object-contain brightness-105"
+                  className="h-12 sm:h-16 max-h-16 w-auto object-contain brightness-110 contrast-125 drop-shadow-md flex-shrink-0"
                 />
               </div>
 
