@@ -937,14 +937,15 @@ export function Navigation() {
       <AnimatePresence>
         {isAccountOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            transition={{ duration: 0.22, ease: [0.25, 1, 0.5, 1] }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
             className="fixed inset-0 z-[200] bg-[#FDFBF7] overflow-hidden flex flex-col justify-between h-screen w-screen p-4 sm:p-6"
           >
-            {/* Header - Only Cross Icon at Top Right */}
-            <div className="flex items-center justify-end w-full flex-shrink-0">
+            {/* Header - My Profile Title on Left & Cross Icon at Top Right */}
+            <div className="flex items-center justify-between w-full flex-shrink-0">
+              <h2 className="text-xl sm:text-2xl font-serif font-bold text-gray-900 tracking-tight">My Profile</h2>
               <button
                 onClick={() => setIsAccountOpen(false)}
                 className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors border border-gray-200 cursor-pointer"
@@ -1053,7 +1054,7 @@ export function Navigation() {
                       onClick={handleSaveProfile}
                       whileHover={{ scale: 1.01 }}
                       whileTap={{ scale: 0.98 }}
-                      className="w-full py-3.5 bg-gradient-to-r from-[#800000] to-[#990000] text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md hover:from-black hover:to-[#800000] transition-all cursor-pointer text-center block"
+                      className="w-full py-3.5 bg-[#FFF0F5] border border-[#FFD6E8] text-[#800000] font-black rounded-xl text-xs uppercase tracking-wider shadow-sm hover:bg-[#FFE4EF] hover:border-[#800000]/30 transition-all cursor-pointer text-center block"
                     >
                       Save Profile Details
                     </motion.button>
@@ -1115,15 +1116,15 @@ export function Navigation() {
             {/* Screen 2: Initial Account Details Form (No Back Button, Clean Inputs) */}
             {mobileAppOpeningStep === 2 && (
               <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.25 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
                 className="px-6 py-8 flex justify-center flex-1 min-h-screen"
               >
                 <div className="w-full max-w-xl space-y-6 h-fit my-auto">
                   <div className="text-center space-y-1 mb-6">
-                    <h3 className="text-xl font-serif font-bold text-gray-900">Account Details</h3>
+                    <h3 className="text-xl font-serif font-bold text-gray-900">My Profile</h3>
                     <p className="text-xs text-gray-500 font-medium">Please enter your profile information to continue</p>
                   </div>
 
@@ -1219,10 +1220,10 @@ export function Navigation() {
                         onClick={handleFinishMobileAppOpening}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                        className="w-full py-4 bg-gradient-to-r from-[#800000] to-[#990000] text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md hover:from-black hover:to-[#800000] transition-all cursor-pointer text-center flex items-center justify-center gap-2"
+                        className="w-full py-4 bg-[#FFF0F5] border border-[#FFD6E8] text-[#800000] font-black rounded-xl text-xs uppercase tracking-wider shadow-sm hover:bg-[#FFE4EF] transition-all cursor-pointer text-center flex items-center justify-center gap-2"
                       >
                         <span>Save & Open Full App</span>
-                        <ArrowRight className="w-4 h-4 text-[#D4AF37]" />
+                        <ArrowRight className="w-4 h-4 text-[#800000]" />
                       </motion.button>
                     </div>
                   </div>
