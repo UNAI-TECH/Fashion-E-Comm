@@ -101,12 +101,12 @@ export function Navigation() {
     } catch (e) {}
   }, []);
 
-  // Automatically transition Screen 1 to Screen 2 after 5 seconds
+  // Automatically transition Screen 1 to Screen 2 after 2 seconds
   useEffect(() => {
     if (showMobileAppOpening && mobileAppOpeningStep === 1) {
       const timer = setTimeout(() => {
         setMobileAppOpeningStep(2);
-      }, 5000);
+      }, 2000);
       return () => clearTimeout(timer);
     }
   }, [showMobileAppOpening, mobileAppOpeningStep]);
