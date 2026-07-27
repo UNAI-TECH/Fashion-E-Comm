@@ -959,7 +959,7 @@ export function Navigation() {
               <div className="w-full space-y-4 sm:space-y-5">
                 {/* Center Profile Image with Upload */}
                 <div className="flex flex-col items-center justify-center space-y-2 pb-1">
-                  <div className="relative group w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-4 border-[#D4AF37] shadow-md bg-gray-100 flex items-center justify-center cursor-pointer">
+                  <div className="relative group w-36 h-36 sm:w-40 sm:h-40 rounded-full overflow-hidden border-4 border-[#D4AF37] shadow-xl bg-gray-100 flex items-center justify-center cursor-pointer">
                     {profileImage ? (
                       <img 
                         src={profileImage} 
@@ -967,7 +967,7 @@ export function Navigation() {
                         className="w-full h-full object-cover object-top" 
                       />
                     ) : (
-                      <User className="w-12 h-12 text-gray-400" />
+                      <User className="w-16 h-16 text-gray-400" />
                     )}
                     <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-[10px] font-bold cursor-pointer transition-opacity duration-300">
                       <Camera className="w-4 h-4 mb-0.5" />
@@ -1129,7 +1129,7 @@ export function Navigation() {
 
                   {/* Center Profile Image with Upload */}
                   <div className="flex flex-col items-center justify-center space-y-2 pb-2">
-                    <div className="relative group w-28 h-28 rounded-full overflow-hidden border-4 border-[#D4AF37] shadow-md bg-gray-100 flex items-center justify-center cursor-pointer">
+                    <div className="relative group w-36 h-36 sm:w-40 sm:h-40 rounded-full overflow-hidden border-4 border-[#D4AF37] shadow-xl bg-gray-100 flex items-center justify-center cursor-pointer">
                       {profileImage ? (
                         <img 
                           src={profileImage} 
@@ -1137,7 +1137,7 @@ export function Navigation() {
                           className="w-full h-full object-cover object-top" 
                         />
                       ) : (
-                        <User className="w-12 h-12 text-gray-400" />
+                        <User className="w-16 h-16 text-gray-400" />
                       )}
                       <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-[10px] font-bold cursor-pointer transition-opacity duration-300">
                         <Camera className="w-4 h-4 mb-1" />
