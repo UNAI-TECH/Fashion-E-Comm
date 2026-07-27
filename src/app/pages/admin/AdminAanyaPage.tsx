@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   IndianRupee, ShoppingBag, Users, Package, ArrowUpRight,
   Plus, Trash2, Search, Store, X, RefreshCw, ChevronRight,
-  LayoutDashboard, ClipboardList, Menu, ChevronLeft, CreditCard
+  Phone, Mail, MapPin, ImageIcon, LayoutDashboard,
+  ClipboardList, Menu, ChevronLeft, CreditCard
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
