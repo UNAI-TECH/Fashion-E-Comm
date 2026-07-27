@@ -872,10 +872,10 @@ export function AdminAanyaPage() {
                 transition={{ type: 'spring', damping: 25, stiffness: 220 }}
                 className="relative z-10 bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
               >
-                {/* Close */}
+                {/* Close - dark color */}
                 <button
                   onClick={() => setSelectedCust(null)}
-                  className="absolute top-3 right-3 p-1.5 bg-white/30 hover:bg-white/50 rounded-full text-white transition-colors cursor-pointer z-10"
+                  className="absolute top-3 right-3 p-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-800 transition-colors cursor-pointer z-10"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -935,9 +935,15 @@ export function AdminAanyaPage() {
                           );
                         }
                         return items.map((item, idx) => {
-                          const prod = item.products;
-                          const img = prod?.images?.[0] || prod?.image_url || '';
-                          const productName = prod?.name || `Product #${String(item.product_id).slice(0, 6)}`;
+                          // Try nested join first, fallback to dbProducts lookup by product_id
+                          const joinedProd = item.products;
+                          const localProd = dbProducts.find(p => p.id === item.product_id);
+                          const img =
+                            joinedProd?.images?.[0] || joinedProd?.image_url ||
+                            localProd?.images?.[0] || localProd?.image_url || '';
+                          const productName =
+                            joinedProd?.name || localProd?.name ||
+                            `Product #${String(item.product_id).slice(0, 6)}`;
                           const itemPrice = item.price || (order.total_amount / (items.length || 1));
                           return (
                             <div key={`${order.id}-${idx}`} className="flex items-center gap-3 bg-[#FDFBF7] rounded-xl p-2.5 border border-[#D4AF37]/20">
