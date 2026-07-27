@@ -60,6 +60,7 @@ export const router = createBrowserRouter([
             path: "",
             Component: AdminLayout,
             children: [
+              { index: true, Component: AdminDashboard },
               { path: "dashboard", Component: AdminDashboard },
               { path: "products", Component: AdminProducts },
               { path: "categories", Component: AdminCategories },
