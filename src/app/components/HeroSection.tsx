@@ -53,13 +53,15 @@ export function HeroSection() {
         style={{ backgroundImage: "url('/hero_bg.png')" }}
       />
 
-      {/* Small perfect golden circle background spotlight */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[5]">
-        <div
-          className={`rounded-full bg-[#D4A62A]/25 aspect-square border border-[#D4AF37]/30 ${isMobile ? 'w-[36vw] h-[36vw]' : 'w-[28vw] h-[28vw]'}`}
-          style={{ filter: 'blur(25px)' }}
-        />
-      </div>
+      {/* Golden circle background spotlight — Desktop only */}
+      {!isMobile && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[5]">
+          <div
+            className="rounded-full bg-[#D4A62A]/25 aspect-square border border-[#D4AF37]/30 w-[28vw] h-[28vw]"
+            style={{ filter: 'blur(25px)' }}
+          />
+        </div>
+      )}
 
       {/* 3D Coverflow Carousel */}
       <div
