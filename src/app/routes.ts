@@ -51,17 +51,17 @@ export const router = createBrowserRouter([
       { path: "/maxi", Component: CategoryPage },
       { path: "/about", Component: AboutPage },
       { path: "/admin/aanya", Component: AdminAanyaPage },
-      { path: "/admin/login", Component: AdminLogin },
+      { path: "/admin/login", Component: AdminAanyaPage },
       {
         path: "/admin",
         Component: AdminRoute,
         children: [
+          { index: true, Component: AdminAanyaPage },
+          { path: "dashboard", Component: AdminAanyaPage },
           {
             path: "",
             Component: AdminLayout,
             children: [
-              { index: true, Component: AdminDashboard },
-              { path: "dashboard", Component: AdminDashboard },
               { path: "products", Component: AdminProducts },
               { path: "categories", Component: AdminCategories },
               { path: "inventory", Component: AdminInventory },
