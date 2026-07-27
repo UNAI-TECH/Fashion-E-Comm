@@ -944,7 +944,7 @@ export function Navigation() {
             className="fixed inset-0 z-[200] bg-[#FDFBF7] overflow-y-auto animate-fade-in"
           >
             {/* Header - Only Cross Icon at Top Right */}
-            <div className="sticky top-0 z-20 flex items-center justify-end px-6 sm:px-8 py-4 bg-[#FDFBF7]/95 backdrop-blur-md border-b border-gray-100/30">
+            <div className="sticky top-0 z-20 flex items-center justify-end px-6 sm:px-8 py-4 bg-[#FDFBF7]">
               <button
                 onClick={() => setIsAccountOpen(false)}
                 className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors border border-gray-200"
@@ -1048,7 +1048,7 @@ export function Navigation() {
                     />
                   </div>
                   
-                  <div className="pt-4 border-t border-gray-50">
+                  <div className="pt-4">
                     <motion.button 
                       onClick={handleSaveProfile}
                       whileHover={{ scale: 1.02 }}
