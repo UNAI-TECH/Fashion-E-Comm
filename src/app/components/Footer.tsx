@@ -26,7 +26,7 @@ export function Footer() {
   const footerLinks = {
     quickLinks: [
       { name: 'Home', path: '/' },
-      { name: 'Clothing', path: '/#collections' },
+      { name: 'Collection', path: '/#collections' },
       { name: 'About Us', path: '/about' },
       { name: 'Contact Us', path: '/contact' }
     ],
