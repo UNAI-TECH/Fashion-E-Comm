@@ -47,10 +47,10 @@ export function HeroSection() {
       className="relative w-full h-screen min-h-[600px] flex items-end justify-center overflow-hidden bg-white select-none"
       style={{ contain: 'layout style paint' }}
     >
-      {/* Static background — no JS, no state */}
+      {/* Static background — Mobile vs Desktop Hero Background */}
       <div
         className="absolute inset-0 z-0 bg-cover bg-center"
-        style={{ backgroundImage: "url('/hero_bg.png')" }}
+        style={{ backgroundImage: `url('${isMobile ? '/hero_mobile_bg.png' : '/hero_bg.png'}')` }}
       />
 
       {/* Golden circle background spotlight — Desktop only */}
