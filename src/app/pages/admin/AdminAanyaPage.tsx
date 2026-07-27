@@ -84,6 +84,7 @@ export function AdminAanyaPage() {
   const [isAddOpen, setIsAddOpen]       = useState(false);
   const [adding, setAdding]             = useState(false);
   const [imgPreview, setImgPreview]     = useState('');
+  const [selectedCust, setSelectedCust] = useState<DerivedUser | null>(null);
 
   /* ── Form ── */
   const emptyForm = { name: '', category: 'Sarees', price: '', compare_at_price: '', image_url: '', description: '', status: 'Published' };
@@ -764,13 +765,14 @@ export function AdminAanyaPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                   {customers.map(cust => (
                     <motion.div key={cust.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                      className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex gap-4">
+                      className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex gap-4 cursor-pointer hover:shadow-md hover:border-[#D4AF37]/40 transition-all"
+                      onClick={() => setSelectedCust(cust)}>
                       <div className="w-14 h-14 bg-[#EC4899]/10 text-[#EC4899] rounded-2xl flex items-center justify-center font-bold text-xl flex-shrink-0 uppercase">
                         {cust.name[0]}
                       </div>
                       <div className="flex-1 min-w-0 space-y-1.5">
                         <div className="flex items-start justify-between gap-2">
-                          <span className="font-serif font-bold text-gray-900 leading-tight">{cust.name}</span>
+                          <span className="font-serif font-bold text-[#800000] hover:underline leading-tight cursor-pointer">{cust.name}</span>
                           <span className="flex-shrink-0 text-xs bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full">
                             {cust.orderCount} order{cust.orderCount !== 1 ? 's' : ''}
                           </span>
@@ -830,6 +832,108 @@ export function AdminAanyaPage() {
 
         </main>
       </div>
+
+      {/* ═══ CUSTOMER DETAIL CARD MODAL ═══ */}
+      <AnimatePresence>
+        {selectedCust && (() => {
+          const custOrders = orders.filter(o =>
+            o.user_id === selectedCust.id ||
+            (o.shipping_address?.phone && o.shipping_address.phone === selectedCust.phone) ||
+            (o.shipping_address?.email && o.shipping_address.email === selectedCust.email)
+          );
+          const statusCfg: Record<string, { cls: string; label: string }> = {
+            delivered:  { cls: 'bg-green-100 text-green-700 border-green-200', label: 'Delivered' },
+            pending:    { cls: 'bg-amber-100 text-amber-700 border-amber-200',  label: 'Pending' },
+            cancelled:  { cls: 'bg-red-100 text-red-700 border-red-200',        label: 'Cancelled' },
+            processing: { cls: 'bg-blue-100 text-blue-700 border-blue-200',     label: 'Processing' },
+          };
+          return (
+            <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                onClick={() => setSelectedCust(null)}
+                className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.92, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.92, y: 20 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+                className="relative z-10 bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
+              >
+                {/* Close */}
+                <button
+                  onClick={() => setSelectedCust(null)}
+                  className="absolute top-3 right-3 p-1.5 bg-white/30 hover:bg-white/50 rounded-full text-white transition-colors cursor-pointer z-10"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+
+                {/* Header */}
+                <div className="bg-gradient-to-br from-[#800000] to-[#a83232] p-5 text-white">
+                  <div className="flex items-center gap-3">
+                    <div className="w-14 h-14 rounded-full bg-white/20 border-2 border-white/50 flex items-center justify-center text-2xl font-bold uppercase flex-shrink-0">
+                      {selectedCust.name[0]}
+                    </div>
+                    <div className="min-w-0">
+                      <h2 className="text-lg font-bold truncate">{selectedCust.name}</h2>
+                      <div className="flex items-center gap-1.5 text-white/80 text-xs mt-0.5">
+                        <Phone className="w-3 h-3 flex-shrink-0" />
+                        <span>{selectedCust.phone}</span>
+                      </div>
+                      <div className="flex items-start gap-1.5 text-white/75 text-xs mt-0.5">
+                        <MapPin className="w-3 h-3 flex-shrink-0 mt-0.5" />
+                        <span>{selectedCust.city}{selectedCust.state !== '—' ? `, ${selectedCust.state}` : ''}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <div className="bg-white/20 border border-white/30 rounded-lg px-3 py-1.5 inline-flex items-center gap-2">
+                      <ShoppingBag className="w-3.5 h-3.5" />
+                      <span className="text-sm font-bold">{selectedCust.orderCount} Order{selectedCust.orderCount !== 1 ? 's' : ''}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Ordered Items */}
+                <div className="p-4">
+                  <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Ordered Products</h3>
+                  {custOrders.length === 0 ? (
+                    <div className="text-center py-6 text-gray-400 text-sm">No orders found</div>
+                  ) : (
+                    <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                      {custOrders.map(order => {
+                        const st = (order.status || 'pending').toLowerCase();
+                        const cfg = statusCfg[st] || { cls: 'bg-gray-100 text-gray-600 border-gray-200', label: order.status };
+                        const firstProd = dbProducts[0];
+                        const img = firstProd?.images?.[0] || firstProd?.image_url || '';
+                        return (
+                          <div key={order.id} className="flex items-center gap-3 bg-gray-50 rounded-xl p-2.5 border border-gray-100">
+                            {img ? (
+                              <img src={img} alt="product" className="w-12 h-12 rounded-lg object-cover flex-shrink-0 border border-gray-200" />
+                            ) : (
+                              <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                                <ShoppingBag className="w-5 h-5 text-gray-300" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs font-semibold text-gray-700 truncate">Order #{String(order.id).slice(0, 8)}</div>
+                              <div className="text-sm font-bold text-[#800000]">Rs.{(order.total_amount || 0).toLocaleString('en-IN')}</div>
+                            </div>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border flex-shrink-0 ${cfg.cls}`}>
+                              {cfg.label}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            </div>
+          );
+        })()}
+      </AnimatePresence>
 
       {/* ═══ ADD PRODUCT MODAL ═══ */}
       <AnimatePresence>
