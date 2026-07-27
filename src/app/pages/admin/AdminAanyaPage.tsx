@@ -906,64 +906,33 @@ export function AdminAanyaPage() {
                   </div>
                 </div>
 
-                {/* Ordered Items */}
+                {/* Orders List */}
                 <div className="p-4">
-                  <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Ordered Products</h3>
+                  <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Orders</h3>
                   {custOrders.length === 0 ? (
                     <div className="text-center py-6 text-gray-400 text-sm">No orders found</div>
                   ) : (
-                    <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
-                      {custOrders.map(order => {
+                    <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                      {custOrders.map((order, idx) => {
                         const st = (order.status || 'pending').toLowerCase();
                         const cfg = statusCfg[st] || { cls: 'bg-gray-100 text-gray-600 border-gray-200', label: order.status };
-                        // Show each ordered item with its actual product image and name
-                        const items: OrderItem[] = order.order_items || [];
-                        if (items.length === 0) {
-                          return (
-                            <div key={order.id} className="flex items-center gap-3 bg-[#FDFBF7] rounded-xl p-2.5 border border-[#D4AF37]/20">
-                              <div className="w-12 h-12 rounded-lg bg-[#D4AF37]/10 flex items-center justify-center flex-shrink-0 border border-[#D4AF37]/20">
-                                <ShoppingBag className="w-5 h-5 text-[#D4AF37]" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="text-xs font-semibold text-gray-700 truncate">Order #{String(order.id).slice(0, 8)}</div>
-                                <div className="text-sm font-bold text-[#800000]">Rs.{(order.total_amount || 0).toLocaleString('en-IN')}</div>
-                              </div>
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border flex-shrink-0 ${cfg.cls}`}>
-                                {cfg.label}
-                              </span>
+                        const date = order.created_at
+                          ? new Date(order.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+                          : '—';
+                        return (
+                          <div key={order.id} className="flex items-center justify-between bg-[#FDFBF7] rounded-xl px-3 py-2.5 border border-[#D4AF37]/20">
+                            <div className="min-w-0">
+                              <div className="text-xs font-bold text-gray-800">Order {idx + 1}</div>
+                              <div className="text-[11px] text-gray-400 mt-0.5">{date}</div>
                             </div>
-                          );
-                        }
-                        return items.map((item, idx) => {
-                          // Try nested join first, fallback to dbProducts lookup by product_id
-                          const joinedProd = item.products;
-                          const localProd = dbProducts.find(p => p.id === item.product_id);
-                          const img =
-                            joinedProd?.images?.[0] || joinedProd?.image_url ||
-                            localProd?.images?.[0] || localProd?.image_url || '';
-                          const productName =
-                            joinedProd?.name || localProd?.name ||
-                            `Product #${String(item.product_id).slice(0, 6)}`;
-                          const itemPrice = item.price || (order.total_amount / (items.length || 1));
-                          return (
-                            <div key={`${order.id}-${idx}`} className="flex items-center gap-3 bg-[#FDFBF7] rounded-xl p-2.5 border border-[#D4AF37]/20">
-                              {img ? (
-                                <img src={img} alt={productName} className="w-12 h-12 rounded-lg object-cover flex-shrink-0 border border-[#D4AF37]/20" />
-                              ) : (
-                                <div className="w-12 h-12 rounded-lg bg-[#D4AF37]/10 flex items-center justify-center flex-shrink-0 border border-[#D4AF37]/20">
-                                  <ShoppingBag className="w-5 h-5 text-[#D4AF37]" />
-                                </div>
-                              )}
-                              <div className="flex-1 min-w-0">
-                                <div className="text-xs font-semibold text-gray-800 truncate">{productName}</div>
-                                <div className="text-sm font-bold text-[#800000]">Rs.{(itemPrice * (item.quantity || 1)).toLocaleString('en-IN')}</div>
-                              </div>
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border flex-shrink-0 ${cfg.cls}`}>
-                                {cfg.label}
-                              </span>
+                            <div className="text-sm font-bold text-[#800000] mx-3">
+                              Rs.{(order.total_amount || 0).toLocaleString('en-IN')}
                             </div>
-                          );
-                        });
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border flex-shrink-0 ${cfg.cls}`}>
+                              {cfg.label}
+                            </span>
+                          </div>
+                        );
                       })}
                     </div>
                   )}
