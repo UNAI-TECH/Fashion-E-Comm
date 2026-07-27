@@ -941,16 +941,16 @@ export function Navigation() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="fixed inset-0 z-[200] bg-[#FDFBF7] overflow-hidden flex flex-col justify-between h-screen w-screen p-3 sm:p-5 select-none"
+            className="fixed inset-0 z-[200] bg-[#FDFBF7] overflow-y-auto sm:overflow-hidden flex flex-col justify-start items-center p-3 sm:p-5 select-none"
           >
             {/* Header - Logo on Top Left, Centered My Profile Title, Cross Icon at Top Right */}
-            <div className="grid grid-cols-3 items-center w-full flex-shrink-0 px-1 sm:px-2 py-1">
+            <div className="grid grid-cols-3 items-center w-full flex-shrink-0 px-1 sm:px-2 py-1 mb-1 sm:mb-2">
               {/* Left: Official Logo */}
               <div className="flex items-center justify-start">
                 <img 
                   src="/logo_aanya.png" 
                   alt="Aanya Fashions Logo" 
-                  className="h-16 sm:h-20 max-h-20 w-auto object-contain brightness-110 contrast-125 drop-shadow-lg flex-shrink-0"
+                  className="h-14 sm:h-20 max-h-20 w-auto object-contain brightness-110 contrast-125 drop-shadow-lg flex-shrink-0"
                 />
               </div>
 
@@ -971,8 +971,8 @@ export function Navigation() {
               </div>
             </div>
 
-            {/* Body - Account Details (Directly below header without huge space) */}
-            <div className="flex-1 flex flex-col items-center justify-start w-full max-w-lg mx-auto pt-1 sm:pt-2 pb-1 overflow-hidden">
+            {/* Body - Account Details (Tight Layout Without Empty Space at Bottom) */}
+            <div className="w-full max-w-lg mx-auto pt-1 pb-4 flex flex-col items-center justify-start">
               <div className="w-full space-y-3 sm:space-y-4">
                 {/* Center Full Round Circle Profile Image with Upload */}
                 <div className="flex flex-col items-center justify-center space-y-1 pb-1">
@@ -1078,9 +1078,6 @@ export function Navigation() {
                 </div>
               </div>
             </div>
-            
-            {/* Empty footer flex spacer */}
-            <div className="h-1 flex-shrink-0" />
           </motion.div>
         )}
       </AnimatePresence>

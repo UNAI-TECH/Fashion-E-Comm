@@ -56,8 +56,8 @@ export function HeroSection() {
       {/* Soft golden spotlight — static CSS, no animation */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[5]">
         <div
-          className={`rounded-full bg-[#D4A62A]/15 ${isMobile ? 'w-[75vw] h-[75vw]' : 'w-[35vw] h-[35vw]'}`}
-          style={{ filter: 'blur(70px)' }}
+          className={`rounded-full bg-[#D4A62A]/20 aspect-square ${isMobile ? 'w-[48vw] h-[48vw]' : 'w-[35vw] h-[35vw]'}`}
+          style={{ filter: 'blur(50px)' }}
         />
       </div>
 
@@ -73,7 +73,7 @@ export function HeroSection() {
           const isCenter = offset === 0;
 
           const scale = (isMobile || isTablet)
-            ? (isCenter ? (isTablet ? 1.0 : 1.25) : 0.5)
+            ? (isCenter ? (isTablet ? 1.0 : 1.4) : 0.5)
             : (absOffset === 0 ? 1.0 : absOffset === 1 ? 0.82 : 0.67);
 
           const rotateY = (isMobile || isTablet)
@@ -115,7 +115,7 @@ export function HeroSection() {
               }}
               onClick={() => setActiveIndex(idx)}
               className={`absolute bottom-0 h-full flex items-end justify-center select-none ${
-                isMobile ? 'w-[70vw]' : isTablet ? 'w-[45vw]' : 'w-[25vw]'
+                isMobile ? 'w-[75vw]' : isTablet ? 'w-[45vw]' : 'w-[25vw]'
               } ${(isMobile || isTablet) && !isCenter ? 'pointer-events-none' : ''}`}
             >
               {/* Gentle float — only center model, single axis */}
@@ -135,7 +135,7 @@ export function HeroSection() {
                   loading="eager"
                   decoding="async"
                   style={{
-                    height: isMobile ? '75%' : isTablet ? '55%' : (model.height || '96%'),
+                    height: isMobile ? '85%' : isTablet ? '60%' : (model.height || '96%'),
                   }}
                   className={`w-auto object-contain object-bottom pointer-events-none drop-shadow-[0_15px_30px_rgba(0,0,0,0.08)] ${model.className || ''}`}
                 />
