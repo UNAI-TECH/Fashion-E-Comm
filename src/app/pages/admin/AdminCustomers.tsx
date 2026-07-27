@@ -78,7 +78,6 @@ export function AdminCustomers() {
                 <th className="px-6 py-4 font-medium">Phone</th>
                 <th className="px-6 py-4 font-medium">Address</th>
                 <th className="px-6 py-4 font-medium text-center">Orders</th>
-                <th className="px-6 py-4 font-medium text-center">Details</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-sm">
@@ -88,7 +87,12 @@ export function AdminCustomers() {
                     <div className="flex items-center gap-3">
                       <img src={customer.avatar} alt={customer.name} className="w-10 h-10 rounded-full flex-shrink-0" />
                       <div>
-                        <div className="font-semibold text-gray-900">{customer.name}</div>
+                        <button
+                          onClick={() => setSelectedCustomer(customer)}
+                          className="font-semibold text-[#800000] hover:underline cursor-pointer text-left"
+                        >
+                          {customer.name}
+                        </button>
                         <div className="text-gray-400 text-xs">Joined {customer.joined}</div>
                       </div>
                     </div>
@@ -110,14 +114,6 @@ export function AdminCustomers() {
                       <ShoppingBag className="w-3 h-3" />
                       {customer.orders}
                     </span>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <button
-                      onClick={() => setSelectedCustomer(customer)}
-                      className="text-xs font-semibold px-4 py-1.5 rounded-lg bg-[#800000]/5 text-[#800000] border border-[#800000]/20 hover:bg-[#800000]/10 transition-colors cursor-pointer"
-                    >
-                      View
-                    </button>
                   </td>
                 </tr>
               ))}
