@@ -30,7 +30,8 @@ export function Navigation() {
   const location = useLocation();
   const navigate = useNavigate();
   const [isAccountOpen, setIsAccountOpen] = useState(false);
-  const [mobileAccountStep, setMobileAccountStep] = useState<1 | 2>(1);
+  const [showMobileAppOpening, setShowMobileAppOpening] = useState(false);
+  const [mobileAppOpeningStep, setMobileAppOpeningStep] = useState<1 | 2>(1);
   const [profileDetails, setProfileDetails] = useState(() => {
     try {
       const saved = localStorage.getItem('user_profile_details');
@@ -90,12 +91,31 @@ export function Navigation() {
     fetchProducts().then(products => setAllProducts(products));
   }, [isSearchOpen]);
 
-  // Reset mobile account screen step on open
+  // Check & show mobile app opening onboarding screen on app launch (<640px)
   useEffect(() => {
-    if (isAccountOpen) {
-      setMobileAccountStep(1);
-    }
-  }, [isAccountOpen]);
+    try {
+      const hasOpened = localStorage.getItem('has_opened_mobile_app_onboarding');
+      if (!hasOpened && window.innerWidth < 640) {
+        setShowMobileAppOpening(true);
+      }
+    } catch (e) {}
+  }, []);
+
+  const handleFinishMobileAppOpening = () => {
+    try {
+      localStorage.setItem('user_profile_details', JSON.stringify(profileDetails));
+      localStorage.setItem('has_opened_mobile_app_onboarding', 'true');
+    } catch (e) {}
+    toast.success('Welcome to Aanya Fashions!');
+    setShowMobileAppOpening(false);
+  };
+
+  const handleSkipMobileAppOpening = () => {
+    try {
+      localStorage.setItem('has_opened_mobile_app_onboarding', 'true');
+    } catch (e) {}
+    setShowMobileAppOpening(false);
+  };
 
   const addToHistory = (query: string) => {
     if (!query.trim()) return;
@@ -910,7 +930,7 @@ export function Navigation() {
         )}
       </AnimatePresence>
 
-      {/* Account Full Screen Overlay */}
+      {/* Account Full Screen Overlay (Direct Account Details Form) */}
       <AnimatePresence>
         {isAccountOpen && (
           <motion.div
@@ -918,91 +938,21 @@ export function Navigation() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 30 }}
             transition={{ duration: 0.22, ease: [0.25, 1, 0.5, 1] }}
-            className="fixed inset-0 z-[200] bg-[#FDFBF7] overflow-y-auto animate-fade-in flex flex-col"
+            className="fixed inset-0 z-[200] bg-[#FDFBF7] overflow-y-auto animate-fade-in"
           >
-            {/* Header Bar */}
-            <div className="sticky top-0 z-20 flex items-center justify-between px-6 sm:px-8 py-4 bg-[#FDFBF7]/95 backdrop-blur-md border-b border-gray-100/30">
-              {/* Back Arrow for Mobile Step 2 */}
-              {mobileAccountStep === 2 ? (
-                <button
-                  onClick={() => setMobileAccountStep(1)}
-                  className="sm:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-gray-200 text-xs font-bold text-[#800000] shadow-sm hover:bg-gray-50 transition-colors"
-                  aria-label="Back to welcome screen"
-                >
-                  <ArrowLeft className="w-4 h-4 text-[#800000]" />
-                  <span>Back</span>
-                </button>
-              ) : (
-                <div className="sm:hidden" />
-              )}
-
-              {/* Close Button */}
+            {/* Header - Only Cross Icon at Top Right */}
+            <div className="sticky top-0 z-20 flex items-center justify-end px-6 sm:px-8 py-4 bg-[#FDFBF7]/95 backdrop-blur-md border-b border-gray-100/30">
               <button
                 onClick={() => setIsAccountOpen(false)}
-                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors border border-gray-200 ml-auto"
+                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors border border-gray-200"
                 aria-label="Close profile"
               >
                 <X className="w-5 h-5 text-gray-700" />
               </button>
             </div>
 
-            {/* Mobile Step 1: Opening Welcome Screen (< 640px) */}
-            {mobileAccountStep === 1 && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.96 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.96 }}
-                transition={{ duration: 0.25 }}
-                className="flex-1 flex flex-col items-center justify-center px-6 py-10 text-center sm:hidden"
-              >
-                <div className="w-full max-w-sm flex flex-col items-center">
-                  {/* Logo Container */}
-                  <motion.div 
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ delay: 0.1, duration: 0.3 }}
-                    className="mb-8 p-6 rounded-3xl bg-white shadow-2xl border border-pink-100/80"
-                  >
-                    <img
-                      src="/logo_aanya.png"
-                      alt="Aanya Fashions Logo"
-                      className="h-32 sm:h-36 w-auto object-contain brightness-105 contrast-125 drop-shadow-md"
-                    />
-                  </motion.div>
-
-                  {/* Welcome Message */}
-                  <motion.div
-                    initial={{ y: 15, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.2, duration: 0.3 }}
-                    className="space-y-3 mb-10"
-                  >
-                    <h2 className="text-2xl font-serif font-bold text-gray-900 tracking-tight">
-                      Welcome to Aanya Fashions
-                    </h2>
-                    <p className="text-xs text-gray-500 leading-relaxed font-medium">
-                      Handcrafted luxury ethnic wear. Please enter your profile details to personalize your account.
-                    </p>
-                  </motion.div>
-
-                  {/* Continue Button to Step 2 */}
-                  <motion.button
-                    initial={{ y: 15, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.3, duration: 0.3 }}
-                    onClick={() => setMobileAccountStep(2)}
-                    whileTap={{ scale: 0.97 }}
-                    className="w-full py-4 px-6 bg-gradient-to-r from-[#800000] to-[#990000] text-white rounded-2xl font-black text-xs tracking-wider uppercase shadow-xl flex items-center justify-center gap-3 hover:from-black hover:to-[#800000] transition-all cursor-pointer"
-                  >
-                    <span>Enter Account Details</span>
-                    <ArrowRight className="w-4 h-4 text-[#D4AF37]" />
-                  </motion.button>
-                </div>
-              </motion.div>
-            )}
-
-            {/* Mobile Step 2 (Form Details) OR Desktop View */}
-            <div className={`px-6 sm:px-8 pb-12 justify-center ${mobileAccountStep === 1 ? 'hidden sm:flex' : 'flex'}`}>
+            {/* Body - Account Details */}
+            <div className="px-6 sm:px-8 pb-12 flex justify-center">
               <div className="w-full max-w-xl space-y-8 h-fit my-2 p-4">
                 {/* Center Profile Image with Upload */}
                 <div className="flex flex-col items-center justify-center space-y-3 pb-4">
@@ -1108,6 +1058,216 @@ export function Navigation() {
                 </div>
               </div>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Mobile App Opening Initial Onboarding Overlay (< 640px) */}
+      <AnimatePresence>
+        {showMobileAppOpening && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="fixed inset-0 z-[300] bg-[#FDFBF7] overflow-y-auto sm:hidden flex flex-col"
+          >
+            {/* Top Navigation Bar */}
+            <div className="sticky top-0 z-20 flex items-center justify-between px-6 py-4 bg-[#FDFBF7]/95 backdrop-blur-md border-b border-gray-100/30">
+              {mobileAppOpeningStep === 2 ? (
+                <button
+                  onClick={() => setMobileAppOpeningStep(1)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-gray-200 text-xs font-bold text-[#800000] shadow-sm hover:bg-gray-50 transition-colors"
+                  aria-label="Back to welcome screen"
+                >
+                  <ArrowLeft className="w-4 h-4 text-[#800000]" />
+                  <span>Back</span>
+                </button>
+              ) : (
+                <div />
+              )}
+
+              <button
+                onClick={handleSkipMobileAppOpening}
+                className="px-3.5 py-1.5 rounded-full bg-gray-100 hover:bg-gray-200 text-xs font-bold text-gray-700 transition-colors border border-gray-200 ml-auto flex items-center gap-1 cursor-pointer"
+                aria-label="Open Full App"
+              >
+                <span>Skip & Browse</span>
+                <X className="w-4 h-4 text-gray-600" />
+              </button>
+            </div>
+
+            {/* Screen 1: App Opening Welcome Screen with Big Logo */}
+            {mobileAppOpeningStep === 1 && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.96 }}
+                transition={{ duration: 0.25 }}
+                className="flex-1 flex flex-col items-center justify-center px-6 py-10 text-center"
+              >
+                <div className="w-full max-w-sm flex flex-col items-center">
+                  {/* Big Logo Container */}
+                  <motion.div 
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.1, duration: 0.3 }}
+                    className="mb-8 p-6 rounded-3xl bg-white shadow-2xl border border-pink-100/80"
+                  >
+                    <img
+                      src="/logo_aanya.png"
+                      alt="Aanya Fashions Logo"
+                      className="h-32 sm:h-36 w-auto object-contain brightness-105 contrast-125 drop-shadow-md"
+                    />
+                  </motion.div>
+
+                  {/* Welcome Message */}
+                  <motion.div
+                    initial={{ y: 15, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.2, duration: 0.3 }}
+                    className="space-y-3 mb-10"
+                  >
+                    <h2 className="text-2xl font-serif font-bold text-gray-900 tracking-tight">
+                      Welcome to Aanya Fashions
+                    </h2>
+                    <p className="text-xs text-gray-500 leading-relaxed font-medium">
+                      Handcrafted luxury ethnic wear. Please enter your profile details to personalize your account.
+                    </p>
+                  </motion.div>
+
+                  {/* Continue Button to Screen 2 */}
+                  <motion.button
+                    initial={{ y: 15, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.3, duration: 0.3 }}
+                    onClick={() => setMobileAppOpeningStep(2)}
+                    whileTap={{ scale: 0.97 }}
+                    className="w-full py-4 px-6 bg-gradient-to-r from-[#800000] to-[#990000] text-white rounded-2xl font-black text-xs tracking-wider uppercase shadow-xl flex items-center justify-center gap-3 hover:from-black hover:to-[#800000] transition-all cursor-pointer"
+                  >
+                    <span>Enter Account Details</span>
+                    <ArrowRight className="w-4 h-4 text-[#D4AF37]" />
+                  </motion.button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Screen 2: Initial Account Details Form */}
+            {mobileAppOpeningStep === 2 && (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.25 }}
+                className="px-6 pb-12 flex justify-center flex-1"
+              >
+                <div className="w-full max-w-xl space-y-8 h-fit my-2 p-4">
+                  {/* Center Profile Image with Upload */}
+                  <div className="flex flex-col items-center justify-center space-y-3 pb-4">
+                    <div className="relative group w-32 h-32 rounded-full overflow-hidden border-4 border-[#D4AF37] shadow-md bg-gray-100 flex items-center justify-center cursor-pointer">
+                      {profileImage ? (
+                        <img 
+                          src={profileImage} 
+                          alt={profileDetails.name || 'User Profile'} 
+                          className="w-full h-full object-cover object-top" 
+                        />
+                      ) : (
+                        <User className="w-14 h-14 text-gray-400" />
+                      )}
+                      <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-[10px] font-bold cursor-pointer transition-opacity duration-300">
+                        <Camera className="w-5 h-5 mb-1" />
+                        <span>{profileImage ? 'CHANGE' : 'UPLOAD'}</span>
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          className="hidden" 
+                          onChange={handleProfileImageUpload} 
+                        />
+                      </label>
+                    </div>
+                    <span className="text-xs font-semibold text-gray-400">Click avatar image to upload photo</span>
+                  </div>
+
+                  {/* Form Details */}
+                  <div className="space-y-5">
+                    <div className="grid grid-cols-1 gap-4">
+                      <div>
+                        <label className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1.5">Full Name</label>
+                        <input 
+                          type="text" 
+                          placeholder="Enter full name"
+                          value={profileDetails.name}
+                          onChange={(e) => setProfileDetails({ ...profileDetails, name: e.target.value })}
+                          className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all text-gray-900"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1.5">Gender</label>
+                        <select 
+                          value={profileDetails.gender}
+                          onChange={(e) => setProfileDetails({ ...profileDetails, gender: e.target.value })}
+                          className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all cursor-pointer text-gray-900"
+                        >
+                          <option value="" disabled>Select Gender</option>
+                          <option value="Female">Female</option>
+                          <option value="Male">Male</option>
+                          <option value="Non-binary">Non-binary</option>
+                          <option value="Prefer not to say">Prefer not to say</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4">
+                      <div>
+                        <label className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1.5">Phone Number</label>
+                        <input 
+                          type="text" 
+                          placeholder="Enter phone number"
+                          value={profileDetails.phone}
+                          onChange={(e) => setProfileDetails({ ...profileDetails, phone: e.target.value })}
+                          className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all text-gray-900"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1.5">Email ID</label>
+                        <input 
+                          type="email" 
+                          placeholder="Enter email address"
+                          value={profileDetails.email}
+                          onChange={(e) => setProfileDetails({ ...profileDetails, email: e.target.value })}
+                          className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all text-gray-900"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1.5">Shipping Address</label>
+                      <textarea 
+                        placeholder="Enter shipping address"
+                        value={profileDetails.address}
+                        rows={3}
+                        onChange={(e) => setProfileDetails({ ...profileDetails, address: e.target.value })}
+                        className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all resize-none text-gray-900"
+                      />
+                    </div>
+                    
+                    <div className="pt-4 border-t border-gray-50">
+                      <motion.button 
+                        onClick={handleFinishMobileAppOpening}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="w-full py-4 bg-gradient-to-r from-[#800000] to-[#990000] text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md hover:from-black hover:to-[#800000] transition-all cursor-pointer text-center flex items-center justify-center gap-2"
+                      >
+                        <span>Save & Open Full App</span>
+                        <ArrowRight className="w-4 h-4 text-[#D4AF37]" />
+                      </motion.button>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
