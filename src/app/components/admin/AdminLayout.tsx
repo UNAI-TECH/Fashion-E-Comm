@@ -65,7 +65,10 @@ export function AdminLayout() {
         className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#1A1A1A] text-white shadow-xl transform transition-transform lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-800">
-          <span className="text-xl font-serif text-[#D4AF37] font-bold">AfforX Admin</span>
+          <NavLink to="/admin/dashboard" className="flex items-center gap-2.5 group">
+            <img src="/logo_aanya.png" alt="Aanya Fashions Logo" className="h-11 w-auto object-contain bg-white/10 rounded-lg p-1 group-hover:scale-105 transition-transform brightness-110 contrast-125 drop-shadow-sm" />
+            <span className="text-lg font-serif text-[#D4AF37] font-bold tracking-tight">Aanya Fashions</span>
+          </NavLink>
           <button onClick={() => setIsMobileMenuOpen(false)} className="lg:hidden text-gray-400 hover:text-white">
             <X className="w-6 h-6" />
           </button>

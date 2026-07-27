@@ -72,11 +72,11 @@ export function Footer() {
             <div className="grid grid-cols-2 md:grid-cols-5 gap-6 md:gap-8">
               {/* Brand/Socials Column */}
               <div className="col-span-2 md:col-span-2 flex flex-col items-start justify-start space-y-2 md:space-y-4">
-                <div className="flex items-center h-12 md:h-24 sm:h-28 lg:h-36 mb-2 md:mb-4">
+                <div className="flex items-center h-20 sm:h-24 md:h-28 lg:h-36 mb-2 md:mb-4">
                   <img
                     src="/logo_aanya.png"
                     alt="Aanya Fashions Logo"
-                    className="h-full w-auto object-contain"
+                    className="h-full w-auto object-contain brightness-105 contrast-125 drop-shadow-sm"
                   />
                 </div>
                 <p className="text-sm text-gray-600 max-w-sm leading-relaxed hidden md:block">

@@ -30,21 +30,22 @@ export function Navigation() {
   const location = useLocation();
   const navigate = useNavigate();
   const [isAccountOpen, setIsAccountOpen] = useState(false);
+  const [mobileAccountStep, setMobileAccountStep] = useState<1 | 2>(1);
   const [profileDetails, setProfileDetails] = useState(() => {
     try {
       const saved = localStorage.getItem('user_profile_details');
       if (saved) return JSON.parse(saved);
     } catch {}
     return {
-      name: 'Aanya Dev',
-      gender: 'Female',
-      phone: '+91 88382 26394',
-      email: 'aanya.dev@example.com',
-      address: '12, Luxury Heritage Lane, Silk Weaver Colony, Chennai, Tamil Nadu - 600001'
+      name: '',
+      gender: '',
+      phone: '',
+      email: '',
+      address: ''
     };
   });
   const [profileImage, setProfileImage] = useState(() => {
-    return localStorage.getItem('user_profile_image') || 'https://images.unsplash.com/photo-1594744803329-e58b31de215f?q=80&w=300';
+    return localStorage.getItem('user_profile_image') || '';
   });
 
   const handleProfileImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -88,6 +89,13 @@ export function Navigation() {
     if (!isSearchOpen) return;
     fetchProducts().then(products => setAllProducts(products));
   }, [isSearchOpen]);
+
+  // Reset mobile account screen step on open
+  useEffect(() => {
+    if (isAccountOpen) {
+      setMobileAccountStep(1);
+    }
+  }, [isAccountOpen]);
 
   const addToHistory = (query: string) => {
     if (!query.trim()) return;
@@ -389,26 +397,25 @@ export function Navigation() {
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.6, ease: 'easeOut' }}
-        className={`lg:hidden fixed z-[40] transition-all duration-500 top-4 left-4 right-4 bg-white border border-gray-200/60 shadow-[0_4px_15px_rgba(0,0,0,0.06)] ${
+        className={`lg:hidden fixed z-[40] transition-all duration-500 top-3.5 left-3 right-3 bg-white border border-gray-200/80 shadow-[0_6px_20px_rgba(0,0,0,0.08)] overflow-hidden ${
           isMobileMenuOpen ? 'rounded-[2rem]' : 'rounded-full'
         }`}
       >
-        <div className="w-full px-3 py-1 bg-white rounded-full">
-          <div className="flex items-center justify-between h-14">
-            
-            {/* Left side: Logo */}
-            <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center flex-shrink-0 ml-1">
-              <motion.div
-                whileHover={{ scale: 1.04 }}
-                className="flex items-center h-10 sm:h-11"
-              >
-                <img
-                  src="/logo_aanya.png"
-                  alt="Aanya Fashions Logo"
-                  className="h-full w-auto object-contain brightness-[1.02] contrast-110 drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.05)]"
-                />
-              </motion.div>
-            </Link>
+        <div className="w-full pl-0.5 pr-2 py-0 bg-white flex items-center justify-between h-14 sm:h-16 rounded-full overflow-hidden">
+          
+          {/* Left side: Logo filling left side curve */}
+          <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center h-full flex-shrink-0">
+            <motion.div
+              whileHover={{ scale: 1.04 }}
+              className="flex items-center h-full py-0.5"
+            >
+              <img
+                src="/logo_aanya.png"
+                alt="Aanya Fashions Logo"
+                className="h-full w-auto object-contain object-left rounded-l-full brightness-105 contrast-125 drop-shadow-sm scale-110"
+              />
+            </motion.div>
+          </Link>
 
             {/* Center: Navigation Links (Home, About, Collection, Contact) */}
             <div className="flex-1 flex items-center justify-center gap-2 xs:gap-3 sm:gap-4 px-1.5 overflow-hidden">
@@ -468,8 +475,6 @@ export function Navigation() {
                 )}
               </motion.button>
             </div>
-
-          </div>
         </div>
 
         {/* Inline Mobile Collection Categories Dropdown Menu */}
@@ -913,40 +918,107 @@ export function Navigation() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 30 }}
             transition={{ duration: 0.22, ease: [0.25, 1, 0.5, 1] }}
-            className="fixed inset-0 z-[200] bg-[#FDFBF7] overflow-y-auto animate-fade-in"
+            className="fixed inset-0 z-[200] bg-[#FDFBF7] overflow-y-auto animate-fade-in flex flex-col"
           >
-            {/* Header */}
-            <div className="sticky top-0 z-20 flex items-center justify-between px-6 sm:px-8 py-2 bg-[#FDFBF7]/95 backdrop-blur-md border-b border-gray-100/30">
-              <Link to="/" onClick={() => setIsAccountOpen(false)} className="h-20 sm:h-24 flex items-center justify-start pointer-events-auto">
-                <img
-                  src="/logo_aanya.png"
-                  alt="Aanya Fashions Logo"
-                  className="h-full w-auto object-contain brightness-105 contrast-125 drop-shadow-sm"
-                />
-              </Link>
+            {/* Header Bar */}
+            <div className="sticky top-0 z-20 flex items-center justify-between px-6 sm:px-8 py-4 bg-[#FDFBF7]/95 backdrop-blur-md border-b border-gray-100/30">
+              {/* Back Arrow for Mobile Step 2 */}
+              {mobileAccountStep === 2 ? (
+                <button
+                  onClick={() => setMobileAccountStep(1)}
+                  className="sm:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-gray-200 text-xs font-bold text-[#800000] shadow-sm hover:bg-gray-50 transition-colors"
+                  aria-label="Back to welcome screen"
+                >
+                  <ArrowLeft className="w-4 h-4 text-[#800000]" />
+                  <span>Back</span>
+                </button>
+              ) : (
+                <div className="sm:hidden" />
+              )}
+
+              {/* Close Button */}
               <button
                 onClick={() => setIsAccountOpen(false)}
-                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors border border-gray-200"
+                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors border border-gray-200 ml-auto"
                 aria-label="Close profile"
               >
                 <X className="w-5 h-5 text-gray-700" />
               </button>
             </div>
 
-            {/* Body */}
-            <div className="px-6 sm:px-8 pb-12 flex justify-center">
+            {/* Mobile Step 1: Opening Welcome Screen (< 640px) */}
+            {mobileAccountStep === 1 && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.96 }}
+                transition={{ duration: 0.25 }}
+                className="flex-1 flex flex-col items-center justify-center px-6 py-10 text-center sm:hidden"
+              >
+                <div className="w-full max-w-sm flex flex-col items-center">
+                  {/* Logo Container */}
+                  <motion.div 
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.1, duration: 0.3 }}
+                    className="mb-8 p-6 rounded-3xl bg-white shadow-2xl border border-pink-100/80"
+                  >
+                    <img
+                      src="/logo_aanya.png"
+                      alt="Aanya Fashions Logo"
+                      className="h-32 sm:h-36 w-auto object-contain brightness-105 contrast-125 drop-shadow-md"
+                    />
+                  </motion.div>
+
+                  {/* Welcome Message */}
+                  <motion.div
+                    initial={{ y: 15, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.2, duration: 0.3 }}
+                    className="space-y-3 mb-10"
+                  >
+                    <h2 className="text-2xl font-serif font-bold text-gray-900 tracking-tight">
+                      Welcome to Aanya Fashions
+                    </h2>
+                    <p className="text-xs text-gray-500 leading-relaxed font-medium">
+                      Handcrafted luxury ethnic wear. Please enter your profile details to personalize your account.
+                    </p>
+                  </motion.div>
+
+                  {/* Continue Button to Step 2 */}
+                  <motion.button
+                    initial={{ y: 15, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.3, duration: 0.3 }}
+                    onClick={() => setMobileAccountStep(2)}
+                    whileTap={{ scale: 0.97 }}
+                    className="w-full py-4 px-6 bg-gradient-to-r from-[#800000] to-[#990000] text-white rounded-2xl font-black text-xs tracking-wider uppercase shadow-xl flex items-center justify-center gap-3 hover:from-black hover:to-[#800000] transition-all cursor-pointer"
+                  >
+                    <span>Enter Account Details</span>
+                    <ArrowRight className="w-4 h-4 text-[#D4AF37]" />
+                  </motion.button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Mobile Step 2 (Form Details) OR Desktop View */}
+            <div className={`px-6 sm:px-8 pb-12 justify-center ${mobileAccountStep === 1 ? 'hidden sm:flex' : 'flex'}`}>
               <div className="w-full max-w-xl space-y-8 h-fit my-2 p-4">
                 {/* Center Profile Image with Upload */}
                 <div className="flex flex-col items-center justify-center space-y-3 pb-4">
                   <div className="relative group w-32 h-32 rounded-full overflow-hidden border-4 border-[#D4AF37] shadow-md bg-gray-100 flex items-center justify-center cursor-pointer">
-                    <img 
-                      src={profileImage} 
-                      alt={profileDetails.name} 
-                      className="w-full h-full object-cover object-top" 
-                    />
+                    {profileImage ? (
+                      <img 
+                        src={profileImage} 
+                        alt={profileDetails.name || 'User Profile'} 
+                        className="w-full h-full object-cover object-top" 
+                      />
+                    ) : (
+                      <User className="w-14 h-14 text-gray-400" />
+                    )}
                     <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-[10px] font-bold cursor-pointer transition-opacity duration-300">
                       <Camera className="w-5 h-5 mb-1" />
-                      <span>CHANGE</span>
+                      <span>{profileImage ? 'CHANGE' : 'UPLOAD'}</span>
                       <input 
                         type="file" 
                         accept="image/*" 
@@ -955,7 +1027,7 @@ export function Navigation() {
                       />
                     </label>
                   </div>
-                  <span className="text-xs font-semibold text-gray-400">Click avatar image to upload new photo</span>
+                  <span className="text-xs font-semibold text-gray-400">Click avatar image to upload photo</span>
                 </div>
 
                 {/* Form Details */}
@@ -965,9 +1037,10 @@ export function Navigation() {
                       <label className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1.5">Full Name</label>
                       <input 
                         type="text" 
+                        placeholder="Enter full name"
                         value={profileDetails.name}
                         onChange={(e) => setProfileDetails({ ...profileDetails, name: e.target.value })}
-                        className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all"
+                        className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all text-gray-900"
                       />
                     </div>
 
@@ -976,8 +1049,9 @@ export function Navigation() {
                       <select 
                         value={profileDetails.gender}
                         onChange={(e) => setProfileDetails({ ...profileDetails, gender: e.target.value })}
-                        className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all cursor-pointer"
+                        className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all cursor-pointer text-gray-900"
                       >
+                        <option value="" disabled>Select Gender</option>
                         <option value="Female">Female</option>
                         <option value="Male">Male</option>
                         <option value="Non-binary">Non-binary</option>
@@ -991,9 +1065,10 @@ export function Navigation() {
                       <label className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1.5">Phone Number</label>
                       <input 
                         type="text" 
+                        placeholder="Enter phone number"
                         value={profileDetails.phone}
                         onChange={(e) => setProfileDetails({ ...profileDetails, phone: e.target.value })}
-                        className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all"
+                        className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all text-gray-900"
                       />
                     </div>
 
@@ -1001,9 +1076,10 @@ export function Navigation() {
                       <label className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1.5">Email ID</label>
                       <input 
                         type="email" 
+                        placeholder="Enter email address"
                         value={profileDetails.email}
                         onChange={(e) => setProfileDetails({ ...profileDetails, email: e.target.value })}
-                        className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all"
+                        className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all text-gray-900"
                       />
                     </div>
                   </div>
@@ -1011,10 +1087,11 @@ export function Navigation() {
                   <div>
                     <label className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1.5">Shipping Address</label>
                     <textarea 
+                      placeholder="Enter shipping address"
                       value={profileDetails.address}
                       rows={3}
                       onChange={(e) => setProfileDetails({ ...profileDetails, address: e.target.value })}
-                      className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all resize-none"
+                      className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all resize-none text-gray-900"
                     />
                   </div>
                   

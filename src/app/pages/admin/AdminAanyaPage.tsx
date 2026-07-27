@@ -3,14 +3,12 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   IndianRupee, ShoppingBag, Users, Package, ArrowUpRight,
   Plus, Trash2, Search, Store, X, RefreshCw, ChevronRight,
-  Phone, Mail, MapPin, ImageIcon, LayoutDashboard,
-  ClipboardList, Menu, ChevronLeft, CreditCard
+  LayoutDashboard, ClipboardList, Menu, ChevronLeft, CreditCard
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar
 } from 'recharts';
-import { Link } from 'react-router';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { fetchProducts } from '../../data/products';
 import { toast } from 'sonner';
@@ -158,27 +156,76 @@ export function AdminAanyaPage() {
       setPayments(paymentsRes.data || []);
 
       // --- Derive customers from orders ---
-      const seen = new Set<string>();
-      const derived: DerivedUser[] = [];
+      const getFormattedCustomerName = (addr: any = {}, order: any = {}): string => {
+        let name = (
+          `${addr.first_name || addr.firstName || ''} ${addr.last_name || addr.lastName || ''}`.trim() ||
+          addr.full_name || addr.fullName || addr.name || addr.customer_name ||
+          order.customer_name || order.user_name || order.name || ''
+        ).trim();
+
+        if (!name || name.toLowerCase() === 'customer') {
+          try {
+            const saved = localStorage.getItem('user_profile_details');
+            if (saved) {
+              const prof = JSON.parse(saved);
+              if (prof.name) name = prof.name;
+            }
+          } catch (e) {}
+        }
+
+        if (!name || name.toLowerCase() === 'customer') {
+          if (addr.email && addr.email !== '—') {
+            const emailUser = addr.email.split('@')[0];
+            const parts = emailUser.split(/[\._-]/).filter(Boolean);
+            name = parts.map((p: string) => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+          } else if (addr.phone && addr.phone !== '—') {
+            name = `User (${addr.phone})`;
+          } else if (order.user_id || order.id) {
+            name = `User #${String(order.user_id || order.id).slice(0, 6)}`;
+          } else {
+            name = 'App User';
+          }
+        }
+
+        return name;
+      };
+
+      const customerMap = new Map<string, DerivedUser>();
       allOrders.forEach((o: Order) => {
-        const uid = o.user_id || o.id;
-        if (!seen.has(uid)) {
-          seen.add(uid);
-          const addr = o.shipping_address || {};
-          const name = `${addr.first_name || ''} ${addr.last_name || ''}`.trim() || 'Customer';
-          derived.push({
-            id: uid,
-            email: addr.email || '—',
-            name,
-            phone: addr.phone || '—',
-            city: addr.city || '—',
-            state: addr.state || '—',
-            orderCount: allOrders.filter((x: Order) => (x.user_id || x.id) === uid).length,
+        const addr = o.shipping_address || {};
+        const key = o.user_id || addr.phone || addr.email || o.id;
+        const custName = getFormattedCustomerName(addr, o);
+        const email = addr.email || '—';
+        const phone = addr.phone || '—';
+        const city = addr.city || '—';
+        const state = addr.state || '—';
+
+        if (customerMap.has(key)) {
+          const existing = customerMap.get(key)!;
+          existing.orderCount += 1;
+          if (existing.name.startsWith('User (') || existing.name.startsWith('User #') || existing.name === 'App User') {
+            if (custName && !custName.startsWith('User (') && !custName.startsWith('User #')) {
+              existing.name = custName;
+            }
+          }
+          if (existing.email === '—' && email !== '—') existing.email = email;
+          if (existing.phone === '—' && phone !== '—') existing.phone = phone;
+          if (existing.city === '—' && city !== '—') existing.city = city;
+          if (existing.state === '—' && state !== '—') existing.state = state;
+        } else {
+          customerMap.set(key, {
+            id: key,
+            email,
+            name: custName,
+            phone,
+            city,
+            state,
+            orderCount: 1,
             created_at: o.created_at,
           });
         }
       });
-      setCustomers(derived);
+      setCustomers(Array.from(customerMap.values()));
 
       console.log('[Admin] Loaded:', {
         products: allProdsMap.size,
@@ -308,18 +355,22 @@ export function AdminAanyaPage() {
       >
         {/* Logo area */}
         <div className="flex items-center gap-3 px-4 py-4 border-b border-gray-100 min-h-[88px]">
-          <Link to="/" className="flex-shrink-0">
-            <img src="/logo_aanya.png" alt="Aanya Logo" className="h-16 w-auto object-contain" />
-          </Link>
-          <AnimatePresence>
-            {sidebarOpen && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                className="overflow-hidden whitespace-nowrap">
-                <div className="text-gray-900 font-serif font-bold text-sm leading-tight">Aanya Fashions</div>
-                <div className="text-gray-400 text-xs font-bold uppercase tracking-widest">Admin Portal</div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <button
+            onClick={() => setActiveTab('overview')}
+            className="flex items-center gap-3 text-left focus:outline-none group cursor-pointer"
+            title="Go to Admin Dashboard"
+          >
+            <img src="/logo_aanya.png" alt="Aanya Logo" className="h-20 w-auto object-contain flex-shrink-0 group-hover:scale-105 transition-transform brightness-105 contrast-125 drop-shadow-sm" />
+            <AnimatePresence>
+              {sidebarOpen && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                  className="overflow-hidden whitespace-nowrap">
+                  <div className="text-gray-900 font-serif font-bold text-sm leading-tight">Aanya Fashions</div>
+                  <div className="text-gray-400 text-xs font-bold uppercase tracking-widest">Admin Portal</div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </button>
         </div>
 
         {/* Nav links */}
@@ -547,7 +598,8 @@ export function AdminAanyaPage() {
                       <tbody className="divide-y divide-gray-100">
                         {orders.slice(0, 5).map(o => {
                           const addr = o.shipping_address || {};
-                          const name = `${addr.first_name || ''} ${addr.last_name || ''}`.trim() || '—';
+                          const rawName = `${addr.first_name || addr.firstName || ''} ${addr.last_name || addr.lastName || ''}`.trim() || addr.full_name || addr.name || '';
+                          const name = rawName && rawName.toLowerCase() !== 'customer' ? rawName : (addr.phone && addr.phone !== '—' ? `User (${addr.phone})` : (addr.email && addr.email !== '—' ? addr.email.split('@')[0] : 'App User'));
                           return (
                             <tr key={o.id} className="hover:bg-gray-50/60 transition-colors">
                               <td className="p-3 font-mono text-xs font-bold text-gray-800">#{String(o.id).slice(0, 8)}</td>
@@ -662,7 +714,8 @@ export function AdminAanyaPage() {
                       <tbody className="divide-y divide-gray-100">
                         {orders.map(order => {
                           const addr = order.shipping_address || {};
-                          const name = `${addr.first_name || ''} ${addr.last_name || ''}`.trim() || '—';
+                          const rawName = `${addr.first_name || addr.firstName || ''} ${addr.last_name || addr.lastName || ''}`.trim() || addr.full_name || addr.name || '';
+                          const name = rawName && rawName.toLowerCase() !== 'customer' ? rawName : (addr.phone && addr.phone !== '—' ? `User (${addr.phone})` : (addr.email && addr.email !== '—' ? addr.email.split('@')[0] : 'App User'));
                           return (
                             <tr key={order.id} className="hover:bg-gray-50/60 transition-colors">
                               <td className="p-4 font-mono text-xs font-bold text-gray-800">#{String(order.id).slice(0, 8)}</td>

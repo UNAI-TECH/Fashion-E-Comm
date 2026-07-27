@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate, Link } from 'react-router';
 import { CheckCircle2, CreditCard, Wallet, Landmark, Truck, ChevronLeft, ShieldCheck } from 'lucide-react';
@@ -26,6 +26,36 @@ export function CheckoutPage() {
     state: '',
     pincode: '',
   });
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('user_profile_details');
+      if (saved) {
+        const prof = JSON.parse(saved);
+        const parts = (prof.name || '').split(' ');
+        setFormData(prev => ({
+          ...prev,
+          firstName: prev.firstName || parts[0] || '',
+          lastName: prev.lastName || parts.slice(1).join(' ') || '',
+          email: prev.email || prof.email || '',
+          phone: prev.phone || prof.phone || '',
+          address: prev.address || prof.address || '',
+        }));
+      }
+    } catch (e) {}
+
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        setFormData(prev => ({
+          ...prev,
+          email: prev.email || user.email || '',
+          phone: prev.phone || user.phone || user.user_metadata?.phone || '',
+          firstName: prev.firstName || user.user_metadata?.full_name?.split(' ')[0] || user.user_metadata?.first_name || '',
+          lastName: prev.lastName || user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || user.user_metadata?.last_name || '',
+        }));
+      }
+    });
+  }, []);
 
   const subtotal = cartItems.reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0);
   const shipping = subtotal > 2000 ? 0 : 150;
@@ -195,6 +225,16 @@ export function CheckoutPage() {
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">Last Name *</label>
                             <input required type="text" name="lastName" value={formData.lastName} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-300 rounded-xl outline-none" placeholder="Doe" />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
+                            <input required type="email" name="email" value={formData.email} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-300 rounded-xl outline-none" placeholder="jane.doe@example.com" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number *</label>
+                            <input required type="tel" name="phone" value={formData.phone} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-300 rounded-xl outline-none" placeholder="+91 98765 43210" />
                           </div>
                         </div>
                         <div>
