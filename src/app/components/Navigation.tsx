@@ -933,7 +933,7 @@ export function Navigation() {
         )}
       </AnimatePresence>
 
-      {/* Account Full Screen Overlay (Direct Account Details Form - Perfect Viewport Fit) */}
+      {/* Account Full Screen Overlay (Direct Account Details Form - 100% Non-Scrolling Fit) */}
       <AnimatePresence>
         {isAccountOpen && (
           <motion.div
@@ -941,42 +941,42 @@ export function Navigation() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="fixed inset-0 z-[200] bg-[#FDFBF7] overflow-y-auto sm:overflow-hidden flex flex-col justify-start items-center p-2 sm:p-5 select-none"
+            className="fixed inset-0 z-[200] bg-[#FDFBF7] overflow-hidden flex flex-col justify-between h-screen w-screen p-3 sm:p-5 select-none touch-none"
           >
             {/* Header - Logo on Top Left, Centered My Profile Title, Cross Icon at Top Right */}
-            <div className="grid grid-cols-3 items-center w-full flex-shrink-0 px-1 sm:px-2 py-1 mb-1">
+            <div className="grid grid-cols-3 items-center w-full flex-shrink-0 px-1 sm:px-2 py-1">
               {/* Left: Official Logo */}
               <div className="flex items-center justify-start">
                 <img 
                   src="/logo_aanya.png" 
                   alt="Aanya Fashions Logo" 
-                  className="h-14 sm:h-20 max-h-20 w-auto object-contain brightness-110 contrast-125 drop-shadow-lg flex-shrink-0"
+                  className="h-12 sm:h-16 max-h-16 w-auto object-contain brightness-110 contrast-125 drop-shadow-lg flex-shrink-0"
                 />
               </div>
 
               {/* Center: My Profile Title (Big & Bold) */}
               <div className="text-center">
-                <h2 className="text-2xl sm:text-3xl font-serif font-black text-gray-900 tracking-tight">My Profile</h2>
+                <h2 className="text-xl sm:text-2xl font-serif font-black text-gray-900 tracking-tight">My Profile</h2>
               </div>
 
               {/* Right: Close Button */}
               <div className="flex items-center justify-end">
                 <button
                   onClick={() => setIsAccountOpen(false)}
-                  className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors border border-gray-200 cursor-pointer"
+                  className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors border border-gray-200 cursor-pointer"
                   aria-label="Close profile"
                 >
-                  <X className="w-5 h-5 text-gray-700" />
+                  <X className="w-4 h-4 text-gray-700" />
                 </button>
               </div>
             </div>
 
-            {/* Body - Account Details (Minimal space at bottom) */}
-            <div className="w-full max-w-lg mx-auto pt-0.5 pb-2 flex flex-col items-center justify-start">
-              <div className="w-full space-y-3 sm:space-y-4">
+            {/* Body - Account Details (Fits 100% Cleanly in Viewport Without Any Scrollbar) */}
+            <div className="flex-1 flex flex-col items-center justify-center w-full max-w-lg mx-auto py-1 my-auto overflow-hidden">
+              <div className="w-full space-y-2.5 sm:space-y-3">
                 {/* Center Full Round Circle Profile Image with Upload */}
-                <div className="flex flex-col items-center justify-center space-y-1 pb-1">
-                  <div className="relative group w-28 h-28 sm:w-32 sm:h-32 aspect-square rounded-full overflow-hidden border-4 border-[#D4AF37] shadow-lg bg-gray-100 flex items-center justify-center flex-shrink-0 cursor-pointer">
+                <div className="flex flex-col items-center justify-center space-y-1 pb-0.5">
+                  <div className="relative group w-24 h-24 sm:w-28 sm:h-28 aspect-square rounded-full overflow-hidden border-4 border-[#D4AF37] shadow-lg bg-gray-100 flex items-center justify-center flex-shrink-0 cursor-pointer">
                     {profileImage ? (
                       <img 
                         src={profileImage} 
@@ -984,7 +984,7 @@ export function Navigation() {
                         className="w-full h-full object-cover object-top rounded-full" 
                       />
                     ) : (
-                      <User className="w-12 h-12 text-gray-400" />
+                      <User className="w-10 h-10 text-gray-400" />
                     )}
                     <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-[10px] font-bold cursor-pointer transition-opacity duration-300">
                       <Camera className="w-4 h-4 mb-0.5" />
@@ -1001,8 +1001,8 @@ export function Navigation() {
                 </div>
 
                 {/* Form Details */}
-                <div className="space-y-2.5 sm:space-y-3">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
+                <div className="space-y-2 sm:space-y-2.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                     <div>
                       <label className="block text-[10px] sm:text-xs uppercase tracking-wider text-gray-400 font-bold mb-0.5">Full Name</label>
                       <input 
@@ -1030,7 +1030,7 @@ export function Navigation() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                     <div>
                       <label className="block text-[10px] sm:text-xs uppercase tracking-wider text-gray-400 font-bold mb-0.5">Phone Number</label>
                       <input 
@@ -1065,7 +1065,7 @@ export function Navigation() {
                     />
                   </div>
                   
-                  <div className="pt-1 sm:pt-2">
+                  <div className="pt-1">
                     <motion.button 
                       onClick={handleSaveProfile}
                       whileHover={{ scale: 1.01 }}
