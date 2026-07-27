@@ -53,11 +53,11 @@ export function HeroSection() {
         style={{ backgroundImage: "url('/hero_bg.png')" }}
       />
 
-      {/* Soft golden spotlight — static CSS, no animation */}
+      {/* Small perfect golden circle background spotlight */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[5]">
         <div
-          className={`rounded-full bg-[#D4A62A]/20 aspect-square ${isMobile ? 'w-[48vw] h-[48vw]' : 'w-[35vw] h-[35vw]'}`}
-          style={{ filter: 'blur(50px)' }}
+          className={`rounded-full bg-[#D4A62A]/25 aspect-square border border-[#D4AF37]/30 ${isMobile ? 'w-[36vw] h-[36vw]' : 'w-[28vw] h-[28vw]'}`}
+          style={{ filter: 'blur(25px)' }}
         />
       </div>
 

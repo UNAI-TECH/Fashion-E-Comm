@@ -941,10 +941,10 @@ export function Navigation() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="fixed inset-0 z-[200] bg-[#FDFBF7] overflow-y-auto sm:overflow-hidden flex flex-col justify-start items-center p-3 sm:p-5 select-none"
+            className="fixed inset-0 z-[200] bg-[#FDFBF7] overflow-y-auto sm:overflow-hidden flex flex-col justify-start items-center p-2 sm:p-5 select-none"
           >
             {/* Header - Logo on Top Left, Centered My Profile Title, Cross Icon at Top Right */}
-            <div className="grid grid-cols-3 items-center w-full flex-shrink-0 px-1 sm:px-2 py-1 mb-1 sm:mb-2">
+            <div className="grid grid-cols-3 items-center w-full flex-shrink-0 px-1 sm:px-2 py-1 mb-1">
               {/* Left: Official Logo */}
               <div className="flex items-center justify-start">
                 <img 
@@ -971,8 +971,8 @@ export function Navigation() {
               </div>
             </div>
 
-            {/* Body - Account Details (Tight Layout Without Empty Space at Bottom) */}
-            <div className="w-full max-w-lg mx-auto pt-1 pb-4 flex flex-col items-center justify-start">
+            {/* Body - Account Details (Minimal space at bottom) */}
+            <div className="w-full max-w-lg mx-auto pt-0.5 pb-2 flex flex-col items-center justify-start">
               <div className="w-full space-y-3 sm:space-y-4">
                 {/* Center Full Round Circle Profile Image with Upload */}
                 <div className="flex flex-col items-center justify-center space-y-1 pb-1">
