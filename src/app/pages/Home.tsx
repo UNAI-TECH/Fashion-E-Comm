@@ -3,6 +3,7 @@ import { useLocation } from 'react-router';
 import { Navigation } from '../components/Navigation';
 import { AnnouncementBar } from '../components/AnnouncementBar';
 import { HeroSection } from '../components/HeroSection';
+import { ValuePropsBar } from '../components/ValuePropsBar';
 import { FeaturedCategories } from '../components/FeaturedCategories';
 import { TrendingCollection } from '../components/TrendingCollection';
 import { MotionBanner } from '../components/MotionBanner';
@@ -49,6 +50,7 @@ export function Home() {
       <AnnouncementBar />
       <Navigation />
       <HeroSection />
+      <ValuePropsBar />
       <FeaturedCategories />
       <MotionBanner />
       <TrendingCollection products={products} isLoading={isLoading} />
