@@ -6,6 +6,7 @@ import { useWishlist } from '../contexts/WishlistContext';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { supabase } from '../../lib/supabase';
 import { Product, fetchProducts } from '../data/products';
+import { performAISearch } from '../lib/aiSearchEngine';
 import { toast } from 'sonner';
 
 export function Navigation() {
@@ -177,93 +178,33 @@ export function Navigation() {
 
       setIsSearching(true);
       try {
-        const queryLower = queryTrimmed.toLowerCase();
-        
-        // Synonym & category expansion helper (handles spellings like kurtha, kurti, saree, sari, lehanga, etc.)
-        const getSearchTerms = (query: string): string[] => {
-          const q = query.toLowerCase().trim();
-          const terms = [q];
-
-          if (q.endsWith('es')) terms.push(q.slice(0, -2));
-          if (q.endsWith('s')) terms.push(q.slice(0, -1));
-
-          // Kurtas / Kurtis / Kurthas / Anarkali
-          if (q.includes('kurt') || q.includes('kurtah') || q.includes('anarkali')) {
-            terms.push('kurti', 'kurta', 'kurtis', 'kurtas', 'kurtha', 'kurthas', 'anarkali');
-          }
-
-          // Sarees / Sari / Sare
-          if (q.includes('sare') || q.includes('sari')) {
-            terms.push('saree', 'sari', 'sarees', 'saris');
-          }
-
-          // Lehengas / Lehanga / Ghagra / Choli
-          if (q.includes('leheng') || q.includes('lehang') || q.includes('choli')) {
-            terms.push('lehenga', 'lehanga', 'lehengas', 'lehangas', 'choli');
-          }
-
-          // Salwar / Suit / Suits / Patiala / Set
-          if (q.includes('salwar') || q.includes('suit') || q.includes('patiala')) {
-            terms.push('salwar', 'suit', 'suits', 'set', 'sets', 'patiala');
-          }
-
-          // Maxi / Gown
-          if (q.includes('maxi') || q.includes('gown')) {
-            terms.push('maxi', 'gown', 'gowns');
-          }
-
-          // Western
-          if (q.includes('west') || q.includes('western') || q.includes('blouse')) {
-            terms.push('western', 'blouse', 'culottes');
-          }
-
-          return Array.from(new Set(terms.filter(Boolean)));
-        };
-
-        const searchTerms = getSearchTerms(queryLower);
-        const primaryStem = searchTerms[1] || queryLower;
-
-        // 1. Always load mock catalog
+        // Fetch all catalog products and db products
         const mockProducts = await fetchProducts();
-
-        // 2. Also query Supabase in parallel using primary search term
         const { data: dbData } = await supabase
           .from('products')
-          .select('id, name, category, description, price, images, image_url, status')
-          .or(`name.ilike.%${primaryStem}%,category.ilike.%${primaryStem}%`);
+          .select('id, name, category, description, price, images, image_url, status');
 
-        // 3. Combine and deduplicate
         const allItems = [...mockProducts, ...(dbData || [])];
         const uniqueItems = Array.from(new Map(allItems.map(item => [item.id, item])).values());
 
-        // 4. Filter: match ANY search term in name, category, or description
-        const results = uniqueItems.filter(product => {
-          const nameLower = (product.name || '').toLowerCase();
-          const categoryLower = (product.category || '').toLowerCase();
-          const descLower = (product.description || '').toLowerCase();
-
-          return searchTerms.some(term =>
-            nameLower.includes(term) ||
-            categoryLower.includes(term) ||
-            descLower.includes(term)
-          );
-        });
+        // Perform AI Semantic Search across colors, categories, fabrics, occasions & keywords
+        const aiResult = performAISearch(queryTrimmed, uniqueItems);
 
         setSearchResults(
-          results.map((p: any) => ({
+          aiResult.products.map((p: any) => ({
             ...p,
             image: (p.images && p.images.length > 0) ? p.images[0] : (p.image_url || p.image || ''),
           }))
         );
       } catch (err) {
-        console.error('Search error:', err);
+        console.error('AI Search error:', err);
         setSearchResults([]);
       } finally {
         setIsSearching(false);
       }
     };
 
-    const timer = setTimeout(searchProducts, 200);
+    const timer = setTimeout(searchProducts, 150);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 

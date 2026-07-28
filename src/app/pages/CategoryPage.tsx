@@ -1,19 +1,30 @@
-import { useParams, Link } from 'react-router';
+import { useParams, useSearchParams, Link } from 'react-router';
 import { motion } from 'motion/react';
 import { useState, useEffect } from 'react';
 import { fetchProducts, Product } from '../data/products';
+import { performAISearch, AISearchResult } from '../lib/aiSearchEngine';
 import { ProductCard } from '../components/ProductCard';
 import { ProductSkeleton } from '../components/Skeleton';
 import { Navigation } from '../components/Navigation';
 import { Footer } from '../components/Footer';
 import { AnnouncementBar } from '../components/AnnouncementBar';
+import { Sparkles, Search } from 'lucide-react';
 
 export function CategoryPage() {
   const { category } = useParams<{ category: string }>();
+  const [searchParams] = useSearchParams();
+  const searchQueryParam = searchParams.get('q') || '';
+  
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchResultInfo, setSearchResultInfo] = useState<AISearchResult | null>(null);
+
+  const isSearchMode = Boolean(searchQueryParam || category === 'search');
+  const activeQuery = searchQueryParam || category || '';
   
-  const categoryTitle = category 
+  const categoryTitle = isSearchMode
+    ? `Search Results for "${activeQuery}"`
+    : category
     ? category.charAt(0).toUpperCase() + category.slice(1).replace('-', ' ') 
     : 'All Collections';
 
@@ -21,17 +32,24 @@ export function CategoryPage() {
     async function loadProducts() {
       setIsLoading(true);
       try {
-        const data = await fetchProducts(category);
-        console.log(`Category [${category}] Products Fetched:`, data);
-        setProducts(data);
+        const allData = await fetchProducts();
+        
+        if (isSearchMode || activeQuery) {
+          const aiResult = performAISearch(activeQuery, allData);
+          setProducts(aiResult.products);
+          setSearchResultInfo(aiResult);
+        } else {
+          setProducts(allData);
+          setSearchResultInfo(null);
+        }
       } catch (error) {
-        console.error('Error loading category products:', error);
+        console.error('Error loading category/search products:', error);
       } finally {
         setIsLoading(false);
       }
     }
     loadProducts();
-  }, [category]);
+  }, [category, searchQueryParam]);
 
   return (
     <div className="min-h-screen bg-white">
@@ -47,16 +65,31 @@ export function CategoryPage() {
         </div>
 
         {/* Header */}
-        <div className="mb-12">
+        <div className="mb-10">
           <motion.h1 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="font-serif text-4xl sm:text-5xl text-[#1A1A1A] mb-4"
+            className="font-serif text-3xl sm:text-4xl lg:text-5xl text-[#1A1A1A] mb-3 flex items-center gap-3"
           >
+            {isSearchMode && <Search className="w-8 h-8 text-[#800000]" />}
             {categoryTitle}
           </motion.h1>
-          <p className="text-gray-600">Discover our curated selection of premium {categoryTitle.toLowerCase()}.</p>
+          <p className="text-gray-600 text-sm sm:text-base">
+            {isSearchMode 
+              ? `AI Semantic Search found ${products.length} relevant items.` 
+              : `Discover our curated selection of premium ${categoryTitle.toLowerCase()}.`}
+          </p>
         </div>
+
+        {/* AI Search Fallback Notice Banner */}
+        {searchResultInfo?.isFallback && (
+          <div className="mb-8 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center gap-3 text-amber-900 shadow-sm">
+            <Sparkles className="w-5 h-5 text-amber-600 flex-shrink-0" />
+            <p className="text-xs sm:text-sm font-semibold">
+              {searchResultInfo.message || 'No exact match found. Here are similar products you may like.'}
+            </p>
+          </div>
+        )}
 
         {/* Grid */}
         {isLoading ? (
@@ -73,7 +106,7 @@ export function CategoryPage() {
               ))
             ) : (
               <div className="col-span-full py-20 text-center text-gray-500">
-                No products found in this category.
+                No products found matching your search.
               </div>
             )}
           </div>
