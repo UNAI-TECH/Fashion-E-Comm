@@ -6,59 +6,59 @@ const featuredCategories = [
     id: 'kurti',
     name: 'Kurtis',
     path: '/category/kurtis',
-    image: '/kurti_k1.jpg',
-    bgColor: '#FCE7F3', // Light Rose Pink
-    accentColor: '#9D174D',
+    bgColor: '#FCE7F3', // Light Soft Rose Pink
+    textColor: '#9D174D',
+    borderColor: '#FBCFE8',
   },
   {
     id: 'saree',
     name: 'Sarees',
     path: '/category/sarees',
-    image: '/saree_s1.jpg',
     bgColor: '#FEF3C7', // Light Warm Gold
-    accentColor: '#92400E',
+    textColor: '#92400E',
+    borderColor: '#FDE68A',
   },
   {
     id: 'lehenga',
     name: 'Lehengas',
     path: '/category/lehengas',
-    image: '/lehenga_l1.jpg',
     bgColor: '#F3E8FF', // Light Soft Lavender
-    accentColor: '#6B21A8',
+    textColor: '#6B21A8',
+    borderColor: '#E9D5FF',
   },
   {
     id: 'western',
     name: 'Western',
     path: '/category/western',
-    image: '/western_w1.jpg',
     bgColor: '#FFE4E6', // Light Soft Peach
-    accentColor: '#9F1239',
+    textColor: '#9F1239',
+    borderColor: '#FECDD3',
   },
   {
     id: 'maxi',
     name: 'Maxi',
     path: '/category/maxi',
-    image: '/maxi_mx1.jpg',
     bgColor: '#E0F2FE', // Light Sky Blue
-    accentColor: '#075985',
+    textColor: '#075985',
+    borderColor: '#BAE6FD',
   },
   {
     id: 'salwar',
     name: 'Salwar Set',
     path: '/category/salwar-sets',
-    image: '/salwar_ss1.jpg',
-    bgColor: '#DCFCE7', // Light Soft Mint
-    accentColor: '#166534',
+    bgColor: '#DCFCE7', // Light Soft Mint Green
+    textColor: '#166534',
+    borderColor: '#BBF7D0',
   },
 ];
 
 export function FeaturedCategories() {
   return (
-    <section className="w-full bg-white py-6 border-b border-gray-100 select-none">
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
+    <section className="w-full bg-white py-8 sm:py-12 border-b border-gray-100 select-none">
+      <div className="max-w-[1400px] mx-auto px-6 sm:px-10">
         
-        {/* Horizontal Category Cards Bar — Meesho Style Arch Domes */}
-        <div className="flex items-center justify-start md:justify-center gap-4 sm:gap-6 md:gap-8 overflow-x-auto scrollbar-hide py-2 px-2">
+        {/* Horizontal Category Cards Bar — Clean Circles with Different Light Colors & Generous Spacing */}
+        <div className="flex items-center justify-start md:justify-center gap-8 sm:gap-12 md:gap-16 lg:gap-20 overflow-x-auto scrollbar-hide py-4 px-4">
           {featuredCategories.map((cat, index) => (
             <motion.div
               key={cat.id}
@@ -68,22 +68,24 @@ export function FeaturedCategories() {
               className="flex-shrink-0 flex flex-col items-center group cursor-pointer"
             >
               <Link to={cat.path} className="flex flex-col items-center">
-                {/* Arch Dome Image Container */}
+                {/* Pure Circle Shape without images, rendered in unique light colors */}
                 <motion.div
-                  whileHover={{ scale: 1.06, y: -4 }}
-                  whileTap={{ scale: 0.96 }}
-                  className="w-24 h-28 sm:w-28 sm:h-32 md:w-32 md:h-36 rounded-t-[4rem] rounded-b-2xl overflow-hidden shadow-sm group-hover:shadow-md transition-all relative flex items-end justify-center p-1"
-                  style={{ backgroundColor: cat.bgColor }}
+                  whileHover={{ scale: 1.1, y: -4 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full flex items-center justify-center border-2 transition-all shadow-sm group-hover:shadow-md cursor-pointer"
+                  style={{
+                    backgroundColor: cat.bgColor,
+                    borderColor: cat.borderColor,
+                  }}
                 >
-                  <img
-                    src={cat.image}
-                    alt={cat.name}
-                    className="w-full h-[92%] object-cover object-top rounded-t-[3.8rem] rounded-b-xl drop-shadow-sm group-hover:scale-105 transition-transform duration-300"
-                  />
+                  {/* Category Initial in matching elegant text color */}
+                  <span className="text-2xl sm:text-3xl md:text-4xl font-serif font-black" style={{ color: cat.textColor }}>
+                    {cat.name.charAt(0)}
+                  </span>
                 </motion.div>
 
                 {/* Category Label */}
-                <span className="mt-2.5 text-xs sm:text-sm font-extrabold text-gray-800 group-hover:text-[#800000] transition-colors text-center tracking-wide">
+                <span className="mt-3 text-xs sm:text-sm font-extrabold text-gray-800 group-hover:text-[#800000] transition-colors text-center tracking-wide">
                   {cat.name}
                 </span>
               </Link>
