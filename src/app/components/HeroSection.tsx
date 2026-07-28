@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
+import { Search } from 'lucide-react';
 
 export function HeroSection() {
   const images = [
@@ -146,6 +147,22 @@ export function HeroSection() {
           );
         })}
       </div>
+
+      {/* Small Search Pill — bottom right of Hero */}
+      <motion.button
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1, duration: 0.5 }}
+        onClick={() => {
+          // Dispatch custom event so Navigation opens its search
+          window.dispatchEvent(new CustomEvent('open-search'));
+        }}
+        className="absolute bottom-8 right-6 z-[30] flex items-center gap-2 bg-white/90 backdrop-blur-md border border-white/60 shadow-lg rounded-full px-4 py-2.5 text-gray-700 hover:bg-white hover:shadow-xl transition-all group"
+        aria-label="Search"
+      >
+        <Search className="w-4 h-4 text-[#800000] group-hover:scale-110 transition-transform" />
+        <span className="text-[11px] font-bold text-gray-600 uppercase tracking-wide hidden sm:block">Search</span>
+      </motion.button>
     </div>
   );
 }

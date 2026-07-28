@@ -111,6 +111,13 @@ export function Navigation() {
     }
   }, [showMobileAppOpening, mobileAppOpeningStep]);
 
+  // Listen for 'open-search' event from HeroSection search button
+  useEffect(() => {
+    const handler = () => setIsSearchOpen(true);
+    window.addEventListener('open-search', handler);
+    return () => window.removeEventListener('open-search', handler);
+  }, []);
+
   const handleFinishMobileAppOpening = () => {
     try {
       localStorage.setItem('user_profile_details', JSON.stringify(profileDetails));
@@ -288,12 +295,12 @@ export function Navigation() {
       </Link>
 
       {/* 2. Desktop Standalone Center Navigation Pill Bar */}
-      <div className="hidden lg:flex fixed top-6 left-1/2 -translate-x-1/2 z-[40] items-center space-x-1 bg-white/90 backdrop-blur-md p-1 px-2 rounded-full border border-white/30 shadow-md">
+      <div className="hidden lg:flex fixed top-6 left-1/2 -translate-x-1/2 z-[40] items-center space-x-0.5 bg-white/90 backdrop-blur-md p-1 px-1.5 rounded-full border border-white/30 shadow-md">
         {menuItems.map((item) => (
           <Link key={item.name} to={item.path}>
             <motion.span
               whileHover={{ scale: 1.05 }}
-              className={`px-4 py-2 text-[11px] sm:text-[13px] font-black uppercase tracking-wide rounded-full transition-all inline-block ${
+              className={`px-3 py-2 text-[11px] font-black uppercase tracking-wide rounded-full transition-all inline-block whitespace-nowrap ${
                 location.pathname === item.path
                   ? 'bg-[#FFF0F5] text-[#D4AF37] border border-[#F5E6BE] shadow-sm'
                   : 'text-gray-950 hover:bg-[#FFF0F5] hover:text-[#D4AF37]'

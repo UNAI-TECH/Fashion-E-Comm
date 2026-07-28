@@ -1,17 +1,16 @@
 import { motion } from 'motion/react';
+import { Link } from 'react-router';
 import { ProductCard } from './ProductCard';
 import { ProductSkeleton } from './Skeleton';
 import { Product } from '../data/products';
-
-const CATEGORY_ORDER = ['Sarees', 'Western', 'Tradition', 'Maxi', 'Lehengas', 'Salwar Sets', 'Kurtis'];
+import { Flame } from 'lucide-react';
 
 export function TrendingCollection({ products, isLoading }: { products: Product[], isLoading: boolean }) {
-  // Pick exactly one product per category in the defined order
-  const displayProducts = CATEGORY_ORDER.reduce<Product[]>((acc, cat) => {
-    const match = products.find(p => p.category === cat);
-    if (match) acc.push(match);
-    return acc;
-  }, []);
+  // Sort by rating descending — highest rated = most popular/sold
+  // Pick top 8 products across all categories
+  const displayProducts = [...products]
+    .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
+    .slice(0, 8);
 
   return (
     <section className="py-20 px-4" style={{ background: 'linear-gradient(to bottom, #FFFFFF, #FFF0F5)' }}>
@@ -27,26 +26,42 @@ export function TrendingCollection({ products, isLoading }: { products: Product[
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
-            className="inline-block px-6 py-2 bg-white text-[#D4AF37] rounded-full text-sm tracking-wider mb-4 shadow-md"
+            className="inline-flex items-center gap-2 px-6 py-2 bg-white text-[#D4AF37] rounded-full text-sm tracking-wider mb-4 shadow-md font-bold"
           >
+            <Flame className="w-4 h-4 text-orange-500" />
             TRENDING NOW
           </motion.span>
           <h2 className="font-serif text-4xl sm:text-5xl md:text-6xl mb-4 text-[#1A1A1A]">
             Trending Collection
           </h2>
           <p className="text-gray-600 max-w-2xl mx-auto text-lg">
-            Discover what's hot this season. Handpicked styles that everyone's loving.
+            Discover what's hot this season — our highest rated, most loved styles.
           </p>
         </motion.div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
           {isLoading ? (
-            [...Array(7)].map((_, i) => <ProductSkeleton key={i} />)
-          ) : (
+            [...Array(8)].map((_, i) => <ProductSkeleton key={i} />)
+          ) : displayProducts.length > 0 ? (
             displayProducts.map((product) => (
               <ProductCard key={product.id} {...product} />
             ))
+          ) : (
+            <div className="col-span-full text-center py-16 text-gray-400">
+              <Flame className="w-10 h-10 mx-auto mb-3 text-orange-300" />
+              <p className="text-lg font-medium">No trending products yet</p>
+            </div>
           )}
+        </div>
+
+        <div className="text-center mt-10">
+          <Link
+            to="/category/trending"
+            className="inline-flex items-center gap-2 px-8 py-3 bg-[#800000] text-white rounded-full font-bold text-sm hover:bg-[#600000] transition-colors shadow-md"
+          >
+            View All Trending
+            <Flame className="w-4 h-4" />
+          </Link>
         </div>
       </div>
     </section>
