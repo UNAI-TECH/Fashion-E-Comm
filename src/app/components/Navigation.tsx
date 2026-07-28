@@ -283,29 +283,29 @@ export function Navigation() {
       {/* ══════════ DESKTOP HEADER (2-row, Meesho style) ══════════ */}
       <header className="hidden lg:block fixed top-0 left-0 right-0 z-[40] bg-white shadow-sm border-b border-gray-100">
         {/* Row 1: Logo | Search | Actions */}
-        <div className="max-w-[1400px] mx-auto px-6 py-2 flex items-center gap-6">
+        <div className="max-w-[1400px] mx-auto px-6 py-1 flex items-center gap-6">
 
-          {/* Logo — Enlarged & boldened for maximum clarity & prominence */}
-          <Link to="/" className="flex items-center flex-shrink-0 h-24 sm:h-28 py-1 overflow-visible">
+          {/* Logo — Sleek, bold & compact height */}
+          <Link to="/" className="flex items-center flex-shrink-0 h-14 sm:h-16 py-0.5 overflow-hidden">
             <motion.img
               whileHover={{ scale: 1.05 }}
               src="/logo_aanya.png"
               alt="Aanya Fashions"
-              className="h-full w-auto object-contain object-left contrast-200 brightness-95 scale-125 origin-left filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)]"
+              className="h-full w-auto object-contain object-left contrast-200 brightness-95 scale-110 origin-left filter drop-shadow-sm"
             />
           </Link>
 
-          {/* Search Bar — fixed width, anchored left, no modal on focus */}
+          {/* Search Bar — compact height */}
           <div className="w-80 flex-shrink-0">
             <div className="relative flex items-center">
-              <Search className="absolute left-4 w-5 h-5 text-gray-400 pointer-events-none" />
+              <Search className="absolute left-3.5 w-4 h-4 text-gray-400 pointer-events-none" />
               <input
                 type="text"
                 placeholder="Try Saree, Kurti or Search…"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') handleSearchSubmit(searchQuery); }}
-                className="w-full pl-11 pr-4 py-3 text-sm border border-gray-300 rounded-lg bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#800000] focus:ring-1 focus:ring-[#800000]/20 transition-all"
+                className="w-full pl-10 pr-3 py-2 text-xs border border-gray-300 rounded-lg bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#800000] focus:ring-1 focus:ring-[#800000]/20 transition-all"
               />
             </div>
           </div>
@@ -318,7 +318,7 @@ export function Navigation() {
               className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-[#800000] transition-colors cursor-pointer"
               aria-label="Wishlist"
             >
-              <Heart className="w-6 h-6" />
+              <Heart className="w-5 h-5" />
               <span className="text-[10px] font-semibold">Wishlist</span>
             </motion.button>
 
@@ -327,7 +327,7 @@ export function Navigation() {
                 whileHover={{ scale: 1.08 }}
                 className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-[#800000] transition-colors cursor-pointer"
               >
-                <Package className="w-6 h-6" />
+                <Package className="w-5 h-5" />
                 <span className="text-[10px] font-semibold">Orders</span>
               </motion.div>
             </Link>
@@ -338,7 +338,7 @@ export function Navigation() {
               className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-[#800000] transition-colors cursor-pointer"
               aria-label="Cart"
             >
-              <ShoppingBag className="w-6 h-6" />
+              <ShoppingBag className="w-5 h-5" />
               <span className="text-[10px] font-semibold">Cart</span>
             </motion.button>
 
@@ -349,16 +349,16 @@ export function Navigation() {
               aria-label="Account"
             >
               {profileImage ? (
-                <img src={profileImage} alt="Profile" className="w-6 h-6 rounded-full object-cover" />
+                <img src={profileImage} alt="Profile" className="w-5 h-5 rounded-full object-cover" />
               ) : (
-                <User className="w-6 h-6" />
+                <User className="w-5 h-5" />
               )}
               <span className="text-[10px] font-semibold">Profile</span>
             </motion.button>
           </div>
         </div>
 
-        {/* Row 2: Category Navigation — centered, sleek size & NO underline on Trending */}
+        {/* Row 2: Category Navigation — compact padding & sleek size */}
         <div className="border-t border-gray-100 bg-white">
           <div className="max-w-[1400px] mx-auto px-6">
             <nav className="flex items-center justify-center gap-1 sm:gap-2">
@@ -369,7 +369,7 @@ export function Navigation() {
                   <Link key={item.name} to={item.path}>
                     <motion.span
                       whileHover={{ scale: 1.04 }}
-                      className={`px-3.5 py-2 text-xs sm:text-sm font-bold whitespace-nowrap inline-block transition-all tracking-wide ${
+                      className={`px-3.5 py-1.5 text-xs sm:text-sm font-bold whitespace-nowrap inline-block transition-all tracking-wide ${
                         isTrending
                           ? 'text-[#800000] border-b-0 font-extrabold'
                           : isActive
@@ -393,8 +393,8 @@ export function Navigation() {
         </div>
       </header>
 
-      {/* Spacer so content sits below the fixed desktop header (~140px total) */}
-      <div className="hidden lg:block h-[140px]" aria-hidden="true" />
+      {/* Spacer so content sits below the fixed desktop header (~96px total) */}
+      <div className="hidden lg:block h-[96px]" aria-hidden="true" />
 
       {/* 4. Mobile Unified Navigation Pill (Mobile only) */}
       <motion.nav

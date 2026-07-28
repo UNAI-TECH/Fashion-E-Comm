@@ -44,7 +44,7 @@ export function HeroSection() {
 
   return (
     <div
-      className="relative w-full h-screen min-h-[600px] flex items-end justify-center overflow-hidden bg-white select-none"
+      className="relative w-full h-[50vh] sm:h-[55vh] md:h-[60vh] min-h-[380px] max-h-[520px] flex items-end justify-center overflow-hidden bg-white select-none"
       style={{ contain: 'layout style paint' }}
     >
       {/* Static background — Mobile vs Desktop Hero Background */}
@@ -57,7 +57,7 @@ export function HeroSection() {
       {!isMobile && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[5]">
           <div
-            className="rounded-full bg-[#D4A62A]/25 aspect-square border border-[#D4AF37]/30 w-[28vw] h-[28vw]"
+            className="rounded-full bg-[#D4A62A]/25 aspect-square border border-[#D4AF37]/30 w-[24vw] h-[24vw]"
             style={{ filter: 'blur(25px)' }}
           />
         </div>
@@ -65,7 +65,7 @@ export function HeroSection() {
 
       {/* 3D Coverflow Carousel */}
       <div
-        className="relative z-10 w-full h-[95vh] flex items-end justify-center overflow-hidden pb-4"
+        className="relative z-10 w-full h-full flex items-end justify-center overflow-hidden pb-3"
         style={{ perspective: 1200 }}
       >
         {models.map((model, idx) => {
