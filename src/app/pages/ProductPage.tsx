@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useParams, Link, useNavigate } from 'react-router';
-import { Star, Heart, ShoppingBag, Share2, Truck, RotateCcw, Shield, ChevronLeft, ChevronRight, ZoomIn, CreditCard, CheckCircle2, Loader2, DollarSign, MapPin } from 'lucide-react';
+import { Star, Heart, ShoppingBag, Share2, Truck, RotateCcw, Shield, ChevronLeft, ChevronRight, ZoomIn, CreditCard, CheckCircle2, Loader2, DollarSign, MapPin, Calendar, Sparkles } from 'lucide-react';
 import { Navigation } from '../components/Navigation';
 import { AnnouncementBar } from '../components/AnnouncementBar';
 import { Footer } from '../components/Footer';
@@ -11,30 +11,146 @@ import { supabase, supabaseAdmin } from '../../lib/supabase';
 import { fetchProducts, Product } from '../data/products';
 import { toast } from 'sonner';
 
-function getClothingProductDescription(prod: Product): string {
+interface ProductDetailsData {
+  detailedDescription: string;
+  occasions: string[];
+  pairWith: string[];
+}
+
+function getProductFullDetails(prod: Product): ProductDetailsData {
   const name = (prod.name || '').toLowerCase();
   const category = (prod.category || '').toLowerCase();
 
-  if (category.includes('saree') || name.includes('saree') || name.includes('sari')) {
-    return `Beautifully crafted ${prod.name} woven from high-grade silk threads with rich zari detailing. Features an elegant drape, authentic weave texture, and a complementary blouse piece designed to bring timeless grace to weddings, festivals, and special occasions.`;
-  }
-  if (category.includes('kurti') || name.includes('kurti') || name.includes('kurta') || name.includes('anarkali')) {
-    return `Tailored ${prod.name} made from breathable cotton-silk blend featuring intricate embroidery and refined neckline detailing. Designed for all-day comfort with a flattering fit, perfect for casual outings, workwear, and festive gatherings.`;
-  }
-  if (category.includes('western') || name.includes('shirt') || name.includes('trouser') || name.includes('top') || name.includes('blouse') || name.includes('skirt')) {
-    return `Chic modern outfit (${prod.name}) crafted from smooth premium silk-blend fabric. Features tailored seams, clean modern lines, and structured fitting designed to elevate your everyday Western & smart-casual wardrobe.`;
-  }
-  if (category.includes('lehenga') || name.includes('lehenga') || name.includes('choli')) {
-    return `Luxurious ${prod.name} set featuring ornate hand embroidery, a voluminous flared skirt, matching embroidered choli, and a lightweight sheer dupatta. Crafted for grand celebrations and bridal festivities.`;
-  }
-  if (category.includes('salwar') || name.includes('suit') || name.includes('salwar') || name.includes('set')) {
-    return `Elegant ${prod.name} suit set featuring a detailed embroidered kameez, comfortable tailored salwar bottoms, and a matching designer dupatta for complete traditional sophistication.`;
-  }
-  if (category.includes('maxi') || name.includes('maxi') || name.includes('gown')) {
-    return `Flowing ${prod.name} tailored from lightweight premium fabric with a soft lining and flattering waist accent. Designed for graceful movement and effortless elegance at evening events and parties.`;
+  // 1. Shirt & Trousers / Western Coordinates (e.g. Chocolate Silk Shirt & Beige Trousers)
+  if (name.includes('shirt') || name.includes('trouser') || category.includes('western')) {
+    return {
+      detailedDescription: `This sophisticated two-piece ensemble features a classic button-down shirt paired with tailored wide-leg trousers. The top is designed with a point collar, long sleeves with button cuffs, and a full front button placket, crafted in a rich chocolate brown hue. Complemented by high-waisted beige trousers with front pleats and a matching belt, this outfit offers a refined straight fit with clean stitching and minimal detail. Made from a fluid, silk-feel premium fabric, the silhouette creates a sleek drape that effortlessly balances structured tailoring with relaxed modern elegance. Ideal for contemporary wardrobes seeking versatile, elevated styling.`,
+      occasions: [
+        'Office Wear',
+        'Brunch',
+        'Business Casual',
+        'Dinner',
+        'Smart Casual Events'
+      ],
+      pairWith: [
+        'Nude heels',
+        'Gold accessories',
+        'Structured handbag'
+      ]
+    };
   }
 
-  return `Premium handcrafted ${prod.name} crafted from fine quality fabric. Features meticulous stitching, vibrant color fastness, and a modern posture fit tailored for luxury and comfort.`;
+  // 2. Sarees
+  if (category.includes('saree') || name.includes('saree') || name.includes('sari')) {
+    return {
+      detailedDescription: `Exquisitely woven, this luxurious saree showcases authentic traditional drapes blended with modern elegance. Crafted in rich vibrant tones with intricate zari embroidery along the border and pallu, the garment features smooth fluid drapes and a refined woven texture. Made from a high-grade silk-blend premium fabric, the saree contours gracefully while offering exceptional comfort. Complemented by clean tailored borders and classic motifs, this piece embodies timeless heritage style and pristine craftsmanship, making it a standout luxury wardrobe addition.`,
+      occasions: [
+        'Weddings & Receptions',
+        'Festive Celebrations',
+        'Cultural Functions',
+        'Formal Evenings',
+        'Grand Celebrations'
+      ],
+      pairWith: [
+        'Metallic high heels',
+        'Kundans or Gold jewelry set',
+        'Embroidered potli or clutch'
+      ]
+    };
+  }
+
+  // 3. Kurtis & Anarkalis
+  if (category.includes('kurti') || name.includes('kurti') || name.includes('kurta') || name.includes('anarkali')) {
+    return {
+      detailedDescription: `Tailored with impeccable precision, this elegant kurti features a mandarin or notch neckline, graceful three-quarter sleeves, and intricate chest embroidery with fine threadwork. Crafted in a flattering straight or flared silhouette from soft cotton-silk premium fabric, the garment exhibits delicate side slits, clean finished hems, and a smooth tactile feel. The rich color palette and subtle design details elevate this piece into a versatile fusion garment that seamlessly transitions between relaxed daytime refinement and sophisticated festive wear.`,
+      occasions: [
+        'Festive Gatherings',
+        'Office & Business Casual',
+        'Daytime Brunch',
+        'Family Celebrations',
+        'Smart Casual Events'
+      ],
+      pairWith: [
+        'Strappy block heels or Mojris',
+        'Terracotta or Gold hoop earrings',
+        'Classic tote or leather handbag'
+      ]
+    };
+  }
+
+  // 4. Lehengas
+  if (category.includes('lehenga') || name.includes('lehenga') || name.includes('choli')) {
+    return {
+      detailedDescription: `A regal bridal and festive ensemble, this designer lehenga features a heavy flared skirt with intricate hand embroidery, paired with a matching structured choli and a delicate sheer dupatta. Designed with a high-waisted waistband, fine stitching, and opulent zari embellishments, the garment is fashioned from high-grade silk-organza premium fabric. The voluminous flare creates a dramatic silhouette with rich movement, while the meticulous embroidery reflects royal Indian craftsmanship suited for grand luxury occasions.`,
+      occasions: [
+        'Bridal Wear & Weddings',
+        'Sangeet & Mehendi Nights',
+        'Royal Galas',
+        'Festive Celebrations',
+        'Formal Reception Dinners'
+      ],
+      pairWith: [
+        'Embellished high heels',
+        'Statement Polki choker & bangles',
+        'Raw silk embroidered clutch'
+      ]
+    };
+  }
+
+  // 5. Salwar Sets & Suits
+  if (category.includes('salwar') || name.includes('suit') || name.includes('salwar') || name.includes('set')) {
+    return {
+      detailedDescription: `This three-piece salwar suit set comprises a tailored straight-fit kameez, comfortable relaxed bottoms, and a lightweight designer dupatta. Highlighting fine embroidery along the neck and sleeve cuffs, the garment is constructed from a soft, breathable silk-blend premium fabric. Featuring clean stitched seams, a straight hemline, and balanced proportions, the ensemble offers effortless elegance with a flattering drape designed for all-day comfort and traditional sophistication.`,
+      occasions: [
+        'Puja & Traditional Functions',
+        'Family Gatherings',
+        'Daytime Events',
+        'Festive Occasions',
+        'Smart Ethnic Events'
+      ],
+      pairWith: [
+        'Traditional Punjabi juttis',
+        'Filigree gold earrings',
+        'Structured shoulder bag'
+      ]
+    };
+  }
+
+  // 6. Maxi Gowns
+  if (category.includes('maxi') || name.includes('maxi') || name.includes('gown')) {
+    return {
+      detailedDescription: `Designed with a fluid, sweeping floor-length silhouette, this maxi gown features a fitted bodice, round or square neckline, and a gently pleated A-line skirt. Crafted from a lightweight chiffon or georgette premium fabric, the garment highlights soft draped pleats, subtle waist cinch detailing, and invisible back zip closure. The minimalist aesthetic and rich color tone create a romantic, ethereal vibe suited for evening elegance and upscale summer soirées.`,
+      occasions: [
+        'Evening Cocktail Dinners',
+        'Sunset Brunches',
+        'Resort Galas',
+        'Special Anniversary Dinners',
+        'Formal Receptions'
+      ],
+      pairWith: [
+        'Minimalist strappy heels',
+        'Delicate gold or crystal drop earrings',
+        'Sleek designer clutch'
+      ]
+    };
+  }
+
+  // Default fallback for any clothing item
+  return {
+    detailedDescription: `Handcrafted from fine quality premium fabric, this elegant garment exhibits refined tailoring, clean seams, and subtle design details. Featuring a flattering modern silhouette with rich texture and color, this piece delivers effortless luxury, comfort, and timeless sophistication for any elevated wardrobe.`,
+    occasions: [
+      'Office Wear',
+      'Brunch',
+      'Business Casual',
+      'Dinner',
+      'Smart Casual Events'
+    ],
+    pairWith: [
+      'Nude heels',
+      'Gold accessories',
+      'Structured handbag'
+    ]
+  };
 }
 
 export function ProductPage() {
@@ -324,21 +440,61 @@ export function ProductPage() {
 
             {/* Product Info */}
             <div className="space-y-6">
-              <div className="space-y-2">
-                <span className="text-[#D4AF37] uppercase tracking-[0.2em] text-xs font-bold block mb-2">Aanya Fashions</span>
-                <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl text-[#1A1A1A] leading-tight">{product.name}</h1>
-                <div className="w-16 h-px bg-[#D4AF37] my-4"></div>
-              </div>
+              {(() => {
+                const details = getProductFullDetails(product);
+                return (
+                  <>
+                    <div className="space-y-2">
+                      <span className="text-[#D4AF37] uppercase tracking-[0.2em] text-xs font-bold block mb-2">Aanya Fashions</span>
+                      <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl text-[#1A1A1A] leading-tight">{product.name}</h1>
+                      <div className="w-16 h-px bg-[#D4AF37] my-4"></div>
+                    </div>
 
-              {/* Blockquote Description */}
-              <div className="border-l-2 border-[#D4AF37] pl-4 italic text-gray-700 text-lg my-6">
-                "{product.description || 'Premium quality traditional wear crafted with elegance.'}"
-              </div>
+                    {/* Blockquote Quote */}
+                    <div className="border-l-2 border-[#D4AF37] pl-4 italic text-gray-700 text-lg my-4">
+                      "{product.description || 'Premium quality traditional wear crafted with elegance.'}"
+                    </div>
 
-              {/* Standard Description Paragraph (Product-specific clothing description) */}
-              <p className="text-gray-600 leading-relaxed text-sm">
-                {getClothingProductDescription(product)}
-              </p>
+                    {/* 100-150 Word Detailed Description Paragraph */}
+                    <p className="text-gray-600 leading-relaxed text-sm my-4 font-normal">
+                      {details.detailedDescription}
+                    </p>
+
+                    {/* Occasion & Pair With Styling Recommendations */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 my-6 p-4 sm:p-5 rounded-2xl bg-[#FFFDF9] border border-[#F5E6BE]/60 shadow-sm">
+                      {/* Occasion */}
+                      <div>
+                        <h4 className="text-xs font-black uppercase tracking-widest text-[#800000] mb-2.5 flex items-center gap-1.5">
+                          <Calendar className="w-4 h-4 text-[#D4AF37]" /> Occasion
+                        </h4>
+                        <ul className="space-y-1.5 text-xs font-medium text-gray-700">
+                          {details.occasions.map((occ, i) => (
+                            <li key={i} className="flex items-center gap-2">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#D4AF37] flex-shrink-0" />
+                              <span>{occ}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Pair With */}
+                      <div>
+                        <h4 className="text-xs font-black uppercase tracking-widest text-[#800000] mb-2.5 flex items-center gap-1.5">
+                          <Sparkles className="w-4 h-4 text-[#D4AF37]" /> Pair With
+                        </h4>
+                        <ul className="space-y-1.5 text-xs font-medium text-gray-700">
+                          {details.pairWith.map((pair, i) => (
+                            <li key={i} className="flex items-center gap-2">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#800000] flex-shrink-0" />
+                              <span>{pair}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
 
               {/* Rating / Feedback */}
               <div className="flex items-center gap-4 text-sm text-gray-500 py-1">
