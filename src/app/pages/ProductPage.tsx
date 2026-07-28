@@ -171,24 +171,98 @@ export function ProductPage() {
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isEditingAddress, setIsEditingAddress] = useState(false);
-  const [orderForm, setOrderForm] = useState(() => {
-    try {
-      const saved = localStorage.getItem('saved_user_profile');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.error(e);
-    }
-    return {
-      fullName: 'Rohit C',
-      phone: '7010092875',
-      address: '1/5, Teachers Colony, Kodungaiyur, Chandran Street, Perambur',
-      city: 'Chennai',
-      pincode: '600118',
-      cardNumber: '',
-      cardHolder: '',
-    };
+  const [orderReference, setOrderReference] = useState<{ id: string; method: string; total: number } | null>(null);
+
+  const [orderForm, setOrderForm] = useState({
+    fullName: '',
+    phone: '',
+    address: '',
+    city: '',
+    pincode: '',
+    cardNumber: '',
+    cardHolder: '',
   });
+
+  // Lock background page scroll & pre-fill saved user details from Account section
+  useEffect(() => {
+    if (isBuyNowModalOpen) {
+      document.body.style.overflow = 'hidden';
+
+      async function loadSavedAccountProfile() {
+        let name = '';
+        let phone = '';
+        let address = '';
+        let city = '';
+        let pincode = '';
+
+        // A. Load from localStorage user_profile_details (saved via Account modal)
+        try {
+          const stored = localStorage.getItem('user_profile_details');
+          if (stored) {
+            const data = JSON.parse(stored);
+            if (data.name) name = data.name;
+            if (data.fullName) name = data.fullName;
+            if (data.phone) phone = data.phone;
+            if (data.address) address = data.address;
+            if (data.city) city = data.city;
+            if (data.pincode) pincode = data.pincode;
+          }
+        } catch (e) {
+          console.error('LocalStorage profile error:', e);
+        }
+
+        // B. Load from Supabase auth user & profiles table
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            if (!name && user.user_metadata?.full_name) name = user.user_metadata.full_name;
+            if (!name && user.user_metadata?.name) name = user.user_metadata.name;
+            if (!phone && user.phone) phone = user.phone;
+            if (!phone && user.user_metadata?.phone) phone = user.user_metadata.phone;
+            if (!address && user.user_metadata?.address) address = user.user_metadata.address;
+
+            const { data: dbProfile } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', user.id)
+              .maybeSingle();
+
+            if (dbProfile) {
+              if (dbProfile.full_name) name = dbProfile.full_name;
+              if (dbProfile.phone) phone = dbProfile.phone;
+              if (dbProfile.address) address = dbProfile.address;
+              if (dbProfile.city) city = dbProfile.city;
+              if (dbProfile.pincode) pincode = dbProfile.pincode;
+            }
+          }
+        } catch (e) {
+          console.error('Supabase profile error:', e);
+        }
+
+        // Pre-fill form fields with user's actual account details
+        setOrderForm(prev => ({
+          ...prev,
+          fullName: prev.fullName || name,
+          phone: prev.phone || phone || buyNowPhone,
+          address: prev.address || address,
+          city: prev.city || city,
+          pincode: prev.pincode || pincode,
+        }));
+
+        if (phone && !buyNowPhone) {
+          setBuyNowPhone(phone);
+        }
+      }
+
+      loadSavedAccountProfile();
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isBuyNowModalOpen]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setOrderForm({ ...orderForm, [e.target.name]: e.target.value });
@@ -653,13 +727,13 @@ export function ProductPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto"
+            className="fixed inset-0 z-[100] bg-black/65 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-hidden select-none"
           >
             <motion.div
               initial={{ scale: 0.95, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 20 }}
-              className={`w-full bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-2xl relative overflow-hidden my-auto max-h-[92vh] flex flex-col ${
+              className={`w-full bg-white rounded-[2rem] sm:rounded-[2.5rem] p-5 sm:p-8 shadow-2xl relative my-auto max-h-[90vh] flex flex-col overflow-y-auto scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden ${
                 buyNowStep === 'checkout' ? 'max-w-4xl' : 'max-w-lg'
               }`}
             >
@@ -825,123 +899,71 @@ export function ProductPage() {
                         </div>
                       </div>
 
-                      {/* BOTTOM LEFT CARD: User Saved Details Card (Matching Image 2) */}
-                      <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm relative transition-all">
-                        {!isEditingAddress ? (
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <h4 className="text-xl font-bold text-gray-900 tracking-tight">
-                                {orderForm.fullName || 'Rohit C'}
-                              </h4>
-                              <button
-                                type="button"
-                                onClick={() => setIsEditingAddress(true)}
-                                className="text-xs font-black uppercase text-[#800000] hover:text-black tracking-widest transition-colors cursor-pointer"
-                              >
-                                CHANGE
-                              </button>
-                            </div>
-
-                            <p className="text-sm font-medium text-gray-600 leading-relaxed">
-                              {orderForm.address || '1/5, Teachers Colony, Kodungaiyur, Chandran Street, Perambur'}, {orderForm.city || 'Chennai'} - {orderForm.pincode || '600118'}
-                            </p>
-
-                            <p className="text-sm font-bold text-gray-800 tracking-wide pt-1">
-                              {orderForm.phone || buyNowPhone || '7010092875'}
-                            </p>
+                      {/* BOTTOM LEFT CARD: User Details */}
+                      <div className="bg-[#FFF0F5]/30 p-4 sm:p-5 rounded-2xl border border-rose-100/80 shadow-sm space-y-3">
+                        <span className="text-[10px] font-black text-[#800000] uppercase tracking-wider flex items-center gap-1.5">
+                          <MapPin className="w-3.5 h-3.5" /> Customer & Shipping Contact
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-[10px] font-bold text-gray-500 uppercase">Customer Full Name *</label>
+                            <input
+                              type="text"
+                              name="fullName"
+                              placeholder="Enter Full Name"
+                              value={orderForm.fullName}
+                              onChange={handleInputChange}
+                              className="w-full text-xs font-semibold px-3 py-2.5 border rounded-xl bg-white focus:outline-none focus:border-[#800000]"
+                            />
                           </div>
-                        ) : (
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between border-b border-gray-100 pb-2">
-                              <span className="text-xs font-black text-[#800000] uppercase tracking-wider">
-                                Edit Delivery Address
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => setIsEditingAddress(false)}
-                                className="text-xs font-bold text-gray-500 hover:text-gray-900"
-                              >
-                                Cancel
-                              </button>
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                              <div>
-                                <label className="text-[10px] font-bold text-gray-500 uppercase">Customer Full Name *</label>
-                                <input
-                                  type="text"
-                                  name="fullName"
-                                  placeholder="Full Name"
-                                  value={orderForm.fullName}
-                                  onChange={handleInputChange}
-                                  className="w-full text-xs font-semibold px-3 py-2 border rounded-xl bg-white focus:outline-none focus:border-[#800000]"
-                                />
-                              </div>
-                              <div>
-                                <label className="text-[10px] font-bold text-gray-500 uppercase">Phone Number *</label>
-                                <input
-                                  type="text"
-                                  name="phone"
-                                  placeholder="Phone Number"
-                                  value={orderForm.phone}
-                                  onChange={handleInputChange}
-                                  className="w-full text-xs font-semibold px-3 py-2 border rounded-xl bg-white focus:outline-none focus:border-[#800000]"
-                                />
-                              </div>
-                            </div>
-
-                            <div>
-                              <label className="text-[10px] font-bold text-gray-500 uppercase">Delivery Street Address *</label>
-                              <input
-                                type="text"
-                                name="address"
-                                placeholder="Flat No / House No / Street Address"
-                                value={orderForm.address}
-                                onChange={handleInputChange}
-                                className="w-full text-xs font-semibold px-3 py-2 border rounded-xl bg-white focus:outline-none focus:border-[#800000]"
-                              />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-3">
-                              <div>
-                                <label className="text-[10px] font-bold text-gray-500 uppercase">City *</label>
-                                <input
-                                  type="text"
-                                  name="city"
-                                  placeholder="City"
-                                  value={orderForm.city}
-                                  onChange={handleInputChange}
-                                  className="w-full text-xs font-semibold px-3 py-2 border rounded-xl bg-white focus:outline-none focus:border-[#800000]"
-                                />
-                              </div>
-                              <div>
-                                <label className="text-[10px] font-bold text-gray-500 uppercase">Pincode *</label>
-                                <input
-                                  type="text"
-                                  name="pincode"
-                                  placeholder="Pincode"
-                                  value={orderForm.pincode}
-                                  onChange={handleInputChange}
-                                  className="w-full text-xs font-semibold px-3 py-2 border rounded-xl bg-white focus:outline-none focus:border-[#800000]"
-                                />
-                              </div>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                try {
-                                  localStorage.setItem('saved_user_profile', JSON.stringify(orderForm));
-                                } catch (e) {}
-                                setIsEditingAddress(false);
-                                toast.success('Delivery address updated!');
-                              }}
-                              className="w-full py-2.5 bg-[#800000] hover:bg-black text-white font-bold text-xs rounded-xl shadow-sm transition-all cursor-pointer mt-1"
-                            >
-                              Save & Deliver Here
-                            </button>
+                          <div>
+                            <label className="text-[10px] font-bold text-gray-500 uppercase">Verified Phone *</label>
+                            <input
+                              type="text"
+                              name="phone"
+                              value={orderForm.phone || buyNowPhone}
+                              onChange={handleInputChange}
+                              className="w-full text-xs font-semibold px-3 py-2.5 border rounded-xl bg-gray-50 text-gray-700 focus:outline-none"
+                            />
                           </div>
-                        )}
+                        </div>
+
+                        <div>
+                          <label className="text-[10px] font-bold text-gray-500 uppercase">Delivery Street Address *</label>
+                          <input
+                            type="text"
+                            name="address"
+                            placeholder="Flat No / House No / Street Address"
+                            value={orderForm.address}
+                            onChange={handleInputChange}
+                            className="w-full text-xs font-semibold px-3 py-2.5 border rounded-xl bg-white focus:outline-none focus:border-[#800000]"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-[10px] font-bold text-gray-500 uppercase">City *</label>
+                            <input
+                              type="text"
+                              name="city"
+                              placeholder="City"
+                              value={orderForm.city}
+                              onChange={handleInputChange}
+                              className="w-full text-xs font-semibold px-3 py-2.5 border rounded-xl bg-white focus:outline-none focus:border-[#800000]"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold text-gray-500 uppercase">Pincode *</label>
+                            <input
+                              type="text"
+                              name="pincode"
+                              placeholder="Pincode"
+                              value={orderForm.pincode}
+                              onChange={handleInputChange}
+                              className="w-full text-xs font-semibold px-3 py-2.5 border rounded-xl bg-white focus:outline-none focus:border-[#800000]"
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
 
