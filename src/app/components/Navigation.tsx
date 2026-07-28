@@ -280,78 +280,120 @@ export function Navigation() {
 
   return (
     <>
-      {/* 1. Standalone Logo (Left corner, transparent and crisp) */}
-      <Link to="/" className="hidden lg:block absolute top-0 left-0 z-[40] pointer-events-none">
-        <motion.div
-          whileHover={{ scale: 1.05 }}
-          className="flex items-center h-16 sm:h-20 lg:h-28 cursor-pointer pointer-events-auto"
-        >
-          <img
-            src="/logo_aanya.png"
-            alt="Aanya Fashions Logo"
-            className="h-full w-auto object-contain"
-          />
-        </motion.div>
-      </Link>
+      {/* ══════════ DESKTOP HEADER (2-row, Meesho style) ══════════ */}
+      <header className="hidden lg:block fixed top-0 left-0 right-0 z-[40] bg-white shadow-sm border-b border-gray-100">
+        {/* Row 1: Logo | Search | Actions */}
+        <div className="max-w-[1400px] mx-auto px-6 py-3 flex items-center gap-6">
 
-      {/* 2. Desktop Standalone Center Navigation Pill Bar */}
-      <div className="hidden lg:flex fixed top-6 left-1/2 -translate-x-1/2 z-[40] items-center space-x-0.5 bg-white/90 backdrop-blur-md p-1 px-1.5 rounded-full border border-white/30 shadow-md">
-        {menuItems.map((item) => (
-          <Link key={item.name} to={item.path}>
-            <motion.span
-              whileHover={{ scale: 1.05 }}
-              className={`px-3 py-2 text-[11px] font-black uppercase tracking-wide rounded-full transition-all inline-block whitespace-nowrap ${
-                location.pathname === item.path
-                  ? 'bg-[#FFF0F5] text-[#D4AF37] border border-[#F5E6BE] shadow-sm'
-                  : 'text-gray-950 hover:bg-[#FFF0F5] hover:text-[#D4AF37]'
-              }`}
-            >
-              {item.name}
-            </motion.span>
+          {/* Logo */}
+          <Link to="/" className="flex items-center flex-shrink-0 h-14">
+            <motion.img
+              whileHover={{ scale: 1.03 }}
+              src="/logo_aanya.png"
+              alt="Aanya Fashions"
+              className="h-full w-auto object-contain"
+            />
           </Link>
-        ))}
-      </div>
 
-      {/* 3. Desktop Standalone Quick Action Pill (Top Right Corner) */}
-      <div className="hidden lg:flex fixed top-6 right-8 z-[40] items-center space-x-1 bg-white/90 backdrop-blur-md p-1.5 px-3 rounded-full border border-white/30 shadow-md">
-        <motion.button
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setIsSearchOpen(true)}
-          className="p-1.5 text-gray-700 hover:text-[#800000] hover:bg-white rounded-full transition-all"
-          aria-label="Search"
-        >
-          <Search className="w-4 h-4" />
-        </motion.button>
-        <motion.button
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setIsCartOpen(true)}
-          className="p-1.5 text-gray-700 hover:text-[#800000] hover:bg-white rounded-full transition-all relative cursor-pointer"
-          aria-label="Cart"
-        >
-          <ShoppingBag className="w-4 h-4 text-gray-700" />
-        </motion.button>
-        <Link to="/orders">
-          <motion.button
-            whileHover={{ scale: 1.08 }}
-            whileTap={{ scale: 0.95 }}
-            className="p-1.5 text-gray-700 hover:text-emerald-700 hover:bg-white rounded-full transition-all relative group cursor-pointer"
-            aria-label="My Orders"
-          >
-            <Package className="w-4 h-4 text-emerald-700" />
-          </motion.button>
-        </Link>
-        <motion.button
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setIsAccountOpen(true)}
-          className="p-1.5 text-gray-700 hover:text-[#800000] hover:bg-white rounded-full transition-all cursor-pointer"
-          aria-label="Account"
-        >
-          <User className="w-4 h-4 text-gray-700" />
-        </motion.button>
-      </div>
+          {/* Search Bar — takes up remaining left/center space */}
+          <div className="flex-1 max-w-2xl">
+            <div className="relative flex items-center">
+              <Search className="absolute left-4 w-5 h-5 text-gray-400 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Try Saree, Kurti or Search by Product Code"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                onFocus={() => setIsSearchOpen(true)}
+                onKeyDown={e => { if (e.key === 'Enter') handleSearchSubmit(searchQuery); }}
+                className="w-full pl-11 pr-4 py-3 text-sm border border-gray-300 rounded-lg bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#800000] focus:ring-1 focus:ring-[#800000]/20 transition-all"
+              />
+            </div>
+          </div>
+
+          {/* Right Actions */}
+          <div className="flex items-center gap-3 flex-shrink-0 ml-auto">
+            <motion.button
+              whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }}
+              onClick={() => setIsWishlistOpen(true)}
+              className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-[#800000] transition-colors cursor-pointer relative"
+              aria-label="Wishlist"
+            >
+              <div className="relative">
+                <Heart className="w-6 h-6" />
+                {wishlistCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#800000] text-white text-[9px] font-bold rounded-full flex items-center justify-center">{wishlistCount}</span>
+                )}
+              </div>
+              <span className="text-[10px] font-semibold">Wishlist</span>
+            </motion.button>
+
+            <Link to="/orders">
+              <motion.div
+                whileHover={{ scale: 1.08 }}
+                className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-[#800000] transition-colors cursor-pointer"
+              >
+                <Package className="w-6 h-6" />
+                <span className="text-[10px] font-semibold">Orders</span>
+              </motion.div>
+            </Link>
+
+            <motion.button
+              whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }}
+              onClick={() => setIsCartOpen(true)}
+              className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-[#800000] transition-colors cursor-pointer relative"
+              aria-label="Cart"
+            >
+              <div className="relative">
+                <ShoppingBag className="w-6 h-6" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#800000] text-white text-[9px] font-bold rounded-full flex items-center justify-center">{cartCount}</span>
+                )}
+              </div>
+              <span className="text-[10px] font-semibold">Cart</span>
+            </motion.button>
+
+            <motion.button
+              whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }}
+              onClick={() => setIsAccountOpen(true)}
+              className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-[#800000] transition-colors cursor-pointer"
+              aria-label="Account"
+            >
+              {profileImage ? (
+                <img src={profileImage} alt="Profile" className="w-6 h-6 rounded-full object-cover" />
+              ) : (
+                <User className="w-6 h-6" />
+              )}
+              <span className="text-[10px] font-semibold">Profile</span>
+            </motion.button>
+          </div>
+        </div>
+
+        {/* Row 2: Category Navigation */}
+        <div className="border-t border-gray-100 bg-white">
+          <div className="max-w-[1400px] mx-auto px-6">
+            <nav className="flex items-center gap-1">
+              {menuItems.map((item) => (
+                <Link key={item.name} to={item.path}>
+                  <motion.span
+                    whileHover={{ scale: 1.03 }}
+                    className={`px-5 py-3 text-[13px] font-bold whitespace-nowrap inline-block transition-all border-b-2 ${
+                      location.pathname === item.path
+                        ? 'text-[#800000] border-[#800000]'
+                        : 'text-gray-700 border-transparent hover:text-[#800000] hover:border-[#800000]/40'
+                    }`}
+                  >
+                    {item.name}
+                  </motion.span>
+                </Link>
+              ))}
+            </nav>
+          </div>
+        </div>
+      </header>
+
+      {/* Spacer so content sits below the fixed desktop header (~112px total) */}
+      <div className="hidden lg:block h-[112px]" aria-hidden="true" />
 
       {/* 4. Mobile Unified Navigation Pill (Mobile only) */}
       <motion.nav
