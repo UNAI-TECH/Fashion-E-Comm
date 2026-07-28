@@ -8,7 +8,7 @@ const featuredCategories = [
     path: '/category/kurtis',
     bgColor: '#FCE7F3', // Light Soft Rose Pink
     textColor: '#9D174D',
-    borderColor: '#FBCFE8',
+    strokeColor: '#F472B6',
   },
   {
     id: 'saree',
@@ -16,7 +16,7 @@ const featuredCategories = [
     path: '/category/sarees',
     bgColor: '#FEF3C7', // Light Warm Gold
     textColor: '#92400E',
-    borderColor: '#FDE68A',
+    strokeColor: '#FBBF24',
   },
   {
     id: 'lehenga',
@@ -24,7 +24,7 @@ const featuredCategories = [
     path: '/category/lehengas',
     bgColor: '#F3E8FF', // Light Soft Lavender
     textColor: '#6B21A8',
-    borderColor: '#E9D5FF',
+    strokeColor: '#C084FC',
   },
   {
     id: 'western',
@@ -32,7 +32,7 @@ const featuredCategories = [
     path: '/category/western',
     bgColor: '#FFE4E6', // Light Soft Peach
     textColor: '#9F1239',
-    borderColor: '#FECDD3',
+    strokeColor: '#FB7185',
   },
   {
     id: 'maxi',
@@ -40,7 +40,7 @@ const featuredCategories = [
     path: '/category/maxi',
     bgColor: '#E0F2FE', // Light Sky Blue
     textColor: '#075985',
-    borderColor: '#BAE6FD',
+    strokeColor: '#38BDF8',
   },
   {
     id: 'salwar',
@@ -48,16 +48,20 @@ const featuredCategories = [
     path: '/category/salwar-sets',
     bgColor: '#DCFCE7', // Light Soft Mint Green
     textColor: '#166534',
-    borderColor: '#BBF7D0',
+    strokeColor: '#4ADE80',
   },
 ];
+
+// 8-Pointed Scalloped Flower / Rosette Starburst Badge SVG Path
+const SCALLOPED_STARBURST_PATH = 
+  "M 50,3 C 57,3 61,10 67,8 C 73,6 78,12 82,18 C 86,24 93,27 94,34 C 95,40 91,46 91,50 C 91,54 95,60 94,66 C 93,73 86,76 82,82 C 78,88 73,94 67,92 C 61,90 57,97 50,97 C 43,97 39,90 33,92 C 27,94 22,88 18,82 C 14,76 7,73 6,66 C 5,60 9,54 9,50 C 9,46 5,40 6,34 C 7,27 14,24 18,18 C 22,12 27,6 33,8 C 39,10 43,3 50,3 Z";
 
 export function FeaturedCategories() {
   return (
     <section className="w-full bg-white py-8 sm:py-12 border-b border-gray-100 select-none">
       <div className="max-w-[1400px] mx-auto px-6 sm:px-10">
         
-        {/* Horizontal Category Cards Bar — Clean Circles with Different Light Colors & Generous Spacing */}
+        {/* Horizontal Category Cards Bar — 8-Pointed Scalloped Starburst Rosette Badges */}
         <div className="flex items-center justify-start md:justify-center gap-8 sm:gap-12 md:gap-16 lg:gap-20 overflow-x-auto scrollbar-hide py-4 px-4">
           {featuredCategories.map((cat, index) => (
             <motion.div
@@ -68,18 +72,30 @@ export function FeaturedCategories() {
               className="flex-shrink-0 flex flex-col items-center group cursor-pointer"
             >
               <Link to={cat.path} className="flex flex-col items-center">
-                {/* Pure Circle Shape without images, rendered in unique light colors */}
+                {/* 8-Pointed Scalloped Starburst Rosette Badge */}
                 <motion.div
-                  whileHover={{ scale: 1.1, y: -4 }}
+                  whileHover={{ scale: 1.12, rotate: 4, y: -4 }}
                   whileTap={{ scale: 0.95 }}
-                  className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full flex items-center justify-center border-2 transition-all shadow-sm group-hover:shadow-md cursor-pointer"
-                  style={{
-                    backgroundColor: cat.bgColor,
-                    borderColor: cat.borderColor,
-                  }}
+                  className="relative w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 flex items-center justify-center cursor-pointer"
                 >
+                  <svg
+                    viewBox="0 0 100 100"
+                    className="w-full h-full filter drop-shadow-[0_2px_6px_rgba(0,0,0,0.06)] group-hover:drop-shadow-[0_6px_12px_rgba(0,0,0,0.12)] transition-all"
+                  >
+                    <path
+                      d={SCALLOPED_STARBURST_PATH}
+                      fill={cat.bgColor}
+                      stroke={cat.strokeColor}
+                      strokeWidth="2"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+
                   {/* Category Initial in matching elegant text color */}
-                  <span className="text-2xl sm:text-3xl md:text-4xl font-serif font-black" style={{ color: cat.textColor }}>
+                  <span
+                    className="absolute text-2xl sm:text-3xl md:text-4xl font-serif font-black"
+                    style={{ color: cat.textColor }}
+                  >
                     {cat.name.charAt(0)}
                   </span>
                 </motion.div>
