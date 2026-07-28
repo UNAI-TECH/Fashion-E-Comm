@@ -283,15 +283,15 @@ export function Navigation() {
       {/* ══════════ DESKTOP HEADER (2-row, Meesho style) ══════════ */}
       <header className="hidden lg:block fixed top-0 left-0 right-0 z-[40] bg-white shadow-sm border-b border-gray-100">
         {/* Row 1: Logo | Search | Actions */}
-        <div className="max-w-[1400px] mx-auto px-6 py-3 flex items-center gap-6">
+        <div className="max-w-[1400px] mx-auto px-6 py-2 flex items-center gap-6">
 
-          {/* Logo */}
-          <Link to="/" className="flex items-center flex-shrink-0 h-16 lg:h-20 py-1">
+          {/* Logo — Enlarged for maximum clarity & prominence */}
+          <Link to="/" className="flex items-center flex-shrink-0 h-20">
             <motion.img
-              whileHover={{ scale: 1.05 }}
+              whileHover={{ scale: 1.03 }}
               src="/logo_aanya.png"
               alt="Aanya Fashions"
-              className="h-full w-auto object-contain brightness-105 contrast-125 drop-shadow-sm"
+              className="h-full w-auto object-contain brightness-105 contrast-125"
             />
           </Link>
 
@@ -315,15 +315,10 @@ export function Navigation() {
             <motion.button
               whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }}
               onClick={() => setIsWishlistOpen(true)}
-              className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-[#800000] transition-colors cursor-pointer relative"
+              className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-[#800000] transition-colors cursor-pointer"
               aria-label="Wishlist"
             >
-              <div className="relative">
-                <Heart className="w-6 h-6" />
-                {wishlistCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#800000] text-white text-[9px] font-bold rounded-full flex items-center justify-center">{wishlistCount}</span>
-                )}
-              </div>
+              <Heart className="w-6 h-6" />
               <span className="text-[10px] font-semibold">Wishlist</span>
             </motion.button>
 
@@ -340,15 +335,10 @@ export function Navigation() {
             <motion.button
               whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }}
               onClick={() => setIsCartOpen(true)}
-              className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-[#800000] transition-colors cursor-pointer relative"
+              className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-[#800000] transition-colors cursor-pointer"
               aria-label="Cart"
             >
-              <div className="relative">
-                <ShoppingBag className="w-6 h-6" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#800000] text-white text-[9px] font-bold rounded-full flex items-center justify-center">{cartCount}</span>
-                )}
-              </div>
+              <ShoppingBag className="w-6 h-6" />
               <span className="text-[10px] font-semibold">Cart</span>
             </motion.button>
 
@@ -368,25 +358,32 @@ export function Navigation() {
           </div>
         </div>
 
-        {/* Row 2: Category Navigation — centered, bigger & bolder */}
+        {/* Row 2: Category Navigation — centered, bigger & extra bold Trending */}
         <div className="border-t border-gray-100 bg-white">
           <div className="max-w-[1400px] mx-auto px-6">
             <nav className="flex items-center justify-center gap-2">
               {menuItems.map((item) => {
                 const isTrending = item.name === 'Trending';
+                const isActive = location.pathname === item.path;
                 return (
                   <Link key={item.name} to={item.path}>
                     <motion.span
-                      whileHover={{ scale: 1.06 }}
-                      className={`px-6 py-3.5 whitespace-nowrap inline-block transition-all border-b-[3px] tracking-wide ${
+                      whileHover={{ scale: 1.04 }}
+                      className={`px-6 py-3.5 text-[15px] whitespace-nowrap inline-block transition-all border-b-[3px] tracking-wide ${
                         isTrending
-                          ? 'text-[#800000] font-black text-[16px] border-[#800000] uppercase tracking-wider'
-                          : location.pathname === item.path
-                          ? 'text-[#800000] font-extrabold text-[15px] border-[#800000]'
-                          : 'text-gray-800 font-extrabold text-[15px] border-transparent hover:text-[#800000] hover:border-[#800000]/40'
+                          ? 'font-black text-[#800000] border-[#800000]'
+                          : isActive
+                          ? 'font-extrabold text-[#800000] border-[#800000]'
+                          : 'font-extrabold text-gray-800 border-transparent hover:text-[#800000] hover:border-[#800000]/40'
                       }`}
                     >
-                      {item.name}
+                      {isTrending ? (
+                        <span className="font-black text-[#800000] tracking-widest uppercase flex items-center gap-1">
+                          🔥 Trending
+                        </span>
+                      ) : (
+                        item.name
+                      )}
                     </motion.span>
                   </Link>
                 );
@@ -396,8 +393,8 @@ export function Navigation() {
         </div>
       </header>
 
-      {/* Spacer so content sits below the fixed desktop header (~112px total) */}
-      <div className="hidden lg:block h-[112px]" aria-hidden="true" />
+      {/* Spacer so content sits below the fixed desktop header (~140px total) */}
+      <div className="hidden lg:block h-[140px]" aria-hidden="true" />
 
       {/* 4. Mobile Unified Navigation Pill (Mobile only) */}
       <motion.nav
