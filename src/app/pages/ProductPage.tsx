@@ -196,7 +196,7 @@ export function ProductPage() {
     }
   };
 
-  const handleSendTwilioOTP = async () => {
+  const handleSendOTP = async () => {
     const cleanPhone = buyNowPhone.replace(/\D/g, '');
     if (!cleanPhone || cleanPhone.length < 10) {
       toast.error('Please enter a valid 10-digit mobile number');
@@ -204,10 +204,10 @@ export function ProductPage() {
     }
     setIsSendingOtp(true);
     try {
-      toast.success(`OTP sent to +91 ${cleanPhone} via Twilio! (Test OTP: 123456)`);
+      toast.success(`OTP sent to +91 ${cleanPhone}! (Test OTP: 123456)`);
       setBuyNowStep('otp');
     } catch (err) {
-      toast.error('Failed to send OTP via Twilio');
+      toast.error('Failed to send OTP');
     } finally {
       setIsSendingOtp(false);
     }
@@ -677,7 +677,7 @@ export function ProductPage() {
                   <div>
                     <h3 className="font-serif text-2xl sm:text-3xl text-gray-900">Mobile Number Verification</h3>
                     <p className="text-gray-500 text-xs sm:text-sm mt-1.5 max-w-sm mx-auto">
-                      Enter your mobile number to receive verification code via Twilio OTP service.
+                      Enter your mobile number to receive verification code via SMS OTP.
                     </p>
                   </div>
 
@@ -703,16 +703,16 @@ export function ProductPage() {
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       disabled={isSendingOtp}
-                      onClick={handleSendTwilioOTP}
+                      onClick={handleSendOTP}
                       className="w-full py-4 bg-[#800000] hover:bg-black text-white font-black uppercase tracking-wider rounded-2xl text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
                     >
                       {isSendingOtp ? (
                         <>
-                          <Loader2 className="w-4 h-4 animate-spin" /> Sending Twilio OTP...
+                          <Loader2 className="w-4 h-4 animate-spin" /> Sending OTP Code...
                         </>
                       ) : (
                         <>
-                          Send OTP via Twilio <ChevronRight className="w-4 h-4" />
+                          Send OTP Verification Code <ChevronRight className="w-4 h-4" />
                         </>
                       )}
                     </motion.button>
