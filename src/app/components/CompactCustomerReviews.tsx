@@ -51,15 +51,17 @@ function getProductSpecificReviews(product: Product): Review[] {
     '18 Feb, 2026',
   ];
 
+  const ratings = [5, 4, 5, 4, 5, 5];
+
   let comments: string[] = [];
 
   // 1. Sarees
   if (category.includes('saree') || name.includes('saree') || name.includes('sari')) {
     comments = [
       `The zari work on this ${product.name} is absolutely breathtaking! The silk drape holds its shape beautifully all evening.`,
-      `Purchased this ${product.name} for my cousin's wedding reception. Pristine weave, vibrant colors, and lightweight feel.`,
+      `Purchased this ${product.name} for my cousin's wedding. Pristine weave & vibrant colors! Took 4 days to deliver, but quality is outstanding.`,
       `Authentic traditional craftsmanship! The pallu embroidery is even richer in person than shown online.`,
-      `Soft silk fabric that glides effortlessly. Came with a perfectly color-matched blouse piece!`,
+      `Soft silk fabric that glides effortlessly. Gorgeous drape, though blouse piece required custom tailoring.`,
       `Classic heritage feel with a modern luster. Truly a high-end luxury saree addition to my collection.`,
       `The rich border details and fine threadwork make this saree look like a high-fashion designer creation.`,
     ];
@@ -68,9 +70,9 @@ function getProductSpecificReviews(product: Product): Review[] {
   else if (category.includes('kurti') || name.includes('kurti') || name.includes('kurta') || name.includes('anarkali')) {
     comments = [
       `Loved the neck embroidery and clean side-slit tailoring on this ${product.name}! Breathable fabric and super stylish.`,
-      `Wore this ${product.name} to an office festive lunch. Received non-stop compliments on the posture fit and color!`,
+      `Wore this ${product.name} to an office festive lunch. Got so many compliments! Slightly long length for my height, but gorgeous.`,
       `The threadwork detail on the chest is meticulous. Pairs so well with statement gold earrings and heels.`,
-      `Pure cotton-silk comfort! Doesn't fade or shrink after washing. Perfect everyday luxury wear.`,
+      `Pure cotton-silk comfort! Doesn't fade or shrink after washing. Fits a tiny bit snug around chest, overall lovely quality.`,
       `Flattering flared silhouette that accentuates grace. The sleeve border stitching is top notch.`,
       `Elevated Indian fusion wear at its finest! The texture feels premium and comfortable for 8+ hours.`,
     ];
@@ -79,9 +81,9 @@ function getProductSpecificReviews(product: Product): Review[] {
   else if (name.includes('shirt') || name.includes('trouser') || category.includes('western')) {
     comments = [
       `The tailored fit of this ${product.name} set is insane! Feels like bespoke luxury tailoring.`,
-      `Smooth silk-blend fabric with zero crease issues. Perfect for business casual meetings and dinner outings!`,
+      `Smooth silk-blend fabric with zero crease issues. Great for business meetings! Trousers required slight hem adjustment.`,
       `The color combination of this ${product.name} is so chic and modern. Looks like a high-end designer runway piece.`,
-      `Impeccable collar structure and button cuff detailing. Highly versatile for styling with nude heels and gold hoops.`,
+      `Impeccable collar structure and button cuff detailing. Very comfortable, though delivery took an extra day.`,
       `Breathable, fluid fabric with a natural sheen. Fits true to size with a clean straight silhouette.`,
       `Extremely high quality fabric. You can feel the luxury texture immediately upon unboxing!`,
     ];
@@ -90,9 +92,9 @@ function getProductSpecificReviews(product: Product): Review[] {
   else if (category.includes('lehenga') || name.includes('lehenga') || name.includes('choli')) {
     comments = [
       `The flare on this ${product.name} is unreal! Heavy embroidery on the skirt with a comfortable lightweight choli.`,
-      `Wore this ${product.name} for my sister's Sangeet ceremony. The zari embellishments catch the light amazingly in photos!`,
+      `Wore this ${product.name} for my sister's Sangeet ceremony. Stunning zari work in photos! Can feel slightly heavy, but worth it.`,
       `Royal wedding vibes! The dupatta draping and waistband stitching are finished to perfection.`,
-      `The organza-silk flare has such dramatic movement when walking. Truly bridal-grade luxury.`,
+      `The organza-silk flare has dramatic movement when walking. Choli padding was slightly firm, but skirt is magnificent!`,
       `Exquisite hand-embroidery with vibrant color contrast. Delivered in a pristine luxury garment box!`,
       `Exceeded all expectations. High-end designer look for a fraction of boutique prices.`,
     ];
@@ -101,9 +103,9 @@ function getProductSpecificReviews(product: Product): Review[] {
   else if (category.includes('salwar') || name.includes('suit') || name.includes('set')) {
     comments = [
       `The straight kameez fit with matching designer dupatta is so graceful. Soft fabric and gorgeous colors!`,
-      `Ideal three-piece suit set (${product.name}) for Puja and family functions. Clean stitched seams and zero itchiness.`,
+      `Ideal three-piece suit set (${product.name}) for Puja and family functions. Clean stitched seams, dupatta is lightweight.`,
       `Sleeve cuff embroidery adds such an elegant touch. Highly comfortable for all-day traditional events.`,
-      `Rich color fastness and breathable weave. The fit is flattering around the waist and shoulders.`,
+      `Rich color fastness and breathable weave. Sizing is slightly relaxed, overall super elegant!`,
       `Loved the complete set! The dupatta drape completes the royal look effortlessly.`,
       `Great quality fabric with fine finishing. Fast delivery and accurate sizing chart.`,
     ];
@@ -112,9 +114,9 @@ function getProductSpecificReviews(product: Product): Review[] {
   else {
     comments = [
       `Flows like a dream! The waist accent and soft lining make this ${product.name} look so flattering.`,
-      `Wore this to a sunset cocktail dinner. Ethereal silhouette with a subtle, sophisticated color tone.`,
+      `Wore this to a sunset cocktail dinner. Ethereal silhouette! Needed heels due to floor-length hem, but gorgeous.`,
       `Minimalist luxury design with smooth back zip closure. Feels lightweight yet looks super high-end.`,
-      `The floor-length pleated skirt has beautiful fluid movement. Perfect for evening galas!`,
+      `The floor-length pleated skirt has beautiful fluid movement. Fabric is soft, color is slightly deeper than photo.`,
       `Stunning quality chiffon/georgette fabric. Received so many compliments throughout the night.`,
       `Fits like it was custom made for me! Absolutely in love with Aanya Fashions evening collection.`,
     ];
@@ -123,7 +125,7 @@ function getProductSpecificReviews(product: Product): Review[] {
   return names.map((reviewerName, idx) => ({
     id: `rev-${product.id || 'p'}-${idx + 1}`,
     name: reviewerName,
-    rating: 5,
+    rating: ratings[idx % ratings.length],
     date: dates[idx % dates.length],
     verified: true,
     comment: comments[idx % comments.length],
@@ -169,6 +171,12 @@ export function CompactCustomerReviews({ product }: CompactCustomerReviewsProps)
     setExpandedReviews((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
+  const avgRating = useMemo(() => {
+    if (allReviews.length === 0) return 5.0;
+    const sum = allReviews.reduce((acc, r) => acc + (r.rating || 5), 0);
+    return (sum / allReviews.length).toFixed(1);
+  }, [allReviews]);
+
   if (allReviews.length === 0) {
     return (
       <div className="mt-5 border border-[#D4AF37]/50 rounded-2xl p-5 bg-white shadow-sm text-center">
@@ -197,7 +205,7 @@ export function CompactCustomerReviews({ product }: CompactCustomerReviewsProps)
               <Star key={i} className="w-3.5 h-3.5 fill-[#D4AF37] text-[#D4AF37]" />
             ))}
           </div>
-          <span>4.9 / 5.0</span>
+          <span>{avgRating} / 5.0</span>
         </div>
       </div>
 
