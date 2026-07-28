@@ -242,7 +242,7 @@ export function ProductPage() {
       <div className="min-h-screen bg-white">
         <AnnouncementBar />
         <Navigation />
-        <div className="pt-40 flex justify-center items-center">
+        <div className="pt-20 sm:pt-24 lg:pt-6 flex justify-center items-center min-h-[400px]">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#D4AF37]"></div>
         </div>
         <Footer />
@@ -255,7 +255,7 @@ export function ProductPage() {
       <div className="min-h-screen bg-white">
         <AnnouncementBar />
         <Navigation />
-        <div className="pt-40 text-center">
+        <div className="pt-20 sm:pt-24 lg:pt-6 text-center min-h-[400px] flex flex-col items-center justify-center">
           <h1 className="text-2xl font-serif">Product not found</h1>
           <Link to="/" className="text-[#D4AF37] hover:underline mt-4 inline-block">Return to Home</Link>
         </div>
@@ -269,7 +269,7 @@ export function ProductPage() {
       <AnnouncementBar />
       <Navigation />
 
-      <div className="pt-44 sm:pt-48 lg:pt-52 pb-20 px-4">
+      <div className="pt-20 sm:pt-24 lg:pt-6 pb-20 px-4">
         <div className="max-w-7xl mx-auto">
           {/* Breadcrumb */}
           <div className="flex items-center gap-2 text-sm mb-8 text-gray-600">

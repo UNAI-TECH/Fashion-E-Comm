@@ -87,7 +87,7 @@ export function OrdersPage() {
       <AnnouncementBar />
       <Navigation />
 
-      <main className="pt-32 pb-20 px-4 max-w-5xl mx-auto text-gray-900">
+      <main className="pt-20 sm:pt-24 lg:pt-6 pb-20 px-4 max-w-5xl mx-auto text-gray-900">
         <div className="flex justify-between items-end mb-12">
           <div>
             <h1 className="font-serif text-4xl mb-2">My Orders</h1>

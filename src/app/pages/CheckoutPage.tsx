@@ -160,11 +160,13 @@ export function CheckoutPage() {
       <div className="min-h-screen bg-[#FDFBF7]">
         <AnnouncementBar />
         <Navigation />
-        <div className="pt-40 pb-20 px-4 text-center">
-          <h2 className="text-2xl font-serif mb-6">Your cart is empty</h2>
-          <button onClick={() => navigate('/')} className="px-8 py-3 bg-[#D4AF37] text-white rounded-full">
-            Start Shopping
-          </button>
+        <div className="pt-20 sm:pt-24 lg:pt-6 pb-20 px-4 text-center">
+          <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
+          <h1 className="text-3xl font-serif mb-2">Order Placed Successfully!</h1>
+          <p className="text-gray-600 mb-6">Thank you for your purchase. We'll send you an email confirmation shortly.</p>
+          <Link to="/" className="inline-block bg-[#800000] text-white px-6 py-3 rounded-full hover:bg-[#600000]">
+            Continue Shopping
+          </Link>
         </div>
         <Footer />
       </div>
@@ -172,11 +174,11 @@ export function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7]">
+    <div className="min-h-screen bg-gray-50">
       <AnnouncementBar />
       <Navigation />
 
-      <div className="pt-32 pb-20 px-4">
+      <div className="pt-20 sm:pt-24 lg:pt-6 pb-20 px-4">
         <div className="max-w-7xl mx-auto">
           <AnimatePresence mode="wait">
             {step === 3 ? (

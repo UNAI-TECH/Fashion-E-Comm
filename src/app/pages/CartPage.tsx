@@ -19,7 +19,7 @@ export function CartPage() {
       <AnnouncementBar />
       <Navigation />
       
-      <div className="pt-32 pb-20 px-4">
+      <div className="pt-20 sm:pt-24 lg:pt-6 pb-20 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h1 className="font-serif text-4xl sm:text-5xl text-[#1A1A1A] mb-4">Your Shopping Cart</h1>
