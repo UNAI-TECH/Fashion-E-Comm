@@ -17,13 +17,45 @@ interface CompactCustomerReviewsProps {
   product: Product;
 }
 
-// Helper to generate unique customer reviewer names & product-tailored review feedback
+// Star Rating Display Component handling exact decimals (4.0 - 5.0)
+function StarRatingDisplay({ score, showScore = true }: { score: number; showScore?: boolean }) {
+  const rounded = Math.round(score * 10) / 10;
+  const fullStars = Math.floor(rounded);
+  const decimal = rounded - fullStars;
+  const hasHalf = decimal >= 0.3 && decimal <= 0.7;
+
+  return (
+    <div className="flex items-center gap-1">
+      <div className="flex items-center text-[#D4AF37]">
+        {[1, 2, 3, 4, 5].map((star) => {
+          if (star <= fullStars) {
+            return <Star key={star} className="w-3.5 h-3.5 fill-[#D4AF37] text-[#D4AF37]" />;
+          } else if (star === fullStars + 1 && (hasHalf || decimal > 0.7)) {
+            return (
+              <div key={star} className="relative w-3.5 h-3.5">
+                <Star className="w-3.5 h-3.5 text-gray-300 fill-gray-200 absolute inset-0" />
+                <div className="overflow-hidden w-1/2 absolute inset-0">
+                  <Star className="w-3.5 h-3.5 fill-[#D4AF37] text-[#D4AF37]" />
+                </div>
+              </div>
+            );
+          } else {
+            return <Star key={star} className="w-3.5 h-3.5 text-gray-300 fill-gray-100" />;
+          }
+        })}
+      </div>
+      {showScore && <span className="text-xs font-black text-[#800000] ml-0.5">{rounded.toFixed(1)}</span>}
+    </div>
+  );
+}
+
+// Helper to generate unique customer reviewer names, varied ratings (4.0 - 4.9), & product-tailored review feedback
 function getProductSpecificReviews(product: Product): Review[] {
   const name = (product.name || '').toLowerCase();
   const category = (product.category || '').toLowerCase();
   const idStr = String(product.id || 'prod');
 
-  // Simple deterministic hash to pick unique reviewer names per product
+  // Deterministic hash seed per product
   let hash = 0;
   for (let i = 0; i < idStr.length; i++) {
     hash = (hash << 5) - hash + idStr.charCodeAt(i);
@@ -40,7 +72,18 @@ function getProductSpecificReviews(product: Product): Review[] {
     ['Kavya T.', 'Preeti D.', 'Shilpa N.', 'Aditi B.', 'Monika R.', 'Rupa S.'],
   ];
 
+  // Varied ratings (4.0, 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 4.9)
+  const ratingPools = [
+    [4.9, 4.8, 4.7, 4.9, 4.6, 4.8], // Avg ~4.8
+    [4.7, 4.5, 4.8, 4.6, 4.4, 4.7], // Avg ~4.6
+    [4.8, 4.9, 4.5, 4.7, 4.8, 4.6], // Avg ~4.7
+    [4.5, 4.3, 4.6, 4.4, 4.2, 4.5], // Avg ~4.4
+    [4.6, 4.8, 4.4, 4.7, 4.5, 4.6], // Avg ~4.6
+    [4.9, 4.7, 4.8, 4.6, 4.9, 4.8], // Avg ~4.8
+  ];
+
   const names = namePools[seed % namePools.length];
+  const ratings = ratingPools[seed % ratingPools.length];
 
   const dates = [
     '24 May, 2026',
@@ -51,17 +94,15 @@ function getProductSpecificReviews(product: Product): Review[] {
     '18 Feb, 2026',
   ];
 
-  const ratings = [5, 4, 5, 4, 5, 5];
-
   let comments: string[] = [];
 
   // 1. Sarees
   if (category.includes('saree') || name.includes('saree') || name.includes('sari')) {
     comments = [
       `The zari work on this ${product.name} is absolutely breathtaking! The silk drape holds its shape beautifully all evening.`,
-      `Purchased this ${product.name} for my cousin's wedding. Pristine weave & vibrant colors! Took 4 days to deliver, but quality is outstanding.`,
+      `Purchased this ${product.name} for my cousin's wedding reception. Pristine weave, vibrant colors, and lightweight feel.`,
       `Authentic traditional craftsmanship! The pallu embroidery is even richer in person than shown online.`,
-      `Soft silk fabric that glides effortlessly. Gorgeous drape, though blouse piece required custom tailoring.`,
+      `Soft silk fabric that glides effortlessly. Came with a perfectly color-matched blouse piece!`,
       `Classic heritage feel with a modern luster. Truly a high-end luxury saree addition to my collection.`,
       `The rich border details and fine threadwork make this saree look like a high-fashion designer creation.`,
     ];
@@ -70,9 +111,9 @@ function getProductSpecificReviews(product: Product): Review[] {
   else if (category.includes('kurti') || name.includes('kurti') || name.includes('kurta') || name.includes('anarkali')) {
     comments = [
       `Loved the neck embroidery and clean side-slit tailoring on this ${product.name}! Breathable fabric and super stylish.`,
-      `Wore this ${product.name} to an office festive lunch. Got so many compliments! Slightly long length for my height, but gorgeous.`,
+      `Wore this ${product.name} to an office festive lunch. Received non-stop compliments on the posture fit and color!`,
       `The threadwork detail on the chest is meticulous. Pairs so well with statement gold earrings and heels.`,
-      `Pure cotton-silk comfort! Doesn't fade or shrink after washing. Fits a tiny bit snug around chest, overall lovely quality.`,
+      `Pure cotton-silk comfort! Doesn't fade or shrink after washing. Perfect everyday luxury wear.`,
       `Flattering flared silhouette that accentuates grace. The sleeve border stitching is top notch.`,
       `Elevated Indian fusion wear at its finest! The texture feels premium and comfortable for 8+ hours.`,
     ];
@@ -81,9 +122,9 @@ function getProductSpecificReviews(product: Product): Review[] {
   else if (name.includes('shirt') || name.includes('trouser') || category.includes('western')) {
     comments = [
       `The tailored fit of this ${product.name} set is insane! Feels like bespoke luxury tailoring.`,
-      `Smooth silk-blend fabric with zero crease issues. Great for business meetings! Trousers required slight hem adjustment.`,
+      `Smooth silk-blend fabric with zero crease issues. Perfect for business casual meetings and dinner outings!`,
       `The color combination of this ${product.name} is so chic and modern. Looks like a high-end designer runway piece.`,
-      `Impeccable collar structure and button cuff detailing. Very comfortable, though delivery took an extra day.`,
+      `Impeccable collar structure and button cuff detailing. Highly versatile for styling with nude heels and gold hoops.`,
       `Breathable, fluid fabric with a natural sheen. Fits true to size with a clean straight silhouette.`,
       `Extremely high quality fabric. You can feel the luxury texture immediately upon unboxing!`,
     ];
@@ -92,9 +133,9 @@ function getProductSpecificReviews(product: Product): Review[] {
   else if (category.includes('lehenga') || name.includes('lehenga') || name.includes('choli')) {
     comments = [
       `The flare on this ${product.name} is unreal! Heavy embroidery on the skirt with a comfortable lightweight choli.`,
-      `Wore this ${product.name} for my sister's Sangeet ceremony. Stunning zari work in photos! Can feel slightly heavy, but worth it.`,
+      `Wore this ${product.name} for my sister's Sangeet ceremony. The zari embellishments catch the light amazingly in photos!`,
       `Royal wedding vibes! The dupatta draping and waistband stitching are finished to perfection.`,
-      `The organza-silk flare has dramatic movement when walking. Choli padding was slightly firm, but skirt is magnificent!`,
+      `The organza-silk flare has such dramatic movement when walking. Truly bridal-grade luxury.`,
       `Exquisite hand-embroidery with vibrant color contrast. Delivered in a pristine luxury garment box!`,
       `Exceeded all expectations. High-end designer look for a fraction of boutique prices.`,
     ];
@@ -103,9 +144,9 @@ function getProductSpecificReviews(product: Product): Review[] {
   else if (category.includes('salwar') || name.includes('suit') || name.includes('set')) {
     comments = [
       `The straight kameez fit with matching designer dupatta is so graceful. Soft fabric and gorgeous colors!`,
-      `Ideal three-piece suit set (${product.name}) for Puja and family functions. Clean stitched seams, dupatta is lightweight.`,
+      `Ideal three-piece suit set (${product.name}) for Puja and family functions. Clean stitched seams and zero itchiness.`,
       `Sleeve cuff embroidery adds such an elegant touch. Highly comfortable for all-day traditional events.`,
-      `Rich color fastness and breathable weave. Sizing is slightly relaxed, overall super elegant!`,
+      `Rich color fastness and breathable weave. The fit is flattering around the waist and shoulders.`,
       `Loved the complete set! The dupatta drape completes the royal look effortlessly.`,
       `Great quality fabric with fine finishing. Fast delivery and accurate sizing chart.`,
     ];
@@ -114,9 +155,9 @@ function getProductSpecificReviews(product: Product): Review[] {
   else {
     comments = [
       `Flows like a dream! The waist accent and soft lining make this ${product.name} look so flattering.`,
-      `Wore this to a sunset cocktail dinner. Ethereal silhouette! Needed heels due to floor-length hem, but gorgeous.`,
+      `Wore this to a sunset cocktail dinner. Ethereal silhouette with a subtle, sophisticated color tone.`,
       `Minimalist luxury design with smooth back zip closure. Feels lightweight yet looks super high-end.`,
-      `The floor-length pleated skirt has beautiful fluid movement. Fabric is soft, color is slightly deeper than photo.`,
+      `The floor-length pleated skirt has beautiful fluid movement. Perfect for evening galas!`,
       `Stunning quality chiffon/georgette fabric. Received so many compliments throughout the night.`,
       `Fits like it was custom made for me! Absolutely in love with Aanya Fashions evening collection.`,
     ];
@@ -138,12 +179,18 @@ export function CompactCustomerReviews({ product }: CompactCustomerReviewsProps)
 
   // Get product specific unique customer reviews & feedback content
   const allReviews = useMemo(() => {
-    // If product has custom DB reviews, use them; otherwise generate tailored product feedback
     if ((product as any).reviews && (product as any).reviews.length > 0) {
       return (product as any).reviews;
     }
     return getProductSpecificReviews(product);
   }, [product]);
+
+  // Calculate average overall rating for header
+  const averageRating = useMemo(() => {
+    if (allReviews.length === 0) return 4.8;
+    const sum = allReviews.reduce((acc: number, r: Review) => acc + r.rating, 0);
+    return Math.round((sum / allReviews.length) * 10) / 10;
+  }, [allReviews]);
 
   // Auto-cycle 3 reviews every 6 seconds if total reviews > 3
   useEffect(() => {
@@ -171,12 +218,6 @@ export function CompactCustomerReviews({ product }: CompactCustomerReviewsProps)
     setExpandedReviews((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const avgRating = useMemo(() => {
-    if (allReviews.length === 0) return 5.0;
-    const sum = allReviews.reduce((acc, r) => acc + (r.rating || 5), 0);
-    return (sum / allReviews.length).toFixed(1);
-  }, [allReviews]);
-
   if (allReviews.length === 0) {
     return (
       <div className="mt-5 border border-[#D4AF37]/50 rounded-2xl p-5 bg-white shadow-sm text-center">
@@ -199,13 +240,9 @@ export function CompactCustomerReviews({ product }: CompactCustomerReviewsProps)
             {allReviews.length} Verified Reviews
           </span>
         </div>
-        <div className="flex items-center gap-1 text-[#D4AF37] text-xs font-bold">
-          <div className="flex">
-            {[...Array(5)].map((_, i) => (
-              <Star key={i} className="w-3.5 h-3.5 fill-[#D4AF37] text-[#D4AF37]" />
-            ))}
-          </div>
-          <span>{avgRating} / 5.0</span>
+        <div className="flex items-center gap-1.5">
+          <StarRatingDisplay score={averageRating} showScore={false} />
+          <span className="text-xs font-black text-[#800000]">{averageRating.toFixed(1)} / 5.0</span>
         </div>
       </div>
 
@@ -247,12 +284,8 @@ export function CompactCustomerReviews({ product }: CompactCustomerReviewsProps)
                     </div>
                   </div>
 
-                  {/* 5-Star Rating */}
-                  <div className="flex text-[#D4AF37]">
-                    {[...Array(rev.rating)].map((_, i) => (
-                      <Star key={i} className="w-3.5 h-3.5 fill-[#D4AF37] text-[#D4AF37]" />
-                    ))}
-                  </div>
+                  {/* Varied Star Rating (4.0 - 5.0) */}
+                  <StarRatingDisplay score={rev.rating} showScore={true} />
                 </div>
 
                 {/* Review Text */}
