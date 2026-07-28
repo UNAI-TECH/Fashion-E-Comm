@@ -1,127 +1,91 @@
 import { motion } from 'motion/react';
-import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router';
 
-const categories = [
+const featuredCategories = [
   {
-    id: 1,
-    name: 'Sarees',
-    path: '/category/sarees',
-    image: '/saree_category_stacked.jpg',
-    cta: 'Shop Collection',
-  },
-  {
-    id: 2,
+    id: 'kurti',
     name: 'Kurtis',
     path: '/category/kurtis',
-    image: '/kurti_category_green.jpg',
-    cta: 'Shop Now',
+    image: '/kurti_k1.jpg',
+    bgColor: '#FCE7F3', // Light Rose Pink
+    accentColor: '#9D174D',
   },
   {
-    id: 3,
+    id: 'saree',
+    name: 'Sarees',
+    path: '/category/sarees',
+    image: '/saree_s1.jpg',
+    bgColor: '#FEF3C7', // Light Warm Gold
+    accentColor: '#92400E',
+  },
+  {
+    id: 'lehenga',
     name: 'Lehengas',
     path: '/category/lehengas',
-    image: '/lehenga_category_pink.jpg',
-    cta: 'Explore Styles',
+    image: '/lehenga_l1.jpg',
+    bgColor: '#F3E8FF', // Light Soft Lavender
+    accentColor: '#6B21A8',
   },
   {
-    id: 4,
+    id: 'western',
     name: 'Western',
     path: '/category/western',
-    image: '/western_category_casual.jpg',
-    cta: 'View Trends',
+    image: '/western_w1.jpg',
+    bgColor: '#FFE4E6', // Light Soft Peach
+    accentColor: '#9F1239',
+  },
+  {
+    id: 'maxi',
+    name: 'Maxi',
+    path: '/category/maxi',
+    image: '/maxi_mx1.jpg',
+    bgColor: '#E0F2FE', // Light Sky Blue
+    accentColor: '#075985',
+  },
+  {
+    id: 'salwar',
+    name: 'Salwar Set',
+    path: '/category/salwar-sets',
+    image: '/salwar_ss1.jpg',
+    bgColor: '#DCFCE7', // Light Soft Mint
+    accentColor: '#166534',
   },
 ];
 
 export function FeaturedCategories() {
   return (
-    <section className="py-20 px-4 bg-white" id="collections">
-      <div className="max-w-7xl mx-auto">
-        {/* Section Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
-          className="text-center mb-16"
-        >
-          <motion.span
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="inline-block px-6 py-2 bg-[#FFF0F5] text-[#D4AF37] rounded-full text-sm tracking-wider mb-4"
-          >
-            COLLECTIONS
-          </motion.span>
-          <h2 className="font-serif text-4xl sm:text-5xl md:text-6xl mb-4 text-[#1A1A1A]">
-            Featured Categories
-          </h2>
-          <p className="text-gray-600 max-w-2xl mx-auto text-lg">
-            Explore our curated collections designed for the modern woman
-          </p>
-        </motion.div>
-
-        {/* Categories Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
-          {categories.map((category, index) => (
+    <section className="w-full bg-white py-6 border-b border-gray-100 select-none">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
+        
+        {/* Horizontal Category Cards Bar — Meesho Style Arch Domes */}
+        <div className="flex items-center justify-start md:justify-center gap-4 sm:gap-6 md:gap-8 overflow-x-auto scrollbar-hide py-2 px-2">
+          {featuredCategories.map((cat, index) => (
             <motion.div
-              key={category.id}
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: index * 0.1 }}
-              className="group cursor-pointer"
+              key={cat.id}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: index * 0.08 }}
+              className="flex-shrink-0 flex flex-col items-center group cursor-pointer"
             >
-              <Link to={category.path}>
+              <Link to={cat.path} className="flex flex-col items-center">
+                {/* Arch Dome Image Container */}
                 <motion.div
-                  className="relative aspect-square rounded-[3rem] overflow-hidden shadow-lg"
+                  whileHover={{ scale: 1.06, y: -4 }}
+                  whileTap={{ scale: 0.96 }}
+                  className="w-24 h-28 sm:w-28 sm:h-32 md:w-32 md:h-36 rounded-t-[4rem] rounded-b-2xl overflow-hidden shadow-sm group-hover:shadow-md transition-all relative flex items-end justify-center p-1"
+                  style={{ backgroundColor: cat.bgColor }}
                 >
-                  {/* Image */}
-                  <motion.div
-                    className="absolute inset-0"
-                    whileHover={{ scale: 1.1 }}
-                    transition={{ duration: 0.6 }}
-                  >
-                    <img
-                      src={category.image}
-                      alt={category.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </motion.div>
-
-                  {/* Gradient Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-
-                  {/* Glassmorphism Card */}
-                  <motion.div
-                    initial={{ y: 20, opacity: 0 }}
-                    whileHover={{ y: 0, opacity: 1 }}
-                    className="absolute inset-x-0 bottom-0 p-6 bg-white/10 backdrop-blur-md border-t border-white/20"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-serif text-2xl text-white mb-1">
-                          {category.name}
-                        </h3>
-                        <p className="text-white/80 text-sm font-medium tracking-wide">{category.cta}</p>
-                      </div>
-                      <motion.div
-                        whileHover={{ x: 5 }}
-                        className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center"
-                      >
-                        <ArrowRight className="w-5 h-5 text-white" />
-                      </motion.div>
-                    </div>
-                  </motion.div>
-
-                  {/* Static Info */}
-                  <div className="absolute bottom-6 left-6 group-hover:opacity-0 transition-opacity">
-                    <h3 className="font-serif text-2xl text-white mb-1">
-                      {category.name}
-                    </h3>
-                    <p className="text-white/80 text-sm font-medium tracking-wide">{category.cta}</p>
-                  </div>
+                  <img
+                    src={cat.image}
+                    alt={cat.name}
+                    className="w-full h-[92%] object-cover object-top rounded-t-[3.8rem] rounded-b-xl drop-shadow-sm group-hover:scale-105 transition-transform duration-300"
+                  />
                 </motion.div>
+
+                {/* Category Label */}
+                <span className="mt-2.5 text-xs sm:text-sm font-extrabold text-gray-800 group-hover:text-[#800000] transition-colors text-center tracking-wide">
+                  {cat.name}
+                </span>
               </Link>
             </motion.div>
           ))}

@@ -48,8 +48,8 @@ export function Home() {
     <div className="min-h-screen">
       <AnnouncementBar />
       <Navigation />
-      <HeroSection />
       <FeaturedCategories />
+      <HeroSection />
       <MotionBanner />
       <TrendingCollection products={products} isLoading={isLoading} />
       <Testimonials />

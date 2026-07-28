@@ -286,12 +286,12 @@ export function Navigation() {
         <div className="max-w-[1400px] mx-auto px-6 py-3 flex items-center gap-6">
 
           {/* Logo */}
-          <Link to="/" className="flex items-center flex-shrink-0 h-14">
+          <Link to="/" className="flex items-center flex-shrink-0 h-16 lg:h-20 py-1">
             <motion.img
-              whileHover={{ scale: 1.03 }}
+              whileHover={{ scale: 1.05 }}
               src="/logo_aanya.png"
               alt="Aanya Fashions"
-              className="h-full w-auto object-contain"
+              className="h-full w-auto object-contain brightness-105 contrast-125 drop-shadow-sm"
             />
           </Link>
 
@@ -311,7 +311,7 @@ export function Navigation() {
           </div>
 
           {/* Right Actions */}
-          <div className="flex items-center gap-3 flex-shrink-0 ml-auto">
+          <div className="flex items-center gap-4 flex-shrink-0 ml-auto">
             <motion.button
               whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }}
               onClick={() => setIsWishlistOpen(true)}
@@ -372,20 +372,25 @@ export function Navigation() {
         <div className="border-t border-gray-100 bg-white">
           <div className="max-w-[1400px] mx-auto px-6">
             <nav className="flex items-center justify-center gap-2">
-              {menuItems.map((item) => (
-                <Link key={item.name} to={item.path}>
-                  <motion.span
-                    whileHover={{ scale: 1.04 }}
-                    className={`px-6 py-3.5 text-[15px] font-extrabold whitespace-nowrap inline-block transition-all border-b-[3px] tracking-wide ${
-                      location.pathname === item.path
-                        ? 'text-[#800000] border-[#800000]'
-                        : 'text-gray-800 border-transparent hover:text-[#800000] hover:border-[#800000]/40'
-                    }`}
-                  >
-                    {item.name}
-                  </motion.span>
-                </Link>
-              ))}
+              {menuItems.map((item) => {
+                const isTrending = item.name === 'Trending';
+                return (
+                  <Link key={item.name} to={item.path}>
+                    <motion.span
+                      whileHover={{ scale: 1.06 }}
+                      className={`px-6 py-3.5 whitespace-nowrap inline-block transition-all border-b-[3px] tracking-wide ${
+                        isTrending
+                          ? 'text-[#800000] font-black text-[16px] border-[#800000] uppercase tracking-wider'
+                          : location.pathname === item.path
+                          ? 'text-[#800000] font-extrabold text-[15px] border-[#800000]'
+                          : 'text-gray-800 font-extrabold text-[15px] border-transparent hover:text-[#800000] hover:border-[#800000]/40'
+                      }`}
+                    >
+                      {item.name}
+                    </motion.span>
+                  </Link>
+                );
+              })}
             </nav>
           </div>
         </div>
