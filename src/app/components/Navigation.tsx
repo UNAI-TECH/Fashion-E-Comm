@@ -358,10 +358,10 @@ export function Navigation() {
           </div>
         </div>
 
-        {/* Row 2: Category Navigation — centered, bigger & extra bold Trending */}
+        {/* Row 2: Category Navigation — centered, sleek size & NO underline on Trending */}
         <div className="border-t border-gray-100 bg-white">
           <div className="max-w-[1400px] mx-auto px-6">
-            <nav className="flex items-center justify-center gap-2">
+            <nav className="flex items-center justify-center gap-1 sm:gap-2">
               {menuItems.map((item) => {
                 const isTrending = item.name === 'Trending';
                 const isActive = location.pathname === item.path;
@@ -369,16 +369,16 @@ export function Navigation() {
                   <Link key={item.name} to={item.path}>
                     <motion.span
                       whileHover={{ scale: 1.04 }}
-                      className={`px-6 py-3.5 text-[15px] whitespace-nowrap inline-block transition-all border-b-[3px] tracking-wide ${
+                      className={`px-3.5 py-2 text-xs sm:text-sm font-bold whitespace-nowrap inline-block transition-all tracking-wide ${
                         isTrending
-                          ? 'font-black text-[#800000] border-[#800000]'
+                          ? 'text-[#800000] border-b-0 font-extrabold'
                           : isActive
-                          ? 'font-extrabold text-[#800000] border-[#800000]'
-                          : 'font-extrabold text-gray-800 border-transparent hover:text-[#800000] hover:border-[#800000]/40'
+                          ? 'text-[#800000] border-b-2 border-[#800000]'
+                          : 'text-gray-800 border-b-2 border-transparent hover:text-[#800000]'
                       }`}
                     >
                       {isTrending ? (
-                        <span className="font-black text-[#800000] tracking-widest uppercase flex items-center gap-1">
+                        <span className="font-extrabold text-[#800000] tracking-wider uppercase flex items-center gap-1">
                           🔥 Trending
                         </span>
                       ) : (

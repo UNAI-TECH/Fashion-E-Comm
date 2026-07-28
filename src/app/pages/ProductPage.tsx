@@ -11,6 +11,32 @@ import { supabase, supabaseAdmin } from '../../lib/supabase';
 import { fetchProducts, Product } from '../data/products';
 import { toast } from 'sonner';
 
+function getClothingProductDescription(prod: Product): string {
+  const name = (prod.name || '').toLowerCase();
+  const category = (prod.category || '').toLowerCase();
+
+  if (category.includes('saree') || name.includes('saree') || name.includes('sari')) {
+    return `Beautifully crafted ${prod.name} woven from high-grade silk threads with rich zari detailing. Features an elegant drape, authentic weave texture, and a complementary blouse piece designed to bring timeless grace to weddings, festivals, and special occasions.`;
+  }
+  if (category.includes('kurti') || name.includes('kurti') || name.includes('kurta') || name.includes('anarkali')) {
+    return `Tailored ${prod.name} made from breathable cotton-silk blend featuring intricate embroidery and refined neckline detailing. Designed for all-day comfort with a flattering fit, perfect for casual outings, workwear, and festive gatherings.`;
+  }
+  if (category.includes('western') || name.includes('shirt') || name.includes('trouser') || name.includes('top') || name.includes('blouse') || name.includes('skirt')) {
+    return `Chic modern outfit (${prod.name}) crafted from smooth premium silk-blend fabric. Features tailored seams, clean modern lines, and structured fitting designed to elevate your everyday Western & smart-casual wardrobe.`;
+  }
+  if (category.includes('lehenga') || name.includes('lehenga') || name.includes('choli')) {
+    return `Luxurious ${prod.name} set featuring ornate hand embroidery, a voluminous flared skirt, matching embroidered choli, and a lightweight sheer dupatta. Crafted for grand celebrations and bridal festivities.`;
+  }
+  if (category.includes('salwar') || name.includes('suit') || name.includes('salwar') || name.includes('set')) {
+    return `Elegant ${prod.name} suit set featuring a detailed embroidered kameez, comfortable tailored salwar bottoms, and a matching designer dupatta for complete traditional sophistication.`;
+  }
+  if (category.includes('maxi') || name.includes('maxi') || name.includes('gown')) {
+    return `Flowing ${prod.name} tailored from lightweight premium fabric with a soft lining and flattering waist accent. Designed for graceful movement and effortless elegance at evening events and parties.`;
+  }
+
+  return `Premium handcrafted ${prod.name} crafted from fine quality fabric. Features meticulous stitching, vibrant color fastness, and a modern posture fit tailored for luxury and comfort.`;
+}
+
 export function ProductPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -309,9 +335,9 @@ export function ProductPage() {
                 "{product.description || 'Premium quality traditional wear crafted with elegance.'}"
               </div>
 
-              {/* Standard Description Paragraph */}
-              <p className="text-gray-500 leading-relaxed text-sm">
-                This design fuses rich Indian textile traditions with modern silhouettes. Handcrafted using standard heritage drapes and premium weaves, this garment is curated to adapt perfectly to the modern posture. Every thread, bead, and seam is carefully supervised to represent pristine, sustainable luxury.
+              {/* Standard Description Paragraph (Product-specific clothing description) */}
+              <p className="text-gray-600 leading-relaxed text-sm">
+                {getClothingProductDescription(product)}
               </p>
 
               {/* Rating / Feedback */}
