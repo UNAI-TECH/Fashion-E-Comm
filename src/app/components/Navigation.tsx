@@ -295,16 +295,15 @@ export function Navigation() {
             />
           </Link>
 
-          {/* Search Bar — takes up remaining left/center space */}
-          <div className="flex-1 max-w-2xl">
+          {/* Search Bar — fixed width, anchored left, no modal on focus */}
+          <div className="w-80 flex-shrink-0">
             <div className="relative flex items-center">
               <Search className="absolute left-4 w-5 h-5 text-gray-400 pointer-events-none" />
               <input
                 type="text"
-                placeholder="Try Saree, Kurti or Search by Product Code"
+                placeholder="Try Saree, Kurti or Search…"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                onFocus={() => setIsSearchOpen(true)}
                 onKeyDown={e => { if (e.key === 'Enter') handleSearchSubmit(searchQuery); }}
                 className="w-full pl-11 pr-4 py-3 text-sm border border-gray-300 rounded-lg bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#800000] focus:ring-1 focus:ring-[#800000]/20 transition-all"
               />
@@ -369,18 +368,18 @@ export function Navigation() {
           </div>
         </div>
 
-        {/* Row 2: Category Navigation */}
+        {/* Row 2: Category Navigation — centered, bigger & bolder */}
         <div className="border-t border-gray-100 bg-white">
           <div className="max-w-[1400px] mx-auto px-6">
-            <nav className="flex items-center gap-1">
+            <nav className="flex items-center justify-center gap-2">
               {menuItems.map((item) => (
                 <Link key={item.name} to={item.path}>
                   <motion.span
-                    whileHover={{ scale: 1.03 }}
-                    className={`px-5 py-3 text-[13px] font-bold whitespace-nowrap inline-block transition-all border-b-2 ${
+                    whileHover={{ scale: 1.04 }}
+                    className={`px-6 py-3.5 text-[15px] font-extrabold whitespace-nowrap inline-block transition-all border-b-[3px] tracking-wide ${
                       location.pathname === item.path
                         ? 'text-[#800000] border-[#800000]'
-                        : 'text-gray-700 border-transparent hover:text-[#800000] hover:border-[#800000]/40'
+                        : 'text-gray-800 border-transparent hover:text-[#800000] hover:border-[#800000]/40'
                     }`}
                   >
                     {item.name}
