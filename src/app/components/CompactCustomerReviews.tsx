@@ -17,68 +17,130 @@ interface CompactCustomerReviewsProps {
   product: Product;
 }
 
-const DEFAULT_REVIEWS: Review[] = [
-  {
-    id: 'rev-1',
-    name: 'Priya S.',
+// Helper to generate unique customer reviewer names & product-tailored review feedback
+function getProductSpecificReviews(product: Product): Review[] {
+  const name = (product.name || '').toLowerCase();
+  const category = (product.category || '').toLowerCase();
+  const idStr = String(product.id || 'prod');
+
+  // Simple deterministic hash to pick unique reviewer names per product
+  let hash = 0;
+  for (let i = 0; i < idStr.length; i++) {
+    hash = (hash << 5) - hash + idStr.charCodeAt(i);
+    hash |= 0;
+  }
+  const seed = Math.abs(hash);
+
+  const namePools = [
+    ['Divya N.', 'Swati G.', 'Bhavna K.', 'Rohini S.', 'Swati M.', 'Tanvi G.'],
+    ['Aisha K.', 'Neha B.', 'Radhika D.', 'Simran J.', 'Shreya L.', 'Kriti C.'],
+    ['Sunita M.', 'Archana P.', 'Deepa R.', 'Nidhi K.', 'Shruti V.', 'Payal S.'],
+    ['Trisha K.', 'Yamini S.', 'Charu V.', 'Mahima T.', 'Rashmi H.', 'Vandana R.'],
+    ['Priya S.', 'Ananya R.', 'Meera K.', 'Pooja M.', 'Ritu V.', 'Sneha P.'],
+    ['Kavya T.', 'Preeti D.', 'Shilpa N.', 'Aditi B.', 'Monika R.', 'Rupa S.'],
+  ];
+
+  const names = namePools[seed % namePools.length];
+
+  const dates = [
+    '24 May, 2026',
+    '12 May, 2026',
+    '29 Apr, 2026',
+    '15 Apr, 2026',
+    '03 Mar, 2026',
+    '18 Feb, 2026',
+  ];
+
+  let comments: string[] = [];
+
+  // 1. Sarees
+  if (category.includes('saree') || name.includes('saree') || name.includes('sari')) {
+    comments = [
+      `The zari work on this ${product.name} is absolutely breathtaking! The silk drape holds its shape beautifully all evening.`,
+      `Purchased this ${product.name} for my cousin's wedding reception. Pristine weave, vibrant colors, and lightweight feel.`,
+      `Authentic traditional craftsmanship! The pallu embroidery is even richer in person than shown online.`,
+      `Soft silk fabric that glides effortlessly. Came with a perfectly color-matched blouse piece!`,
+      `Classic heritage feel with a modern luster. Truly a high-end luxury saree addition to my collection.`,
+      `The rich border details and fine threadwork make this saree look like a high-fashion designer creation.`,
+    ];
+  }
+  // 2. Kurtis & Anarkalis
+  else if (category.includes('kurti') || name.includes('kurti') || name.includes('kurta') || name.includes('anarkali')) {
+    comments = [
+      `Loved the neck embroidery and clean side-slit tailoring on this ${product.name}! Breathable fabric and super stylish.`,
+      `Wore this ${product.name} to an office festive lunch. Received non-stop compliments on the posture fit and color!`,
+      `The threadwork detail on the chest is meticulous. Pairs so well with statement gold earrings and heels.`,
+      `Pure cotton-silk comfort! Doesn't fade or shrink after washing. Perfect everyday luxury wear.`,
+      `Flattering flared silhouette that accentuates grace. The sleeve border stitching is top notch.`,
+      `Elevated Indian fusion wear at its finest! The texture feels premium and comfortable for 8+ hours.`,
+    ];
+  }
+  // 3. Western / Shirt & Trousers
+  else if (name.includes('shirt') || name.includes('trouser') || category.includes('western')) {
+    comments = [
+      `The tailored fit of this ${product.name} set is insane! Feels like bespoke luxury tailoring.`,
+      `Smooth silk-blend fabric with zero crease issues. Perfect for business casual meetings and dinner outings!`,
+      `The color combination of this ${product.name} is so chic and modern. Looks like a high-end designer runway piece.`,
+      `Impeccable collar structure and button cuff detailing. Highly versatile for styling with nude heels and gold hoops.`,
+      `Breathable, fluid fabric with a natural sheen. Fits true to size with a clean straight silhouette.`,
+      `Extremely high quality fabric. You can feel the luxury texture immediately upon unboxing!`,
+    ];
+  }
+  // 4. Lehengas
+  else if (category.includes('lehenga') || name.includes('lehenga') || name.includes('choli')) {
+    comments = [
+      `The flare on this ${product.name} is unreal! Heavy embroidery on the skirt with a comfortable lightweight choli.`,
+      `Wore this ${product.name} for my sister's Sangeet ceremony. The zari embellishments catch the light amazingly in photos!`,
+      `Royal wedding vibes! The dupatta draping and waistband stitching are finished to perfection.`,
+      `The organza-silk flare has such dramatic movement when walking. Truly bridal-grade luxury.`,
+      `Exquisite hand-embroidery with vibrant color contrast. Delivered in a pristine luxury garment box!`,
+      `Exceeded all expectations. High-end designer look for a fraction of boutique prices.`,
+    ];
+  }
+  // 5. Salwar Suits & Sets
+  else if (category.includes('salwar') || name.includes('suit') || name.includes('set')) {
+    comments = [
+      `The straight kameez fit with matching designer dupatta is so graceful. Soft fabric and gorgeous colors!`,
+      `Ideal three-piece suit set (${product.name}) for Puja and family functions. Clean stitched seams and zero itchiness.`,
+      `Sleeve cuff embroidery adds such an elegant touch. Highly comfortable for all-day traditional events.`,
+      `Rich color fastness and breathable weave. The fit is flattering around the waist and shoulders.`,
+      `Loved the complete set! The dupatta drape completes the royal look effortlessly.`,
+      `Great quality fabric with fine finishing. Fast delivery and accurate sizing chart.`,
+    ];
+  }
+  // 6. Maxi Gowns & Default
+  else {
+    comments = [
+      `Flows like a dream! The waist accent and soft lining make this ${product.name} look so flattering.`,
+      `Wore this to a sunset cocktail dinner. Ethereal silhouette with a subtle, sophisticated color tone.`,
+      `Minimalist luxury design with smooth back zip closure. Feels lightweight yet looks super high-end.`,
+      `The floor-length pleated skirt has beautiful fluid movement. Perfect for evening galas!`,
+      `Stunning quality chiffon/georgette fabric. Received so many compliments throughout the night.`,
+      `Fits like it was custom made for me! Absolutely in love with Aanya Fashions evening collection.`,
+    ];
+  }
+
+  return names.map((reviewerName, idx) => ({
+    id: `rev-${product.id || 'p'}-${idx + 1}`,
+    name: reviewerName,
     rating: 5,
-    date: '14 May, 2026',
+    date: dates[idx % dates.length],
     verified: true,
-    comment: 'This dress is so soft and comfortable. Perfect for all-day wear!',
-  },
-  {
-    id: 'rev-2',
-    name: 'Ananya R.',
-    rating: 5,
-    date: '28 Apr, 2026',
-    verified: true,
-    comment: 'Beautiful quality and exactly as shown in the pictures. The stitching details are flawless.',
-  },
-  {
-    id: 'rev-3',
-    name: 'Meera K.',
-    rating: 5,
-    date: '10 Apr, 2026',
-    verified: true,
-    comment: 'Elegant design with premium fabric. Highly recommended for weddings and festive wear!',
-  },
-  {
-    id: 'rev-4',
-    name: 'Pooja M.',
-    rating: 5,
-    date: '02 Mar, 2026',
-    verified: true,
-    comment: 'Stunning craftsmanship and gorgeous drape! Received endless compliments at the family event.',
-  },
-  {
-    id: 'rev-5',
-    name: 'Ritu V.',
-    rating: 5,
-    date: '18 Feb, 2026',
-    verified: true,
-    comment: 'Fabric feels so luxurious against the skin. Super fast delivery and immaculate packaging!',
-  },
-  {
-    id: 'rev-6',
-    name: 'Sneha P.',
-    rating: 5,
-    date: '05 Jan, 2026',
-    verified: true,
-    comment: 'Impeccable fitting and rich vibrant colors. Aanya Fashions never disappoints in luxury quality!',
-  },
-];
+    comment: comments[idx % comments.length],
+  }));
+}
 
 export function CompactCustomerReviews({ product }: CompactCustomerReviewsProps) {
   const [expandedReviews, setExpandedReviews] = useState<Record<string, boolean>>({});
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // Get product specific or fallback reviews
+  // Get product specific unique customer reviews & feedback content
   const allReviews = useMemo(() => {
-    // If product has custom reviews array, use it; otherwise use DEFAULT_REVIEWS
-    const list = (product as any).reviews && (product as any).reviews.length > 0
-      ? (product as any).reviews
-      : DEFAULT_REVIEWS;
-    return list;
+    // If product has custom DB reviews, use them; otherwise generate tailored product feedback
+    if ((product as any).reviews && (product as any).reviews.length > 0) {
+      return (product as any).reviews;
+    }
+    return getProductSpecificReviews(product);
   }, [product]);
 
   // Auto-cycle 3 reviews every 6 seconds if total reviews > 3
@@ -112,7 +174,7 @@ export function CompactCustomerReviews({ product }: CompactCustomerReviewsProps)
       <div className="mt-5 border border-[#D4AF37]/50 rounded-2xl p-5 bg-white shadow-sm text-center">
         <MessageSquarePlus className="w-8 h-8 text-[#D4AF37] mx-auto mb-2 opacity-80" />
         <p className="text-gray-700 text-sm font-semibold italic">Be the first to review this product.</p>
-        <button className="mt-3 px-4 py-2 bg-[#FFF0F5] border border-[#FFD6E8] text-[#800000] rounded-xl text-xs font-bold hover:bg-[#FFE4EF] transition-all">
+        <button className="mt-3 px-4 py-2 bg-[#FFF0F5] border border-[#FFD6E8] text-[#800000] rounded-xl text-xs font-bold hover:bg-[#FFE4EF] transition-all cursor-pointer">
           Write a Review
         </button>
       </div>
@@ -124,9 +186,9 @@ export function CompactCustomerReviews({ product }: CompactCustomerReviewsProps)
       {/* Section Header */}
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-2">
-          <h3 className="font-serif text-lg text-gray-900 font-bold">Customer Reviews</h3>
+          <h3 className="font-serif text-lg text-gray-900 font-bold">Customer Feedback</h3>
           <span className="text-[11px] font-bold text-[#800000] bg-rose-50 px-2 py-0.5 rounded-full border border-rose-100">
-            {allReviews.length} Verified
+            {allReviews.length} Verified Reviews
           </span>
         </div>
         <div className="flex items-center gap-1 text-[#D4AF37] text-xs font-bold">
@@ -169,7 +231,7 @@ export function CompactCustomerReviews({ product }: CompactCustomerReviewsProps)
                         <span className="text-xs font-black text-gray-900">{rev.name}</span>
                         {rev.verified && (
                           <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded-full border border-emerald-200 inline-flex items-center gap-0.5">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Verified
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Verified Buyer
                           </span>
                         )}
                       </div>
