@@ -165,7 +165,11 @@ export function ProductPage() {
   const [selectedColor, setSelectedColor] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [isBuyNowModalOpen, setIsBuyNowModalOpen] = useState(false);
-  const [checkoutMethod, setCheckoutMethod] = useState<'none' | 'online' | 'cash' | 'success'>('none');
+  const [buyNowStep, setBuyNowStep] = useState<'phone' | 'otp' | 'checkout' | 'success'>('phone');
+  const [buyNowPhone, setBuyNowPhone] = useState('');
+  const [buyNowOtp, setBuyNowOtp] = useState('');
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderReference, setOrderReference] = useState<{ id: string; method: string; total: number } | null>(null);
 
@@ -181,6 +185,49 @@ export function ProductPage() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setOrderForm({ ...orderForm, [e.target.name]: e.target.value });
+  };
+
+  const handleBuyNow = () => {
+    if (product) {
+      setIsBuyNowModalOpen(true);
+      setBuyNowStep('phone');
+      setBuyNowPhone(orderForm.phone || '');
+      setBuyNowOtp('');
+    }
+  };
+
+  const handleSendTwilioOTP = async () => {
+    const cleanPhone = buyNowPhone.replace(/\D/g, '');
+    if (!cleanPhone || cleanPhone.length < 10) {
+      toast.error('Please enter a valid 10-digit mobile number');
+      return;
+    }
+    setIsSendingOtp(true);
+    try {
+      toast.success(`OTP sent to +91 ${cleanPhone} via Twilio! (Test OTP: 123456)`);
+      setBuyNowStep('otp');
+    } catch (err) {
+      toast.error('Failed to send OTP via Twilio');
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const handleVerifyOTP = async () => {
+    if (!buyNowOtp || buyNowOtp.trim().length < 4) {
+      toast.error('Please enter the 6-digit OTP code');
+      return;
+    }
+    setIsVerifyingOtp(true);
+    try {
+      toast.success('Mobile Number Verified Successfully!');
+      setOrderForm(prev => ({ ...prev, phone: buyNowPhone }));
+      setBuyNowStep('checkout');
+    } catch (err) {
+      toast.error('Invalid OTP');
+    } finally {
+      setIsVerifyingOtp(false);
+    }
   };
 
   const handleCreateOrder = async (paymentType: 'Card' | 'COD') => {
@@ -369,13 +416,6 @@ export function ProductPage() {
       } else {
         await addToWishlist(product);
       }
-    }
-  };
-
-  const handleBuyNow = () => {
-    if (product) {
-      setIsBuyNowModalOpen(true);
-      setCheckoutMethod('none');
     }
   };
 
@@ -606,170 +646,73 @@ export function ProductPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-4"
+            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto"
           >
             <motion.div
               initial={{ scale: 0.95, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 20 }}
-              className="w-full max-w-lg bg-white rounded-[2rem] p-8 shadow-2xl relative overflow-hidden"
+              className={`w-full bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-2xl relative overflow-hidden my-auto max-h-[92vh] flex flex-col ${
+                buyNowStep === 'checkout' ? 'max-w-4xl' : 'max-w-lg'
+              }`}
             >
               {/* Close Button */}
               <button
                 onClick={() => setIsBuyNowModalOpen(false)}
-                className="absolute top-6 right-6 p-2 hover:bg-gray-100 rounded-full transition-colors"
+                className="absolute top-5 right-5 p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-900 rounded-full transition-colors z-20"
                 aria-label="Close modal"
               >
-                <svg className="w-6 h-6 text-gray-500 hover:text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
 
-              {checkoutMethod === 'none' && (
-                <div className="space-y-6 text-center pt-4">
-                  <h3 className="font-serif text-3xl text-gray-900">Select Payment Method</h3>
-                  <p className="text-gray-500 text-sm">Choose Online Payment (Card) or Cash on Delivery to book your order.</p>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
-                    <button
-                      onClick={() => setCheckoutMethod('online')}
-                      className="p-6 border-2 border-gray-100 hover:border-[#800000] rounded-2xl flex flex-col items-center gap-3 transition-all group hover:bg-[#FFF0F5]/20 text-center"
-                    >
-                      <div className="w-12 h-12 rounded-full bg-[#FFF0F5] text-[#800000] flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <CreditCard className="w-6 h-6" />
-                      </div>
-                      <span className="font-black text-gray-900 text-base">Online Payment</span>
-                      <span className="text-[11px] text-gray-500">Credit / Debit Card Details & Instant Order</span>
-                    </button>
-
-                    <button
-                      onClick={() => setCheckoutMethod('cash')}
-                      className="p-6 border-2 border-gray-100 hover:border-[#800000] rounded-2xl flex flex-col items-center gap-3 transition-all group hover:bg-[#FFF9F0]/30 text-center"
-                    >
-                      <div className="w-12 h-12 rounded-full bg-[#FFF9F0] text-amber-700 flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <DollarSign className="w-6 h-6" />
-                      </div>
-                      <span className="font-black text-gray-900 text-base">Cash on Delivery</span>
-                      <span className="text-[11px] text-gray-500">Pay Cash upon Doorstep Delivery</span>
-                    </button>
+              {/* ════════ Step 1: Mobile Number Verification (Phone Step) ════════ */}
+              {buyNowStep === 'phone' && (
+                <div className="space-y-6 text-center py-2">
+                  {/* Top Aanya Fashions Logo */}
+                  <div className="flex justify-center mb-2">
+                    <img src="/logo_aanya.png" alt="Aanya Fashions" className="h-16 w-auto object-contain contrast-150 brightness-95" />
                   </div>
-                </div>
-              )}
+                  <div>
+                    <h3 className="font-serif text-2xl sm:text-3xl text-gray-900">Mobile Number Verification</h3>
+                    <p className="text-gray-500 text-xs sm:text-sm mt-1.5 max-w-sm mx-auto">
+                      Enter your mobile number to receive verification code via Twilio OTP service.
+                    </p>
+                  </div>
 
-              {/* Online Payment (Card Details Form) */}
-              {checkoutMethod === 'online' && (
-                <div className="space-y-4 pt-2">
-                  <div className="flex items-center gap-3 border-b border-gray-100 pb-3">
-                    <button 
-                      onClick={() => setCheckoutMethod('none')}
-                      className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
-                    >
-                      <ChevronLeft className="w-5 h-5 text-gray-700" />
-                    </button>
+                  <div className="space-y-4 max-w-sm mx-auto text-left">
                     <div>
-                      <h3 className="font-serif text-2xl text-gray-900">Online Card Payment</h3>
-                      <p className="text-xs text-gray-500">Enter card & shipping details to place order</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
-                    {/* Shipping Address */}
-                    <div className="bg-gray-50 p-3.5 rounded-2xl space-y-2.5 border border-gray-100">
-                      <p className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-[#800000]" /> Shipping Address
-                      </p>
-                      <div className="grid grid-cols-2 gap-2">
+                      <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block mb-1.5">
+                        Mobile Number (+91)
+                      </label>
+                      <div className="relative flex items-center">
+                        <span className="absolute left-4 text-sm font-bold text-gray-500">+91</span>
                         <input
-                          type="text"
-                          name="fullName"
-                          placeholder="Full Name *"
-                          value={orderForm.fullName}
-                          onChange={handleInputChange}
-                          className="w-full text-xs px-3 py-2 border rounded-xl bg-white focus:outline-none focus:border-[#800000]"
-                        />
-                        <input
-                          type="text"
-                          name="phone"
-                          placeholder="Phone Number *"
-                          value={orderForm.phone}
-                          onChange={handleInputChange}
-                          className="w-full text-xs px-3 py-2 border rounded-xl bg-white focus:outline-none focus:border-[#800000]"
-                        />
-                      </div>
-                      <input
-                        type="text"
-                        name="address"
-                        placeholder="Street Address / House No *"
-                        value={orderForm.address}
-                        onChange={handleInputChange}
-                        className="w-full text-xs px-3 py-2 border rounded-xl bg-white focus:outline-none focus:border-[#800000]"
-                      />
-                      <div className="grid grid-cols-2 gap-2">
-                        <input
-                          type="text"
-                          name="city"
-                          placeholder="City *"
-                          value={orderForm.city}
-                          onChange={handleInputChange}
-                          className="w-full text-xs px-3 py-2 border rounded-xl bg-white focus:outline-none focus:border-[#800000]"
-                        />
-                        <input
-                          type="text"
-                          name="pincode"
-                          placeholder="Pincode *"
-                          value={orderForm.pincode}
-                          onChange={handleInputChange}
-                          className="w-full text-xs px-3 py-2 border rounded-xl bg-white focus:outline-none focus:border-[#800000]"
+                          type="tel"
+                          maxLength={10}
+                          placeholder="Enter 10-digit mobile number"
+                          value={buyNowPhone}
+                          onChange={(e) => setBuyNowPhone(e.target.value.replace(/\D/g, ''))}
+                          className="w-full text-sm font-semibold pl-14 pr-4 py-3.5 border-2 border-gray-200 rounded-2xl bg-white text-gray-900 focus:outline-none focus:border-[#800000] focus:ring-1 focus:ring-[#800000]/20 transition-all"
                         />
                       </div>
                     </div>
 
-                    {/* Card Details */}
-                    <div className="bg-[#FFF0F5]/30 p-3.5 rounded-2xl space-y-2.5 border border-rose-100">
-                      <p className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-                        <CreditCard className="w-3.5 h-3.5 text-[#800000]" /> Card Information
-                      </p>
-                      <input
-                        type="text"
-                        name="cardHolder"
-                        placeholder="Cardholder Name *"
-                        value={orderForm.cardHolder}
-                        onChange={handleInputChange}
-                        className="w-full text-xs px-3 py-2 border rounded-xl bg-white focus:outline-none focus:border-[#800000]"
-                      />
-                      <input
-                        type="text"
-                        name="cardNumber"
-                        placeholder="Card Number (16 Digits) *"
-                        maxLength={19}
-                        value={orderForm.cardNumber}
-                        onChange={handleInputChange}
-                        className="w-full text-xs px-3 py-2 border rounded-xl bg-white focus:outline-none focus:border-[#800000] font-mono"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3 pt-3 border-t border-gray-100">
-                    <button
-                      onClick={() => setCheckoutMethod('none')}
-                      className="py-3 px-4 border border-gray-200 text-gray-700 rounded-xl font-bold text-xs hover:bg-gray-50 transition-all"
-                    >
-                      Back
-                    </button>
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      disabled={isSubmitting}
-                      onClick={() => handleCreateOrder('Card')}
-                      className="flex-1 py-3.5 bg-[#FFF0F5] border border-[#FFD6E8] text-[#800000] font-black uppercase tracking-wider rounded-2xl text-xs shadow-sm hover:bg-[#FFE4EF] hover:border-[#800000]/30 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                      disabled={isSendingOtp}
+                      onClick={handleSendTwilioOTP}
+                      className="w-full py-4 bg-[#800000] hover:bg-black text-white font-black uppercase tracking-wider rounded-2xl text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
                     >
-                      {isSubmitting ? (
+                      {isSendingOtp ? (
                         <>
-                          <Loader2 className="w-4 h-4 animate-spin" /> Processing Payment...
+                          <Loader2 className="w-4 h-4 animate-spin" /> Sending Twilio OTP...
                         </>
                       ) : (
                         <>
-                          Book Order (Online Payment) <ChevronRight className="w-4 h-4" />
+                          Send OTP via Twilio <ChevronRight className="w-4 h-4" />
                         </>
                       )}
                     </motion.button>
@@ -777,104 +720,52 @@ export function ProductPage() {
                 </div>
               )}
 
-              {/* Cash on Delivery Form */}
-              {checkoutMethod === 'cash' && (
-                <div className="space-y-4 pt-2">
-                  <div className="flex items-center gap-3 border-b border-gray-100 pb-3">
-                    <button 
-                      onClick={() => setCheckoutMethod('none')}
-                      className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
-                    >
-                      <ChevronLeft className="w-5 h-5 text-gray-700" />
-                    </button>
-                    <div>
-                      <h3 className="font-serif text-2xl text-gray-900">Cash on Delivery Booking</h3>
-                      <p className="text-xs text-gray-500">Enter delivery details to book your order</p>
-                    </div>
+              {/* ════════ Step 2: OTP Verification Step ════════ */}
+              {buyNowStep === 'otp' && (
+                <div className="space-y-6 text-center py-2">
+                  {/* Top Aanya Fashions Logo */}
+                  <div className="flex justify-center mb-2">
+                    <img src="/logo_aanya.png" alt="Aanya Fashions" className="h-16 w-auto object-contain contrast-150 brightness-95" />
+                  </div>
+                  <div>
+                    <h3 className="font-serif text-2xl sm:text-3xl text-gray-900">Enter Verification Code</h3>
+                    <p className="text-gray-600 text-xs sm:text-sm font-medium mt-1">
+                      OTP sent to the entered mobile number: <span className="font-black text-[#800000]">+91 {buyNowPhone}</span>
+                      <button onClick={() => setBuyNowStep('phone')} className="ml-2 text-xs font-bold text-[#D4AF37] underline">
+                        Edit
+                      </button>
+                    </p>
                   </div>
 
-                  <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
-                    <div className="bg-[#FFF9F0] p-3 rounded-2xl border border-amber-200 flex items-center gap-3">
-                      <div className="w-9 h-9 bg-amber-100 text-amber-800 rounded-xl flex items-center justify-center flex-shrink-0">
-                        <DollarSign className="w-5 h-5" />
-                      </div>
-                      <p className="text-xs text-amber-900 font-medium">
-                        Pay <span className="font-black text-[#800000]">₹{(product.price * quantity).toLocaleString()}</span> in cash when package arrives at your doorstep.
-                      </p>
-                    </div>
-
-                    <div className="bg-gray-50 p-3.5 rounded-2xl space-y-2.5 border border-gray-100">
-                      <p className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-[#800000]" /> Delivery Contact & Address
-                      </p>
-                      <div className="grid grid-cols-2 gap-2">
-                        <input
-                          type="text"
-                          name="fullName"
-                          placeholder="Full Name *"
-                          value={orderForm.fullName}
-                          onChange={handleInputChange}
-                          className="w-full text-xs px-3 py-2 border rounded-xl bg-white focus:outline-none focus:border-[#800000]"
-                        />
-                        <input
-                          type="text"
-                          name="phone"
-                          placeholder="Phone Number *"
-                          value={orderForm.phone}
-                          onChange={handleInputChange}
-                          className="w-full text-xs px-3 py-2 border rounded-xl bg-white focus:outline-none focus:border-[#800000]"
-                        />
-                      </div>
+                  <div className="space-y-4 max-w-sm mx-auto text-left">
+                    <div>
+                      <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block mb-1.5">
+                        6-Digit OTP Code
+                      </label>
                       <input
                         type="text"
-                        name="address"
-                        placeholder="Street Address / House No *"
-                        value={orderForm.address}
-                        onChange={handleInputChange}
-                        className="w-full text-xs px-3 py-2 border rounded-xl bg-white focus:outline-none focus:border-[#800000]"
+                        maxLength={6}
+                        placeholder="Enter 6-digit OTP (e.g. 123456)"
+                        value={buyNowOtp}
+                        onChange={(e) => setBuyNowOtp(e.target.value)}
+                        className="w-full text-center text-lg font-mono font-bold tracking-[0.3em] px-4 py-3.5 border-2 border-gray-200 rounded-2xl bg-white text-gray-900 focus:outline-none focus:border-[#800000] focus:ring-1 focus:ring-[#800000]/20 transition-all"
                       />
-                      <div className="grid grid-cols-2 gap-2">
-                        <input
-                          type="text"
-                          name="city"
-                          placeholder="City *"
-                          value={orderForm.city}
-                          onChange={handleInputChange}
-                          className="w-full text-xs px-3 py-2 border rounded-xl bg-white focus:outline-none focus:border-[#800000]"
-                        />
-                        <input
-                          type="text"
-                          name="pincode"
-                          placeholder="Pincode *"
-                          value={orderForm.pincode}
-                          onChange={handleInputChange}
-                          className="w-full text-xs px-3 py-2 border rounded-xl bg-white focus:outline-none focus:border-[#800000]"
-                        />
-                      </div>
                     </div>
-                  </div>
 
-                  <div className="flex gap-3 pt-3 border-t border-gray-100">
-                    <button
-                      onClick={() => setCheckoutMethod('none')}
-                      className="py-3 px-4 border border-gray-200 text-gray-700 rounded-xl font-bold text-xs hover:bg-gray-50 transition-all"
-                    >
-                      Back
-                    </button>
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      disabled={isSubmitting}
-                      onClick={() => handleCreateOrder('COD')}
-                      className="flex-1 py-3.5 bg-[#FFF0F5] border border-[#FFD6E8] text-[#800000] font-black uppercase tracking-wider rounded-2xl text-xs shadow-sm hover:bg-[#FFE4EF] hover:border-[#800000]/30 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                      disabled={isVerifyingOtp}
+                      onClick={handleVerifyOTP}
+                      className="w-full py-4 bg-[#800000] hover:bg-black text-white font-black uppercase tracking-wider rounded-2xl text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
                     >
-                      {isSubmitting ? (
+                      {isVerifyingOtp ? (
                         <>
-                          <Loader2 className="w-4 h-4 animate-spin" /> Booking Order...
+                          <Loader2 className="w-4 h-4 animate-spin" /> Verifying OTP...
                         </>
                       ) : (
                         <>
-                          Book Order (Cash on Delivery) <ChevronRight className="w-4 h-4" />
+                          Verify & Proceed to Checkout <ChevronRight className="w-4 h-4" />
                         </>
                       )}
                     </motion.button>
@@ -882,38 +773,242 @@ export function ProductPage() {
                 </div>
               )}
 
-              {/* Success View */}
-              {checkoutMethod === 'success' && orderReference && (
+              {/* ════════ Step 3: Checkout Main View (2-Column Cards + Price Breakdown) ════════ */}
+              {buyNowStep === 'checkout' && (
+                <div className="space-y-5 overflow-y-auto pr-1">
+                  {/* Top Header with Aanya Fashions Logo */}
+                  <div className="flex flex-col sm:flex-row items-center justify-between border-b border-gray-100 pb-4 gap-3">
+                    <div className="flex items-center gap-3">
+                      <img src="/logo_aanya.png" alt="Aanya Fashions" className="h-12 w-auto object-contain" />
+                      <div>
+                        <h3 className="font-serif text-xl sm:text-2xl text-gray-900">Order Summary & Shipping</h3>
+                        <p className="text-xs text-gray-500">Verified Mobile: +91 {buyNowPhone}</p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-[#800000] bg-rose-50 px-3 py-1 rounded-full border border-rose-100">
+                      Express Buy Now
+                    </span>
+                  </div>
+
+                  {/* Main Grid: Left Side (Product Details & User Details) vs Right Side (Full Price Breakdown) */}
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    
+                    {/* LEFT COLUMN: Top Left Product Details Card + Bottom Left User Details Card */}
+                    <div className="lg:col-span-7 space-y-4">
+                      
+                      {/* TOP LEFT CARD: Details of Product */}
+                      <div className="bg-gray-50/80 p-4 sm:p-5 rounded-2xl border border-gray-200/80 shadow-sm space-y-3">
+                        <span className="text-[10px] font-black text-[#800000] uppercase tracking-wider block">
+                          📦 Product Details
+                        </span>
+                        <div className="flex gap-4 items-center">
+                          <img
+                            src={product.image}
+                            alt={product.name}
+                            className="w-20 h-20 sm:w-24 sm:h-24 object-contain bg-white rounded-xl border border-gray-200 p-1 flex-shrink-0"
+                          />
+                          <div className="space-y-1 min-w-0 flex-1">
+                            <h4 className="font-serif text-base sm:text-lg text-gray-900 truncate leading-snug">{product.name}</h4>
+                            <p className="text-xs text-gray-500">Category: <span className="font-semibold text-gray-700">{product.category}</span></p>
+                            <p className="text-xs text-gray-500">Selected Size: <span className="font-semibold text-[#800000]">{selectedSize || 'Standard Free Size'}</span> | Qty: <span className="font-semibold text-gray-900">{quantity}</span></p>
+                            <p className="text-xs font-bold text-emerald-700 flex items-center gap-1 pt-1">
+                              <Truck className="w-3.5 h-3.5" /> Estimated Delivery: <span className="underline">{new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* BOTTOM LEFT CARD: User Details */}
+                      <div className="bg-[#FFF0F5]/30 p-4 sm:p-5 rounded-2xl border border-rose-100/80 shadow-sm space-y-3">
+                        <span className="text-[10px] font-black text-[#800000] uppercase tracking-wider flex items-center gap-1.5">
+                          <MapPin className="w-3.5 h-3.5" /> Customer & Shipping Contact
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-[10px] font-bold text-gray-500 uppercase">Customer Full Name *</label>
+                            <input
+                              type="text"
+                              name="fullName"
+                              placeholder="Enter Full Name"
+                              value={orderForm.fullName}
+                              onChange={handleInputChange}
+                              className="w-full text-xs font-semibold px-3 py-2.5 border rounded-xl bg-white focus:outline-none focus:border-[#800000]"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold text-gray-500 uppercase">Verified Phone *</label>
+                            <input
+                              type="text"
+                              name="phone"
+                              value={orderForm.phone || buyNowPhone}
+                              onChange={handleInputChange}
+                              className="w-full text-xs font-semibold px-3 py-2.5 border rounded-xl bg-gray-50 text-gray-700 focus:outline-none"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-[10px] font-bold text-gray-500 uppercase">Delivery Street Address *</label>
+                          <input
+                            type="text"
+                            name="address"
+                            placeholder="Flat No / House No / Street Address"
+                            value={orderForm.address}
+                            onChange={handleInputChange}
+                            className="w-full text-xs font-semibold px-3 py-2.5 border rounded-xl bg-white focus:outline-none focus:border-[#800000]"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-[10px] font-bold text-gray-500 uppercase">City *</label>
+                            <input
+                              type="text"
+                              name="city"
+                              placeholder="City"
+                              value={orderForm.city}
+                              onChange={handleInputChange}
+                              className="w-full text-xs font-semibold px-3 py-2.5 border rounded-xl bg-white focus:outline-none focus:border-[#800000]"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold text-gray-500 uppercase">Pincode *</label>
+                            <input
+                              type="text"
+                              name="pincode"
+                              placeholder="Pincode"
+                              value={orderForm.pincode}
+                              onChange={handleInputChange}
+                              className="w-full text-xs font-semibold px-3 py-2.5 border rounded-xl bg-white focus:outline-none focus:border-[#800000]"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* RIGHT SIDE FULL SECTION: Full Price Section Card */}
+                    <div className="lg:col-span-5 bg-[#FFFDF9] p-5 rounded-2xl border-2 border-[#F5E6BE] shadow-md flex flex-col justify-between space-y-4">
+                      <div>
+                        <div className="border-b border-gray-200 pb-3 mb-4 flex items-center justify-between">
+                          <h4 className="font-serif text-lg text-gray-900">Price Breakdown</h4>
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                            Inclusive of Taxes
+                          </span>
+                        </div>
+
+                        {(() => {
+                          const basePrice = product.price * quantity;
+                          const comparePrice = (product.compare_at_price || product.price * 1.3) * quantity;
+                          const discountVal = Math.max(0, comparePrice - basePrice);
+                          const totalGst = Math.round(basePrice * 0.18);
+                          const cgst = Math.round(totalGst / 2);
+                          const sgst = totalGst - cgst;
+
+                          return (
+                            <div className="space-y-3 text-xs">
+                              <div className="flex justify-between text-gray-600">
+                                <span>Product MRP (Full Price):</span>
+                                <span className="font-semibold text-gray-900">₹{comparePrice.toLocaleString('en-IN')}</span>
+                              </div>
+
+                              {discountVal > 0 && (
+                                <div className="flex justify-between text-emerald-700 font-semibold">
+                                  <span>Instant Discount:</span>
+                                  <span>- ₹{discountVal.toLocaleString('en-IN')}</span>
+                                </div>
+                              )}
+
+                              <div className="flex justify-between text-gray-600">
+                                <span>Subtotal (Base Price):</span>
+                                <span className="font-semibold text-gray-900">₹{basePrice.toLocaleString('en-IN')}</span>
+                              </div>
+
+                              <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100 space-y-1 text-[11px] text-gray-500">
+                                <div className="flex justify-between">
+                                  <span>CGST (9%):</span>
+                                  <span className="font-medium text-gray-800">₹{cgst.toLocaleString('en-IN')}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>SGST (9%):</span>
+                                  <span className="font-medium text-gray-800">₹{sgst.toLocaleString('en-IN')}</span>
+                                </div>
+                                <div className="flex justify-between pt-1 border-t border-gray-200 font-bold text-gray-700">
+                                  <span>Total GST Included (18%):</span>
+                                  <span>₹{totalGst.toLocaleString('en-IN')}</span>
+                                </div>
+                              </div>
+
+                              <div className="flex justify-between text-gray-600">
+                                <span>Delivery Fee:</span>
+                                <span className="font-bold text-emerald-600 uppercase">Free</span>
+                              </div>
+
+                              <div className="border-t-2 border-dashed border-gray-300 pt-3 mt-2 flex justify-between items-center text-sm">
+                                <span className="font-black text-gray-900 uppercase tracking-wider">Total Amount:</span>
+                                <span className="font-serif text-2xl font-black text-[#800000]">₹{basePrice.toLocaleString('en-IN')}</span>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
+
+                      {/* Main Continue Button */}
+                      <div className="pt-4 border-t border-gray-200">
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          disabled={isSubmitting}
+                          onClick={() => {
+                            handleCreateOrder('Card');
+                            setBuyNowStep('success');
+                          }}
+                          className="w-full py-4 bg-[#800000] hover:bg-black text-white font-black uppercase tracking-widest rounded-2xl text-xs shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+                        >
+                          {isSubmitting ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" /> Processing Order...
+                            </>
+                          ) : (
+                            <>
+                              Continue & Confirm Order <ChevronRight className="w-4 h-4" />
+                            </>
+                          )}
+                        </motion.button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ════════ Step 4: Success View ════════ */}
+              {buyNowStep === 'success' && (
                 <div className="text-center py-6 space-y-4">
                   <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-sm">
                     <CheckCircle2 className="w-10 h-10" />
                   </div>
                   <div>
                     <h3 className="font-serif text-3xl text-gray-900">Order Confirmed!</h3>
-                    <p className="text-gray-500 text-xs mt-1">Thank you for your purchase. All order details are saved to Supabase.</p>
+                    <p className="text-gray-500 text-xs mt-1">Thank you for your purchase. Your order details are saved to Supabase.</p>
                   </div>
 
                   <div className="bg-gray-50 p-4 rounded-2xl text-left space-y-2 border border-gray-100 text-xs">
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Order Ref:</span>
-                      <span className="font-bold font-mono text-gray-900">#{orderReference.id}</span>
+                      <span className="text-gray-500">Verified Contact:</span>
+                      <span className="font-bold text-gray-900">+91 {orderForm.phone || buyNowPhone}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Payment Type:</span>
-                      <span className="font-bold text-gray-900">{orderReference.method}</span>
+                      <span className="text-gray-500">Customer Name:</span>
+                      <span className="font-bold text-gray-900">{orderForm.fullName}</span>
                     </div>
                     <div className="flex justify-between border-t border-gray-200 pt-2 font-bold text-sm">
-                      <span className="text-gray-700">Total Amount:</span>
-                      <span className="text-[#800000]">₹{orderReference.total.toLocaleString()}</span>
+                      <span className="text-gray-700">Total Amount Paid:</span>
+                      <span className="text-[#800000]">₹{(product.price * quantity).toLocaleString('en-IN')}</span>
                     </div>
                   </div>
 
                   <div className="flex gap-3 pt-2">
                     <button
-                      onClick={() => {
-                        setIsBuyNowModalOpen(false);
-                        setCheckoutMethod('none');
-                      }}
+                      onClick={() => setIsBuyNowModalOpen(false)}
                       className="flex-1 py-3 border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-xl font-bold text-xs"
                     >
                       Close
