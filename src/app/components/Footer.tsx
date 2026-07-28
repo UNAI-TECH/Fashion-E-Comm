@@ -26,16 +26,14 @@ export function Footer() {
   const footerLinks = {
     quickLinks: [
       { name: 'Home', path: '/' },
-      { name: 'Collection', path: '/#collections' },
       { name: 'About Us', path: '/about' },
-      { name: 'Contact Us', path: '/contact' }
+      { name: 'Contact Us', path: '/contact' },
+      { name: 'Track Order', path: '/orders' },
     ],
     helpSupport: [
-      { name: 'Track Order', path: '/orders' },
-      { name: 'Privacy Policy', path: '/privacy' },
       { name: 'Terms & Conditions', path: '/terms' },
+      { name: 'Privacy Policy', path: '/privacy' },
       { name: 'Payment Methods', path: '/payment-methods' },
-      { name: 'Careers', path: '/careers' }
     ]
   };
 
@@ -104,6 +102,20 @@ export function Footer() {
                 <h4 className="text-[10px] md:text-sm font-extrabold text-gray-900 tracking-wider uppercase mb-2 md:mb-6">QUICK LINKS</h4>
                 <ul className="space-y-1.5 md:space-y-3">
                   {footerLinks.quickLinks.map((link) => (
+                    <li key={link.name}>
+                      <Link to={link.path} className="text-[10px] md:text-sm text-gray-600 hover:text-[#800000] transition-colors">
+                        {link.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Help & Support */}
+              <div className="col-span-1 space-y-2 md:space-y-4">
+                <h4 className="text-[10px] md:text-sm font-extrabold text-gray-900 tracking-wider uppercase mb-2 md:mb-6">HELP & SUPPORT</h4>
+                <ul className="space-y-1.5 md:space-y-3">
+                  {footerLinks.helpSupport.map((link) => (
                     <li key={link.name}>
                       <Link to={link.path} className="text-[10px] md:text-sm text-gray-600 hover:text-[#800000] transition-colors">
                         {link.name}

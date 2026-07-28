@@ -261,14 +261,13 @@ export function Navigation() {
   }, [searchQuery]);
 
   const menuItems = [
-    { name: 'Home', path: '/' },
-    { name: 'Sarees', path: '/category/sarees' },
-    { name: 'Kurtis', path: '/category/kurtis' },
-    { name: 'Lehengas', path: '/category/lehengas' },
-    { name: 'Salwar Sets', path: '/category/salwar-sets' },
-    { name: 'Western', path: '/category/western' },
-    { name: 'About Us', path: '/about' },
-    { name: 'Contact', path: '/contact' },
+    { name: 'Sarees',      path: '/category/sarees' },
+    { name: 'Kurtis',     path: '/category/kurtis' },
+    { name: 'Western',    path: '/category/western' },
+    { name: 'Trending',   path: '/category/trending' },
+    { name: 'Salwar Set', path: '/category/salwar-sets' },
+    { name: 'Maxi',       path: '/category/maxi' },
+    { name: 'Lehengas',   path: '/category/lehengas' },
   ];
 
 
@@ -290,88 +289,20 @@ export function Navigation() {
 
       {/* 2. Desktop Standalone Center Navigation Pill Bar */}
       <div className="hidden lg:flex fixed top-6 left-1/2 -translate-x-1/2 z-[40] items-center space-x-1 bg-white/90 backdrop-blur-md p-1 px-2 rounded-full border border-white/30 shadow-md">
-        <Link to="/">
-          <motion.span
-            whileHover={{ scale: 1.05 }}
-            className={`px-4 py-2 text-[11px] sm:text-[13px] font-black uppercase tracking-wide rounded-full transition-all inline-block ${
-              location.pathname === '/' ? 'bg-[#FFF0F5] text-[#D4AF37] border border-[#F5E6BE] shadow-sm' : 'text-gray-950 hover:bg-[#FFF0F5] hover:text-[#D4AF37]'
-            }`}
-          >
-            Home
-          </motion.span>
-        </Link>
-        <Link to="/about">
-          <motion.span
-            whileHover={{ scale: 1.05 }}
-            className={`px-4 py-2 text-[11px] sm:text-[13px] font-black uppercase tracking-wide rounded-full transition-all inline-block ${
-              location.pathname === '/about' ? 'bg-[#FFF0F5] text-[#D4AF37] border border-[#F5E6BE] shadow-sm' : 'text-gray-950 hover:bg-[#FFF0F5] hover:text-[#D4AF37]'
-            }`}
-          >
-            About
-          </motion.span>
-        </Link>
-
-        {/* Collection Category Dropdown (Desktop) */}
-        <div 
-          className="relative"
-          onMouseEnter={() => setIsCollectionOpen(true)}
-          onMouseLeave={() => setIsCollectionOpen(false)}
-        >
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            className={`px-4 py-2 text-[11px] sm:text-[13px] font-black uppercase tracking-wide rounded-full transition-all flex items-center gap-1.5 cursor-pointer ${
-              location.pathname.startsWith('/category/') ? 'bg-[#FFF0F5] text-[#D4AF37] border border-[#F5E6BE] shadow-sm' : 'text-gray-950 hover:bg-[#FFF0F5] hover:text-[#D4AF37]'
-            }`}
-          >
-            Collection
-            <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${isCollectionOpen ? 'rotate-180' : ''}`} />
-          </motion.button>
-
-          <AnimatePresence>
-            {isCollectionOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                transition={{ duration: 0.2 }}
-                className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-100/80 p-2 space-y-1 z-50"
-              >
-                {[
-                  { name: 'Kurti', path: '/category/kurtis' },
-                  { name: 'Saree', path: '/category/sarees' },
-                  { name: 'Salwar Set', path: '/category/salwar-sets' },
-                  { name: 'Maxi', path: '/category/maxi' },
-                  { name: 'Lehengas', path: '/category/lehengas' },
-                  { name: 'Western', path: '/category/western' },
-                ].map((category) => (
-                  <Link
-                    key={category.name}
-                    to={category.path}
-                    onClick={() => setIsCollectionOpen(false)}
-                    className={`block px-4 py-2 text-xs font-bold rounded-xl transition-all ${
-                      location.pathname === category.path
-                        ? 'bg-[#FFF0F5] text-[#D4AF37] font-black border border-[#F5E6BE]'
-                        : 'text-gray-700 hover:bg-[#FFF0F5] hover:text-[#D4AF37]'
-                    }`}
-                  >
-                    {category.name}
-                  </Link>
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        <Link to="/contact">
-          <motion.span
-            whileHover={{ scale: 1.05 }}
-            className={`px-4 py-2 text-[11px] sm:text-[13px] font-black uppercase tracking-wide rounded-full transition-all inline-block ${
-              location.pathname === '/contact' ? 'bg-[#FFF0F5] text-[#D4AF37] border border-[#F5E6BE] shadow-sm' : 'text-gray-950 hover:bg-[#FFF0F5] hover:text-[#D4AF37]'
-            }`}
-          >
-            Contact
-          </motion.span>
-        </Link>
+        {menuItems.map((item) => (
+          <Link key={item.name} to={item.path}>
+            <motion.span
+              whileHover={{ scale: 1.05 }}
+              className={`px-4 py-2 text-[11px] sm:text-[13px] font-black uppercase tracking-wide rounded-full transition-all inline-block ${
+                location.pathname === item.path
+                  ? 'bg-[#FFF0F5] text-[#D4AF37] border border-[#F5E6BE] shadow-sm'
+                  : 'text-gray-950 hover:bg-[#FFF0F5] hover:text-[#D4AF37]'
+              }`}
+            >
+              {item.name}
+            </motion.span>
+          </Link>
+        ))}
       </div>
 
       {/* 3. Desktop Standalone Quick Action Pill (Top Right Corner) */}
@@ -440,46 +371,20 @@ export function Navigation() {
             </motion.div>
           </Link>
 
-            {/* Center: Navigation Links (Home, About, Collection, Contact) */}
-            <div className="flex-1 flex items-center justify-center gap-2 xs:gap-3 sm:gap-4 px-1.5 overflow-hidden">
-              <Link 
-                to="/" 
-                onClick={() => setIsMobileMenuOpen(false)} 
-                className={`px-1 py-1 text-[10px] xs:text-[11px] sm:text-xs font-black uppercase tracking-wide whitespace-nowrap text-center transition-all ${
-                  location.pathname === '/' ? 'text-[#800000]' : 'text-[#002D62] hover:text-[#800000]'
-                }`}
-              >
-                Home
-              </Link>
-              <Link 
-                to="/about" 
-                onClick={() => setIsMobileMenuOpen(false)} 
-                className={`px-1 py-1 text-[10px] xs:text-[11px] sm:text-xs font-black uppercase tracking-wide whitespace-nowrap text-center transition-all ${
-                  location.pathname === '/about' ? 'text-[#800000]' : 'text-[#002D62] hover:text-[#800000]'
-                }`}
-              >
-                About
-              </Link>
-              <button 
-                onClick={() => {
-                  setIsMobileMenuOpen(false);
-                  setIsMobileCollectionOpen(!isMobileCollectionOpen);
-                }} 
-                className={`px-1 py-1 text-[10px] xs:text-[11px] sm:text-xs font-black uppercase tracking-wide whitespace-nowrap text-center transition-all flex items-center gap-0.5 ${
-                  location.pathname.startsWith('/category/') ? 'text-[#800000]' : 'text-[#002D62] hover:text-[#800000]'
-                }`}
-              >
-                Collection <ChevronDown className={`w-3 h-3 stroke-[3.5] transition-transform duration-300 ${location.pathname.startsWith('/category/') ? 'text-[#800000]' : 'text-[#002D62]'}`} style={{ transform: isMobileCollectionOpen ? 'rotate(180deg)' : 'none' }} />
-              </button>
-              <Link 
-                to="/contact" 
-                onClick={() => setIsMobileMenuOpen(false)} 
-                className={`px-1 py-1 text-[10px] xs:text-[11px] sm:text-xs font-black uppercase tracking-wide whitespace-nowrap text-center transition-all ${
-                  location.pathname === '/contact' ? 'text-[#800000]' : 'text-[#002D62] hover:text-[#800000]'
-                }`}
-              >
-                Contact
-              </Link>
+            {/* Center: Category Navigation Links */}
+            <div className="flex-1 flex items-center justify-center gap-1 px-1 overflow-x-auto scrollbar-hide">
+              {menuItems.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.path}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`px-1.5 py-1 text-[9px] xs:text-[10px] sm:text-[11px] font-black uppercase tracking-wide whitespace-nowrap text-center transition-all flex-shrink-0 ${
+                    location.pathname === item.path ? 'text-[#800000]' : 'text-[#002D62] hover:text-[#800000]'
+                  }`}
+                >
+                  {item.name}
+                </Link>
+              ))}
             </div>
 
             {/* Right side: 3-Line Menu CTA Button */}
