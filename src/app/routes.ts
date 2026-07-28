@@ -41,6 +41,7 @@ export const router = createBrowserRouter([
       { path: "/contact", Component: ContactPage },
       { path: "/orders", Component: OrdersPage },
       { path: "/category/:category", Component: CategoryPage },
+      { path: "/search", Component: CategoryPage },
       { path: "/new-arrivals", Component: CategoryPage },
       { path: "/sarees", Component: CategoryPage },
       { path: "/kurtis", Component: CategoryPage },

@@ -2,60 +2,64 @@ import { useParams, useSearchParams, Link } from 'react-router';
 import { motion } from 'motion/react';
 import { useState, useEffect } from 'react';
 import { fetchProducts, Product } from '../data/products';
-import { performAISearch, AISearchResult } from '../lib/aiSearchEngine';
 import { ProductCard } from '../components/ProductCard';
 import { ProductSkeleton } from '../components/Skeleton';
 import { Navigation } from '../components/Navigation';
 import { Footer } from '../components/Footer';
 import { AnnouncementBar } from '../components/AnnouncementBar';
-import { Sparkles, Search } from 'lucide-react';
+import { performAISearch } from '../utils/aiSearchEngine';
+import { Sparkles, SearchX } from 'lucide-react';
 
 export function CategoryPage() {
   const { category } = useParams<{ category: string }>();
   const [searchParams] = useSearchParams();
-  const searchQueryParam = searchParams.get('q') || '';
-  
+  const searchQuery = searchParams.get('q');
+
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchResultInfo, setSearchResultInfo] = useState<AISearchResult | null>(null);
+  const [fallbackMessage, setFallbackMessage] = useState<string | null>(null);
 
-  const isSearchMode = Boolean(searchQueryParam || category === 'search');
-  const activeQuery = searchQueryParam || category || '';
-  
-  const categoryTitle = isSearchMode
-    ? `Search Results for "${activeQuery}"`
+  // Determine Title
+  const categoryTitle = searchQuery
+    ? `Search Results for "${searchQuery}"`
     : category
-    ? category.charAt(0).toUpperCase() + category.slice(1).replace('-', ' ') 
+    ? category.charAt(0).toUpperCase() + category.slice(1).replace('-', ' ')
     : 'All Collections';
 
   useEffect(() => {
     async function loadProducts() {
       setIsLoading(true);
+      setFallbackMessage(null);
       try {
         const allData = await fetchProducts();
         
-        if (isSearchMode || activeQuery) {
-          const aiResult = performAISearch(activeQuery, allData);
+        if (searchQuery && searchQuery.trim()) {
+          // Perform Antigravity AI Semantic Search
+          const aiResult = performAISearch(searchQuery, allData);
           setProducts(aiResult.products);
-          setSearchResultInfo(aiResult);
+          if (aiResult.isFallback) {
+            setFallbackMessage(aiResult.fallbackMessage || "No exact match found. Here are similar products you may like.");
+          }
+        } else if (category && category !== 'search' && category !== 'all') {
+          const categoryData = await fetchProducts(category);
+          setProducts(categoryData);
         } else {
           setProducts(allData);
-          setSearchResultInfo(null);
         }
       } catch (error) {
-        console.error('Error loading category/search products:', error);
+        console.error('Error loading products:', error);
       } finally {
         setIsLoading(false);
       }
     }
     loadProducts();
-  }, [category, searchQueryParam]);
+  }, [category, searchQuery]);
 
   return (
     <div className="min-h-screen bg-white">
       <AnnouncementBar />
       <Navigation />
-      
+
       <main className="pt-20 sm:pt-24 lg:pt-6 pb-20 px-4 max-w-7xl mx-auto">
         {/* Breadcrumbs */}
         <div className="flex items-center gap-2 text-sm text-gray-500 mb-8">
@@ -65,31 +69,32 @@ export function CategoryPage() {
         </div>
 
         {/* Header */}
-        <div className="mb-10">
+        <div className="mb-8">
           <motion.h1 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="font-serif text-3xl sm:text-4xl lg:text-5xl text-[#1A1A1A] mb-3 flex items-center gap-3"
+            className="font-serif text-3xl sm:text-4xl lg:text-5xl text-[#1A1A1A] mb-3"
           >
-            {isSearchMode && <Search className="w-8 h-8 text-[#800000]" />}
             {categoryTitle}
           </motion.h1>
           <p className="text-gray-600 text-sm sm:text-base">
-            {isSearchMode 
-              ? `AI Semantic Search found ${products.length} relevant items.` 
+            {searchQuery 
+              ? `AI Semantic Search found ${products.length} relevant items` 
               : `Discover our curated selection of premium ${categoryTitle.toLowerCase()}.`}
           </p>
-        </div>
 
-        {/* AI Search Fallback Notice Banner */}
-        {searchResultInfo?.isFallback && (
-          <div className="mb-8 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center gap-3 text-amber-900 shadow-sm">
-            <Sparkles className="w-5 h-5 text-amber-600 flex-shrink-0" />
-            <p className="text-xs sm:text-sm font-semibold">
-              {searchResultInfo.message || 'No exact match found. Here are similar products you may like.'}
-            </p>
-          </div>
-        )}
+          {/* Fallback Notice Message */}
+          {fallbackMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-4 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs sm:text-sm font-semibold flex items-center gap-3 shadow-sm"
+            >
+              <SearchX className="w-5 h-5 text-amber-700 flex-shrink-0" />
+              <span>{fallbackMessage}</span>
+            </motion.div>
+          )}
+        </div>
 
         {/* Grid */}
         {isLoading ? (
@@ -105,8 +110,15 @@ export function CategoryPage() {
                 <ProductCard key={product.id} {...product} />
               ))
             ) : (
-              <div className="col-span-full py-20 text-center text-gray-500">
-                No products found matching your search.
+              <div className="col-span-full py-20 text-center text-gray-500 bg-gray-50 rounded-3xl border border-dashed p-8">
+                <SearchX className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                <h3 className="font-serif text-xl text-gray-800 mb-1">No products found</h3>
+                <p className="text-xs text-gray-500 max-w-sm mx-auto mb-4">
+                  Try searching for terms like "black saree", "cotton kurti", "blue dress", or "wedding".
+                </p>
+                <Link to="/" className="inline-block px-6 py-2.5 bg-[#800000] text-white text-xs font-bold rounded-xl shadow-md">
+                  Explore All Collections
+                </Link>
               </div>
             )}
           </div>
