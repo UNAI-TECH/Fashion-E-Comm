@@ -4,6 +4,7 @@ import { useParams, Link, useNavigate } from 'react-router';
 import { Star, Heart, ShoppingBag, Share2, Truck, RotateCcw, Shield, ChevronLeft, ChevronRight, ZoomIn, CreditCard, CheckCircle2, Loader2, DollarSign, MapPin, Calendar, Sparkles } from 'lucide-react';
 import { Navigation } from '../components/Navigation';
 import { AnnouncementBar } from '../components/AnnouncementBar';
+import { CompactCustomerReviews } from '../components/CompactCustomerReviews';
 import { Footer } from '../components/Footer';
 import { useCart } from '../contexts/CartContext';
 import { useWishlist } from '../contexts/WishlistContext';
@@ -544,7 +545,7 @@ export function ProductPage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            {/* Image Gallery */}
+            {/* Image Gallery & Customer Reviews */}
             <div>
               <motion.div 
                 initial={{ opacity: 0, scale: 0.9 }} 
@@ -557,6 +558,9 @@ export function ProductPage() {
                   className="w-full h-full object-contain rounded-[1.8rem]" 
                 />
               </motion.div>
+
+              {/* Compact Customer Reviews Section (3 reviews, gold border, verified badges) */}
+              <CompactCustomerReviews product={product} />
             </div>
 
             {/* Product Info */}
