@@ -285,13 +285,13 @@ export function Navigation() {
         {/* Row 1: Logo | Search | Actions */}
         <div className="max-w-[1400px] mx-auto px-6 py-2 flex items-center gap-6">
 
-          {/* Logo — Enlarged for maximum clarity & prominence */}
-          <Link to="/" className="flex items-center flex-shrink-0 h-20">
+          {/* Logo — Enlarged & boldened for maximum clarity & prominence */}
+          <Link to="/" className="flex items-center flex-shrink-0 h-24 sm:h-28 py-1 overflow-visible">
             <motion.img
-              whileHover={{ scale: 1.03 }}
+              whileHover={{ scale: 1.05 }}
               src="/logo_aanya.png"
               alt="Aanya Fashions"
-              className="h-full w-auto object-contain brightness-105 contrast-125"
+              className="h-full w-auto object-contain object-left contrast-200 brightness-95 scale-125 origin-left filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)]"
             />
           </Link>
 
@@ -416,7 +416,7 @@ export function Navigation() {
               <img
                 src="/logo_aanya.png"
                 alt="Aanya Fashions Logo"
-                className="h-full w-auto object-contain object-left rounded-l-full brightness-105 contrast-125 drop-shadow-sm scale-110"
+                className="h-full w-auto object-contain object-left rounded-l-full brightness-95 contrast-200 drop-shadow-md scale-125 origin-left"
               />
             </motion.div>
           </Link>
