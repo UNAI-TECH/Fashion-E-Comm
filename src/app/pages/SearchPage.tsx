@@ -1,4 +1,4 @@
-import { useParams, Link } from 'react-router';
+import { useSearchParams, Link } from 'react-router';
 import { motion } from 'motion/react';
 import { useState, useEffect } from 'react';
 import { fetchProducts, Product } from '../data/products';
@@ -7,31 +7,47 @@ import { ProductSkeleton } from '../components/Skeleton';
 import { Navigation } from '../components/Navigation';
 import { Footer } from '../components/Footer';
 import { AnnouncementBar } from '../components/AnnouncementBar';
+import { intelligentSearch, getRecommendedFallback } from '../../lib/aiSearchEngine';
 
-export function CategoryPage() {
-  const { category } = useParams<{ category: string }>();
+export function SearchPage() {
+  const [searchParams] = useSearchParams();
+  const query = searchParams.get('q') || '';
+  
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
-  const categoryTitle = category 
-    ? category.charAt(0).toUpperCase() + category.slice(1).replace('-', ' ') 
-    : 'All Collections';
+  const [isFallback, setIsFallback] = useState(false);
 
   useEffect(() => {
-    async function loadProducts() {
+    async function executeSearch() {
+      if (!query.trim()) {
+        setProducts([]);
+        setIsLoading(false);
+        return;
+      }
+      
       setIsLoading(true);
       try {
-        const data = await fetchProducts(category);
-        console.log(`Category [${category}] Products Fetched:`, data);
-        setProducts(data);
+        const allProducts = await fetchProducts();
+        
+        let results = intelligentSearch(query, allProducts);
+        
+        if (results.length === 0) {
+          results = getRecommendedFallback(allProducts);
+          setIsFallback(true);
+        } else {
+          setIsFallback(false);
+        }
+        
+        setProducts(results);
       } catch (error) {
-        console.error('Error loading category products:', error);
+        console.error('Error during search:', error);
       } finally {
         setIsLoading(false);
       }
     }
-    loadProducts();
-  }, [category]);
+    
+    executeSearch();
+  }, [query]);
 
   return (
     <div className="min-h-screen bg-white">
@@ -41,9 +57,9 @@ export function CategoryPage() {
       <main className="pt-20 sm:pt-24 lg:pt-6 pb-20 px-4 max-w-7xl mx-auto">
         {/* Breadcrumbs */}
         <div className="flex items-center gap-2 text-sm text-gray-500 mb-8">
-          <Link to="/" className="hover:text-[#D4AF37]">Home</Link>
+          <Link to="/" className="hover:text-[#800000]">Home</Link>
           <span>/</span>
-          <span className="text-gray-900 font-medium">{categoryTitle}</span>
+          <span className="text-gray-900 font-medium">Search Results</span>
         </div>
 
         {/* Header */}
@@ -51,11 +67,17 @@ export function CategoryPage() {
           <motion.h1 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="font-serif text-4xl sm:text-5xl text-[#1A1A1A] mb-4"
+            className="font-serif text-3xl sm:text-4xl text-[#1A1A1A] mb-4"
           >
-            {categoryTitle}
+            Search Results for "{query}"
           </motion.h1>
-          <p className="text-gray-600">Discover our curated selection of premium {categoryTitle.toLowerCase()}.</p>
+          {isFallback ? (
+            <div className="bg-orange-50 border border-orange-200 text-orange-800 px-4 py-3 rounded-xl inline-block">
+              <p className="text-sm font-medium">No exact matches found for "{query}". Here are some popular recommendations instead:</p>
+            </div>
+          ) : (
+            <p className="text-gray-600">Found {products.length} products matching your search.</p>
+          )}
         </div>
 
         {/* Grid */}
@@ -73,7 +95,7 @@ export function CategoryPage() {
               ))
             ) : (
               <div className="col-span-full py-20 text-center text-gray-500">
-                No products found in this category.
+                No products found.
               </div>
             )}
           </div>

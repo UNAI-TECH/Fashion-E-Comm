@@ -61,7 +61,13 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
 
               {/* Content */}
               <div className="p-8 space-y-4">
-                <span className="text-[#D4AF37] uppercase tracking-[0.2em] text-[10px] font-bold block mb-1">Aanya Fashions</span>
+                <div className="text-[#D4AF37] uppercase tracking-wider text-[10px] font-bold flex items-center gap-1.5 mb-1 flex-wrap">
+                  <span className="cursor-pointer hover:underline" onClick={onClose}>Home</span>
+                  <span>/</span>
+                  <span className="cursor-pointer hover:underline" onClick={onClose}>{product.category || 'Product'}</span>
+                  <span>/</span>
+                  <span className="truncate max-w-[150px]">{product.name}</span>
+                </div>
                 <h2 className="font-serif text-3xl text-[#1A1A1A]">
                   {product.name}
                 </h2>
@@ -82,10 +88,7 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
                   <span className="text-xs text-gray-500 font-medium">({product.rating} customer rating)</span>
                 </div>
 
-                {/* Description Quote */}
-                <p className="text-gray-600 italic text-sm border-l-2 border-[#D4AF37] pl-3 py-1 bg-gray-50/50 rounded-r-lg">
-                  "{product.description || 'Premium quality traditional wear crafted with elegance.'}"
-                </p>
+                {/* Description removed for consistency with ProductPage */}
 
                 {/* Price */}
                 <div className="flex items-center gap-3">
@@ -116,16 +119,20 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
                 {/* Buttons */}
                 <div className="flex gap-3 pt-2">
                   <motion.button
-                    onClick={() => {
-                      addToCart(product);
+                    onClick={async () => {
+                      if (isInWishlist(product.id)) {
+                        await removeFromWishlist(product.id);
+                      } else {
+                        await addToWishlist(product);
+                      }
                       onClose();
                     }}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     className="flex-1 h-11 bg-white text-[#D4AF37] border border-[#D4AF37] font-bold text-xs tracking-wider uppercase flex items-center justify-center gap-2 hover:bg-[#D4AF37] hover:text-white transition-all duration-300"
                   >
-                    <ShoppingBag className="w-4 h-4" />
-                    Add to Cart
+                    <Heart className={`w-4 h-4 ${isInWishlist(product.id) ? 'fill-current' : ''}`} />
+                    {isInWishlist(product.id) ? 'Saved to Wishlist' : 'Save to Wishlist'}
                   </motion.button>
                 </div>
 

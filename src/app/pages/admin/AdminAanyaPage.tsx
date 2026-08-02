@@ -374,7 +374,7 @@ export function AdminAanyaPage() {
             className="flex items-center gap-3 text-left focus:outline-none group cursor-pointer"
             title="Go to Admin Dashboard"
           >
-            <img src="/logo_aanya.png" alt="Aanya Logo" className="h-20 w-auto object-contain flex-shrink-0 group-hover:scale-105 transition-transform brightness-105 contrast-125 drop-shadow-sm" />
+            <img src="/media__1785326482299.jpg" alt="Aanya Logo" className="h-20 w-auto object-contain flex-shrink-0 group-hover:scale-105 transition-transform brightness-105 contrast-125 drop-shadow-sm" />
             <AnimatePresence>
               {sidebarOpen && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -954,7 +954,7 @@ export function AdminAanyaPage() {
               {/* Modal header */}
               <div className="bg-pink-50 border-b border-pink-100 px-6 py-5 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <img src="/logo_aanya.png" alt="Aanya" className="h-12 w-auto object-contain" />
+                  <img src="/media__1785326482299.jpg" alt="Aanya" className="h-12 w-auto object-contain" />
                   <div>
                     <h3 className="font-serif text-base font-bold text-gray-900">Add New Product</h3>
                     <p className="text-xs text-pink-400 font-medium">Saved directly to Supabase catalog</p>

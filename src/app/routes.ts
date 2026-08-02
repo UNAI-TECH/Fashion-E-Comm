@@ -9,6 +9,10 @@ import { CategoryPage } from "./pages/CategoryPage";
 import { OrdersPage } from "./pages/OrdersPage";
 import { RootLayout } from "./components/RootLayout";
 import { AboutPage } from "./pages/AboutPage";
+import { PrivacyPolicyPage } from "./pages/PrivacyPolicyPage";
+import { TermsPage } from "./pages/TermsPage";
+import { PaymentMethodsPage } from "./pages/PaymentMethodsPage";
+import { SearchPage } from "./pages/SearchPage";
 import { AdminLogin } from "./pages/admin/AdminLogin";
 import { AdminRoute } from "./components/admin/AdminRoute";
 import { AdminLayout } from "./components/admin/AdminLayout";
@@ -40,8 +44,8 @@ export const router = createBrowserRouter([
       { path: "/checkout", Component: CheckoutPage },
       { path: "/contact", Component: ContactPage },
       { path: "/orders", Component: OrdersPage },
+      { path: "/search", Component: SearchPage },
       { path: "/category/:category", Component: CategoryPage },
-      { path: "/search", Component: CategoryPage },
       { path: "/new-arrivals", Component: CategoryPage },
       { path: "/sarees", Component: CategoryPage },
       { path: "/kurtis", Component: CategoryPage },
@@ -51,6 +55,9 @@ export const router = createBrowserRouter([
       { path: "/tradition", Component: CategoryPage },
       { path: "/maxi", Component: CategoryPage },
       { path: "/about", Component: AboutPage },
+      { path: "/privacy", Component: PrivacyPolicyPage },
+      { path: "/terms", Component: TermsPage },
+      { path: "/payment-methods", Component: PaymentMethodsPage },
       { path: "/admin/aanya", Component: AdminAanyaPage },
       { path: "/admin/login", Component: AdminAanyaPage },
       {

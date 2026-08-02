@@ -75,18 +75,20 @@ export function ProductCard({
             {/* Quick Action Overlay (Desktop) */}
             <div className="absolute inset-x-0 bottom-0 p-4 translate-y-full lg:group-hover/img:translate-y-0 transition-transform duration-300 ease-out bg-gradient-to-t from-black/50 to-transparent flex flex-col gap-2">
               <motion.button
-                onClick={(e) => {
+                onClick={async (e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  addToCart(product);
-                  window.dispatchEvent(new CustomEvent('open-cart'));
+                  if (!isInWishlist(id)) {
+                    await addToWishlist(product);
+                  }
+                  window.dispatchEvent(new CustomEvent('open-wishlist'));
                 }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 className="w-full py-2.5 bg-white text-gray-900 rounded-lg flex items-center justify-center gap-2 shadow-sm text-xs font-bold"
               >
-                <ShoppingBag className="w-4 h-4" />
-                Add to Cart
+                <Heart className={`w-4 h-4 ${isInWishlist(id) ? 'fill-[#800000] text-[#800000]' : ''}`} />
+                {isInWishlist(id) ? 'In Wishlist' : 'My Wishlist'}
               </motion.button>
             </div>
           </div>
@@ -111,15 +113,17 @@ export function ProductCard({
               </div>
               
               <button
-                onClick={(e) => {
+                onClick={async (e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  addToCart(product);
-                  window.dispatchEvent(new CustomEvent('open-cart'));
+                  if (!isInWishlist(id)) {
+                    await addToWishlist(product);
+                  }
+                  window.dispatchEvent(new CustomEvent('open-wishlist'));
                 }}
                 className="lg:hidden p-2 bg-[#1A1A1A] text-white rounded-lg shadow-sm active:scale-95 transition-transform"
               >
-                <ShoppingBag className="w-4 h-4" />
+                <Heart className={`w-4 h-4 ${isInWishlist(id) ? 'fill-white text-white' : ''}`} />
               </button>
             </div>
         </div>
@@ -131,18 +135,7 @@ export function ProductCard({
             <span className="text-xs text-gray-500 font-medium">{rating}</span>
           </div>
           
-          <div className="flex -space-x-1.5 overflow-hidden">
-            {colors.slice(0, 3).map((color, index) => (
-              <div
-                key={index}
-                className="w-4 h-4 rounded-full border border-white shadow-sm"
-                style={{ backgroundColor: color }}
-              />
-            ))}
-            {colors.length > 3 && (
-              <span className="text-[10px] text-gray-400 pl-1">+{colors.length - 3}</span>
-            )}
-          </div>
+
         </div>
       </div>
 

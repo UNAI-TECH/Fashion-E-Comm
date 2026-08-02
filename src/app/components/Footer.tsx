@@ -70,11 +70,11 @@ export function Footer() {
             <div className="grid grid-cols-2 md:grid-cols-5 gap-6 md:gap-8">
               {/* Brand/Socials Column */}
               <div className="col-span-2 md:col-span-2 flex flex-col items-start justify-start space-y-2 md:space-y-4">
-                <div className="flex items-center h-20 sm:h-24 md:h-28 lg:h-36 mb-2 md:mb-4">
+                <div className="flex items-center h-28 sm:h-36 md:h-44 lg:h-56 mb-2 md:mb-4 mix-blend-multiply">
                   <img
-                    src="/logo_aanya.png"
+                    src="/media__1785326482299.jpg"
                     alt="Aanya Fashions Logo"
-                    className="h-full w-auto object-contain brightness-105 contrast-125 drop-shadow-sm"
+                    className="h-full w-auto object-contain contrast-125 drop-shadow-xl"
                   />
                 </div>
                 <p className="text-sm text-gray-600 max-w-sm leading-relaxed hidden md:block">
@@ -171,11 +171,23 @@ export function Footer() {
           </div>
 
           {/* 3. Bottom Darker Pink Bar */}
-          <div className="bg-[#FFE4EC] px-8 py-3 md:py-4 flex justify-center items-center border-t border-[#FFD6E8]/30">
+          <div className="bg-[#FFE4EC] px-6 md:px-12 py-4 flex flex-col md:flex-row justify-between items-center gap-4 border-t border-[#FFD6E8]/30">
             {/* Copyright */}
-            <p className="text-xs font-semibold text-gray-700 text-center">
-              © 2024 Aanya Fashions. All Rights Reserved.
+            <p className="text-xs font-semibold text-gray-700 text-center md:text-left">
+              © 2026 Aanya Fashions. All Rights Reserved.
             </p>
+            
+            {/* Payment Methods */}
+            <div className="flex flex-col items-center md:items-end gap-2">
+              <span className="text-[10px] font-bold tracking-wider text-gray-500 uppercase">100% Secure Payments</span>
+              <div className="flex items-center gap-3 bg-white/50 px-3 py-1.5 rounded-lg border border-white/60">
+                <img src="https://cdn.simpleicons.org/visa/1434CB" alt="Visa" className="h-3 md:h-4 object-contain opacity-70 hover:opacity-100 transition-opacity" />
+                <img src="https://cdn.simpleicons.org/mastercard" alt="Mastercard" className="h-4 md:h-5 object-contain opacity-70 hover:opacity-100 transition-opacity" />
+                <img src="https://upload.wikimedia.org/wikipedia/commons/e/e1/UPI-Logo-vector.svg" alt="UPI" className="h-3 md:h-4 object-contain opacity-70 hover:opacity-100 transition-opacity" />
+                <img src="/payment-logos/rupay.png" alt="RuPay" className="h-3 md:h-4 object-contain opacity-70 hover:opacity-100 transition-opacity" />
+                <span className="text-[10px] font-bold text-gray-600 border-l border-gray-300 pl-2 ml-1">COD</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

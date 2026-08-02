@@ -7,21 +7,42 @@ import { Link, useLocation, useNavigate } from 'react-router';
 import { supabase } from '../../lib/supabase';
 import { Product, fetchProducts } from '../data/products';
 import { toast } from 'sonner';
+import { intelligentSearch, getRecommendedFallback } from '../../lib/aiSearchEngine';
+
+const HighlightText = ({ text, highlight }: { text: string; highlight: string }) => {
+  if (!highlight.trim()) return <>{text}</>;
+  const terms = highlight.toLowerCase().split(/\s+/).filter(w => w.length > 2); // only highlight words > 2 chars
+  if (terms.length === 0) return <>{text}</>;
+  const regex = new RegExp(`(${terms.join('|')})`, 'gi');
+  const parts = text.split(regex);
+  return (
+    <>
+      {parts.map((part, i) =>
+        regex.test(part) ? (
+          <span key={i} className="text-[#800000] font-black bg-[#800000]/10 px-0.5 rounded">{part}</span>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </>
+  );
+};
 
 export function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const { cartItems, cartCount, addToCart, updateQuantity, removeItem } = useCart();
+
   const { wishlistItems, wishlistCount, removeFromWishlist } = useWishlist();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
-  const [isCartOpen, setIsCartOpen] = useState(false);
+
   const [isCollectionOpen, setIsCollectionOpen] = useState(false);
   const [isMobileCollectionOpen, setIsMobileCollectionOpen] = useState(false);
   const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [isFallbackSearch, setIsFallbackSearch] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [searchHistory, setSearchHistory] = useState<string[]>(() => {
@@ -67,13 +88,13 @@ export function Navigation() {
     localStorage.setItem('user_profile_details', JSON.stringify(profileDetails));
     toast.success('Profile details saved successfully!');
     setIsAccountOpen(false);
-  };
-
+  };  // Always navigate to full collection / category page on search submit
   const handleSearchSubmit = (query: string) => {
     if (!query.trim()) return;
     addToHistory(query.trim());
     setIsSearchOpen(false);
     setSearchQuery('');
+    
     navigate(`/search?q=${encodeURIComponent(query.trim())}`);
   };
 
@@ -146,16 +167,16 @@ export function Navigation() {
       setIsScrolled(window.scrollY > 50);
     };
 
-    const handleOpenCart = () => {
-      setIsCartOpen(true);
+    const handleOpenWishlist = () => {
+      setIsWishlistOpen(true);
     };
 
     window.addEventListener('scroll', handleScroll);
-    window.addEventListener('open-cart', handleOpenCart);
+    window.addEventListener('open-wishlist', handleOpenWishlist);
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('open-cart', handleOpenCart);
+      window.removeEventListener('open-wishlist', handleOpenWishlist);
     };
   }, []);
 
@@ -169,77 +190,30 @@ export function Navigation() {
 
       setIsSearching(true);
       try {
-        const queryLower = queryTrimmed.toLowerCase();
-        
-        // Synonym & category expansion helper (handles spellings like kurtha, kurti, saree, sari, lehanga, etc.)
-        const getSearchTerms = (query: string): string[] => {
-          const q = query.toLowerCase().trim();
-          const terms = [q];
-
-          if (q.endsWith('es')) terms.push(q.slice(0, -2));
-          if (q.endsWith('s')) terms.push(q.slice(0, -1));
-
-          // Kurtas / Kurtis / Kurthas / Anarkali
-          if (q.includes('kurt') || q.includes('kurtah') || q.includes('anarkali')) {
-            terms.push('kurti', 'kurta', 'kurtis', 'kurtas', 'kurtha', 'kurthas', 'anarkali');
-          }
-
-          // Sarees / Sari / Sare
-          if (q.includes('sare') || q.includes('sari')) {
-            terms.push('saree', 'sari', 'sarees', 'saris');
-          }
-
-          // Lehengas / Lehanga / Ghagra / Choli
-          if (q.includes('leheng') || q.includes('lehang') || q.includes('choli')) {
-            terms.push('lehenga', 'lehanga', 'lehengas', 'lehangas', 'choli');
-          }
-
-          // Salwar / Suit / Suits / Patiala / Set
-          if (q.includes('salwar') || q.includes('suit') || q.includes('patiala')) {
-            terms.push('salwar', 'suit', 'suits', 'set', 'sets', 'patiala');
-          }
-
-          // Maxi / Gown
-          if (q.includes('maxi') || q.includes('gown')) {
-            terms.push('maxi', 'gown', 'gowns');
-          }
-
-          // Western
-          if (q.includes('west') || q.includes('western') || q.includes('blouse')) {
-            terms.push('western', 'blouse', 'culottes');
-          }
-
-          return Array.from(new Set(terms.filter(Boolean)));
-        };
-
-        const searchTerms = getSearchTerms(queryLower);
-        const primaryStem = searchTerms[1] || queryLower;
-
-        // 1. Always load mock catalog
+        // 1. Load mock catalog
         const mockProducts = await fetchProducts();
 
-        // 2. Also query Supabase in parallel using primary search term
+        // 2. Fetch from Supabase (broad search to allow client-side AI to filter)
+        // We fetch a larger pool so the AI can score them
         const { data: dbData } = await supabase
           .from('products')
           .select('id, name, category, description, price, images, image_url, status')
-          .or(`name.ilike.%${primaryStem}%,category.ilike.%${primaryStem}%`);
+          .limit(200);
 
         // 3. Combine and deduplicate
         const allItems = [...mockProducts, ...(dbData || [])];
         const uniqueItems = Array.from(new Map(allItems.map(item => [item.id, item])).values());
 
-        // 4. Filter: match ANY search term in name, category, or description
-        const results = uniqueItems.filter(product => {
-          const nameLower = (product.name || '').toLowerCase();
-          const categoryLower = (product.category || '').toLowerCase();
-          const descLower = (product.description || '').toLowerCase();
+        // 4. Run AI Semantic Search
+        let results = intelligentSearch(queryTrimmed, uniqueItems);
 
-          return searchTerms.some(term =>
-            nameLower.includes(term) ||
-            categoryLower.includes(term) ||
-            descLower.includes(term)
-          );
-        });
+        // 5. Fallback Recommendations if no results
+        if (results.length === 0) {
+          results = getRecommendedFallback(uniqueItems);
+          setIsFallbackSearch(true);
+        } else {
+          setIsFallbackSearch(false);
+        }
 
         setSearchResults(
           results.map((p: any) => ({
@@ -255,7 +229,7 @@ export function Navigation() {
       }
     };
 
-    const timer = setTimeout(searchProducts, 200);
+    const timer = setTimeout(searchProducts, 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
@@ -278,12 +252,12 @@ export function Navigation() {
         <div className="max-w-[1400px] mx-auto px-6 py-1 flex items-center gap-6">
 
           {/* Logo — Sleek, bold & compact height */}
-          <Link to="/" className="flex items-center flex-shrink-0 h-14 sm:h-16 py-0.5 overflow-hidden">
+          <Link to="/" className="flex items-center flex-shrink-0 h-20 sm:h-24 py-1 overflow-visible">
             <motion.img
               whileHover={{ scale: 1.05 }}
-              src="/logo_aanya.png"
+              src="/media__1785326482299.jpg"
               alt="Aanya Fashions"
-              className="h-full w-auto object-contain object-left contrast-200 brightness-95 scale-110 origin-left filter drop-shadow-sm"
+              className="h-full w-auto object-contain object-left contrast-125 scale-125 origin-left mix-blend-multiply drop-shadow-md"
             />
           </Link>
 
@@ -324,15 +298,6 @@ export function Navigation() {
               </motion.div>
             </Link>
 
-            <motion.button
-              whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }}
-              onClick={() => setIsCartOpen(true)}
-              className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-[#800000] transition-colors cursor-pointer"
-              aria-label="Cart"
-            >
-              <ShoppingBag className="w-5 h-5" />
-              <span className="text-[10px] font-semibold">Cart</span>
-            </motion.button>
 
             <motion.button
               whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }}
@@ -400,15 +365,15 @@ export function Navigation() {
         <div className="w-full pl-0.5 pr-2 py-0 bg-white flex items-center justify-between h-14 sm:h-16 rounded-full overflow-hidden">
           
           {/* Left side: Logo filling left side curve */}
-          <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center h-full flex-shrink-0">
+          <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center h-16 sm:h-20 flex-shrink-0 overflow-visible">
             <motion.div
               whileHover={{ scale: 1.04 }}
               className="flex items-center h-full py-0.5"
             >
               <img
-                src="/logo_aanya.png"
+                src="/media__1785326482299.jpg"
                 alt="Aanya Fashions Logo"
-                className="h-full w-auto object-contain object-left rounded-l-full brightness-95 contrast-200 drop-shadow-md scale-125 origin-left"
+                className="h-full w-auto object-contain object-left mix-blend-multiply contrast-125 drop-shadow-md scale-125 origin-left"
               />
             </motion.div>
           </Link>
@@ -512,22 +477,6 @@ export function Navigation() {
                     <span className="text-[9px] font-black text-amber-700 uppercase tracking-wider">Search</span>
                   </div>
 
-                  {/* Cart Action */}
-                  <div className="flex flex-col items-center gap-1.5 w-full">
-                    <motion.button
-                      whileHover={{ scale: 1.08 }}
-                      whileTap={{ scale: 0.92 }}
-                      onClick={() => {
-                        setIsMobileMenuOpen(false);
-                        setIsCartOpen(true);
-                      }}
-                      className="w-11 h-11 bg-rose-100/90 border border-rose-300 text-rose-600 rounded-2xl flex items-center justify-center shadow-sm hover:bg-rose-200/90 transition-all relative cursor-pointer"
-                      aria-label="Cart"
-                    >
-                      <ShoppingBag className="w-5 h-5 stroke-[2.5]" />
-                    </motion.button>
-                    <span className="text-[9px] font-black text-rose-700 uppercase tracking-wider">Cart</span>
-                  </div>
 
                   {/* My Orders Action */}
                   <div className="flex flex-col items-center gap-1.5 w-full">
@@ -557,6 +506,23 @@ export function Navigation() {
                       <User className="w-5 h-5 stroke-[2.5]" />
                     </motion.button>
                     <span className="text-[9px] font-black text-indigo-700 uppercase tracking-wider">Account</span>
+                  </div>
+
+                  {/* Wishlist Action */}
+                  <div className="flex flex-col items-center gap-1.5 w-full">
+                    <motion.button
+                      whileHover={{ scale: 1.08 }}
+                      whileTap={{ scale: 0.92 }}
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        setIsWishlistOpen(true);
+                      }}
+                      className="w-11 h-11 bg-rose-100/90 border border-rose-300 text-rose-600 rounded-2xl flex items-center justify-center shadow-sm hover:bg-rose-200/90 transition-all cursor-pointer"
+                      aria-label="Wishlist"
+                    >
+                      <Heart className="w-5 h-5 stroke-[2.5]" />
+                    </motion.button>
+                    <span className="text-[9px] font-black text-rose-700 uppercase tracking-wider">Wishlist</span>
                   </div>
                 </div>
               </div>
@@ -677,6 +643,11 @@ export function Navigation() {
                 </div>
               ) : searchResults.length > 0 ? (
                 <div className="space-y-0.5">
+                  {isFallbackSearch && (
+                    <div className="px-3 py-2 text-xs font-semibold text-gray-500 bg-gray-50 rounded-lg mb-2 border border-gray-100">
+                      No exact matches found. Showing recommendations:
+                    </div>
+                  )}
                   {searchResults.map((product) => (
                     <Link
                       key={product.id}
@@ -685,7 +656,9 @@ export function Navigation() {
                       className="flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-rose-50 transition-colors group"
                     >
                       <div>
-                        <p className="text-sm font-medium text-gray-800 group-hover:text-[#800000] transition-colors">{product.name}</p>
+                        <p className="text-sm font-medium text-gray-800 group-hover:text-[#800000] transition-colors">
+                          <HighlightText text={product.name} highlight={searchQuery} />
+                        </p>
                       </div>
                       <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-[#800000] transition-colors flex-shrink-0 ml-2" />
                     </Link>
@@ -713,18 +686,23 @@ export function Navigation() {
             className="fixed inset-0 z-[200] bg-white w-full h-full overflow-y-auto flex flex-col"
           >
             {/* Header */}
-            <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md px-6 sm:px-12 py-5 border-b border-gray-100 flex items-center justify-between shadow-sm">
-              <div>
-                <h2 className="font-serif text-2xl sm:text-3xl font-bold text-gray-900">Saved Wishlist Collection</h2>
-                <p className="text-gray-500 text-xs sm:text-sm">{wishlistItems.length} Saved Fashion Styles</p>
+            <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md px-6 sm:px-12 py-5 border-b border-gray-100 flex items-center justify-between shadow-sm relative">
+              <div className="absolute left-6 sm:left-12 flex items-center">
+                <img src="/media__1785326482299.jpg" alt="Aanya Fashions Logo" className="h-16 sm:h-20 w-auto object-contain mix-blend-multiply contrast-125 drop-shadow-md hidden sm:block" />
               </div>
-              <button 
-                onClick={() => setIsWishlistOpen(false)}
-                className="p-3 hover:bg-gray-100 rounded-full transition-colors border border-gray-200"
-                aria-label="Close Wishlist"
-              >
-                <X className="w-6 h-6 text-gray-700" />
-              </button>
+              <div className="flex-1 flex flex-col items-center justify-center">
+                <h2 className="font-serif text-2xl sm:text-3xl font-bold text-gray-900 text-center">Saved Wishlist Collection</h2>
+                <p className="text-gray-500 text-xs sm:text-sm text-center">{wishlistItems.length} Saved Fashion Styles</p>
+              </div>
+              <div className="absolute right-6 sm:right-12 flex items-center gap-4">
+                <button 
+                  onClick={() => setIsWishlistOpen(false)}
+                  className="p-3 hover:bg-gray-100 rounded-full transition-colors border border-gray-200"
+                  aria-label="Close Wishlist"
+                >
+                  <X className="w-6 h-6 text-gray-700" />
+                </button>
+              </div>
             </div>
 
             {/* Grid Content with Full Box Images */}
@@ -745,13 +723,6 @@ export function Navigation() {
                           alt={item.name} 
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
                         />
-                        <button 
-                          onClick={() => removeFromWishlist(item.id)}
-                          className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-md rounded-full shadow-md hover:bg-rose-600 hover:text-white transition-all text-gray-700"
-                          aria-label="Remove item"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
                       </div>
 
                       {/* Product Details Only */}
@@ -799,86 +770,6 @@ export function Navigation() {
         )}
       </AnimatePresence>
 
-      {/* Cart Full Screen Overlay */}
-      <AnimatePresence>
-        {isCartOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 30 }}
-            transition={{ duration: 0.22, ease: [0.25, 1, 0.5, 1] }}
-            className="fixed inset-0 z-[200] bg-[#FDFBF7] overflow-y-auto animate-fade-in"
-          >
-            {/* Header */}
-            <div className="sticky top-0 z-20 flex items-center justify-between px-6 sm:px-8 py-2 bg-[#FDFBF7]/95 backdrop-blur-md border-b border-gray-100/30">
-              <Link to="/" onClick={() => setIsCartOpen(false)} className="h-20 sm:h-24 flex items-center justify-start pointer-events-auto">
-                <img
-                  src="/logo_aanya.png"
-                  alt="Aanya Fashions Logo"
-                  className="h-full w-auto object-contain brightness-105 contrast-125 drop-shadow-sm"
-                />
-              </Link>
-              <button
-                onClick={() => setIsCartOpen(false)}
-                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors border border-gray-200"
-                aria-label="Close cart"
-              >
-                <X className="w-5 h-5 text-gray-700" />
-              </button>
-            </div>
-
-            {/* Body */}
-            <div className="px-6 sm:px-8 pb-12 flex justify-center">
-              <div className="w-full max-w-xl space-y-6 h-fit my-2">
-                {cartItems.length > 0 ? (
-                  cartItems.map((item) => (
-                    <div key={item.id} className="bg-white p-4 rounded-none shadow-sm flex gap-6 items-center border border-gray-100">
-                      <div className="w-32 h-32 rounded-none overflow-hidden bg-gray-50 flex-shrink-0 aspect-square">
-                        <img
-                          src={item.image}
-                          alt={item.name}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-
-                      {/* Product Details */}
-                      <div className="flex-grow flex items-center justify-between min-w-0">
-                        <div className="space-y-1 min-w-0 pr-4">
-                          <h3 className="font-serif text-base text-gray-900 truncate">
-                            {item.name}
-                          </h3>
-                          <div className="text-sm font-bold text-[#D4AF37]">
-                            ₹{item.price.toLocaleString('en-IN')}
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => removeItem(item.id)}
-                          className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all duration-200 flex-shrink-0"
-                          aria-label="Remove item"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-20 bg-white rounded-none shadow-sm p-8">
-                    <ShoppingBag className="w-16 h-16 text-gray-300 mx-auto mb-6" />
-                    <h2 className="text-2xl font-serif text-gray-800 mb-4">Your cart is empty</h2>
-                    <p className="text-gray-500 mb-8">Explore our collections and add your favorite styles.</p>
-                    <button
-                      onClick={() => setIsCartOpen(false)}
-                      className="px-8 py-3 bg-[#800000] text-white rounded-none font-medium"
-                    >
-                      Continue Shopping
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Account Full Screen Overlay (Direct Account Details Form - Perfect Viewport Fit) */}
       <AnimatePresence>
@@ -895,7 +786,7 @@ export function Navigation() {
               {/* Left: Official Logo */}
               <div className="flex items-center justify-start">
                 <img 
-                  src="/logo_aanya.png" 
+                  src="/media__1785326482299.jpg" 
                   alt="Aanya Fashions Logo" 
                   className="h-14 sm:h-20 max-h-20 w-auto object-contain brightness-110 contrast-125 drop-shadow-lg flex-shrink-0"
                 />
@@ -1055,9 +946,9 @@ export function Navigation() {
                     initial={{ scale: 0.85, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.1, duration: 0.4 }}
-                    src="/logo_aanya.png"
+                    src="/media__1785326482299.jpg"
                     alt="Aanya Fashions Logo"
-                    className="h-44 sm:h-52 w-auto object-contain brightness-105 contrast-125 drop-shadow-xl mb-8"
+                    className="h-44 sm:h-56 w-auto object-contain contrast-125 mix-blend-multiply drop-shadow-xl mb-8"
                   />
 
                   {/* Welcome Message Only */}

@@ -66,7 +66,7 @@ export function AdminLayout() {
       >
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-800">
           <NavLink to="/admin/dashboard" className="flex items-center gap-2.5 group">
-            <img src="/logo_aanya.png" alt="Aanya Fashions Logo" className="h-11 w-auto object-contain bg-white/10 rounded-lg p-1 group-hover:scale-105 transition-transform brightness-110 contrast-125 drop-shadow-sm" />
+            <img src="/media__1785326482299.jpg" alt="Aanya Fashions Logo" className="h-11 w-auto object-contain bg-white/10 rounded-lg p-1 group-hover:scale-105 transition-transform brightness-110 contrast-125 drop-shadow-sm" />
             <span className="text-lg font-serif text-[#D4AF37] font-bold tracking-tight">Aanya Fashions</span>
           </NavLink>
           <button onClick={() => setIsMobileMenuOpen(false)} className="lg:hidden text-gray-400 hover:text-white">

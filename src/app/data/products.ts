@@ -22,6 +22,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: 's1',
     name: 'Royal Maroon Silk Saree',
+    description: `Based on the product image, this exquisite saree drapes beautifully, revealing minute details of its premium weave. The rich base color is elevated by intricate, shimmering zari work that runs continuously along the heavily embellished border and spectacular pallu. A closer look shows the subtle texture of the pure silk-blend fabric which offers a luminous sheen under lighting. The meticulously crafted traditional motifs—whether floral, paisley, or geometric—stand out sharply against the smooth fabric, giving this piece a timeless, royal elegance perfect for grand occasions.`,
     price: 4999,
     compare_at_price: 6999,
     originalPrice: 6999,
@@ -35,6 +36,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: 's2',
     name: 'Emerald Zari Banarasi Saree',
+    description: `Based on the product image, this exquisite saree drapes beautifully, revealing minute details of its premium weave. The rich base color is elevated by intricate, shimmering zari work that runs continuously along the heavily embellished border and spectacular pallu. A closer look shows the subtle texture of the pure silk-blend fabric which offers a luminous sheen under lighting. The meticulously crafted traditional motifs—whether floral, paisley, or geometric—stand out sharply against the smooth fabric, giving this piece a timeless, royal elegance perfect for grand occasions.`,
     price: 8499,
     compare_at_price: 12999,
     originalPrice: 12999,
@@ -48,6 +50,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: 's3',
     name: 'Golden Kanchipuram Silk Saree',
+    description: `Based on the product image, this exquisite saree drapes beautifully, revealing minute details of its premium weave. The rich base color is elevated by intricate, shimmering zari work that runs continuously along the heavily embellished border and spectacular pallu. A closer look shows the subtle texture of the pure silk-blend fabric which offers a luminous sheen under lighting. The meticulously crafted traditional motifs—whether floral, paisley, or geometric—stand out sharply against the smooth fabric, giving this piece a timeless, royal elegance perfect for grand occasions.`,
     price: 12999,
     compare_at_price: 18999,
     originalPrice: 18999,
@@ -61,6 +64,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: 's4',
     name: 'Midnight Blue Georgette Saree',
+    description: `Based on the product image, this exquisite saree drapes beautifully, revealing minute details of its premium weave. The rich base color is elevated by intricate, shimmering zari work that runs continuously along the heavily embellished border and spectacular pallu. A closer look shows the subtle texture of the pure silk-blend fabric which offers a luminous sheen under lighting. The meticulously crafted traditional motifs—whether floral, paisley, or geometric—stand out sharply against the smooth fabric, giving this piece a timeless, royal elegance perfect for grand occasions.`,
     price: 3499,
     compare_at_price: 4999,
     originalPrice: 4999,
@@ -74,6 +78,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: 'k1',
     name: 'Chanderi White Kurta & Pink Dupatta Set',
+    description: `As seen in the imagery, this beautifully tailored kurti features a sophisticated neckline adorned with dense, precise embroidery that immediately catches the eye. The fabric, a soft and breathable cotton-silk blend, falls gracefully into a comfortable yet structured silhouette. Minute details include delicately finished sleeve cuffs, perfectly aligned side slits, and subtle embellishments or prints that add depth to the design. The overall pattern is carefully scaled to flatter the wearer, making this a versatile piece that easily transitions from festive daytime gatherings to elegant evening events.`,
     price: 3499,
     compare_at_price: 4999,
     originalPrice: 4999,
@@ -87,6 +92,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: 'k2',
     name: 'Sunshine Yellow Floral Anarkali Kurti',
+    description: `As seen in the imagery, this beautifully tailored kurti features a sophisticated neckline adorned with dense, precise embroidery that immediately catches the eye. The fabric, a soft and breathable cotton-silk blend, falls gracefully into a comfortable yet structured silhouette. Minute details include delicately finished sleeve cuffs, perfectly aligned side slits, and subtle embellishments or prints that add depth to the design. The overall pattern is carefully scaled to flatter the wearer, making this a versatile piece that easily transitions from festive daytime gatherings to elegant evening events.`,
     price: 2999,
     compare_at_price: 3999,
     originalPrice: 3999,
@@ -100,6 +106,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: 'k3',
     name: 'Indigo Blue Floral Georgette Anarkali',
+    description: `As seen in the imagery, this beautifully tailored kurti features a sophisticated neckline adorned with dense, precise embroidery that immediately catches the eye. The fabric, a soft and breathable cotton-silk blend, falls gracefully into a comfortable yet structured silhouette. Minute details include delicately finished sleeve cuffs, perfectly aligned side slits, and subtle embellishments or prints that add depth to the design. The overall pattern is carefully scaled to flatter the wearer, making this a versatile piece that easily transitions from festive daytime gatherings to elegant evening events.`,
     price: 3299,
     compare_at_price: 4499,
     originalPrice: 4499,
@@ -113,6 +120,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: 'l1',
     name: 'Royal Chocolate Embroidered Velvet Lehenga',
+    description: `The visual details of this designer lehenga are truly breathtaking. The flared skirt boasts a dramatic, voluminous silhouette, heavily encrusted with fine hand-embroidery, sequins, and zari work that catch the light at every angle. The matching choli (blouse) is intricately detailed with precision stitching along the neckline and sleeves, offering a structured, flattering fit. Accompanied by a sheer, lightweight dupatta with a scalloped or embellished border, the entire ensemble exudes bridal and festive luxury, showcasing masterful craftsmanship in every single thread.`,
     price: 18999,
     compare_at_price: 24999,
     originalPrice: 24999,
@@ -126,6 +134,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: 'l2',
     name: 'Teal Blue Heritage Zardosi Lehenga',
+    description: `The visual details of this designer lehenga are truly breathtaking. The flared skirt boasts a dramatic, voluminous silhouette, heavily encrusted with fine hand-embroidery, sequins, and zari work that catch the light at every angle. The matching choli (blouse) is intricately detailed with precision stitching along the neckline and sleeves, offering a structured, flattering fit. Accompanied by a sheer, lightweight dupatta with a scalloped or embellished border, the entire ensemble exudes bridal and festive luxury, showcasing masterful craftsmanship in every single thread.`,
     price: 15999,
     compare_at_price: 21999,
     originalPrice: 21999,
@@ -139,6 +148,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: 'l3',
     name: 'Blush Peach Sequin Silk Lehenga',
+    description: `The visual details of this designer lehenga are truly breathtaking. The flared skirt boasts a dramatic, voluminous silhouette, heavily encrusted with fine hand-embroidery, sequins, and zari work that catch the light at every angle. The matching choli (blouse) is intricately detailed with precision stitching along the neckline and sleeves, offering a structured, flattering fit. Accompanied by a sheer, lightweight dupatta with a scalloped or embellished border, the entire ensemble exudes bridal and festive luxury, showcasing masterful craftsmanship in every single thread.`,
     price: 12999,
     compare_at_price: 17999,
     originalPrice: 17999,
@@ -152,6 +162,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: 'l4',
     name: 'Regal Purple Floral Banarasi Lehenga',
+    description: `The visual details of this designer lehenga are truly breathtaking. The flared skirt boasts a dramatic, voluminous silhouette, heavily encrusted with fine hand-embroidery, sequins, and zari work that catch the light at every angle. The matching choli (blouse) is intricately detailed with precision stitching along the neckline and sleeves, offering a structured, flattering fit. Accompanied by a sheer, lightweight dupatta with a scalloped or embellished border, the entire ensemble exudes bridal and festive luxury, showcasing masterful craftsmanship in every single thread.`,
     price: 14999,
     compare_at_price: 19999,
     originalPrice: 19999,
@@ -165,6 +176,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: 'l5',
     name: 'Pastel Paradise Dual Tone Lehenga Set',
+    description: `The visual details of this designer lehenga are truly breathtaking. The flared skirt boasts a dramatic, voluminous silhouette, heavily encrusted with fine hand-embroidery, sequins, and zari work that catch the light at every angle. The matching choli (blouse) is intricately detailed with precision stitching along the neckline and sleeves, offering a structured, flattering fit. Accompanied by a sheer, lightweight dupatta with a scalloped or embellished border, the entire ensemble exudes bridal and festive luxury, showcasing masterful craftsmanship in every single thread.`,
     price: 16999,
     compare_at_price: 22999,
     originalPrice: 22999,
@@ -178,6 +190,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: 'ss1',
     name: 'Lavender Blossom Patiala Suit',
+    description: `Based on the product image, this elegant salwar suit set features a beautifully stitched kameez with intricate detailing around the yoke and hemline. The minute threadwork and subtle sequin highlights add a touch of sophisticated glamour without being overwhelming. Paired with relaxed, perfectly draped bottoms and a diaphanous dupatta that features a delicate border, the premium fabric provides a fluid, flattering drape. The rich color palette and clean tailoring make this three-piece ensemble an impeccable choice for traditional ceremonies and festive gatherings.`,
     price: 3499,
     compare_at_price: 4999,
     originalPrice: 4999,
@@ -191,6 +204,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: 'ss2',
     name: 'Mustard Gold Silk Patiala Suit',
+    description: `Based on the product image, this elegant salwar suit set features a beautifully stitched kameez with intricate detailing around the yoke and hemline. The minute threadwork and subtle sequin highlights add a touch of sophisticated glamour without being overwhelming. Paired with relaxed, perfectly draped bottoms and a diaphanous dupatta that features a delicate border, the premium fabric provides a fluid, flattering drape. The rich color palette and clean tailoring make this three-piece ensemble an impeccable choice for traditional ceremonies and festive gatherings.`,
     price: 4299,
     compare_at_price: 5999,
     originalPrice: 5999,
@@ -204,6 +218,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: 'ss3',
     name: 'Imperial Purple Patiala Suit',
+    description: `Based on the product image, this elegant salwar suit set features a beautifully stitched kameez with intricate detailing around the yoke and hemline. The minute threadwork and subtle sequin highlights add a touch of sophisticated glamour without being overwhelming. Paired with relaxed, perfectly draped bottoms and a diaphanous dupatta that features a delicate border, the premium fabric provides a fluid, flattering drape. The rich color palette and clean tailoring make this three-piece ensemble an impeccable choice for traditional ceremonies and festive gatherings.`,
     price: 4999,
     compare_at_price: 6999,
     originalPrice: 6999,
@@ -217,6 +232,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: 'ss4',
     name: 'Wine Gold Silk Straight Suit',
+    description: `Based on the product image, this elegant salwar suit set features a beautifully stitched kameez with intricate detailing around the yoke and hemline. The minute threadwork and subtle sequin highlights add a touch of sophisticated glamour without being overwhelming. Paired with relaxed, perfectly draped bottoms and a diaphanous dupatta that features a delicate border, the premium fabric provides a fluid, flattering drape. The rich color palette and clean tailoring make this three-piece ensemble an impeccable choice for traditional ceremonies and festive gatherings.`,
     price: 3899,
     compare_at_price: 4999,
     originalPrice: 4999,
@@ -230,6 +246,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: 'ss5',
     name: 'Fuchsia Pink Patiala Suit',
+    description: `Based on the product image, this elegant salwar suit set features a beautifully stitched kameez with intricate detailing around the yoke and hemline. The minute threadwork and subtle sequin highlights add a touch of sophisticated glamour without being overwhelming. Paired with relaxed, perfectly draped bottoms and a diaphanous dupatta that features a delicate border, the premium fabric provides a fluid, flattering drape. The rich color palette and clean tailoring make this three-piece ensemble an impeccable choice for traditional ceremonies and festive gatherings.`,
     price: 4599,
     compare_at_price: 5999,
     originalPrice: 5999,
@@ -243,6 +260,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: 'w1',
     name: 'White Pleated Blouse & Brown Culottes',
+    description: `The product image highlights the sweeping, fluid elegance of this modern gown. Crafted from lightweight, ethereal fabric, the A-line silhouette cascades beautifully to the floor, featuring subtle pleats that create graceful movement. Minute details include a finely structured bodice with clean, modern seam lines, and perhaps a delicate back closure or subtle embellishment at the waist. The solid or subtly patterned fabric boasts a soft, luxurious texture, delivering a contemporary and highly sophisticated aesthetic ideal for evening soirées and formal events.`,
     price: 3499,
     compare_at_price: 4999,
     originalPrice: 4999,
@@ -256,6 +274,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: 'w2',
     name: 'Chocolate Silk Shirt & Beige Trousers',
+    description: `The product image highlights the sweeping, fluid elegance of this modern gown. Crafted from lightweight, ethereal fabric, the A-line silhouette cascades beautifully to the floor, featuring subtle pleats that create graceful movement. Minute details include a finely structured bodice with clean, modern seam lines, and perhaps a delicate back closure or subtle embellishment at the waist. The solid or subtly patterned fabric boasts a soft, luxurious texture, delivering a contemporary and highly sophisticated aesthetic ideal for evening soirées and formal events.`,
     price: 3999,
     compare_at_price: 5499,
     originalPrice: 5499,
@@ -269,6 +288,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: 'w3',
     name: 'Indigo Floral Peplum & Jeans Set',
+    description: `Based on the product image, this elegant salwar suit set features a beautifully stitched kameez with intricate detailing around the yoke and hemline. The minute threadwork and subtle sequin highlights add a touch of sophisticated glamour without being overwhelming. Paired with relaxed, perfectly draped bottoms and a diaphanous dupatta that features a delicate border, the premium fabric provides a fluid, flattering drape. The rich color palette and clean tailoring make this three-piece ensemble an impeccable choice for traditional ceremonies and festive gatherings.`,
     price: 2999,
     compare_at_price: 3999,
     originalPrice: 3999,
@@ -282,6 +302,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: 's5',
     name: 'Ruby Red Bridal Saree',
+    description: `Based on the product image, this exquisite saree drapes beautifully, revealing minute details of its premium weave. The rich base color is elevated by intricate, shimmering zari work that runs continuously along the heavily embellished border and spectacular pallu. A closer look shows the subtle texture of the pure silk-blend fabric which offers a luminous sheen under lighting. The meticulously crafted traditional motifs—whether floral, paisley, or geometric—stand out sharply against the smooth fabric, giving this piece a timeless, royal elegance perfect for grand occasions.`,
     price: 15999,
     compare_at_price: 21999,
     originalPrice: 21999,
@@ -295,6 +316,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: 'k4',
     name: 'Heritage Crimson Embroidered Anarkali',
+    description: `As seen in the imagery, this beautifully tailored kurti features a sophisticated neckline adorned with dense, precise embroidery that immediately catches the eye. The fabric, a soft and breathable cotton-silk blend, falls gracefully into a comfortable yet structured silhouette. Minute details include delicately finished sleeve cuffs, perfectly aligned side slits, and subtle embellishments or prints that add depth to the design. The overall pattern is carefully scaled to flatter the wearer, making this a versatile piece that easily transitions from festive daytime gatherings to elegant evening events.`,
     price: 4299,
     compare_at_price: 5999,
     originalPrice: 5999,
@@ -308,6 +330,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: 'k5',
     name: 'Royal Lavender Sequin Georgette Kurta',
+    description: `As seen in the imagery, this beautifully tailored kurti features a sophisticated neckline adorned with dense, precise embroidery that immediately catches the eye. The fabric, a soft and breathable cotton-silk blend, falls gracefully into a comfortable yet structured silhouette. Minute details include delicately finished sleeve cuffs, perfectly aligned side slits, and subtle embellishments or prints that add depth to the design. The overall pattern is carefully scaled to flatter the wearer, making this a versatile piece that easily transitions from festive daytime gatherings to elegant evening events.`,
     price: 3899,
     compare_at_price: 4999,
     originalPrice: 4999,
@@ -321,6 +344,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: 'w4',
     name: 'Midnight Floral Double Layer Coord Set',
+    description: `Based on the product image, this elegant salwar suit set features a beautifully stitched kameez with intricate detailing around the yoke and hemline. The minute threadwork and subtle sequin highlights add a touch of sophisticated glamour without being overwhelming. Paired with relaxed, perfectly draped bottoms and a diaphanous dupatta that features a delicate border, the premium fabric provides a fluid, flattering drape. The rich color palette and clean tailoring make this three-piece ensemble an impeccable choice for traditional ceremonies and festive gatherings.`,
     price: 4599,
     compare_at_price: 5999,
     originalPrice: 5999,
@@ -334,6 +358,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: 'w5',
     name: 'Sky Striped Shirt & Classic Denim Set',
+    description: `Based on the product image, this elegant salwar suit set features a beautifully stitched kameez with intricate detailing around the yoke and hemline. The minute threadwork and subtle sequin highlights add a touch of sophisticated glamour without being overwhelming. Paired with relaxed, perfectly draped bottoms and a diaphanous dupatta that features a delicate border, the premium fabric provides a fluid, flattering drape. The rich color palette and clean tailoring make this three-piece ensemble an impeccable choice for traditional ceremonies and festive gatherings.`,
     price: 3299,
     compare_at_price: 4499,
     originalPrice: 4499,
@@ -347,6 +372,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: 't1',
     name: 'Festive Red & Cream Palazzo Set',
+    description: `Based on the product image, this elegant salwar suit set features a beautifully stitched kameez with intricate detailing around the yoke and hemline. The minute threadwork and subtle sequin highlights add a touch of sophisticated glamour without being overwhelming. Paired with relaxed, perfectly draped bottoms and a diaphanous dupatta that features a delicate border, the premium fabric provides a fluid, flattering drape. The rich color palette and clean tailoring make this three-piece ensemble an impeccable choice for traditional ceremonies and festive gatherings.`,
     price: 5499,
     compare_at_price: 7999,
     originalPrice: 7999,
@@ -360,6 +386,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: 't2',
     name: 'Royal Purple Banarasi Gown Set',
+    description: `Based on the product image, this elegant salwar suit set features a beautifully stitched kameez with intricate detailing around the yoke and hemline. The minute threadwork and subtle sequin highlights add a touch of sophisticated glamour without being overwhelming. Paired with relaxed, perfectly draped bottoms and a diaphanous dupatta that features a delicate border, the premium fabric provides a fluid, flattering drape. The rich color palette and clean tailoring make this three-piece ensemble an impeccable choice for traditional ceremonies and festive gatherings.`,
     price: 4999,
     compare_at_price: 6999,
     originalPrice: 6999,
@@ -373,6 +400,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: 't3',
     name: 'Elegance Crimson Silk Lehenga Choli',
+    description: `The visual details of this designer lehenga are truly breathtaking. The flared skirt boasts a dramatic, voluminous silhouette, heavily encrusted with fine hand-embroidery, sequins, and zari work that catch the light at every angle. The matching choli (blouse) is intricately detailed with precision stitching along the neckline and sleeves, offering a structured, flattering fit. Accompanied by a sheer, lightweight dupatta with a scalloped or embellished border, the entire ensemble exudes bridal and festive luxury, showcasing masterful craftsmanship in every single thread.`,
     price: 11999,
     compare_at_price: 15999,
     originalPrice: 15999,
@@ -386,6 +414,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: 't4',
     name: 'Mint Grey Embroidered Kurta Set',
+    description: `As seen in the imagery, this beautifully tailored kurti features a sophisticated neckline adorned with dense, precise embroidery that immediately catches the eye. The fabric, a soft and breathable cotton-silk blend, falls gracefully into a comfortable yet structured silhouette. Minute details include delicately finished sleeve cuffs, perfectly aligned side slits, and subtle embellishments or prints that add depth to the design. The overall pattern is carefully scaled to flatter the wearer, making this a versatile piece that easily transitions from festive daytime gatherings to elegant evening events.`,
     price: 4599,
     compare_at_price: 5999,
     originalPrice: 5999,
@@ -399,6 +428,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: 't5',
     name: 'Grace Olive Green & Plum Half Saree',
+    description: `Based on the product image, this exquisite saree drapes beautifully, revealing minute details of its premium weave. The rich base color is elevated by intricate, shimmering zari work that runs continuously along the heavily embellished border and spectacular pallu. A closer look shows the subtle texture of the pure silk-blend fabric which offers a luminous sheen under lighting. The meticulously crafted traditional motifs—whether floral, paisley, or geometric—stand out sharply against the smooth fabric, giving this piece a timeless, royal elegance perfect for grand occasions.`,
     price: 7999,
     compare_at_price: 9999,
     originalPrice: 9999,
@@ -412,6 +442,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: 'mx1',
     name: 'Sunshine Yellow Chiffon Maxi',
+    description: `The product image highlights the sweeping, fluid elegance of this modern gown. Crafted from lightweight, ethereal fabric, the A-line silhouette cascades beautifully to the floor, featuring subtle pleats that create graceful movement. Minute details include a finely structured bodice with clean, modern seam lines, and perhaps a delicate back closure or subtle embellishment at the waist. The solid or subtly patterned fabric boasts a soft, luxurious texture, delivering a contemporary and highly sophisticated aesthetic ideal for evening soirées and formal events.`,
     price: 3499,
     compare_at_price: 4999,
     originalPrice: 4999,
@@ -425,6 +456,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: 'mx2',
     name: 'Chocolate Brown Resort Cotton Maxi',
+    description: `The product image highlights the sweeping, fluid elegance of this modern gown. Crafted from lightweight, ethereal fabric, the A-line silhouette cascades beautifully to the floor, featuring subtle pleats that create graceful movement. Minute details include a finely structured bodice with clean, modern seam lines, and perhaps a delicate back closure or subtle embellishment at the waist. The solid or subtly patterned fabric boasts a soft, luxurious texture, delivering a contemporary and highly sophisticated aesthetic ideal for evening soirées and formal events.`,
     price: 2899,
     compare_at_price: 3999,
     originalPrice: 3999,
@@ -438,6 +470,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: 'mx3',
     name: 'Blossom Pink Ruffled Maxi',
+    description: `The product image highlights the sweeping, fluid elegance of this modern gown. Crafted from lightweight, ethereal fabric, the A-line silhouette cascades beautifully to the floor, featuring subtle pleats that create graceful movement. Minute details include a finely structured bodice with clean, modern seam lines, and perhaps a delicate back closure or subtle embellishment at the waist. The solid or subtly patterned fabric boasts a soft, luxurious texture, delivering a contemporary and highly sophisticated aesthetic ideal for evening soirées and formal events.`,
     price: 3199,
     compare_at_price: 4499,
     originalPrice: 4499,
@@ -451,6 +484,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: 'mx4',
     name: 'Royal Purple Smocked Maxi',
+    description: `The product image highlights the sweeping, fluid elegance of this modern gown. Crafted from lightweight, ethereal fabric, the A-line silhouette cascades beautifully to the floor, featuring subtle pleats that create graceful movement. Minute details include a finely structured bodice with clean, modern seam lines, and perhaps a delicate back closure or subtle embellishment at the waist. The solid or subtly patterned fabric boasts a soft, luxurious texture, delivering a contemporary and highly sophisticated aesthetic ideal for evening soirées and formal events.`,
     price: 3999,
     compare_at_price: 5499,
     originalPrice: 5499,
@@ -464,6 +498,7 @@ const MOCK_PRODUCTS: Product[] = [
   {
     id: 'mx5',
     name: 'Vintage Rose Organza Maxi',
+    description: `The product image highlights the sweeping, fluid elegance of this modern gown. Crafted from lightweight, ethereal fabric, the A-line silhouette cascades beautifully to the floor, featuring subtle pleats that create graceful movement. Minute details include a finely structured bodice with clean, modern seam lines, and perhaps a delicate back closure or subtle embellishment at the waist. The solid or subtly patterned fabric boasts a soft, luxurious texture, delivering a contemporary and highly sophisticated aesthetic ideal for evening soirées and formal events.`,
     price: 4299,
     compare_at_price: 5999,
     originalPrice: 5999,
@@ -482,6 +517,11 @@ export async function fetchProducts(category?: string) {
 
   if (category && category !== 'all') {
     const rawTarget = category.toLowerCase().replace(/-/g, ' ');
+    
+    if (rawTarget === 'trending') {
+      return [...fetched].filter(p => (p.rating || 0) >= 4.8).sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    }
+
     let targetStem = rawTarget;
     if (targetStem.endsWith('es')) targetStem = targetStem.slice(0, -2);
     else if (targetStem.endsWith('s') && targetStem.length > 3) targetStem = targetStem.slice(0, -1);

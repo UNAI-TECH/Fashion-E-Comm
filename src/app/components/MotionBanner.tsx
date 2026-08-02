@@ -3,15 +3,16 @@ import { ArrowRight } from 'lucide-react';
 
 export function MotionBanner() {
   return (
-    <section className="relative w-full min-h-[320px] md:min-h-0 md:aspect-[19/8] flex flex-col md:flex-row items-center overflow-hidden bg-[#F1CBD3] py-16 md:py-0">
-      {/* Background Image - hidden on mobile, right-aligned on desktop */}
-      <div className="hidden md:block absolute bottom-0 right-0 w-full h-[45%] md:h-full md:w-[60%] pointer-events-none z-0">
-        <img
-          src="/hero_new.png"
-          alt="Fashion Collection"
-          className="w-full h-full object-contain object-bottom md:object-right transform scale-120 origin-bottom-right"
-        />
-      </div>
+    <section 
+      className="relative w-full min-h-[260px] md:min-h-0 md:aspect-[21/7] lg:aspect-[24/7] flex flex-col md:flex-row items-center overflow-hidden py-10 md:py-0"
+      style={{ 
+        backgroundImage: 'linear-gradient(to right, #FBCED7 0%, #FBCED7 45%, transparent 60%), url("/hero_fashion_phone.png")', 
+        backgroundSize: '100% 100%, contain', 
+        backgroundPosition: 'left center, right center',
+        backgroundRepeat: 'no-repeat, no-repeat',
+        backgroundColor: '#FBCED7'
+      }}
+    >
 
       {/* Transparent spacer overlay */}
       <div className="absolute inset-0 bg-transparent pointer-events-none" />

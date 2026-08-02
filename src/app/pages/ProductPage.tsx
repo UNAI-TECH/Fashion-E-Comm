@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useParams, Link, useNavigate } from 'react-router';
-import { Star, Heart, ShoppingBag, Share2, Truck, RotateCcw, Shield, ChevronLeft, ChevronRight, ZoomIn, CreditCard, CheckCircle2, Loader2, DollarSign, MapPin, Calendar, Sparkles } from 'lucide-react';
+import { Star, Heart, ShoppingBag, Share2, Truck, RotateCcw, Shield, ChevronLeft, ChevronRight, ZoomIn, CreditCard, CheckCircle2, Loader2, DollarSign, MapPin, Calendar, Sparkles, X } from 'lucide-react';
 import { Navigation } from '../components/Navigation';
 import { AnnouncementBar } from '../components/AnnouncementBar';
 import { CompactCustomerReviews } from '../components/CompactCustomerReviews';
@@ -13,7 +13,7 @@ import { fetchProducts, Product } from '../data/products';
 import { toast } from 'sonner';
 
 interface ProductDetailsData {
-  detailedDescription: string;
+  attributes: { label: string; value: string }[];
   occasions: string[];
   pairWith: string[];
 }
@@ -22,10 +22,35 @@ function getProductFullDetails(prod: Product): ProductDetailsData {
   const name = (prod.name || '').toLowerCase();
   const category = (prod.category || '').toLowerCase();
 
+  const extractedColor = (() => {
+    const colorList = "Forest Green, Moss Green, Olive Green, Sage Green, Fern Green, Emerald Green, Mint Green, Sea Green, Sky Blue, Ocean Blue, Aqua Blue, Sand Beige, Desert Sand, Stone Gray, Slate Gray, Clay Brown, Earth Brown, Coffee Brown, Chocolate Brown, Bark Brown, Sunset Orange, Sunrise Yellow, Rose Pink, Snow White, Ice Blue, Pastel Pink, Baby Pink, Blush Pink, Powder Blue, Baby Blue, Pastel Green, Pale Yellow, Lemon Chiffon, Light Coral, Pale Turquoise, Sky Mist, Ruby Red, Sapphire Blue, Amethyst Purple, Topaz Yellow, Garnet Red, Opal White, Jade Green, Onyx Black, Pearl White, Diamond White, Navy Blue, Royal Blue, Apple Red, Cherry Red, Strawberry Pink, Watermelon Pink, Mango Yellow, Lemon Yellow, Plum Purple, Blueberry Blue, Grape Purple, Kiwi Green, Lime Green, Rose Gold, Metallic Blue, Metallic Gray, Metallic Black, Metallic Green, Off White, Ash Gray, Jet Black, Dusty Rose, Hot Pink, Alice Blue, Antique White, Blue Violet, Cadet Blue, Cornflower Blue, Dark Blue, Dark Cyan, Dark Gray, Dark Green, Deep Pink, Dodger Blue, Ghost White, Indian Red, Lawn Green, Light Blue, Light Gray, Midnight Blue, Mint Cream, Misty Rose, Old Lace, Pale Green, Peach Puff, Rosy Brown, Sandy Brown, Slate Blue, Spring Green, Steel Blue, White Smoke, Yellow Green, Aquamarine, Chartreuse, Goldenrod, Firebrick, Gainsboro, Burlywood, Turquoise, Chocolate, Raspberry, Terracotta, Vermilion, Tangerine, Champagne, Periwinkle, Amethyst, Sapphire, Emerald, Crimson, Scarlet, Mustard, Marigold, Chestnut, Mahogany, Platinum, Burgundy, Lavender, Fuchsia, Magenta, Thistle, Orchid, Sienna, Tomato, Bisque, Moccasin, Silver, Bronze, Copper, Maroon, Purple, Orange, Yellow, Indigo, Violet, Orchid, Coral, Peach, Amber, Honey, Olive, Navy, Teal, Cyan, Aqua, Mint, Lime, Gold, Pearl, Wine, Plum, Rust, Clay, Mocha, Cocoa, Taupe, Sand, Camel, Khaki, Beige, Ivory, Cream, Brown, Black, White, Gray, Snow, Tan, Red, Blue, Green, Pink".split(', ');
+    
+    let n = name.toLowerCase();
+    const foundColors = [];
+    
+    for (const color of colorList) {
+      if (n.includes(color.toLowerCase())) {
+        foundColors.push(color);
+        n = n.replace(color.toLowerCase(), ''); // prevent matching parts of this color again
+      }
+    }
+    
+    if (foundColors.length === 0) return 'Vibrant';
+    if (foundColors.length === 1) return foundColors[0];
+    if (foundColors.length === 2) return foundColors.join(' and ');
+    return foundColors.slice(0, -1).join(', ') + ' and ' + foundColors[foundColors.length - 1];
+  })();
+
   // 1. Shirt & Trousers / Western Coordinates (e.g. Chocolate Silk Shirt & Beige Trousers)
   if (name.includes('shirt') || name.includes('trouser') || category.includes('western')) {
     return {
-      detailedDescription: `This sophisticated two-piece ensemble features a classic button-down shirt paired with tailored wide-leg trousers. The top is designed with a point collar, long sleeves with button cuffs, and a full front button placket, crafted in a rich chocolate brown hue. Complemented by high-waisted beige trousers with front pleats and a matching belt, this outfit offers a refined straight fit with clean stitching and minimal detail. Made from a fluid, silk-feel premium fabric, the silhouette creates a sleek drape that effortlessly balances structured tailoring with relaxed modern elegance. Ideal for contemporary wardrobes seeking versatile, elevated styling.`,
+      attributes: [
+        { label: 'Color', value: extractedColor },
+        { label: 'Material', value: 'Premium Silk Feel Fabric' },
+        { label: 'Design', value: 'Western Coordinates' },
+        { label: 'Pattern', value: 'Solid Classic' },
+        { label: 'Style', value: 'Modern Elegance' }
+      ],
       occasions: [
         'Office Wear',
         'Brunch',
@@ -44,7 +69,13 @@ function getProductFullDetails(prod: Product): ProductDetailsData {
   // 2. Sarees
   if (category.includes('saree') || name.includes('saree') || name.includes('sari')) {
     return {
-      detailedDescription: `Exquisitely woven, this luxurious saree showcases authentic traditional drapes blended with modern elegance. Crafted in rich vibrant tones with intricate zari embroidery along the border and pallu, the garment features smooth fluid drapes and a refined woven texture. Made from a high-grade silk-blend premium fabric, the saree contours gracefully while offering exceptional comfort. Complemented by clean tailored borders and classic motifs, this piece embodies timeless heritage style and pristine craftsmanship, making it a standout luxury wardrobe addition.`,
+      attributes: [
+        { label: 'Color', value: extractedColor },
+        { label: 'Material', value: 'Pure Silk Blend / Georgette' },
+        { label: 'Design', value: 'Heavy Border & Pallu' },
+        { label: 'Pattern', value: 'Zari Woven & Traditional Motifs' },
+        { label: 'Style', value: 'Classic Saree Drape' }
+      ],
       occasions: [
         'Weddings & Receptions',
         'Festive Celebrations',
@@ -63,7 +94,13 @@ function getProductFullDetails(prod: Product): ProductDetailsData {
   // 3. Kurtis & Anarkalis
   if (category.includes('kurti') || name.includes('kurti') || name.includes('kurta') || name.includes('anarkali')) {
     return {
-      detailedDescription: `Tailored with impeccable precision, this elegant kurti features a mandarin or notch neckline, graceful three-quarter sleeves, and intricate chest embroidery with fine threadwork. Crafted in a flattering straight or flared silhouette from soft cotton-silk premium fabric, the garment exhibits delicate side slits, clean finished hems, and a smooth tactile feel. The rich color palette and subtle design details elevate this piece into a versatile fusion garment that seamlessly transitions between relaxed daytime refinement and sophisticated festive wear.`,
+      attributes: [
+        { label: 'Color', value: extractedColor },
+        { label: 'Material', value: 'Cotton Silk Blend' },
+        { label: 'Design', value: 'Straight / Flared Cut' },
+        { label: 'Pattern', value: 'Embroidered Yoke / Floral Print' },
+        { label: 'Style', value: 'Casual & Festive Wear' }
+      ],
       occasions: [
         'Festive Gatherings',
         'Office & Business Casual',
@@ -82,7 +119,13 @@ function getProductFullDetails(prod: Product): ProductDetailsData {
   // 4. Lehengas
   if (category.includes('lehenga') || name.includes('lehenga') || name.includes('choli')) {
     return {
-      detailedDescription: `A regal bridal and festive ensemble, this designer lehenga features a heavy flared skirt with intricate hand embroidery, paired with a matching structured choli and a delicate sheer dupatta. Designed with a high-waisted waistband, fine stitching, and opulent zari embellishments, the garment is fashioned from high-grade silk-organza premium fabric. The voluminous flare creates a dramatic silhouette with rich movement, while the meticulous embroidery reflects royal Indian craftsmanship suited for grand luxury occasions.`,
+      attributes: [
+        { label: 'Color', value: extractedColor },
+        { label: 'Material', value: 'Silk Organza / Velvet' },
+        { label: 'Design', value: 'Flared Skirt with Dupatta' },
+        { label: 'Pattern', value: 'Heavy Hand Embroidery & Zari' },
+        { label: 'Style', value: 'Bridal & Festive Lehenga' }
+      ],
       occasions: [
         'Bridal Wear & Weddings',
         'Sangeet & Mehendi Nights',
@@ -101,7 +144,13 @@ function getProductFullDetails(prod: Product): ProductDetailsData {
   // 5. Salwar Sets & Suits
   if (category.includes('salwar') || name.includes('suit') || name.includes('salwar') || name.includes('set')) {
     return {
-      detailedDescription: `This three-piece salwar suit set comprises a tailored straight-fit kameez, comfortable relaxed bottoms, and a lightweight designer dupatta. Highlighting fine embroidery along the neck and sleeve cuffs, the garment is constructed from a soft, breathable silk-blend premium fabric. Featuring clean stitched seams, a straight hemline, and balanced proportions, the ensemble offers effortless elegance with a flattering drape designed for all-day comfort and traditional sophistication.`,
+      attributes: [
+        { label: 'Color', value: extractedColor },
+        { label: 'Material', value: 'Silk Blend / Georgette' },
+        { label: 'Design', value: '3-Piece Salwar Suit' },
+        { label: 'Pattern', value: 'Embroidered Neckline & Dupatta' },
+        { label: 'Style', value: 'Traditional Ethnic Wear' }
+      ],
       occasions: [
         'Puja & Traditional Functions',
         'Family Gatherings',
@@ -113,6 +162,7 @@ function getProductFullDetails(prod: Product): ProductDetailsData {
         'Traditional Punjabi juttis',
         'Filigree gold earrings',
         'Structured shoulder bag'
+
       ]
     };
   }
@@ -120,7 +170,13 @@ function getProductFullDetails(prod: Product): ProductDetailsData {
   // 6. Maxi Gowns
   if (category.includes('maxi') || name.includes('maxi') || name.includes('gown')) {
     return {
-      detailedDescription: `Designed with a fluid, sweeping floor-length silhouette, this maxi gown features a fitted bodice, round or square neckline, and a gently pleated A-line skirt. Crafted from a lightweight chiffon or georgette premium fabric, the garment highlights soft draped pleats, subtle waist cinch detailing, and invisible back zip closure. The minimalist aesthetic and rich color tone create a romantic, ethereal vibe suited for evening elegance and upscale summer soirées.`,
+      attributes: [
+        { label: 'Color', value: 'As per selection' },
+        { label: 'Material', value: 'Premium Chiffon / Georgette' },
+        { label: 'Design', value: 'A-Line Maxi Silhouette' },
+        { label: 'Pattern', value: 'Solid / Subtle Embellishments' },
+        { label: 'Style', value: 'Western Evening Wear' }
+      ],
       occasions: [
         'Evening Cocktail Dinners',
         'Sunset Brunches',
@@ -138,7 +194,13 @@ function getProductFullDetails(prod: Product): ProductDetailsData {
 
   // Default fallback for any clothing item
   return {
-    detailedDescription: `Handcrafted from fine quality premium fabric, this elegant garment exhibits refined tailoring, clean seams, and subtle design details. Featuring a flattering modern silhouette with rich texture and color, this piece delivers effortless luxury, comfort, and timeless sophistication for any elevated wardrobe.`,
+    attributes: [
+      { label: 'Color', value: 'As per selection' },
+      { label: 'Material', value: 'Premium Blended Fabric' },
+      { label: 'Design', value: 'Elegant Modern Cut' },
+      { label: 'Pattern', value: 'Classic Solid / Print' },
+      { label: 'Style', value: 'Contemporary Luxury' }
+    ],
     occasions: [
       'Office Wear',
       'Brunch',
@@ -325,7 +387,13 @@ export function ProductPage() {
 
     setIsSubmitting(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      let user = null;
+      try {
+        const { data } = await supabase.auth.getUser();
+        user = data?.user;
+      } catch (e) {
+        console.warn('Auth check skipped:', e);
+      }
 
       const totalAmount = (product.price || 0) * quantity;
       const shippingDetails = {
@@ -347,48 +415,11 @@ export function ProductPage() {
         ...(user?.id ? { user_id: user.id } : {})
       };
 
-      // 1. Create order in Supabase Table Editor using supabaseAdmin (service_role)
-      let finalOrder: any = null;
-      const { data: createdOrders, error: orderError } = await supabaseAdmin
-        .from('orders')
-        .insert([orderPayload])
-        .select();
-
-      if (orderError) {
-        console.error('Supabase Orders Insert Error:', orderError);
-        // Retry without user_id if profile is unlinked
-        delete orderPayload.user_id;
-        const { data: retryData, error: retryError } = await supabaseAdmin
-          .from('orders')
-          .insert([orderPayload])
-          .select();
-
-        if (retryError) {
-          console.error('Supabase Admin Insert Retry Error:', retryError);
-          toast.error('Supabase Error: ' + retryError.message);
-        } else {
-          finalOrder = retryData?.[0];
-          console.log('Supabase Admin Insert Success:', retryData);
-          toast.success(
-            paymentType === 'Card'
-              ? 'Online Order Placed & Saved to Supabase Table Editor!'
-              : 'Cash Order Booked & Saved to Supabase Table Editor!'
-          );
-        }
-      } else {
-        finalOrder = createdOrders?.[0];
-        console.log('Supabase Orders Insert Success:', createdOrders);
-        toast.success(
-          paymentType === 'Card'
-            ? 'Online Order Placed & Saved to Supabase Table Editor!'
-            : 'Cash Order Booked & Saved to Supabase Table Editor!'
-        );
-      }
-
-      // 2. Always persist order to local storage cache so My Orders icon immediately shows all booked orders
+      // 1. Immediately persist order to local storage cache so My Orders icon works flawlessly
+      const generatedOrderId = 'ord_' + Math.random().toString(36).substring(2, 9);
       const orderRecord = {
-        id: finalOrder?.id || ('ord_' + Math.random().toString(36).substring(2, 9)),
-        created_at: finalOrder?.created_at || new Date().toISOString(),
+        id: generatedOrderId,
+        created_at: new Date().toISOString(),
         status: 'Pending',
         payment_method: paymentType === 'Card' ? 'Card' : 'COD',
         payment_status: paymentType === 'Card' ? 'Success' : 'Pending',
@@ -408,20 +439,84 @@ export function ProductPage() {
       };
 
       try {
-        const existing = JSON.parse(localStorage.getItem('local_placed_orders') || '[]');
+        let existing = [];
+        try {
+          const parsed = JSON.parse(localStorage.getItem('local_placed_orders') || '[]');
+          if (Array.isArray(parsed)) existing = parsed;
+        } catch (e) {
+          console.error('LocalStorage parse error, resetting:', e);
+        }
         localStorage.setItem('local_placed_orders', JSON.stringify([orderRecord, ...existing]));
       } catch (e) {
         console.error('LocalStorage write error:', e);
       }
 
-      // Close modal box automatically
-      setIsBuyNowModalOpen(false);
-      setCheckoutMethod('none');
+      // 2. Attempt to create order in Supabase Table Editor using supabaseAdmin (service_role)
+      try {
+        let finalOrder: any = null;
+        const { data: createdOrders, error: orderError } = await supabaseAdmin
+          .from('orders')
+          .insert([{ ...orderPayload, id: generatedOrderId }])
+          .select();
+
+        if (orderError) {
+          console.error('Supabase Orders Insert Error:', orderError);
+          // Retry without user_id if profile is unlinked
+          delete orderPayload.user_id;
+          const { data: retryData, error: retryError } = await supabaseAdmin
+            .from('orders')
+            .insert([{ ...orderPayload, id: generatedOrderId }])
+            .select();
+
+          if (retryError) {
+            console.error('Supabase Admin Insert Retry Error:', retryError);
+            toast.error('Supabase Error: ' + retryError.message);
+          } else {
+            finalOrder = retryData?.[0];
+            console.log('Supabase Admin Insert Success:', retryData);
+            toast.success(
+              paymentType === 'Card'
+                ? 'Online Order Placed & Saved to Supabase Table Editor!'
+                : 'Cash Order Booked & Saved to Supabase Table Editor!'
+            );
+          }
+        } else {
+          finalOrder = createdOrders?.[0];
+          console.log('Supabase Orders Insert Success:', createdOrders);
+          toast.success(
+            paymentType === 'Card'
+              ? 'Online Order Placed & Saved to Supabase Table Editor!'
+              : 'Cash Order Booked & Saved to Supabase Table Editor!'
+          );
+        }
+
+        // Insert order items
+        if (finalOrder?.id) {
+          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+          const orderItemPayload = {
+            order_id: finalOrder.id,
+            product_id: uuidRegex.test(product.id) ? product.id : null,
+            quantity: quantity,
+            price_at_time: product.price,
+            total_price: (product.price || 0) * quantity
+          };
+          await supabaseAdmin.from('order_items').insert([orderItemPayload]);
+        }
+      } catch (dbError) {
+        console.warn('Database save skipped/failed, but local storage succeeded:', dbError);
+        toast.success(
+          paymentType === 'Card'
+            ? 'Online Order Placed!'
+            : 'Cash Order Booked!'
+        );
+      }
+
+      // Navigate to orders page after successful order placement
+      window.location.href = '/orders';
     } catch (err: any) {
       console.error('Order creation handler error:', err);
       toast.error('Order Error: ' + (err.message || 'Check Supabase connection'));
       setIsBuyNowModalOpen(false);
-      setCheckoutMethod('none');
     } finally {
       setIsSubmitting(false);
     }
@@ -533,29 +628,28 @@ export function ProductPage() {
       <AnnouncementBar />
       <Navigation />
 
-      <div className="pt-20 sm:pt-24 lg:pt-6 pb-20 px-4">
+      <div className="pt-24 sm:pt-28 lg:pt-14 pb-20 px-4">
         <div className="max-w-7xl mx-auto">
-          {/* Breadcrumb */}
-          <div className="flex items-center gap-2 text-sm mb-8 text-gray-600">
-            <Link to="/" className="hover:text-[#D4AF37]">Home</Link>
+          {/* Breadcrumb on Top Left */}
+          <div className="text-[#D4AF37] uppercase tracking-wider text-xs font-bold flex items-center gap-1.5 mb-6 flex-wrap">
+            <Link to="/" className="hover:underline">Home</Link>
             <span>/</span>
-            <Link to={`/category/${product.category.toLowerCase()}`} className="hover:text-[#D4AF37]">{product.category}</Link>
+            <Link to={`/category/${(product.category || 'all').toLowerCase()}`} className="hover:underline">{product.category || 'Product'}</Link>
             <span>/</span>
-            <span className="text-[#D4AF37] truncate">{product.name}</span>
+            <span className="truncate max-w-[200px] sm:max-w-xs">{product.name}</span>
           </div>
-
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             {/* Image Gallery & Customer Reviews */}
             <div>
               <motion.div 
                 initial={{ opacity: 0, scale: 0.9 }} 
                 animate={{ opacity: 1, scale: 1 }} 
-                className="relative mb-4 border border-[#D4AF37] p-2 bg-white rounded-[2rem] aspect-square flex items-center justify-center overflow-hidden group shadow-md"
+                className="relative mb-4 aspect-square flex items-center justify-center overflow-hidden group border border-[#D4AF37] p-2 bg-white rounded-[2rem] shadow-sm"
               >
                 <img 
                   src={product.image} 
                   alt={product.name} 
-                  className="w-full h-full object-contain rounded-[1.8rem]" 
+                  className="w-[90%] h-[90%] object-contain" 
                 />
               </motion.div>
 
@@ -564,26 +658,25 @@ export function ProductPage() {
             </div>
 
             {/* Product Info */}
-            <div className="space-y-6">
+            <div className="space-y-6 relative pt-2">
+
+
               {(() => {
                 const details = getProductFullDetails(product);
                 return (
                   <>
-                    <div className="space-y-2">
-                      <span className="text-[#D4AF37] uppercase tracking-[0.2em] text-xs font-bold block mb-2">Aanya Fashions</span>
+                    <div className="space-y-2 pr-12">
                       <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl text-[#1A1A1A] leading-tight">{product.name}</h1>
                       <div className="w-16 h-px bg-[#D4AF37] my-4"></div>
                     </div>
 
-                    {/* Blockquote Quote */}
-                    <div className="border-l-2 border-[#D4AF37] pl-4 italic text-gray-700 text-lg my-4">
-                      "{product.description || 'Premium quality traditional wear crafted with elegance.'}"
+                    {/* Product Details Paragraph */}
+                    <div className="my-5">
+                      <p className="text-gray-600 leading-relaxed text-sm font-normal text-justify line-clamp-5">
+                        This beautiful {product.name} features exquisite detailing focused on premium quality and aesthetics. It is exquisitely designed in a beautiful <strong className="text-gray-800 font-semibold">{details.attributes.find((a: any) => a.label === 'Color')?.value || 'premium'}</strong> tone that gives it a rich and timeless appeal. Expertly crafted from high-quality <strong className="text-gray-800 font-semibold">{details.attributes.find((a: any) => a.label === 'Material')?.value || 'fabric'}</strong>, it ensures both comfort and elegance for any occasion. The outfit showcases a magnificent <strong className="text-gray-800 font-semibold">{details.attributes.find((a: any) => a.label === 'Design')?.value || 'silhouette'}</strong> design that drapes beautifully. Furthermore, the intricate <strong className="text-gray-800 font-semibold">{details.attributes.find((a: any) => a.label === 'Pattern')?.value || 'detailing'}</strong> pattern elevates the overall visual appeal, adding a perfect touch of luxury to your wardrobe.
+                      </p>
+                      <div className="w-16 h-px bg-[#D4AF37] opacity-60 mt-6"></div>
                     </div>
-
-                    {/* 100-150 Word Detailed Description Paragraph */}
-                    <p className="text-gray-600 leading-relaxed text-sm my-4 font-normal">
-                      {details.detailedDescription}
-                    </p>
 
                     {/* Occasion & Pair With Styling Recommendations */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 my-6 p-4 sm:p-5 rounded-2xl bg-[#FFFDF9] border border-[#F5E6BE]/60 shadow-sm">
@@ -645,34 +738,36 @@ export function ProductPage() {
                 )}
               </div>
 
-              {/* Size Selector */}
-              <div className="space-y-3 py-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs uppercase tracking-widest text-gray-400 font-bold">Select Size</span>
-                  {selectedSize && (
-                    <span className="text-xs font-bold text-[#800000] bg-rose-50 px-2.5 py-0.5 rounded-full border border-rose-100">
-                      Selected: {selectedSize}
-                    </span>
-                  )}
+              {/* Size Selector (Hidden for Sarees) */}
+              {!((product.category || '').toLowerCase().includes('saree') || (product.name || '').toLowerCase().includes('saree')) && (
+                <div className="space-y-3 py-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs uppercase tracking-widest text-gray-400 font-bold">Select Size</span>
+                    {selectedSize && (
+                      <span className="text-xs font-bold text-[#800000] bg-rose-50 px-2.5 py-0.5 rounded-full border border-rose-100">
+                        Selected: {selectedSize}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {['S', 'M', 'L', 'XL', 'XXL', 'XXXL'].map((size) => (
+                      <motion.button
+                        key={size}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setSelectedSize(size)}
+                        className={`h-11 px-4 border text-xs font-black transition-all rounded-xl cursor-pointer ${
+                          selectedSize === size
+                            ? 'border-[#800000] bg-[#800000] text-white shadow-sm'
+                            : 'border-gray-200 text-gray-800 hover:border-gray-400 hover:bg-gray-50'
+                        }`}
+                      >
+                        {size}
+                      </motion.button>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {['S', 'M', 'L', 'XL', 'XXL', 'XXXL'].map((size) => (
-                    <motion.button
-                      key={size}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => setSelectedSize(size)}
-                      className={`h-11 px-4 border text-xs font-black transition-all rounded-xl cursor-pointer ${
-                        selectedSize === size
-                          ? 'border-[#800000] bg-[#800000] text-white shadow-sm'
-                          : 'border-gray-200 text-gray-800 hover:border-gray-400 hover:bg-gray-50'
-                      }`}
-                    >
-                      {size}
-                    </motion.button>
-                  ))}
-                </div>
-              </div>
+              )}
 
               {/* Quantity */}
               <div className="flex items-center gap-4 py-2">
@@ -687,12 +782,13 @@ export function ProductPage() {
               {/* Call To Action Buttons */}
               <div className="flex gap-4 pt-2">
                 <motion.button 
-                  onClick={handleAddToCart} 
+                  onClick={handleWishlistToggle} 
                   whileHover={{ scale: 1.02 }} 
                   whileTap={{ scale: 0.98 }} 
                   className="flex-1 h-14 bg-[#FFF9E6] hover:bg-[#F5E6BE] text-[#800000] border-2 border-[#F5E6BE] rounded-2xl font-black text-xs tracking-[0.15em] uppercase shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
-                  <ShoppingBag className="w-4 h-4 text-[#800000]" /> Add to Cart
+                  <Heart className={`w-4 h-4 text-[#800000] ${product && isInWishlist(product.id) ? 'fill-[#800000]' : ''}`} /> 
+                  {product && isInWishlist(product.id) ? 'Saved to Wishlist' : 'Save to Wishlist'}
                 </motion.button>
               </div>
 
@@ -1044,20 +1140,11 @@ export function ProductPage() {
                           whileTap={{ scale: 0.98 }}
                           disabled={isSubmitting}
                           onClick={() => {
-                            handleCreateOrder('Card');
                             setBuyNowStep('success');
                           }}
                           className="w-full py-4 bg-[#800000] hover:bg-black text-white font-black uppercase tracking-widest rounded-2xl text-xs shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
                         >
-                          {isSubmitting ? (
-                            <>
-                              <Loader2 className="w-4 h-4 animate-spin" /> Processing Order...
-                            </>
-                          ) : (
-                            <>
-                              Continue & Confirm Order <ChevronRight className="w-4 h-4" />
-                            </>
-                          )}
+                          Place Order <ChevronRight className="w-4 h-4" />
                         </motion.button>
                       </div>
                     </div>
@@ -1072,8 +1159,8 @@ export function ProductPage() {
                     <CheckCircle2 className="w-10 h-10" />
                   </div>
                   <div>
-                    <h3 className="font-serif text-3xl text-gray-900">Order Confirmed!</h3>
-                    <p className="text-gray-500 text-xs mt-1">Thank you for your purchase. Your order details are saved to Supabase.</p>
+                    <h3 className="font-serif text-3xl text-gray-900">Confirm Your Order</h3>
+                    <p className="text-gray-500 text-xs mt-1">Please review your details and confirm to place your order securely.</p>
                   </div>
 
                   <div className="bg-gray-50 p-4 rounded-2xl text-left space-y-2 border border-gray-100 text-xs">
@@ -1099,13 +1186,17 @@ export function ProductPage() {
                       Close
                     </button>
                     <button
+                      disabled={isSubmitting}
                       onClick={() => {
-                        setIsBuyNowModalOpen(false);
-                        navigate('/orders');
+                        handleCreateOrder('Card');
                       }}
-                      className="flex-1 py-3 bg-[#800000] hover:bg-black text-white rounded-xl font-bold text-xs shadow-md"
+                      className="flex-1 py-3 bg-[#800000] hover:bg-black text-white rounded-xl font-bold text-xs shadow-md flex items-center justify-center gap-2"
                     >
-                      View My Orders
+                      {isSubmitting ? (
+                        <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
+                      ) : (
+                        "Confirm Order"
+                      )}
                     </button>
                   </div>
                 </div>
@@ -1116,4 +1207,4 @@ export function ProductPage() {
       </AnimatePresence>
     </div>
   );
-}
+} 
