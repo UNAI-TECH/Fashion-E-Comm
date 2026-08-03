@@ -7,7 +7,7 @@ import { Link, useLocation, useNavigate } from 'react-router';
 import { supabase } from '../../lib/supabase';
 import { Product, fetchProducts } from '../data/products';
 import { toast } from 'sonner';
-import { intelligentSearch, getRecommendedFallback } from '../../lib/aiSearchEngine';
+import { intelligentSearch, getRecommendedFallback, getSearchSuggestions } from '../../lib/aiSearchEngine';
 
 const HighlightText = ({ text, highlight }: { text: string; highlight: string }) => {
   if (!highlight.trim()) return <>{text}</>;
@@ -42,6 +42,7 @@ export function Navigation() {
   const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
   const [isFallbackSearch, setIsFallbackSearch] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
@@ -202,7 +203,7 @@ export function Navigation() {
 
         // 3. Combine and deduplicate
         const allItems = [...mockProducts, ...(dbData || [])];
-        const uniqueItems = Array.from(new Map(allItems.map(item => [item.id, item])).values());
+        const uniqueItems = Array.from(new Map(allItems.map(item => [item.id, item])).values()) as Product[];
 
         // 4. Run AI Semantic Search
         let results = intelligentSearch(queryTrimmed, uniqueItems);
@@ -211,8 +212,10 @@ export function Navigation() {
         if (results.length === 0) {
           results = getRecommendedFallback(uniqueItems);
           setIsFallbackSearch(true);
+          setSearchSuggestions([]);
         } else {
           setIsFallbackSearch(false);
+          setSearchSuggestions(getSearchSuggestions(queryTrimmed, uniqueItems));
         }
 
         setSearchResults(
@@ -262,7 +265,7 @@ export function Navigation() {
           </Link>
 
           {/* Search Bar — compact height */}
-          <div className="w-80 flex-shrink-0">
+          <div className="w-80 flex-shrink-0 relative">
             <div className="relative flex items-center">
               <Search className="absolute left-3.5 w-4 h-4 text-gray-400 pointer-events-none" />
               <input
@@ -270,10 +273,81 @@ export function Navigation() {
                 placeholder="Try Saree, Kurti or Search…"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
+                onFocus={() => setIsSearchDropdownOpen(true)}
+                onBlur={() => setTimeout(() => setIsSearchDropdownOpen(false), 200)}
                 onKeyDown={e => { if (e.key === 'Enter') handleSearchSubmit(searchQuery); }}
                 className="w-full pl-10 pr-3 py-2 text-xs border border-gray-300 rounded-lg bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#800000] focus:ring-1 focus:ring-[#800000]/20 transition-all"
               />
             </div>
+
+            {/* Desktop Search Dropdown */}
+            <AnimatePresence>
+              {isSearchDropdownOpen && searchQuery.trim().length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-100 max-h-[80vh] overflow-y-auto z-50 p-3"
+                >
+                  {isSearching ? (
+                    <div className="flex justify-center py-6">
+                      <div className="w-6 h-6 rounded-full border-2 border-[#800000]/20 border-t-[#800000] animate-spin" />
+                    </div>
+                  ) : searchResults.length > 0 ? (
+                    <div className="space-y-4">
+                      {searchSuggestions.length > 0 && !isFallbackSearch && (
+                        <div>
+                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-1">Related Searches</p>
+                          <div className="space-y-0.5">
+                            {searchSuggestions.map(suggestion => (
+                              <button
+                                key={suggestion}
+                                onClick={() => handleSearchSubmit(suggestion)}
+                                className="w-full flex items-center gap-2 py-1.5 px-2 rounded-lg hover:bg-rose-50 transition-colors group text-left"
+                              >
+                                <Search className="w-3.5 h-3.5 text-gray-300 flex-shrink-0" />
+                                <span className="flex-1 text-xs font-medium text-gray-700 group-hover:text-[#800000] capitalize">
+                                  <HighlightText text={suggestion} highlight={searchQuery} />
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-1">Products</p>
+                        {isFallbackSearch && (
+                          <div className="px-2 py-1.5 text-[10px] font-semibold text-gray-500 bg-gray-50 rounded-lg mb-2 border border-gray-100">
+                            No exact matches found. Showing recommendations:
+                          </div>
+                        )}
+                        <div className="space-y-0.5">
+                          {searchResults.map((product) => (
+                            <Link
+                              key={product.id}
+                              to={`/product/${product.id}`}
+                              onClick={() => { addToHistory(product.name); setIsSearchDropdownOpen(false); setSearchQuery(''); }}
+                              className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-rose-50 transition-colors group"
+                            >
+                              <div>
+                                <p className="text-xs font-medium text-gray-800 group-hover:text-[#800000] transition-colors">
+                                  <HighlightText text={product.name} highlight={searchQuery} />
+                                </p>
+                              </div>
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-6">
+                      <p className="text-xs text-gray-400">No results for &ldquo;{searchQuery}&rdquo;</p>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Right Actions */}
@@ -378,21 +452,8 @@ export function Navigation() {
             </motion.div>
           </Link>
 
-            {/* Center: Category Navigation Links */}
-            <div className="flex-1 flex items-center justify-center gap-1 px-1 overflow-x-auto scrollbar-hide">
-              {menuItems.map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.path}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={`px-1.5 py-1 text-[9px] xs:text-[10px] sm:text-[11px] font-black uppercase tracking-wide whitespace-nowrap text-center transition-all flex-shrink-0 ${
-                    location.pathname === item.path ? 'text-[#800000]' : 'text-[#002D62] hover:text-[#800000]'
-                  }`}
-                >
-                  {item.name}
-                </Link>
-              ))}
-            </div>
+            {/* Center: Spacer for clean mobile layout */}
+            <div className="flex-1"></div>
 
             {/* Right side: 3-Line Menu CTA Button */}
             <div className="flex items-center flex-shrink-0 mr-1">
@@ -642,13 +703,38 @@ export function Navigation() {
                   <div className="w-8 h-8 rounded-full border-2 border-[#800000]/20 border-t-[#800000] animate-spin" />
                 </div>
               ) : searchResults.length > 0 ? (
-                <div className="space-y-0.5">
-                  {isFallbackSearch && (
-                    <div className="px-3 py-2 text-xs font-semibold text-gray-500 bg-gray-50 rounded-lg mb-2 border border-gray-100">
-                      No exact matches found. Showing recommendations:
+                <div className="space-y-4">
+                  {/* Search Suggestions Section */}
+                  {searchSuggestions.length > 0 && !isFallbackSearch && (
+                    <div className="mb-4">
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-1">Related Searches</p>
+                      <div className="space-y-0.5">
+                        {searchSuggestions.map(suggestion => (
+                          <button
+                            key={suggestion}
+                            onClick={() => handleSearchSubmit(suggestion)}
+                            className="w-full flex items-center gap-3 py-2 px-3 rounded-xl hover:bg-rose-50 transition-colors group text-left"
+                          >
+                            <Search className="w-4 h-4 text-gray-300 flex-shrink-0" />
+                            <span className="flex-1 text-sm font-medium text-gray-700 group-hover:text-[#800000] capitalize">
+                              <HighlightText text={suggestion} highlight={searchQuery} />
+                            </span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
-                  {searchResults.map((product) => (
+
+                  {/* Product Results Section */}
+                  <div>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-1">Products</p>
+                    {isFallbackSearch && (
+                      <div className="px-3 py-2 text-xs font-semibold text-gray-500 bg-gray-50 rounded-lg mb-2 border border-gray-100">
+                        No exact matches found. Showing recommendations:
+                      </div>
+                    )}
+                    <div className="space-y-0.5">
+                      {searchResults.map((product) => (
                     <Link
                       key={product.id}
                       to={`/product/${product.id}`}
@@ -663,6 +749,8 @@ export function Navigation() {
                       <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-[#800000] transition-colors flex-shrink-0 ml-2" />
                     </Link>
                   ))}
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div className="text-center pt-16">

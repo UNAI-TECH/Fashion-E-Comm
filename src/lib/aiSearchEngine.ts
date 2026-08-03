@@ -247,3 +247,50 @@ export function getRecommendedFallback(allProducts: Product[], limit: number = 4
   const sorted = [...allProducts].sort((a, b) => (b.rating || 0) - (a.rating || 0));
   return sorted.slice(0, limit);
 }
+
+// Generate intelligent search suggestions (autocomplete)
+export function getSearchSuggestions(query: string, allProducts: Product[]): string[] {
+  if (!query || query.trim().length < 2) return [];
+  const results = intelligentSearch(query, allProducts);
+  if (results.length === 0) return [];
+
+  const suggestions = new Set<string>();
+  const queryLower = query.toLowerCase().trim();
+  
+  // Extract combinations from the top 15 results to build rich autocomplete queries
+  for (const product of results.slice(0, 15)) {
+    const category = (product.category || '').toLowerCase();
+    const color = (product.color || '').toLowerCase();
+    const material = (product.material || '').toLowerCase();
+    const occasion = (product.occasion || '').toLowerCase();
+    
+    // Add exact matches if the query is a prefix of category, color, etc.
+    if (category.startsWith(queryLower)) suggestions.add(category);
+    
+    // Pattern 1: [Query] [Category] (e.g. "red" -> "red saree")
+    if (category && !queryLower.includes(category)) {
+      suggestions.add(`${queryLower} ${category}`);
+    }
+    
+    // Pattern 2: [Query] [Material] [Category] (e.g. "red" -> "red silk saree")
+    if (material && category && !queryLower.includes(material) && !queryLower.includes(category)) {
+      suggestions.add(`${queryLower} ${material} ${category}`);
+    }
+    
+    // Pattern 3: [Color] [Query] (e.g. "saree" -> "red saree")
+    if (color && !queryLower.includes(color) && category.includes(queryLower)) {
+      suggestions.add(`${color} ${category}`);
+    }
+    
+    // Pattern 4: [Occasion] [Query] (e.g. "saree" -> "wedding saree")
+    if (occasion && !queryLower.includes(occasion) && category.includes(queryLower)) {
+      suggestions.add(`${occasion} ${category}`);
+    }
+  }
+
+  // Filter out any suggestions that don't at least contain the words of the query
+  const queryWords = queryLower.split(/\s+/);
+  return Array.from(suggestions).filter(sugg => {
+    return queryWords.every(qw => sugg.includes(qw)) && sugg.length > queryLower.length;
+  }).slice(0, 6);
+}

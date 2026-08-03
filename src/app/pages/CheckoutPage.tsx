@@ -165,7 +165,7 @@ export function CheckoutPage() {
       await clearCart();
       
       // Navigate to orders page directly
-      window.location.href = '/orders';
+      navigate('/orders');
     } catch (error: any) {
       console.error('Error placing order:', error);
       toast.error('Failed to place order. Please try again.');

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Package, Truck, Clock, X, FileText, RotateCcw, MessageSquare, ChevronRight, Ban, CheckCircle2, ShoppingBag, HeadphonesIcon } from 'lucide-react';
+import { Package, Truck, Clock, X, FileText, RotateCcw, MessageSquare, ChevronRight, Ban, CheckCircle2, ShoppingBag, HeadphonesIcon, Search, ListFilter, ArrowDownUp, Download, RefreshCcw, Star } from 'lucide-react';
 import { Footer } from '../components/Footer';
 import { AnnouncementBar } from '../components/AnnouncementBar';
 import { supabase } from '../../lib/supabase';
@@ -8,14 +8,15 @@ import { Link } from 'react-router';
 import { toast } from 'sonner';
 
 type OrderStatus = 'Order Placed' | 'Confirmed' | 'Packed' | 'Shipped' | 'Out for Delivery' | 'Delivered' | 'Cancelled' | 'Returned' | 'Refunded';
-
-const filters = ['All Orders', 'Processing', 'Shipped', 'Delivered', 'Cancelled', 'Returned'];
+import React from 'react';
 
 export function OrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
-  const [filteredOrders, setFilteredOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('All Orders');
+  const [sortBy, setSortBy] = useState('Newest First');
+  const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
 
   const fetchOrders = async () => {
     setIsLoading(true);
@@ -88,7 +89,6 @@ export function OrdersPage() {
       );
 
       setOrders(uniqueOrders);
-      setFilteredOrders(uniqueOrders);
     } catch (error: any) {
       console.error('Error fetching orders:', error);
       toast.error("Could not sync latest orders. Showing offline cache.");
@@ -96,7 +96,6 @@ export function OrdersPage() {
         const parsed = JSON.parse(localStorage.getItem('local_placed_orders') || '[]');
         if (Array.isArray(parsed)) {
           setOrders(parsed);
-          setFilteredOrders(parsed);
         }
       } catch(e) {}
     } finally {
@@ -104,25 +103,52 @@ export function OrdersPage() {
     }
   };
 
+  const computedOrders = React.useMemo(() => {
+    let result = [...orders];
+
+    // 1. Search Logic
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(o => {
+        const firstItem = o.order_items?.[0];
+        const productName = (firstItem?.products?.name || '').toLowerCase();
+        const brandName = (firstItem?.products?.brand || 'aanya exclusive').toLowerCase();
+        const categoryName = (firstItem?.products?.category || '').toLowerCase();
+        const orderId = (o.id || '').toLowerCase();
+        return productName.includes(q) || brandName.includes(q) || orderId.includes(q) || categoryName.includes(q);
+      });
+    }
+
+    // 2. Filter Logic
+    if (activeFilter !== 'All Orders') {
+      result = result.filter(o => {
+        const s = o.status || 'Order Placed';
+        if (activeFilter === 'Processing') return ['Order Placed', 'Pending', 'Confirmed', 'Packed'].includes(s);
+        return s === activeFilter;
+      });
+    }
+
+    // 3. Sort Logic
+    result.sort((a, b) => {
+      const dateA = new Date(a.created_at).getTime();
+      const dateB = new Date(b.created_at).getTime();
+      
+      const priceA = a.order_items?.[0]?.price_at_time || a.order_items?.[0]?.price || a.order_items?.[0]?.products?.price || a.total_amount || 0;
+      const priceB = b.order_items?.[0]?.price_at_time || b.order_items?.[0]?.price || b.order_items?.[0]?.products?.price || b.total_amount || 0;
+
+      if (sortBy === 'Newest First') return dateB - dateA;
+      if (sortBy === 'Oldest First') return dateA - dateB;
+      if (sortBy === 'Highest Price') return priceB - priceA;
+      if (sortBy === 'Lowest Price') return priceA - priceB;
+      return 0;
+    });
+
+    return result;
+  }, [orders, searchQuery, activeFilter, sortBy]);
+
   useEffect(() => {
     fetchOrders();
   }, []);
-
-  useEffect(() => {
-    if (activeFilter === 'All Orders') {
-      setFilteredOrders(orders);
-    } else if (activeFilter === 'Processing') {
-      setFilteredOrders(orders.filter(o => ['Pending', 'Order Placed', 'Confirmed', 'Packed'].includes(o.status || 'Order Placed')));
-    } else if (activeFilter === 'Shipped') {
-      setFilteredOrders(orders.filter(o => ['Shipped', 'Out for Delivery'].includes(o.status)));
-    } else if (activeFilter === 'Delivered') {
-      setFilteredOrders(orders.filter(o => o.status === 'Delivered'));
-    } else if (activeFilter === 'Cancelled') {
-      setFilteredOrders(orders.filter(o => o.status === 'Cancelled'));
-    } else if (activeFilter === 'Returned') {
-      setFilteredOrders(orders.filter(o => ['Returned', 'Refunded'].includes(o.status)));
-    }
-  }, [activeFilter, orders]);
 
   const getStatusBadge = (status: string) => {
     const s = status || 'Order Placed';
@@ -180,40 +206,97 @@ export function OrdersPage() {
           </button>
         </div>
 
-        {/* Filters */}
-        <div className="flex overflow-x-auto hide-scrollbar gap-2 mb-8 pb-2">
-          {filters.map(filter => (
-            <button
-              key={filter}
-              onClick={() => setActiveFilter(filter)}
-              className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all shadow-sm ${
-                activeFilter === filter 
-                ? 'bg-gray-900 text-white border-transparent' 
-                : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-              }`}
-            >
-              {filter}
-            </button>
-          ))}
-        </div>
+        {/* Filters, Search & Sort Bar */}
+        {!isLoading && orders.length > 0 && (
+          <div className="mb-8 space-y-4">
+            {/* Search & Sort */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-between">
+              <div className="relative flex-1 max-w-md">
+                <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search by Product, Brand, or Order ID..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm font-medium focus:outline-none focus:border-[#800000] focus:ring-1 focus:ring-[#800000] transition-shadow shadow-sm"
+                />
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+              
+              <div className="relative z-20">
+                <button
+                  onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
+                  className="px-5 py-3 bg-white border border-gray-200 rounded-2xl text-sm font-medium flex items-center justify-between min-w-[200px] hover:bg-gray-50 transition-colors shadow-sm"
+                >
+                  <span className="flex items-center gap-2 text-gray-700">
+                    <ArrowDownUp className="w-4 h-4 text-gray-400" /> {sortBy}
+                  </span>
+                  <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform ${isSortDropdownOpen ? 'rotate-90' : ''}`} />
+                </button>
+                
+                <AnimatePresence>
+                  {isSortDropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className="absolute right-0 top-full mt-2 w-full bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
+                    >
+                      {['Newest First', 'Oldest First', 'Highest Price', 'Lowest Price'].map((opt) => (
+                        <button
+                          key={opt}
+                          onClick={() => { setSortBy(opt); setIsSortDropdownOpen(false); }}
+                          className={`w-full text-left px-5 py-3 text-sm hover:bg-gray-50 transition-colors ${sortBy === opt ? 'font-bold text-[#800000] bg-red-50/30' : 'text-gray-700'}`}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+
+            {/* Filter Tabs */}
+            <div className="flex overflow-x-auto hide-scrollbar gap-2 pb-2">
+              {['All Orders', 'Processing', 'Shipped', 'Delivered', 'Cancelled', 'Returned'].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveFilter(tab)}
+                  className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all shadow-sm ${
+                    activeFilter === tab 
+                      ? 'bg-gray-900 text-white border-transparent' 
+                      : 'bg-white text-gray-600 border-gray-200 border hover:bg-gray-50'
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {isLoading ? (
           <div className="flex justify-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#800000]"></div>
           </div>
-        ) : filteredOrders.length === 0 ? (
+        ) : computedOrders.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-3xl shadow-sm border border-gray-100">
             <Package className="w-20 h-20 text-gray-200 mx-auto mb-6" />
             <h2 className="text-2xl font-serif text-gray-700 mb-4">No orders found</h2>
-            <p className="text-gray-500 mb-8 max-w-md mx-auto">Looks like you haven't placed any orders in this category yet.</p>
-            <Link to="/" className="px-8 py-3 bg-[#800000] text-white rounded-full font-bold text-sm shadow-md hover:bg-black transition-all">
-              Start Shopping
-            </Link>
+            <p className="text-gray-500 mb-8 max-w-md mx-auto">Looks like you haven't placed any orders matching this criteria yet.</p>
+            <button onClick={() => { setSearchQuery(''); setActiveFilter('All Orders'); }} className="px-8 py-3 bg-[#800000] text-white rounded-full font-bold text-sm shadow-md hover:bg-black transition-all">
+              Clear Filters
+            </button>
           </div>
         ) : (
           <div className="space-y-6">
             <AnimatePresence>
-              {filteredOrders.map((order, idx) => {
+              {computedOrders.map((order, idx) => {
                 const orderDate = new Date(order.created_at || Date.now());
                 const deliveryDate = new Date(orderDate.getTime() + 4 * 24 * 60 * 60 * 1000);
                 const firstItem = order.order_items?.[0];
@@ -300,58 +383,91 @@ export function OrdersPage() {
                           </div>
                         </div>
 
-                        {/* Status & Payment info */}
-                        <div className="flex flex-wrap items-center justify-between gap-4 mt-6">
-                          <div className="flex items-center gap-3">
-                            {getStatusBadge(status)}
-                            {['Order Placed', 'Pending', 'Confirmed', 'Packed', 'Shipped', 'Out for Delivery'].includes(status || 'Order Placed') && (
-                              <p className="text-sm font-medium text-gray-600">Arriving by <strong className="text-gray-900">{deliveryDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</strong></p>
-                            )}
+                        {/* Status & Payment info with Progress Tracker */}
+                        <div className="mt-6 pt-6 border-t border-gray-100">
+                          {/* Progress Tracker UI */}
+                          <div className="mb-6 relative">
+                            <div className="absolute top-3 left-0 w-full h-1 bg-gray-100 rounded-full z-0 overflow-hidden">
+                              <div 
+                                className="h-full bg-emerald-500 transition-all duration-1000" 
+                                style={{ 
+                                  width: status === 'Delivered' ? '100%' : 
+                                         status === 'Out for Delivery' ? '80%' : 
+                                         status === 'Shipped' ? '60%' : 
+                                         status === 'Packed' ? '40%' : 
+                                         ['Confirmed', 'Order Placed', 'Pending'].includes(status) ? '20%' : '0%' 
+                                }}
+                              />
+                            </div>
+                            <div className="relative z-10 flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                              <div className="flex flex-col items-center gap-2">
+                                <div className={`w-7 h-7 rounded-full flex items-center justify-center border-2 bg-white ${['Confirmed', 'Order Placed', 'Pending', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'].includes(status) ? 'border-emerald-500 text-emerald-500' : 'border-gray-200'}`}>1</div>
+                                <span className={['Confirmed', 'Order Placed', 'Pending', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'].includes(status) ? 'text-gray-900' : ''}>Placed</span>
+                              </div>
+                              <div className="flex flex-col items-center gap-2">
+                                <div className={`w-7 h-7 rounded-full flex items-center justify-center border-2 bg-white ${['Packed', 'Shipped', 'Out for Delivery', 'Delivered'].includes(status) ? 'border-emerald-500 text-emerald-500' : 'border-gray-200'}`}>2</div>
+                                <span className={['Packed', 'Shipped', 'Out for Delivery', 'Delivered'].includes(status) ? 'text-gray-900' : ''}>Packed</span>
+                              </div>
+                              <div className="flex flex-col items-center gap-2">
+                                <div className={`w-7 h-7 rounded-full flex items-center justify-center border-2 bg-white ${['Shipped', 'Out for Delivery', 'Delivered'].includes(status) ? 'border-emerald-500 text-emerald-500' : 'border-gray-200'}`}>3</div>
+                                <span className={['Shipped', 'Out for Delivery', 'Delivered'].includes(status) ? 'text-gray-900' : ''}>Shipped</span>
+                              </div>
+                              <div className="flex flex-col items-center gap-2">
+                                <div className={`w-7 h-7 rounded-full flex items-center justify-center border-2 bg-white ${status === 'Delivered' ? 'border-emerald-500 text-emerald-500 bg-emerald-50' : 'border-gray-200'}`}><CheckCircle2 className="w-4 h-4" /></div>
+                                <span className={status === 'Delivered' ? 'text-emerald-600' : ''}>Delivered</span>
+                              </div>
+                            </div>
                           </div>
-                          
-                          <div className="text-sm text-gray-500 flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
-                            <span className="font-medium text-gray-900">{order.payment_method || 'Card'}</span>
-                            <span>•</span>
-                            <span className={order.payment_status === 'Success' ? 'text-emerald-600 font-medium' : 'text-amber-600 font-medium'}>
-                              {order.payment_status || 'Pending'}
-                            </span>
+
+                          <div className="flex flex-wrap items-center justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                              {getStatusBadge(status)}
+                              {['Order Placed', 'Pending', 'Confirmed', 'Packed', 'Shipped', 'Out for Delivery'].includes(status) && (
+                                <p className="text-sm font-medium text-gray-600">Arriving by <strong className="text-gray-900">{deliveryDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</strong></p>
+                              )}
+                            </div>
+                            
+                            <div className="text-sm text-gray-500 flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
+                              <span className="font-medium text-gray-900">{order.payment_method || 'Card'}</span>
+                              <span>•</span>
+                              <span className={order.payment_status === 'Success' ? 'text-emerald-600 font-medium' : 'text-amber-600 font-medium'}>
+                                {order.payment_status || 'Pending'}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
 
                     {/* Actions Bar */}
-                    <div className="bg-white border-t border-gray-100 p-4 flex flex-wrap items-center justify-between gap-3">
+                    <div className="bg-gray-50/50 border-t border-gray-100 p-4 flex flex-wrap items-center justify-between gap-3">
                       <div className="flex flex-wrap gap-2">
-                        <button className="px-4 py-2 bg-gray-900 text-white hover:bg-black rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 shadow-sm">
+                        <button onClick={() => toast.success('Tracking information will be sent to your email.')} className="px-4 py-2 bg-gray-900 text-white hover:bg-black rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 shadow-sm">
                           <Truck className="w-3.5 h-3.5" /> Track Order
                         </button>
-                        <button className="px-4 py-2 bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 shadow-sm">
-                          <FileText className="w-3.5 h-3.5" /> Invoice
+                        <button onClick={() => toast.success('Downloading Invoice...')} className="px-4 py-2 bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 shadow-sm">
+                          <Download className="w-3.5 h-3.5" /> Invoice
                         </button>
                         {status === 'Delivered' && (
-                          <button className="px-4 py-2 bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 shadow-sm">
-                            <MessageSquare className="w-3.5 h-3.5" /> Write Review
+                          <button onClick={() => toast.success('Opening Review Form...')} className="px-4 py-2 bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 shadow-sm">
+                            <Star className="w-3.5 h-3.5" /> Write Review
                           </button>
                         )}
                       </div>
                       
                       <div className="flex flex-wrap gap-2">
                         {status === 'Delivered' && (
-                          <button className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5">
-                            <RotateCcw className="w-3.5 h-3.5" /> Return Product
+                          <button onClick={() => toast.success('Return request initiated.')} className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 border border-transparent">
+                            <RotateCcw className="w-3.5 h-3.5" /> Return / Replace
                           </button>
                         )}
-                        {['Order Placed', 'Pending', 'Confirmed'].includes(status || 'Order Placed') && (
-                          <button className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5">
+                        {['Order Placed', 'Pending', 'Confirmed'].includes(status) && (
+                          <button onClick={() => toast.success('Cancellation requested.')} className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5">
                             <Ban className="w-3.5 h-3.5" /> Cancel Order
                           </button>
                         )}
-                        <button className="px-4 py-2 text-[#800000] hover:bg-red-50 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5">
+                        <button onClick={() => toast.success('Adding items back to cart...')} className="px-4 py-2 text-[#800000] hover:bg-red-50 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 border border-[#800000]/10">
                           <ShoppingBag className="w-3.5 h-3.5" /> Buy Again
-                        </button>
-                        <button className="px-4 py-2 text-gray-500 hover:text-gray-900 hover:bg-gray-50 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5">
-                          <HeadphonesIcon className="w-3.5 h-3.5" /> Support
                         </button>
                       </div>
                     </div>

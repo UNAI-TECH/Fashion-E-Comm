@@ -431,7 +431,7 @@ export function ProductPage() {
             quantity: quantity,
             price: product.price,
             products: {
-              name: product.name,
+              ...product,
               images: (product.images && product.images.length > 0) ? product.images : [product.image],
             }
           }
@@ -512,7 +512,7 @@ export function ProductPage() {
       }
 
       // Navigate to orders page after successful order placement
-      window.location.href = '/orders';
+      navigate('/orders');
     } catch (err: any) {
       console.error('Order creation handler error:', err);
       toast.error('Order Error: ' + (err.message || 'Check Supabase connection'));
@@ -1188,7 +1188,7 @@ export function ProductPage() {
                     <button
                       disabled={isSubmitting}
                       onClick={() => {
-                        handleCreateOrder('Card');
+                        handleCreateOrder('COD');
                       }}
                       className="flex-1 py-3 bg-[#800000] hover:bg-black text-white rounded-xl font-bold text-xs shadow-md flex items-center justify-center gap-2"
                     >

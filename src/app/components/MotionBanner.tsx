@@ -4,15 +4,18 @@ import { ArrowRight } from 'lucide-react';
 export function MotionBanner() {
   return (
     <section 
-      className="relative w-full min-h-[260px] md:min-h-0 md:aspect-[21/7] lg:aspect-[24/7] flex flex-col md:flex-row items-center overflow-hidden py-10 md:py-0"
-      style={{ 
-        backgroundImage: 'linear-gradient(to right, #FBCED7 0%, #FBCED7 45%, transparent 60%), url("/hero_fashion_phone.png")', 
-        backgroundSize: '100% 100%, contain', 
-        backgroundPosition: 'left center, right center',
-        backgroundRepeat: 'no-repeat, no-repeat',
-        backgroundColor: '#FBCED7'
-      }}
+      className="relative w-full min-h-[260px] md:min-h-0 md:aspect-[21/7] lg:aspect-[24/7] flex flex-col md:flex-row items-center overflow-hidden py-10 md:py-0 bg-[#FBCED7]"
     >
+      {/* Background Image - hidden on mobile */}
+      <div 
+        className="absolute inset-0 hidden md:block"
+        style={{ 
+          backgroundImage: 'linear-gradient(to right, #FBCED7 0%, #FBCED7 45%, transparent 60%), url("/hero_fashion_phone.png")', 
+          backgroundSize: '100% 100%, contain', 
+          backgroundPosition: 'left center, right center',
+          backgroundRepeat: 'no-repeat, no-repeat',
+        }}
+      />
 
       {/* Transparent spacer overlay */}
       <div className="absolute inset-0 bg-transparent pointer-events-none" />
@@ -20,13 +23,13 @@ export function MotionBanner() {
       {/* Content wrapper - centered on mobile, left-aligned on desktop */}
       <div className="relative z-10 w-full px-6 sm:px-12 md:px-16 lg:px-24 flex items-center h-full">
         <div className="max-w-md mx-auto md:mx-0 md:max-w-lg lg:max-w-xl text-center md:text-left">
-          {/* Animated text decoration line */}
+          {/* Animated text decoration line - hidden on mobile */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
-            className="mb-4 flex justify-center md:justify-start"
+            className="mb-4 hidden md:flex justify-center md:justify-start"
           >
             <motion.div
               initial={{ width: 0 }}
