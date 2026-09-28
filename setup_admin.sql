@@ -1,20 +1,34 @@
 -- =========================================================================
--- ROBUST ADMIN USER SETUP SCRIPT (V3)
+-- ROBUST ADMIN USER SETUP SCRIPT (FOR SUPABASE SQL EDITOR)
 -- =========================================================================
 
--- Ensure pgcrypto is enabled for password hashing
-create extension if not exists pgcrypto;
+-- 1. Ensure required extensions exist
+create extension if not exists "uuid-ossp";
+create extension if not exists "pgcrypto";
 
+-- 2. Ensure public.profiles table exists
+create table if not exists public.profiles (
+  id uuid references auth.users on delete cascade not null primary key,
+  email text unique not null,
+  full_name text,
+  phone text,
+  avatar_url text,
+  role text default 'customer' check (role in ('customer', 'admin')),
+  status text default 'Active' check (status in ('Active', 'Blocked')),
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- 3. Create or Update Admin User & Assign Admin Role
 do $$
 declare
-  new_user_id uuid;
+  admin_uid uuid;
 begin
-  -- 1. Check if the user already exists in auth.users
-  select id into new_user_id from auth.users where email = 'unaitech2025@gmail.com';
+  -- Check if user already exists in auth.users
+  select id into admin_uid from auth.users where email = 'unaitech2025@gmail.com';
 
-  if new_user_id is null then
-    -- Create the user if they don't exist
-    new_user_id := uuid_generate_v4();
+  if admin_uid is null then
+    admin_uid := gen_random_uuid();
     insert into auth.users (
       instance_id,
       id,
@@ -34,14 +48,14 @@ begin
     )
     values (
       '00000000-0000-0000-0000-000000000000',
-      new_user_id,
+      admin_uid,
       'authenticated',
       'authenticated',
       'unaitech2025@gmail.com',
       crypt('Unaitech@1234', gen_salt('bf')),
       now(),
       '{"provider":"email","providers":["email"]}',
-      '{"full_name":"AfforX Admin"}',
+      '{"full_name":"AfforX Admin","role":"admin"}',
       now(),
       now(),
       '',
@@ -50,19 +64,21 @@ begin
       ''
     );
   else
-    -- Update existing user's password just in case
+    -- Update existing user password & confirm email
     update auth.users
     set encrypted_password = crypt('Unaitech@1234', gen_salt('bf')),
         email_confirmed_at = now(),
-        updated_at = now()
-    where id = new_user_id;
+        updated_at = now(),
+        raw_user_meta_data = '{"full_name":"AfforX Admin","role":"admin"}'
+    where id = admin_uid;
   end if;
 
-  -- 2. Ensure the profile exists and has the admin role
+  -- Upsert admin profile
   insert into public.profiles (id, email, full_name, role, status)
-  values (new_user_id, 'unaitech2025@gmail.com', 'AfforX Admin', 'admin', 'Active')
+  values (admin_uid, 'unaitech2025@gmail.com', 'AfforX Admin', 'admin', 'Active')
   on conflict (id) do update 
   set role = 'admin', 
-      status = 'Active';
+      status = 'Active',
+      full_name = 'AfforX Admin';
 
 end $$;

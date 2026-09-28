@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Mail, MapPin, Phone, Instagram, Facebook, Youtube, Heart, Tag, Award, Headphones, Lock } from 'lucide-react';
+import { Mail, MapPin, Phone, Instagram, Facebook, Youtube, Heart, Tag, Award, Headphones, Lock, ArrowUpRight } from 'lucide-react';
 import { Link } from 'react-router';
 
 export function Footer() {
@@ -34,6 +34,7 @@ export function Footer() {
       { name: 'Terms & Conditions', path: '/terms' },
       { name: 'Privacy Policy', path: '/privacy' },
       { name: 'Payment Methods', path: '/payment-methods' },
+      { name: 'Admin Login', path: '/login' },
     ]
   };
 
@@ -70,11 +71,11 @@ export function Footer() {
             <div className="grid grid-cols-2 md:grid-cols-5 gap-6 md:gap-8">
               {/* Brand/Socials Column */}
               <div className="col-span-2 md:col-span-2 flex flex-col items-start justify-start space-y-2 md:space-y-4">
-                <div className="flex items-center h-28 sm:h-36 md:h-44 lg:h-56 mb-2 md:mb-4 mix-blend-multiply">
+                <div className="flex items-center h-28 sm:h-36 md:h-44 lg:h-52 mb-2 md:mb-4 mix-blend-multiply">
                   <img
-                    src="/media__1785326482299.jpg"
+                    src="/logo.webp"
                     alt="Aanya Fashions Logo"
-                    className="h-full w-auto object-contain contrast-125 drop-shadow-xl"
+                    className="h-full w-auto object-contain drop-shadow-md"
                   />
                 </div>
                 <p className="text-sm text-gray-600 max-w-sm leading-relaxed hidden md:block">
@@ -177,17 +178,27 @@ export function Footer() {
               © 2026 Aanya Fashions. All Rights Reserved.
             </p>
             
-            {/* Payment Methods */}
-            <div className="flex flex-col items-center md:items-end gap-2">
-              <span className="text-[10px] font-bold tracking-wider text-gray-500 uppercase">100% Secure Payments</span>
-              <div className="flex items-center gap-3 bg-white/50 px-3 py-1.5 rounded-lg border border-white/60">
-                <img src="https://cdn.simpleicons.org/visa/1434CB" alt="Visa" className="h-3 md:h-4 object-contain opacity-70 hover:opacity-100 transition-opacity" />
-                <img src="https://cdn.simpleicons.org/mastercard" alt="Mastercard" className="h-4 md:h-5 object-contain opacity-70 hover:opacity-100 transition-opacity" />
-                <img src="https://upload.wikimedia.org/wikipedia/commons/e/e1/UPI-Logo-vector.svg" alt="UPI" className="h-3 md:h-4 object-contain opacity-70 hover:opacity-100 transition-opacity" />
-                <img src="/payment-logos/rupay.png" alt="RuPay" className="h-3 md:h-4 object-contain opacity-70 hover:opacity-100 transition-opacity" />
-                <span className="text-[10px] font-bold text-gray-600 border-l border-gray-300 pl-2 ml-1">COD</span>
+            {/* Crafted / Presented by UNAI TECH Badge */}
+            <a
+              href="https://www.unaitech.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-center gap-3.5 px-5 py-2.5 bg-[#18181B] hover:bg-[#222226] border border-neutral-700/70 rounded-2xl transition-all duration-300 shadow-md hover:shadow-xl hover:border-amber-500/50 cursor-pointer active:scale-95"
+              title="Visit UNAI TECH - https://www.unaitech.com/"
+            >
+              <div className="flex flex-col text-left">
+                <span className="text-[9px] font-bold tracking-widest text-neutral-400 uppercase">
+                  PRESENTED BY
+                </span>
+                <div className="flex items-center gap-1 leading-none mt-0.5">
+                  <span className="font-extrabold tracking-tight text-sm text-[#F59E0B]">UNAI</span>
+                  <span className="font-extrabold tracking-tight text-sm text-white">TECH</span>
+                </div>
               </div>
-            </div>
+              <div className="w-7 h-7 rounded-xl bg-neutral-800 border border-neutral-700/80 flex items-center justify-center text-neutral-400 group-hover:text-[#F59E0B] group-hover:border-[#F59E0B]/50 group-hover:bg-[#F59E0B]/10 transition-all flex-shrink-0">
+                <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+              </div>
+            </a>
           </div>
         </div>
       </div>

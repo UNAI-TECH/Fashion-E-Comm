@@ -6,11 +6,17 @@ import { Product } from '../data/products';
 import { Flame } from 'lucide-react';
 
 export function TrendingCollection({ products, isLoading }: { products: Product[], isLoading: boolean }) {
-  // Sort by rating descending — highest rated = most popular/sold
-  // Pick top 8 products across all categories
+  // Prioritize newly added products from admin, then top rated
   const displayProducts = [...products]
-    .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
-    .slice(0, 8);
+    .sort((a: any, b: any) => {
+      const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
+      if (aTime !== bTime) {
+        return bTime - aTime;
+      }
+      return (b.rating ?? 0) - (a.rating ?? 0);
+    })
+    .slice(0, 16);
 
   return (
     <section className="py-20 px-4" style={{ background: 'linear-gradient(to bottom, #FFFFFF, #FFF0F5)' }}>

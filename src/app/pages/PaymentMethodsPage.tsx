@@ -9,11 +9,11 @@ export function PaymentMethodsPage() {
       {/* Custom Header */}
       <header className="fixed top-0 left-0 right-0 z-[40] bg-white shadow-sm border-b border-gray-100 h-16 flex items-center px-4 sm:px-6">
         <div className="flex-1 flex justify-start">
-          <Link to="/" className="h-16 sm:h-20 overflow-visible flex items-center">
+          <Link to="/" className="h-11 sm:h-12 overflow-visible flex items-center">
             <img
-              src="/media__1785326482299.jpg"
+              src="/logo.webp"
               alt="Aanya Fashions"
-              className="h-full w-auto object-contain object-left mix-blend-multiply contrast-125 drop-shadow-md scale-125 origin-left"
+              className="h-full w-auto object-contain object-left"
             />
           </Link>
         </div>

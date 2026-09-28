@@ -3,7 +3,6 @@ import { useLocation } from 'react-router';
 import { Navigation } from '../components/Navigation';
 import { AnnouncementBar } from '../components/AnnouncementBar';
 import { HeroSection } from '../components/HeroSection';
-import { ValuePropsBar } from '../components/ValuePropsBar';
 import { FeaturedCategories } from '../components/FeaturedCategories';
 import { TrendingCollection } from '../components/TrendingCollection';
 import { MotionBanner } from '../components/MotionBanner';
@@ -17,20 +16,33 @@ export function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const location = useLocation();
 
-  useEffect(() => {
-    async function loadAllProducts() {
-      setIsLoading(true);
-      try {
-        const data = await fetchProducts();
-        console.log('Home Products Fetched:', data);
-        setProducts(data);
-      } catch (error) {
-        console.error('Error fetching home products:', error);
-      } finally {
-        setIsLoading(false);
-      }
+  const loadAllProducts = async () => {
+    setIsLoading(true);
+    try {
+      const data = await fetchProducts();
+      console.log('Home Products Fetched:', data);
+      setProducts(data);
+    } catch (error) {
+      console.error('Error fetching home products:', error);
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  useEffect(() => {
     loadAllProducts();
+
+    const handleUpdate = () => {
+      loadAllProducts();
+    };
+
+    window.addEventListener('storage', handleUpdate);
+    window.addEventListener('products_updated', handleUpdate);
+
+    return () => {
+      window.removeEventListener('storage', handleUpdate);
+      window.removeEventListener('products_updated', handleUpdate);
+    };
   }, []);
 
   useEffect(() => {
@@ -50,7 +62,6 @@ export function Home() {
       <AnnouncementBar />
       <Navigation />
       <HeroSection />
-      <ValuePropsBar />
       <FeaturedCategories />
       <MotionBanner />
       <TrendingCollection products={products} isLoading={isLoading} />

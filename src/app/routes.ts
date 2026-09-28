@@ -58,8 +58,8 @@ export const router = createBrowserRouter([
       { path: "/privacy", Component: PrivacyPolicyPage },
       { path: "/terms", Component: TermsPage },
       { path: "/payment-methods", Component: PaymentMethodsPage },
-      { path: "/admin/aanya", Component: AdminAanyaPage },
-      { path: "/admin/login", Component: AdminAanyaPage },
+      { path: "/login", Component: AdminLogin },
+      { path: "/admin/login", Component: AdminLogin },
       {
         path: "/admin",
         Component: AdminRoute,

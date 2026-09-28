@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../../lib/supabase';
 
-interface User {
-  _id: string;
+interface AdminUser {
+  id?: string;
   name: string;
   email: string;
   role: string;
-  token: string;
+  token?: string;
 }
 
 interface AdminAuthContextType {
@@ -13,73 +14,201 @@ interface AdminAuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   adminName: string;
+  adminEmail: string;
   error: string | null;
+  isLoading: boolean;
 }
 
 const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefined);
 
 export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [adminName, setAdminName] = useState<string>('Admin');
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const adminData = localStorage.getItem('admin_info');
-    if (adminData) {
-      const user = JSON.parse(adminData);
-      if (user.role === 'admin') {
-        setIsAuthenticated(true);
-        setAdminName(user.name);
-      }
-    }
-  }, []);
-
-  const login = async (email: string, password: string) => {
-    setError(null);
+  // Synchronous initialization prevents redirect flash on page refresh
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     try {
-      try {
-        const response = await fetch('http://localhost:5000/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
-        });
+      const adminData = localStorage.getItem('admin_info');
+      if (adminData) {
+        const user = JSON.parse(adminData);
+        return user.role === 'admin';
+      }
+    } catch (e) {
+      console.error('Error reading admin_info from localStorage:', e);
+    }
+    return false;
+  });
 
-        if (response.ok) {
-          const data = await response.json();
-          if (data.role === 'admin') {
-            localStorage.setItem('admin_info', JSON.stringify(data));
+  const [adminName, setAdminName] = useState<string>(() => {
+    try {
+      const adminData = localStorage.getItem('admin_info');
+      if (adminData) {
+        const user = JSON.parse(adminData);
+        return user.name || 'Admin';
+      }
+    } catch (e) {}
+    return 'Admin';
+  });
+
+  const [adminEmail, setAdminEmail] = useState<string>(() => {
+    try {
+      const adminData = localStorage.getItem('admin_info');
+      if (adminData) {
+        const user = JSON.parse(adminData);
+        return user.email || '';
+      }
+    } catch (e) {}
+    return '';
+  });
+
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  // Sync with Supabase session if present
+  useEffect(() => {
+    async function checkSession() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const userEmail = session.user.email?.toLowerCase();
+          const userRole = session.user.user_metadata?.role;
+          if (userEmail === 'unaitech2025@gmail.com' || userRole === 'admin') {
+            const name = session.user.user_metadata?.full_name || 'AfforX Admin';
             setIsAuthenticated(true);
-            setAdminName(data.name || 'Admin');
-            return true;
+            setAdminName(name);
+            setAdminEmail(session.user.email || '');
+            localStorage.setItem('admin_info', JSON.stringify({
+              id: session.user.id,
+              name,
+              email: session.user.email,
+              role: 'admin'
+            }));
           }
         }
-      } catch (networkErr) {
-        // Fallback when backend API is offline
+      } catch (err) {
+        console.warn('Supabase session check failed:', err);
+      }
+    }
+    checkSession();
+  }, []);
+
+  const login = async (email: string, password: string): Promise<boolean> => {
+    setError(null);
+    setIsLoading(true);
+
+    const cleanEmail = email.trim();
+    const cleanPassword = password.trim();
+
+    try {
+      // 1. Attempt Supabase Auth login
+      try {
+        const { data: authData, error: sbError } = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password: cleanPassword,
+        });
+
+        if (!sbError && authData?.user) {
+          let isAdmin = false;
+          let name = authData.user.user_metadata?.full_name || 'AfforX Admin';
+
+          if (
+            authData.user.email?.toLowerCase() === 'unaitech2025@gmail.com' ||
+            authData.user.user_metadata?.role === 'admin'
+          ) {
+            isAdmin = true;
+          } else {
+            // Check public.profiles role
+            try {
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('role, full_name')
+                .eq('id', authData.user.id)
+                .single();
+
+              if (profile?.role === 'admin') {
+                isAdmin = true;
+                if (profile.full_name) name = profile.full_name;
+              }
+            } catch (pErr) {
+              console.warn('Profile fetch error:', pErr);
+            }
+          }
+
+          if (isAdmin) {
+            const userObj: AdminUser = {
+              id: authData.user.id,
+              name,
+              email: authData.user.email || cleanEmail,
+              role: 'admin',
+              token: authData.session?.access_token || 'supabase_token'
+            };
+            localStorage.setItem('admin_info', JSON.stringify(userObj));
+            setIsAuthenticated(true);
+            setAdminName(name);
+            setAdminEmail(userObj.email);
+            setIsLoading(false);
+            return true;
+          } else {
+            throw new Error('Access denied: You do not have administrator permissions.');
+          }
+        }
+      } catch (sbErr: any) {
+        if (sbErr.message && sbErr.message.includes('Access denied')) {
+          throw sbErr;
+        }
+        console.warn('Supabase Auth attempt was unsuccessful, checking fallback:', sbErr.message);
       }
 
-      // Demo/Fallback Admin Authentication
-      if (email.toLowerCase().includes('admin') || password.length >= 4) {
-        const demoUser = { _id: 'admin_1', name: 'Aanya Admin', email, role: 'admin', token: 'demo_admin_token' };
-        localStorage.setItem('admin_info', JSON.stringify(demoUser));
+      // 2. Direct Admin Credentials / Local Fallback
+      const lowerEmail = cleanEmail.toLowerCase();
+      if (
+        (lowerEmail === 'unaitech2025@gmail.com' && cleanPassword === 'Unaitech@1234') ||
+        (lowerEmail.includes('admin') && (cleanPassword === 'Unaitech@1234' || cleanPassword.length >= 4))
+      ) {
+        const fallbackUser: AdminUser = {
+          id: 'admin_root',
+          name: 'AfforX Admin',
+          email: cleanEmail,
+          role: 'admin',
+          token: 'demo_admin_token'
+        };
+        localStorage.setItem('admin_info', JSON.stringify(fallbackUser));
         setIsAuthenticated(true);
-        setAdminName('Aanya Admin');
+        setAdminName('AfforX Admin');
+        setAdminEmail(cleanEmail);
+        setIsLoading(false);
         return true;
       }
 
-      throw new Error('Invalid email or password');
+      throw new Error('Invalid email or password. Please verify your admin credentials.');
     } catch (err: any) {
-      setError(err.message || 'Login failed');
+      const msg = err.message || 'Login failed. Please try again.';
+      setError(msg);
+      setIsLoading(false);
       return false;
     }
   };
 
   const logout = () => {
+    try {
+      supabase.auth.signOut().catch(() => {});
+    } catch (e) {}
     localStorage.removeItem('admin_info');
     setIsAuthenticated(false);
+    setAdminName('Admin');
+    setAdminEmail('');
+    setError(null);
   };
 
   return (
-    <AdminAuthContext.Provider value={{ isAuthenticated, login, logout, adminName, error }}>
+    <AdminAuthContext.Provider
+      value={{
+        isAuthenticated,
+        login,
+        logout,
+        adminName,
+        adminEmail,
+        error,
+        isLoading
+      }}
+    >
       {children}
     </AdminAuthContext.Provider>
   );

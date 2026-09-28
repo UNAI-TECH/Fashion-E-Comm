@@ -255,12 +255,12 @@ export function Navigation() {
         <div className="max-w-[1400px] mx-auto px-6 py-1 flex items-center gap-6">
 
           {/* Logo — Sleek, bold & compact height */}
-          <Link to="/" className="flex items-center flex-shrink-0 h-20 sm:h-24 py-1 overflow-visible">
+          <Link to="/" className="flex items-center flex-shrink-0 h-14 sm:h-16 py-1 overflow-visible">
             <motion.img
               whileHover={{ scale: 1.05 }}
-              src="/media__1785326482299.jpg"
+              src="/logo.webp"
               alt="Aanya Fashions"
-              className="h-full w-auto object-contain object-left contrast-125 scale-125 origin-left mix-blend-multiply drop-shadow-md"
+              className="h-full w-auto object-contain object-left"
             />
           </Link>
 
@@ -439,15 +439,15 @@ export function Navigation() {
         <div className="w-full pl-0.5 pr-2 py-0 bg-white flex items-center justify-between h-14 sm:h-16 rounded-full overflow-hidden">
           
           {/* Left side: Logo filling left side curve */}
-          <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center h-16 sm:h-20 flex-shrink-0 overflow-visible">
+          <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center h-10 sm:h-12 flex-shrink-0 overflow-visible pl-1">
             <motion.div
               whileHover={{ scale: 1.04 }}
               className="flex items-center h-full py-0.5"
             >
               <img
-                src="/media__1785326482299.jpg"
+                src="/logo.webp"
                 alt="Aanya Fashions Logo"
-                className="h-full w-auto object-contain object-left mix-blend-multiply contrast-125 drop-shadow-md scale-125 origin-left"
+                className="h-full w-auto object-contain object-left"
               />
             </motion.div>
           </Link>
@@ -776,7 +776,7 @@ export function Navigation() {
             {/* Header */}
             <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md px-6 sm:px-12 py-5 border-b border-gray-100 flex items-center justify-between shadow-sm relative">
               <div className="absolute left-6 sm:left-12 flex items-center">
-                <img src="/media__1785326482299.jpg" alt="Aanya Fashions Logo" className="h-16 sm:h-20 w-auto object-contain mix-blend-multiply contrast-125 drop-shadow-md hidden sm:block" />
+                <img src="/logo.webp" alt="Aanya Fashions Logo" className="h-14 sm:h-16 w-auto object-contain mix-blend-multiply drop-shadow-sm hidden sm:block" />
               </div>
               <div className="flex-1 flex flex-col items-center justify-center">
                 <h2 className="font-serif text-2xl sm:text-3xl font-bold text-gray-900 text-center">Saved Wishlist Collection</h2>
@@ -874,9 +874,9 @@ export function Navigation() {
               {/* Left: Official Logo */}
               <div className="flex items-center justify-start">
                 <img 
-                  src="/media__1785326482299.jpg" 
+                  src="/logo.webp" 
                   alt="Aanya Fashions Logo" 
-                  className="h-14 sm:h-20 max-h-20 w-auto object-contain brightness-110 contrast-125 drop-shadow-lg flex-shrink-0"
+                  className="h-14 sm:h-16 max-h-16 w-auto object-contain mix-blend-multiply drop-shadow-sm flex-shrink-0"
                 />
               </div>
 
@@ -1034,9 +1034,9 @@ export function Navigation() {
                     initial={{ scale: 0.85, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.1, duration: 0.4 }}
-                    src="/media__1785326482299.jpg"
+                    src="/logo.webp"
                     alt="Aanya Fashions Logo"
-                    className="h-44 sm:h-56 w-auto object-contain contrast-125 mix-blend-multiply drop-shadow-xl mb-8"
+                    className="h-44 sm:h-56 w-auto object-contain mix-blend-multiply drop-shadow-xl mb-8"
                   />
 
                   {/* Welcome Message Only */}

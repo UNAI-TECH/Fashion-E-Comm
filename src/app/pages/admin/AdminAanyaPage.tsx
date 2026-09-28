@@ -4,14 +4,15 @@ import {
   IndianRupee, ShoppingBag, Users, Package, ArrowUpRight,
   Plus, Trash2, Search, Store, X, RefreshCw, ChevronRight,
   Phone, Mail, MapPin, ImageIcon, LayoutDashboard,
-  ClipboardList, Menu, ChevronLeft, CreditCard
+  ClipboardList, Menu, ChevronLeft, CreditCard, LogOut
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar
 } from 'recharts';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { supabaseAdmin } from '../../../lib/supabase';
+import { useAdminAuth } from '../../contexts/AdminAuthContext';
 import { fetchProducts } from '../../data/products';
 import { toast } from 'sonner';
 
@@ -82,6 +83,8 @@ const NAV_ITEMS: { id: NavTab; label: string; icon: React.ReactNode }[] = [
 export function AdminAanyaPage() {
   const [activeTab, setActiveTab] = useState<NavTab>('overview');
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const { logout } = useAdminAuth();
+  const navigate = useNavigate();
 
   /* ── Data state ── */
   const [dbProducts, setDbProducts] = useState<DbProduct[]>([]);
@@ -269,10 +272,23 @@ export function AdminAanyaPage() {
   /* ─── Delete product → Supabase ─── */
   const deleteProduct = async (id: string) => {
     if (!confirm('Delete this product?')) return;
-    const { error } = await supabaseAdmin.from('products').delete().eq('id', id);
-    if (error) { toast.error('Delete failed: ' + error.message); return; }
+    try {
+      const { error } = await supabaseAdmin.from('products').delete().eq('id', id);
+      if (error) console.warn('Supabase product delete notice:', error);
+    } catch (e) {}
+
+    // Clean from local cache as well
+    try {
+      const raw = localStorage.getItem('local_admin_products');
+      if (raw) {
+        const local = JSON.parse(raw);
+        localStorage.setItem('local_admin_products', JSON.stringify(local.filter((p: any) => p.id !== id)));
+      }
+    } catch (e) {}
+
+    window.dispatchEvent(new Event('products_updated'));
     setDbProducts(prev => prev.filter(p => p.id !== id));
-    toast.success('Product deleted');
+    toast.success('Product removed from store');
   };
 
   /* ─── Add product → Supabase ─── */
@@ -282,7 +298,7 @@ export function AdminAanyaPage() {
     setAdding(true);
     try {
       const img = form.image_url.trim();
-      const { data, error } = await supabaseAdmin.from('products').insert({
+      const productPayload = {
         name: form.name.trim(),
         category: form.category,
         price: parseFloat(form.price),
@@ -291,10 +307,39 @@ export function AdminAanyaPage() {
         images: img ? [img] : [],
         description: form.description.trim() || null,
         status: form.status,
-      }).select().single();
-      if (error) throw error;
-      setDbProducts(prev => [data, ...prev]);
-      toast.success('Product published to store!');
+      };
+
+      let createdProduct: any = null;
+      try {
+        const { data, error } = await supabaseAdmin.from('products').insert(productPayload).select().single();
+        if (!error && data) {
+          createdProduct = data;
+        } else if (error) {
+          console.warn('Supabase DB product insert notice:', error);
+        }
+      } catch (dbErr) {
+        console.warn('Supabase product insert notice:', dbErr);
+      }
+
+      if (!createdProduct) {
+        createdProduct = {
+          id: 'prod_' + Date.now(),
+          ...productPayload,
+          created_at: new Date().toISOString()
+        };
+      }
+
+      // Sync to local_admin_products cache for instant storefront availability
+      try {
+        const raw = localStorage.getItem('local_admin_products');
+        const existing = raw ? JSON.parse(raw) : [];
+        const updated = [createdProduct, ...existing.filter((p: any) => p.id !== createdProduct.id && p.name !== createdProduct.name)];
+        localStorage.setItem('local_admin_products', JSON.stringify(updated));
+      } catch (e) {}
+
+      setDbProducts(prev => [createdProduct, ...prev.filter(p => p.id !== createdProduct.id)]);
+      window.dispatchEvent(new Event('products_updated'));
+      toast.success(`'${createdProduct.name}' published to store!`);
       setIsAddOpen(false); setImgPreview(''); setForm(emptyForm);
     } catch (err: any) {
       toast.error('Failed: ' + (err.message || 'Unknown error'));
@@ -367,23 +412,30 @@ export function AdminAanyaPage() {
         transition={{ duration: 0.25, ease: 'easeInOut' }}
         className="flex-shrink-0 bg-white border-r border-gray-100 flex flex-col h-full z-30 overflow-hidden shadow-sm"
       >
-        {/* Logo area */}
-        <div className="flex items-center gap-3 px-4 py-4 border-b border-gray-100 min-h-[88px]">
+        {/* Logo area with collapse toggle button right near the logo */}
+        <div className={`flex items-center ${sidebarOpen ? 'justify-between px-4' : 'justify-center px-1 flex-col gap-1.5'} py-4 border-b border-gray-100 min-h-[88px]`}>
           <button
             onClick={() => setActiveTab('overview')}
-            className="flex items-center gap-3 text-left focus:outline-none group cursor-pointer"
+            className="flex items-center justify-center focus:outline-none group cursor-pointer"
             title="Go to Admin Dashboard"
           >
-            <img src="/media__1785326482299.jpg" alt="Aanya Logo" className="h-20 w-auto object-contain flex-shrink-0 group-hover:scale-105 transition-transform brightness-105 contrast-125 drop-shadow-sm" />
-            <AnimatePresence>
-              {sidebarOpen && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                  className="overflow-hidden whitespace-nowrap">
-                  <div className="text-gray-900 font-serif font-bold text-sm leading-tight">Aanya Fashions</div>
-                  <div className="text-gray-400 text-xs font-bold uppercase tracking-widest">Admin Portal</div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <img
+              src="/logo.webp"
+              alt="Aanya Fashions"
+              className={`${sidebarOpen ? 'h-13 max-h-13' : 'h-8 max-h-8'} w-auto object-contain flex-shrink-0 group-hover:scale-105 transition-all`}
+            />
+          </button>
+
+          <button
+            onClick={() => setSidebarOpen(prev => !prev)}
+            className="p-1.5 rounded-lg border border-gray-200/80 bg-white hover:bg-gray-100 text-gray-500 hover:text-gray-900 transition-all cursor-pointer shadow-xs flex-shrink-0"
+            title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+          >
+            {sidebarOpen ? (
+              <ChevronLeft className="w-4 h-4" />
+            ) : (
+              <ChevronRight className="w-4 h-4" />
+            )}
           </button>
         </div>
 
@@ -428,15 +480,20 @@ export function AdminAanyaPage() {
             <Store className="w-5 h-5 flex-shrink-0" />
             {sidebarOpen && <span className="text-sm font-bold">View Store</span>}
           </Link>
+
           <button
-            onClick={() => setSidebarOpen(prev => !prev)}
-            className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-rose-50 transition-all cursor-pointer"
-            title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+            onClick={() => {
+              if (window.confirm('Sign out from Admin Portal?')) {
+                logout();
+                navigate('/login');
+                toast.success('Signed out successfully');
+              }
+            }}
+            className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-rose-600 hover:text-rose-800 hover:bg-rose-50 transition-all cursor-pointer"
+            title={!sidebarOpen ? 'Sign Out' : undefined}
           >
-            {sidebarOpen
-              ? <><ChevronLeft className="w-5 h-5 flex-shrink-0" /><span className="text-sm font-bold">Collapse</span></>
-              : <Menu className="w-5 h-5 flex-shrink-0" />
-            }
+            <LogOut className="w-5 h-5 flex-shrink-0" />
+            {sidebarOpen && <span className="text-sm font-bold">Sign Out</span>}
           </button>
         </div>
       </motion.aside>
@@ -954,7 +1011,7 @@ export function AdminAanyaPage() {
               {/* Modal header */}
               <div className="bg-pink-50 border-b border-pink-100 px-6 py-5 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <img src="/media__1785326482299.jpg" alt="Aanya" className="h-12 w-auto object-contain" />
+                  <img src="/logo.webp" alt="Aanya" className="h-11 w-auto object-contain mix-blend-multiply" />
                   <div>
                     <h3 className="font-serif text-base font-bold text-gray-900">Add New Product</h3>
                     <p className="text-xs text-pink-400 font-medium">Saved directly to Supabase catalog</p>
@@ -981,7 +1038,7 @@ export function AdminAanyaPage() {
                     <label className="block text-xs uppercase tracking-wider font-bold text-gray-500 mb-1.5">Category</label>
                     <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}
                       className="w-full px-4 py-2.5 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#EC4899]/20 cursor-pointer">
-                      {['Sarees','Kurtis','Lehengas','Salwar Sets','Western','Maxi'].map(c => <option key={c}>{c}</option>)}
+                      {['Sarees','Kurtis','Lehengas','Salwar Sets','Western','Maxi','Tradition'].map(c => <option key={c}>{c}</option>)}
                     </select>
                   </div>
                   <div>

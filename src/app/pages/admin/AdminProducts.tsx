@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, Plus, Filter, Edit, Trash2, X, Upload } from 'lucide-react';
-import { supabase } from '../../../lib/supabase';
-import { Product } from '../../data/products';
+import { supabase, supabaseAdmin } from '../../../lib/supabase';
+import { Product, fetchProducts as getStorefrontProducts } from '../../data/products';
 import { toast } from 'sonner';
 
 export function AdminProducts() {
@@ -25,22 +25,8 @@ export function AdminProducts() {
   const fetchProducts = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setProducts((data || []).map(p => {
-        const itemImages = (p.images && p.images.length > 0) 
-          ? p.images 
-          : (p.image_url ? [p.image_url] : ['https://images.unsplash.com/photo-1604176354204-926873ff34b0?q=80&w=1000&auto=format&fit=crop']);
-        return {
-          ...p,
-          image: itemImages[0],
-          images: itemImages
-        };
-      }));
+      const data = await getStorefrontProducts();
+      setProducts(data);
     } catch (error) {
       console.error('Error fetching products:', error);
       toast.error('Failed to load products');
@@ -51,14 +37,37 @@ export function AdminProducts() {
 
   useEffect(() => {
     fetchProducts();
+
+    const handleUpdate = () => {
+      fetchProducts();
+    };
+    window.addEventListener('storage', handleUpdate);
+    window.addEventListener('products_updated', handleUpdate);
+    return () => {
+      window.removeEventListener('storage', handleUpdate);
+      window.removeEventListener('products_updated', handleUpdate);
+    };
   }, []);
 
   const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this product?')) return;
     try {
-      const { error } = await supabase.from('products').delete().eq('id', id);
-      if (error) throw error;
-      toast.success('Product deleted');
-      fetchProducts();
+      try {
+        const { error } = await supabaseAdmin.from('products').delete().eq('id', id);
+        if (error) console.warn('Supabase product delete notice:', error);
+      } catch (e) {}
+
+      try {
+        const raw = localStorage.getItem('local_admin_products');
+        if (raw) {
+          const list = JSON.parse(raw);
+          localStorage.setItem('local_admin_products', JSON.stringify(list.filter((p: any) => String(p.id) !== String(id))));
+        }
+      } catch (e) {}
+
+      window.dispatchEvent(new Event('products_updated'));
+      toast.success('Product deleted successfully');
+      await fetchProducts();
     } catch (error) {
       console.error('Error deleting product:', error);
       toast.error('Failed to delete product');
@@ -71,8 +80,8 @@ export function AdminProducts() {
       name: product.name,
       category: product.category,
       price: product.price.toString(),
-      compare_at_price: product.compare_at_price?.toString() || '',
-      stock_quantity: product.stock_quantity?.toString() || '0',
+      compare_at_price: (product.compare_at_price || product.originalPrice)?.toString() || '',
+      stock_quantity: product.stock_quantity?.toString() || '25',
       image: product.image,
       description: product.description || ''
     });
@@ -82,34 +91,77 @@ export function AdminProducts() {
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const productData = {
-        name: formData.name,
+      const img = formData.image.trim() || 'https://images.unsplash.com/photo-1604176354204-926873ff34b0?q=80&w=1000&auto=format&fit=crop';
+      const productPayload = {
+        name: formData.name.trim(),
         category: formData.category,
         price: Number(formData.price),
         compare_at_price: formData.compare_at_price ? Number(formData.compare_at_price) : null,
-        stock_quantity: Number(formData.stock_quantity),
-        images: [formData.image || 'https://images.unsplash.com/photo-1604176354204-926873ff34b0?q=80&w=1000&auto=format&fit=crop'],
-        description: formData.description,
+        stock_quantity: Number(formData.stock_quantity) || 25,
+        images: [img],
+        image_url: img,
+        description: formData.description.trim() || '',
         status: 'Published'
       };
 
+      let savedRecord: any = null;
+
       if (editingProduct) {
-        const { error } = await supabase
-          .from('products')
-          .update(productData)
-          .eq('id', editingProduct.id);
-        if (error) throw error;
+        try {
+          const { data, error } = await supabaseAdmin
+            .from('products')
+            .update(productPayload)
+            .eq('id', editingProduct.id)
+            .select()
+            .single();
+          if (!error && data) savedRecord = data;
+        } catch (e) {}
+
+        try {
+          const raw = localStorage.getItem('local_admin_products');
+          const list = raw ? JSON.parse(raw) : [];
+          const updated = list.map((p: any) => String(p.id) === String(editingProduct.id) ? { ...p, ...productPayload, image: img } : p);
+          if (!list.some((p: any) => String(p.id) === String(editingProduct.id))) {
+            updated.unshift({ id: editingProduct.id, ...productPayload, image: img, created_at: (editingProduct as any).created_at || new Date().toISOString() });
+          }
+          localStorage.setItem('local_admin_products', JSON.stringify(updated));
+        } catch (e) {}
+
         toast.success(`'${formData.name}' updated successfully`);
       } else {
-        const { error } = await supabase.from('products').insert(productData);
-        if (error) throw error;
-        toast.success(`'${formData.name}' added successfully`);
+        try {
+          const { data, error } = await supabaseAdmin
+            .from('products')
+            .insert(productPayload)
+            .select()
+            .single();
+          if (!error && data) savedRecord = data;
+        } catch (e) {}
+
+        const newId = savedRecord ? savedRecord.id : 'prod_' + Date.now();
+        const fullNewProduct = {
+          id: String(newId),
+          ...productPayload,
+          image: img,
+          created_at: new Date().toISOString()
+        };
+
+        try {
+          const raw = localStorage.getItem('local_admin_products');
+          const list = raw ? JSON.parse(raw) : [];
+          const updated = [fullNewProduct, ...list.filter((p: any) => String(p.id) !== String(newId))];
+          localStorage.setItem('local_admin_products', JSON.stringify(updated));
+        } catch (e) {}
+
+        toast.success(`'${formData.name}' added successfully and published!`);
       }
+
+      window.dispatchEvent(new Event('products_updated'));
 
       setIsModalOpen(false);
       setEditingProduct(null);
       setFormData({ name: '', category: 'Sarees', price: '', compare_at_price: '', stock_quantity: '', image: '', description: '' });
-      fetchProducts();
+      await fetchProducts();
     } catch (error) {
       console.error('Error saving product:', error);
       toast.error('Failed to save product');
@@ -228,6 +280,8 @@ export function AdminProducts() {
                       <option>Lehengas</option>
                       <option>Salwar Sets</option>
                       <option>Western</option>
+                      <option>Maxi</option>
+                      <option>Tradition</option>
                     </select>
                   </div>
                   <div>

@@ -511,26 +511,131 @@ const MOCK_PRODUCTS: Product[] = [
   }
 ];
 
-export async function fetchProducts(category?: string) {
-  // Always use MOCK_PRODUCTS to keep exactly 5 items per collection with their local images
-  let fetched: Product[] = MOCK_PRODUCTS;
+export async function fetchProducts(category?: string): Promise<Product[]> {
+  let dbProducts: Product[] = [];
 
+  // 1. Fetch from Supabase products table
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (!error && Array.isArray(data) && data.length > 0) {
+      dbProducts = data.map((p: any) => {
+        const imgs = Array.isArray(p.images) && p.images.length > 0
+          ? p.images
+          : (p.image_url ? [p.image_url] : (p.image ? [p.image] : [PLACEHOLDER_IMAGE]));
+
+        return {
+          id: String(p.id),
+          name: p.name,
+          description: p.description || '',
+          price: Number(p.price) || 0,
+          compare_at_price: p.compare_at_price ? Number(p.compare_at_price) : undefined,
+          originalPrice: p.compare_at_price ? Number(p.compare_at_price) : (p.originalPrice ? Number(p.originalPrice) : undefined),
+          category: p.category || 'Sarees',
+          images: imgs,
+          image: imgs[0],
+          rating: p.rating ? Number(p.rating) : 5.0,
+          stock_quantity: p.stock_quantity != null ? Number(p.stock_quantity) : 25,
+          status: p.status || 'Published',
+          colors: Array.isArray(p.colors) && p.colors.length > 0 ? p.colors : ['#800000'],
+          created_at: p.created_at,
+          badge: 'New Arrival'
+        };
+      });
+    }
+  } catch (err) {
+    console.warn('Supabase fetch products notice:', err);
+  }
+
+  // 2. Fetch from local admin products cache (instant sync for newly added admin products)
+  let localProducts: Product[] = [];
+  try {
+    const rawLocal = localStorage.getItem('local_admin_products');
+    if (rawLocal) {
+      const parsed = JSON.parse(rawLocal);
+      if (Array.isArray(parsed)) {
+        localProducts = parsed.map((p: any) => {
+          const imgs = Array.isArray(p.images) && p.images.length > 0
+            ? p.images
+            : (p.image_url ? [p.image_url] : (p.image ? [p.image] : [PLACEHOLDER_IMAGE]));
+
+          return {
+            id: String(p.id),
+            name: p.name,
+            description: p.description || '',
+            price: Number(p.price) || 0,
+            compare_at_price: p.compare_at_price ? Number(p.compare_at_price) : undefined,
+            originalPrice: p.compare_at_price ? Number(p.compare_at_price) : (p.originalPrice ? Number(p.originalPrice) : undefined),
+            category: p.category || 'Sarees',
+            images: imgs,
+            image: imgs[0],
+            rating: p.rating ? Number(p.rating) : 5.0,
+            stock_quantity: p.stock_quantity != null ? Number(p.stock_quantity) : 25,
+            status: p.status || 'Published',
+            colors: Array.isArray(p.colors) && p.colors.length > 0 ? p.colors : ['#800000'],
+            created_at: p.created_at || new Date().toISOString(),
+            badge: 'New Arrival'
+          };
+        });
+      }
+    }
+  } catch (e) {}
+
+  // 3. Intelligently merge: Local & Supabase Admin products take precedence over mocks
+  const productMap = new Map<string, Product>();
+  const nameSet = new Set<string>();
+
+  // Add local admin products
+  localProducts.forEach(p => {
+    productMap.set(p.id, p);
+    nameSet.add(p.name.trim().toLowerCase());
+  });
+
+  // Add Supabase DB products
+  dbProducts.forEach(p => {
+    productMap.set(p.id, p);
+    nameSet.add(p.name.trim().toLowerCase());
+  });
+
+  // Add mock catalog items if not overridden by name or id
+  MOCK_PRODUCTS.forEach(p => {
+    if (!productMap.has(p.id) && !nameSet.has(p.name.trim().toLowerCase())) {
+      productMap.set(p.id, p);
+    }
+  });
+
+  const allMerged = Array.from(productMap.values()).filter(p => !p.status || p.status === 'Published');
+
+  // Sort so newly added items from admin appear FIRST
+  const sorted = allMerged.sort((a, b) => {
+    const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
+    if (aTime !== bTime) {
+      return bTime - aTime;
+    }
+    return (b.rating ?? 0) - (a.rating ?? 0);
+  });
+
+  // 4. Handle category filtering
   if (category && category !== 'all') {
-    const rawTarget = category.toLowerCase().replace(/-/g, ' ');
+    const rawTarget = category.toLowerCase().replace(/-/g, ' ').trim();
     
     if (rawTarget === 'trending') {
-      return [...fetched].filter(p => (p.rating || 0) >= 4.8).sort((a, b) => (b.rating || 0) - (a.rating || 0));
+      return [...sorted].filter(p => (p.rating || 0) >= 4.7 || p.badge === 'New Arrival');
     }
 
     let targetStem = rawTarget;
     if (targetStem.endsWith('es')) targetStem = targetStem.slice(0, -2);
     else if (targetStem.endsWith('s') && targetStem.length > 3) targetStem = targetStem.slice(0, -1);
 
-    return fetched.filter(p => {
-      const pCat = (p.category || '').toLowerCase().replace(/-/g, ' ');
+    return sorted.filter(p => {
+      const pCat = (p.category || '').toLowerCase().replace(/-/g, ' ').trim();
       return pCat === rawTarget || pCat === targetStem || pCat.replace(/\s+/g, '') === rawTarget.replace(/\s+/g, '');
-    }).slice(0, 5); // Return only 5 items per collection
+    });
   }
 
-  return fetched;
+  return sorted;
 }

@@ -1,4 +1,4 @@
-import { useParams, Link } from 'react-router';
+import { useParams, Link, useLocation } from 'react-router';
 import { motion } from 'motion/react';
 import { useState, useEffect } from 'react';
 import { fetchProducts, Product } from '../data/products';
@@ -9,7 +9,9 @@ import { Footer } from '../components/Footer';
 import { AnnouncementBar } from '../components/AnnouncementBar';
 
 export function CategoryPage() {
-  const { category } = useParams<{ category: string }>();
+  const { category: rawCategoryParam } = useParams<{ category: string }>();
+  const location = useLocation();
+  const category = rawCategoryParam || location.pathname.replace(/^\/category\//, '').replace(/^\//, '').split('/')[0] || undefined;
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -31,6 +33,16 @@ export function CategoryPage() {
       }
     }
     loadProducts();
+
+    const handleUpdate = () => {
+      loadProducts();
+    };
+    window.addEventListener('storage', handleUpdate);
+    window.addEventListener('products_updated', handleUpdate);
+    return () => {
+      window.removeEventListener('storage', handleUpdate);
+      window.removeEventListener('products_updated', handleUpdate);
+    };
   }, [category]);
 
   return (
