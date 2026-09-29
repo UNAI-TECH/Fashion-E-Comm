@@ -36,10 +36,28 @@ export function Home() {
       loadAllProducts();
     };
 
+    // Instant real-time cross-tab auto-deletion
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel('products_channel');
+      bc.onmessage = (event) => {
+        if (event.data?.type === 'PRODUCT_DELETED') {
+          const { id, name } = event.data;
+          // Instantly remove from main page view with zero delay
+          setProducts(prev => prev.filter(p => 
+            String(p.id).toLowerCase() !== String(id).toLowerCase() && 
+            (!name || p.name.trim().toLowerCase() !== name.trim().toLowerCase())
+          ));
+        }
+        loadAllProducts();
+      };
+    } catch (e) {}
+
     window.addEventListener('storage', handleUpdate);
     window.addEventListener('products_updated', handleUpdate);
 
     return () => {
+      if (bc) bc.close();
       window.removeEventListener('storage', handleUpdate);
       window.removeEventListener('products_updated', handleUpdate);
     };

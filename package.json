@@ -6,7 +6,8 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
-    "dev:all": "concurrently \"npm run dev\" \"cd server && npm run dev\""
+    "dev:all": "concurrently \"npm run dev\" \"cd server && npm run dev\"",
+    "sync:instagram": "node scripts/sync_instagram.js"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",

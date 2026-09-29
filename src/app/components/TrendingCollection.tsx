@@ -28,15 +28,6 @@ export function TrendingCollection({ products, isLoading }: { products: Product[
           transition={{ duration: 0.8 }}
           className="text-center mb-16"
         >
-          <motion.span
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="inline-flex items-center gap-2 px-6 py-2 bg-white text-[#D4AF37] rounded-full text-sm tracking-wider mb-4 shadow-md font-bold"
-          >
-            <Flame className="w-4 h-4 text-orange-500" />
-            TRENDING NOW
-          </motion.span>
           <h2 className="font-serif text-4xl sm:text-5xl md:text-6xl mb-4 text-[#1A1A1A]">
             Trending Collection
           </h2>

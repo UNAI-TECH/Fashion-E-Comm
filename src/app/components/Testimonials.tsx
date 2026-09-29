@@ -1,166 +1,156 @@
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Star, Quote } from 'lucide-react';
+import { Quote, MapPin } from 'lucide-react';
 
-const testimonials = [
+interface Testimonial {
+  id: number;
+  name: string;
+  city: string;
+  review: string;
+}
+
+const testimonials: Testimonial[] = [
   {
     id: 1,
-    name: 'Sophia Martinez',
-    role: 'Fashion Blogger',
-    image: '/feedback_profile_sophia.jpg',
-    review: 'Aanya Fashions has completely transformed my wardrobe. The quality is exceptional and the designs are absolutely stunning!',
-    rating: 5,
+    name: 'Pooja Hegde',
+    city: 'Bangalore · Karnataka',
+    review:
+      'Ordered the Golden Kanchipuram silk saree for my sister’s wedding reception. The real gold zari border has such an authentic, rich luster and the pure silk drape stayed flawless throughout the evening. Truly boutique-level craftsmanship!',
   },
   {
     id: 2,
-    name: 'Emma Johnson',
-    role: 'Marketing Director',
-    image: '/feedback_profile_emma.jpg',
-    review: 'I love how every piece makes me feel confident and beautiful. The attention to detail is remarkable.',
-    rating: 5,
+    name: 'Dr. Radhika Sen',
+    city: 'Mumbai · Maharashtra',
+    review:
+      'The fabric quality exceeded every expectation. The Banarasi weave possesses genuine heritage weight without feeling rigid. Delivered in an opulent hard-bound gift box in just 3 days to Mumbai. Absolutely worth every rupee.',
   },
   {
     id: 3,
-    name: 'Isabella Chen',
-    role: 'Entrepreneur',
-    image: '/feedback_profile_isabella.jpg',
-    review: 'Finally found a brand that understands modern women. Elegant, trendy, and comfortable all at once!',
-    rating: 5,
+    name: 'Ananya Deshmukh',
+    city: 'Pune · Maharashtra',
+    review:
+      'Wore this velvet lehenga for my sangeet function and received endless compliments! The zardosi detailing is immaculate, the can-can flare is spectacular, and the fit was bespoke perfection. Felt like modern royalty.',
+  },
+  {
+    id: 4,
+    name: 'Meera Krishnan',
+    city: 'Chennai · Tamil Nadu',
+    review:
+      'Buying heirloom sarees online can be tricky, but Aanya Fashions is 100% trustworthy. The color matches the catalog imagery precisely, and the soft georgette falls with such effortless grace. My trusted ethnic store now.',
+  },
+  {
+    id: 5,
+    name: 'Sneha Agarwal',
+    city: 'Delhi NCR · New Delhi',
+    review:
+      'Superb tailoring! The neckline embroidery on the Chanderi kurti is exquisitely sharp and comfortable for day-long festive celebrations. The scallop-finished organza dupatta completed the ensemble divinely.',
+  },
+  {
+    id: 6,
+    name: 'Rituja Patel',
+    city: 'Ahmedabad · Gujarat',
+    review:
+      'The purple tone is breathtakingly regal in natural sunlight. Crafted with breathable pure cotton-silk, and the flare on the patiala trousers is generous and graceful for dancing. Top-tier customer support too.',
+  },
+  {
+    id: 7,
+    name: 'Kavita Reddy',
+    city: 'Hyderabad · Telangana',
+    review:
+      'This marks my third couture order from Aanya Fashions. Their bridal silk collection stands out because the sarees resist wrinkling and photograph with a divine, luminous sheen. Simply peerless in luxury!',
   },
 ];
 
 export function Testimonials() {
+  const [isPaused, setIsPaused] = useState(false);
+
+  // Duplicate list to achieve continuous, seamless infinite loop
+  const infiniteCards = [...testimonials, ...testimonials];
+
   return (
-    <section className="py-20 px-4 bg-white">
-      <div className="max-w-7xl mx-auto">
+    <section className="py-20 bg-gradient-to-b from-white via-[#FCFAF8] to-white relative overflow-hidden">
+      {/* Hardware-accelerated continuous infinite auto-glide */}
+      <style>{`
+        @keyframes autoMarquee {
+          0% {
+            transform: translateX(0%);
+          }
+          100% {
+            transform: translateX(-50%);
+          }
+        }
+        .auto-carousel-track {
+          display: flex;
+          width: max-content;
+          animation: autoMarquee 42s linear infinite;
+          will-change: transform;
+        }
+        .auto-carousel-track.paused {
+          animation-play-state: paused !important;
+        }
+      `}</style>
+
+      <div className="max-w-7xl mx-auto px-4">
         {/* Section Header */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
-          className="text-center mb-16"
+          className="text-center mb-12 sm:mb-14"
         >
-          <motion.span
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="inline-block px-6 py-2 bg-[#FFF0F5] text-[#D4AF37] rounded-full text-sm tracking-wider mb-4"
-          >
-            TESTIMONIALS
-          </motion.span>
-          <h2 className="font-serif text-4xl sm:text-5xl md:text-6xl mb-4 text-[#1A1A1A]">
-            What Our Clients Say
+          <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl mb-3 text-[#1A1A1A] font-bold tracking-tight">
+            Loved By Women Across India
           </h2>
-          <p className="text-gray-600 max-w-2xl mx-auto text-lg">
-            Join thousands of satisfied customers who love their Aanya Fashions experience
+
+          <p className="text-gray-600 max-w-2xl mx-auto text-sm sm:text-base leading-relaxed">
+            Real customer statements on our weaves, embroidery, and royal wedding collections.
           </p>
         </motion.div>
+      </div>
 
-        {/* Testimonials Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {testimonials.map((testimonial, index) => (
-             <motion.div
-              key={testimonial.id}
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: index * 0.1 }}
-              whileHover={{ y: -10 }}
-              className="relative h-full flex flex-col"
+      {/* Auto Carousel Marquee Stage */}
+      <div
+        className="relative w-full overflow-hidden py-4"
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+      >
+        {/* Soft edge blur vignettes */}
+        <div className="absolute top-0 bottom-0 left-0 w-12 sm:w-28 bg-gradient-to-r from-white via-white/80 to-transparent pointer-events-none z-10" />
+        <div className="absolute top-0 bottom-0 right-0 w-12 sm:w-28 bg-gradient-to-l from-white via-white/80 to-transparent pointer-events-none z-10" />
+
+        {/* The Running Track */}
+        <div className={`auto-carousel-track ${isPaused ? 'paused' : ''}`}>
+          {infiniteCards.map((testimonial, idx) => (
+            <div
+              key={`${testimonial.id}-${idx}`}
+              className="relative w-[320px] sm:w-[370px] md:w-[410px] flex-shrink-0 mx-3 sm:mx-4 flex flex-col justify-between bg-gradient-to-b from-[#FFFDFB] via-white to-[#FFF9F6] p-7 sm:p-8 rounded-[2.5rem] rounded-tr-[4.75rem] rounded-bl-[1.5rem] border border-[#D4AF37]/35 shadow-[0_12px_35px_-8px_rgba(128,0,0,0.06)] hover:shadow-[0_22px_50px_-6px_rgba(128,0,0,0.14)] hover:border-[#D4AF37] transition-all duration-500 group select-none overflow-hidden"
             >
-              {/* Card */}
-              <div className="flex-1 flex flex-col bg-gradient-to-br from-[#FFF0F5] to-white p-8 rounded-3xl shadow-lg border border-[#FFD6E8]/30 relative overflow-hidden">
-                {/* Quote Icon */}
-                <motion.div
-                  initial={{ scale: 0, rotate: -180 }}
-                  whileInView={{ scale: 1, rotate: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 + 0.3 }}
-                  className="absolute top-6 right-6 opacity-10"
-                >
-                  <Quote className="w-20 h-20 text-[#D4AF37]" />
-                </motion.div>
+              {/* Asymmetric Royal Corner Accent */}
+              <div className="absolute top-0 right-0 w-28 h-28 bg-gradient-to-bl from-[#D4AF37]/15 via-[#FFF0F5]/40 to-transparent rounded-tr-[4.75rem] pointer-events-none" />
+              <div className="absolute top-0 inset-x-8 h-[2px] bg-gradient-to-r from-transparent via-[#D4AF37]/50 to-transparent" />
 
-                <div className="flex-1">
-                  {/* Rating */}
-                  <div className="flex gap-1 mb-4">
-                    {[...Array(testimonial.rating)].map((_, i) => (
-                      <motion.div
-                        key={i}
-                        initial={{ scale: 0, rotate: -180 }}
-                        whileInView={{ scale: 1, rotate: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ delay: index * 0.1 + i * 0.05 }}
-                      >
-                        <Star className="w-5 h-5 fill-[#D4AF37] text-[#D4AF37]" />
-                      </motion.div>
-                    ))}
-                  </div>
-
-                  {/* Review */}
-                  <p className="text-gray-700 mb-6 leading-relaxed relative z-10">
-                    "{testimonial.review}"
-                  </p>
-                </div>
-
-                {/* Divider */}
-                <div className="h-px bg-gradient-to-r from-transparent via-[#FFD6E8] to-transparent mb-6 mt-auto" />
-
-                {/* Author */}
-                <div className="flex items-center gap-4">
-                  <motion.div
-                    whileHover={{ scale: 1.1, rotate: 5 }}
-                    className="relative"
-                  >
-                    <div className="w-14 h-14 rounded-2xl overflow-hidden ring-2 ring-[#FFD6E8] ring-offset-2">
-                      <img
-                        src={testimonial.image}
-                        alt={testimonial.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  </motion.div>
-                  <div>
-                    <h4 className="text-[#1A1A1A] mb-1">{testimonial.name}</h4>
-                    <p className="text-sm text-gray-500">{testimonial.role}</p>
-                  </div>
-                </div>
-
-                {/* Decorative Circle */}
-                <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-gradient-to-br from-[#FFD6E8] to-[#E6E6FA] rounded-full opacity-20 blur-2xl" />
+              {/* Review Statement */}
+              <div className="relative my-2 flex-1">
+                <Quote className="w-8 h-8 text-[#D4AF37]/35 mb-3 rotate-180" />
+                <p className="text-gray-700 text-sm sm:text-[15px] leading-relaxed font-serif italic relative z-10">
+                  "{testimonial.review}"
+                </p>
               </div>
-            </motion.div>
+
+              {/* Bottom Author Section */}
+              <div className="pt-4 border-t border-[#D4AF37]/20 flex flex-col justify-end mt-4">
+                <h4 className="font-serif font-bold text-gray-900 text-base leading-tight">
+                  {testimonial.name}
+                </h4>
+                <p className="text-xs text-gray-500 flex items-center gap-1.5 mt-1">
+                  <MapPin className="w-3.5 h-3.5 text-[#800000]/70 flex-shrink-0" />
+                  <span>{testimonial.city}</span>
+                </p>
+              </div>
+            </div>
           ))}
         </div>
-
-        {/* Trust Indicators */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8"
-        >
-          {[
-            { number: '50K+', label: 'Happy Customers' },
-            { number: '98%', label: 'Satisfaction Rate' },
-            { number: '1000+', label: 'Products' },
-            { number: '24/7', label: 'Support' },
-          ].map((stat, index) => (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, scale: 0.8 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
-              className="text-center"
-            >
-              <div className="font-serif text-3xl sm:text-4xl text-[#D4AF37] mb-2">
-                {stat.number}
-              </div>
-              <div className="text-sm sm:text-base text-gray-600">{stat.label}</div>
-            </motion.div>
-          ))}
-        </motion.div>
       </div>
     </section>
   );

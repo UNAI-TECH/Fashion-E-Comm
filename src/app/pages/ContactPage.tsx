@@ -85,7 +85,7 @@ export function ContactPage() {
             >
               {/* Phone Direct Call Card */}
               <a 
-                href="tel:+918838226394"
+                href="tel:+919043088697"
                 className="block bg-white p-6 sm:p-8 rounded-3xl shadow-sm hover:shadow-md hover:border-[#D4AF37]/30 border border-gray-100 transition-all cursor-pointer group"
               >
                 <div className="w-14 h-14 bg-[#FFF0F5] text-[#D4AF37] rounded-full flex items-center justify-center mb-5 group-hover:bg-[#D4AF37] group-hover:text-white transition-all shadow-sm">
@@ -94,7 +94,7 @@ export function ContactPage() {
                 <h3 className="font-serif text-2xl text-[#1A1A1A] mb-2 group-hover:text-[#D4AF37] transition-colors">Direct Call</h3>
                 <p className="text-gray-600 mb-3">Mon-Sat from 9am to 6pm. Tap to call directly on mobile.</p>
                 <div className="flex items-center justify-between">
-                  <p className="text-lg font-bold text-[#D4AF37]">+91 88382 26394</p>
+                  <p className="text-lg font-bold text-[#D4AF37]">+91 90430 88697</p>
                   <span className="text-xs font-bold text-[#D4AF37] bg-[#FFF0F5] px-3 py-1.5 rounded-full border border-[#F5E6BE] shadow-sm">
                     Tap to Call 📞
                   </span>
@@ -139,8 +139,8 @@ export function ContactPage() {
                   <MapPin className="w-6 h-6 stroke-[2.2]" />
                 </div>
                 <h3 className="font-serif text-2xl text-[#1A1A1A] mb-2 group-hover:text-[#D4AF37] transition-colors">Store Address</h3>
-                <p className="text-gray-600 mb-1">123, Fashion Street, Bandra West</p>
-                <p className="text-gray-600 mb-4">Mumbai, Maharashtra 400050</p>
+                <p className="text-gray-600 mb-1 font-medium">Aanya Fashions</p>
+                <p className="text-gray-600 mb-4">Chennai, Tamil Nadu, India</p>
                 <div className="flex items-center gap-2">
                   <button 
                     onClick={() => setIsMapOpen(true)}
@@ -149,7 +149,7 @@ export function ContactPage() {
                     <MapPin className="w-3.5 h-3.5" /> View Map Location 🗺️
                   </button>
                   <a 
-                    href="https://www.google.com/maps/search/?api=1&query=Fashion+Street+Bandra+West+Mumbai"
+                    href="https://www.google.com/maps/search/?api=1&query=Chennai+Tamil+Nadu"
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={(e) => e.stopPropagation()}
@@ -288,7 +288,7 @@ export function ContactPage() {
                   </div>
                   <div>
                     <h3 className="font-serif text-xl font-bold text-gray-900">Aanya Fashions Store Map</h3>
-                    <p className="text-xs text-gray-500">123, Fashion Street, Bandra West, Mumbai 400050</p>
+                    <p className="text-xs text-gray-500">Chennai, Tamil Nadu, India</p>
                   </div>
                 </div>
                 <button
@@ -302,7 +302,7 @@ export function ContactPage() {
               <div className="w-full h-80 sm:h-96 rounded-2xl overflow-hidden border border-gray-100 shadow-inner">
                 <iframe
                   title="Aanya Fashions Location Map Modal"
-                  src="https://maps.google.com/maps?q=19.0556,72.8333&hl=en&z=15&output=embed"
+                  src="https://maps.google.com/maps?q=Chennai,Tamil+Nadu&hl=en&z=12&output=embed"
                   width="100%"
                   height="100%"
                   style={{ border: 0 }}
@@ -314,7 +314,7 @@ export function ContactPage() {
               <div className="mt-4 flex items-center justify-between">
                 <span className="text-xs text-gray-500">Store Hours: Mon-Sat 9:00 AM - 6:00 PM</span>
                 <a
-                  href="https://www.google.com/maps/search/?api=1&query=Fashion+Street+Bandra+West+Mumbai"
+                  href="https://www.google.com/maps/search/?api=1&query=Chennai+Tamil+Nadu"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#D4AF37] text-white rounded-full text-xs font-bold hover:bg-black transition-colors shadow-sm"

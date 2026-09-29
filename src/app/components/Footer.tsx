@@ -1,27 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Mail, MapPin, Phone, Instagram, Facebook, Youtube, Heart, Tag, Award, Headphones, Lock, ArrowUpRight } from 'lucide-react';
+import { Mail, MapPin, Phone, Instagram, Heart, ArrowUpRight } from 'lucide-react';
 import { Link } from 'react-router';
 
 export function Footer() {
-
-  const trustIndicators = [
-    {
-      icon: Tag,
-      title: 'EXCLUSIVE OFFERS',
-      desc: 'Get exciting discounts on your favorite styles'
-    },
-    {
-      icon: Award,
-      title: 'PREMIUM QUALITY',
-      desc: 'Best quality products for you'
-    },
-    {
-      icon: Lock,
-      title: 'SECURE SHOPPING',
-      desc: 'Safe & secure payments for a worry-free shopping'
-    }
-  ];
 
   const footerLinks = {
     quickLinks: [
@@ -33,40 +15,24 @@ export function Footer() {
     helpSupport: [
       { name: 'Terms & Conditions', path: '/terms' },
       { name: 'Privacy Policy', path: '/privacy' },
-      { name: 'Payment Methods', path: '/payment-methods' },
-      { name: 'Admin Login', path: '/login' },
     ]
   };
 
   const socialLinks = [
-    { icon: Facebook, href: 'https://facebook.com', label: 'Facebook' },
-    { icon: Instagram, href: 'https://instagram.com', label: 'Instagram' },
-    { icon: Youtube, href: 'https://youtube.com', label: 'Youtube' }
+    {
+      icon: Instagram,
+      href: 'https://www.instagram.com/aanya.style?utm_source=ig_web_button_share_sheet&stkn=ZDNlZDc0MzIxNw==',
+      label: 'Instagram'
+    }
   ];
 
   return (
-    <footer className="w-full bg-white pt-6 md:pt-12">
-      {/* 1. Trust Indicators */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6 md:mb-12">
-        <div className="grid grid-cols-3 md:grid-cols-3 gap-2 md:gap-8 py-4 md:py-8 border-y border-gray-100">
-          {trustIndicators.map((item, idx) => (
-            <div key={idx} className="flex flex-col md:flex-row items-center md:items-start text-center md:text-left gap-1 md:gap-4">
-              <div className="p-1.5 md:p-3 bg-[#FFF0F5] text-[#800000] rounded-xl md:rounded-2xl flex-shrink-0">
-                <item.icon className="w-4 h-4 md:w-6 md:h-6" />
-              </div>
-              <div>
-                <h4 className="text-[8px] md:text-sm font-bold text-gray-900 tracking-wider mb-0.5 md:mb-1 uppercase">{item.title}</h4>
-                <p className="hidden md:block text-xs text-gray-500 leading-relaxed">{item.desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+    <footer className="w-full bg-white pt-2 pb-4 md:pt-4 md:pb-8">
 
       {/* 2. Main Footer Card */}
       <div className="px-4 sm:px-6 lg:px-8 pb-4 md:pb-8">
         <div className="max-w-7xl mx-auto bg-[#FFF0F5] text-[#1A1A1A] rounded-[1.5rem] md:rounded-[3rem] border border-[#FFD6E8]/20 shadow-xl overflow-hidden relative">
-          
+
           <div className="px-4 py-6 md:px-16 md:pt-12 md:pb-12">
             <div className="grid grid-cols-2 md:grid-cols-5 gap-6 md:gap-8">
               {/* Brand/Socials Column */}
@@ -130,13 +96,13 @@ export function Footer() {
               <div className="col-span-1 space-y-3 md:space-y-6">
                 <h4 className="text-[10px] md:text-sm font-extrabold text-gray-900 tracking-wider uppercase">CONTACT US</h4>
                 <div className="space-y-2.5 md:space-y-4 text-left">
-                  <a href="tel:+918838226394" className="flex items-center gap-2 group hover:text-[#D4AF37] transition-colors">
+                  <a href="tel:+919043088697" className="flex items-center gap-2 group hover:text-[#D4AF37] transition-colors">
                     <div className="w-6 h-6 bg-[#FFF0F5] text-[#D4AF37] rounded-full flex items-center justify-center flex-shrink-0 group-hover:bg-[#D4AF37] group-hover:text-white transition-all">
                       <Phone className="w-3 h-3 stroke-[2.2]" />
                     </div>
                     <div>
-                      <p className="text-[10px] text-gray-400 font-bold hidden md:block uppercase tracking-wider">PHONE (TAP TO CALL)</p>
-                      <p className="text-[10px] md:text-sm text-gray-900 font-bold group-hover:text-[#D4AF37] transition-colors">+91 88382 26394</p>
+                      <p className="text-[10px] text-gray-400 font-bold hidden md:block uppercase tracking-wider">PHONE</p>
+                      <p className="text-[10px] md:text-sm text-gray-900 font-bold group-hover:text-[#D4AF37] transition-colors">+91 90430 88697</p>
                     </div>
                   </a>
 
@@ -145,24 +111,24 @@ export function Footer() {
                       <Mail className="w-3 h-3 stroke-[2.2]" />
                     </div>
                     <div>
-                      <p className="text-[10px] text-gray-400 font-bold hidden md:block uppercase tracking-wider">EMAIL (TAP TO EMAIL)</p>
+                      <p className="text-[10px] text-gray-400 font-bold hidden md:block uppercase tracking-wider">EMAIL </p>
                       <p className="text-[10px] md:text-sm text-gray-900 font-bold group-hover:text-[#D4AF37] transition-colors">owner@aanyafashions.com</p>
                     </div>
                   </a>
 
-                  <a 
-                    href="https://www.google.com/maps/search/?api=1&query=Fashion+Street+Bandra+West+Mumbai" 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
+                  <a
+                    href="https://www.google.com/maps/search/?api=1&query=Chennai+Tamil+Nadu"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="flex items-start gap-2 group hover:text-[#D4AF37] transition-colors"
                   >
                     <div className="w-6 h-6 bg-[#FFF0F5] text-[#D4AF37] rounded-full flex items-center justify-center mt-0.5 flex-shrink-0 group-hover:bg-[#D4AF37] group-hover:text-white transition-all">
                       <MapPin className="w-3 h-3 stroke-[2.2]" />
                     </div>
                     <div>
-                      <p className="text-[10px] text-gray-400 font-bold hidden md:block uppercase tracking-wider">ADDRESS (TAP FOR MAP)</p>
+                      <p className="text-[10px] text-gray-400 font-bold hidden md:block uppercase tracking-wider">ADDRESS</p>
                       <p className="text-[10px] md:text-sm text-gray-900 font-bold leading-tight group-hover:text-[#D4AF37] transition-colors">
-                        123, Fashion Street, Mumbai - 400050 🗺️
+                        Chennai,Tamil Nadu
                       </p>
                     </div>
                   </a>
@@ -171,34 +137,36 @@ export function Footer() {
             </div>
           </div>
 
-          {/* 3. Bottom Darker Pink Bar */}
+          {/* 3. Bottom Bar */}
           <div className="bg-[#FFE4EC] px-6 md:px-12 py-4 flex flex-col md:flex-row justify-between items-center gap-4 border-t border-[#FFD6E8]/30">
             {/* Copyright */}
             <p className="text-xs font-semibold text-gray-700 text-center md:text-left">
               © 2026 Aanya Fashions. All Rights Reserved.
             </p>
-            
-            {/* Crafted / Presented by UNAI TECH Badge */}
-            <a
-              href="https://www.unaitech.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group flex items-center gap-3.5 px-5 py-2.5 bg-[#18181B] hover:bg-[#222226] border border-neutral-700/70 rounded-2xl transition-all duration-300 shadow-md hover:shadow-xl hover:border-amber-500/50 cursor-pointer active:scale-95"
-              title="Visit UNAI TECH - https://www.unaitech.com/"
-            >
-              <div className="flex flex-col text-left">
-                <span className="text-[9px] font-bold tracking-widest text-neutral-400 uppercase">
-                  PRESENTED BY
-                </span>
-                <div className="flex items-center gap-1 leading-none mt-0.5">
-                  <span className="font-extrabold tracking-tight text-sm text-[#F59E0B]">UNAI</span>
-                  <span className="font-extrabold tracking-tight text-sm text-white">TECH</span>
+
+            <div className="flex items-center gap-3 flex-wrap justify-center md:justify-end">
+              {/* Crafted by UNAI TECH Badge — Transparent background, Black & White typography */}
+              <a
+                href="https://www.unaitech.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex items-center gap-3 px-4 py-2 bg-transparent hover:bg-black/5 border border-black/20 hover:border-black/50 rounded-2xl transition-all duration-300 cursor-pointer active:scale-95"
+                title="Crafted by UNAI TECH - https://www.unaitech.com/"
+              >
+                <div className="flex flex-col text-left">
+                  <span className="text-[9px] font-bold tracking-widest text-black/60 uppercase leading-none">
+                    CRAFTED BY
+                  </span>
+                  <div className="flex items-center gap-1 leading-none mt-1">
+                    <span className="font-extrabold tracking-tight text-xs text-black">UNAI</span>
+                    <span className="font-extrabold tracking-tight text-xs text-black">TECH</span>
+                  </div>
                 </div>
-              </div>
-              <div className="w-7 h-7 rounded-xl bg-neutral-800 border border-neutral-700/80 flex items-center justify-center text-neutral-400 group-hover:text-[#F59E0B] group-hover:border-[#F59E0B]/50 group-hover:bg-[#F59E0B]/10 transition-all flex-shrink-0">
-                <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-              </div>
-            </a>
+                <div className="w-6 h-6 rounded-xl bg-black/5 border border-black/15 flex items-center justify-center text-black group-hover:bg-black group-hover:text-white transition-all flex-shrink-0">
+                  <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                </div>
+              </a>
+            </div>
           </div>
         </div>
       </div>

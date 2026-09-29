@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, Plus, Filter, Edit, Trash2, X, Upload } from 'lucide-react';
+import { Search, Plus, Filter, Edit, Trash2, X, Upload, RefreshCw, ImageIcon } from 'lucide-react';
 import { supabase, supabaseAdmin } from '../../../lib/supabase';
-import { Product, fetchProducts as getStorefrontProducts } from '../../data/products';
+import { Product, fetchProducts as getStorefrontProducts, markProductDeleted } from '../../data/products';
 import { toast } from 'sonner';
 
 export function AdminProducts() {
@@ -11,6 +11,8 @@ export function AdminProducts() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const [formData, setFormData] = useState({
     name: '', 
@@ -49,28 +51,40 @@ export function AdminProducts() {
     };
   }, []);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this product?')) return;
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && productToDelete && !isDeleting) {
+        setProductToDelete(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [productToDelete, isDeleting]);
+
+  const handleConfirmDelete = async () => {
+    if (!productToDelete) return;
+    const id = productToDelete.id;
+    const prodName = productToDelete.name;
+    setIsDeleting(true);
     try {
       try {
-        const { error } = await supabaseAdmin.from('products').delete().eq('id', id);
-        if (error) console.warn('Supabase product delete notice:', error);
-      } catch (e) {}
-
-      try {
-        const raw = localStorage.getItem('local_admin_products');
-        if (raw) {
-          const list = JSON.parse(raw);
-          localStorage.setItem('local_admin_products', JSON.stringify(list.filter((p: any) => String(p.id) !== String(id))));
+        await supabaseAdmin.from('products').delete().eq('id', id);
+        if (prodName) {
+          await supabaseAdmin.from('products').delete().eq('name', prodName);
         }
       } catch (e) {}
 
-      window.dispatchEvent(new Event('products_updated'));
-      toast.success('Product deleted successfully');
+      // Mark deleted in persistent storage & broadcast to all tabs
+      markProductDeleted(id, prodName);
+
+      toast.success(`"${prodName}" deleted successfully`);
       await fetchProducts();
     } catch (error) {
       console.error('Error deleting product:', error);
       toast.error('Failed to delete product');
+    } finally {
+      setIsDeleting(false);
+      setProductToDelete(null);
     }
   };
 
@@ -245,7 +259,7 @@ export function AdminProducts() {
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
                         <button onClick={() => handleEdit(product)} className="p-2 text-gray-400 hover:text-[#D4AF37]"><Edit className="w-5 h-5" /></button>
-                        <button onClick={() => handleDelete(product.id)} className="p-2 text-gray-400 hover:text-red-500"><Trash2 className="w-5 h-5" /></button>
+                        <button onClick={() => setProductToDelete(product)} className="p-2 text-gray-400 hover:text-red-500 hover:scale-110 transition-transform cursor-pointer" title="Delete product"><Trash2 className="w-5 h-5" /></button>
                       </div>
                     </td>
                   </tr>
@@ -372,6 +386,118 @@ export function AdminProducts() {
                   {editingProduct ? 'Update Product' : 'Add Product'}
                 </button>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ═══ UNIQUE LUXURY DELETE CONFIRMATION MODAL (CENTERED) ═══ */}
+      <AnimatePresence>
+        {productToDelete && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+            {/* Backdrop with rich blur */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !isDeleting && setProductToDelete(null)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity"
+            />
+
+            {/* Modal Card in the Center of the Application */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 15 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+              className="relative w-full max-w-md bg-white rounded-[2.25rem] shadow-[0_25px_70px_rgba(0,0,0,0.35)] border border-rose-100 p-6 sm:p-7 overflow-hidden z-10 my-8"
+            >
+              {/* Soft ambient rose glow behind header */}
+              <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-52 h-52 bg-gradient-to-br from-rose-500/15 via-red-500/10 to-transparent rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute top-0 inset-x-8 h-[2px] bg-gradient-to-r from-transparent via-rose-500/40 to-transparent" />
+
+              {/* Close Button */}
+              <button
+                type="button"
+                onClick={() => !isDeleting && setProductToDelete(null)}
+                className="absolute top-4 right-4 p-2 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all cursor-pointer"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              <div className="relative text-center pt-1">
+                <h3 className="font-serif text-2xl font-bold text-gray-900 tracking-tight">
+                  Delete Product?
+                </h3>
+                <p className="text-xs text-gray-500 mt-1.5 leading-relaxed max-w-xs mx-auto">
+                  Are you sure you want to remove this item? It will be permanently removed from your catalog and Supabase database.
+                </p>
+
+                {/* Product Snapshot Preview Card */}
+                <div className="mt-5 p-3 rounded-2xl bg-gradient-to-br from-rose-50/60 to-gray-50 border border-rose-100/70 flex items-center gap-3.5 text-left shadow-xs">
+                  <div className="w-14 h-16 rounded-xl overflow-hidden bg-white flex-shrink-0 shadow-xs border border-gray-200/60 flex items-center justify-center">
+                    {productToDelete.image ? (
+                      <img
+                        src={productToDelete.image}
+                        alt={productToDelete.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <ImageIcon className="w-5 h-5 text-gray-300" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 bg-rose-100/70 px-2 py-0.5 rounded-full inline-block mb-1">
+                      {productToDelete.category}
+                    </span>
+                    <h4 className="font-serif font-bold text-xs sm:text-sm text-gray-900 truncate">
+                      {productToDelete.name}
+                    </h4>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-xs font-bold text-[#800000]">
+                        ₹{(productToDelete.price || 0).toLocaleString('en-IN')}
+                      </span>
+                      {productToDelete.originalPrice && (
+                        <span className="text-[10px] text-gray-400 line-through">
+                          ₹{productToDelete.originalPrice.toLocaleString('en-IN')}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="grid grid-cols-2 gap-3 mt-6">
+                  <button
+                    type="button"
+                    disabled={isDeleting}
+                    onClick={() => setProductToDelete(null)}
+                    className="py-2.5 px-4 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs font-bold uppercase tracking-wider transition-all shadow-xs active:scale-95 cursor-pointer disabled:opacity-50"
+                  >
+                    Keep Product
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={isDeleting}
+                    onClick={handleConfirmDelete}
+                    className="py-2.5 px-4 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-rose-700 hover:from-red-700 hover:to-rose-800 text-white text-xs font-bold uppercase tracking-wider transition-all shadow-md shadow-rose-600/30 hover:shadow-rose-600/50 active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  >
+                    {isDeleting ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Deleting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Delete</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
             </motion.div>
           </div>
         )}

@@ -511,7 +511,66 @@ const MOCK_PRODUCTS: Product[] = [
   }
 ];
 
+// ─── Deleted Products Management ───
+export function getDeletedProductIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem('deleted_product_ids');
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) {
+        return new Set(arr.map((x: any) => String(x).trim().toLowerCase()));
+      }
+    }
+  } catch (e) {}
+  return new Set();
+}
+
+export function markProductDeleted(id: string, name?: string) {
+  try {
+    const raw = localStorage.getItem('deleted_product_ids');
+    const existing: string[] = raw ? JSON.parse(raw) : [];
+    const updated = new Set(existing.map(x => String(x).trim().toLowerCase()));
+    
+    if (id) updated.add(String(id).trim().toLowerCase());
+    if (name) updated.add(String(name).trim().toLowerCase());
+
+    localStorage.setItem('deleted_product_ids', JSON.stringify(Array.from(updated)));
+
+    // Clean from local_admin_products cache
+    const rawLocal = localStorage.getItem('local_admin_products');
+    if (rawLocal) {
+      const parsed = JSON.parse(rawLocal);
+      if (Array.isArray(parsed)) {
+        localStorage.setItem(
+          'local_admin_products',
+          JSON.stringify(
+            parsed.filter((p: any) => 
+              String(p.id).toLowerCase() !== String(id).toLowerCase() && 
+              (!name || p.name.trim().toLowerCase() !== name.trim().toLowerCase())
+            )
+          )
+        );
+      }
+    }
+
+    // Broadcast across all open browser tabs & windows instantly
+    try {
+      const bc = new BroadcastChannel('products_channel');
+      bc.postMessage({ type: 'PRODUCT_DELETED', id, name });
+      bc.close();
+    } catch (e) {}
+
+    // In-tab events
+    window.dispatchEvent(new CustomEvent('products_updated', { detail: { id, name } }));
+    window.dispatchEvent(new Event('products_updated'));
+    window.dispatchEvent(new Event('storage'));
+  } catch (e) {
+    console.error('Error marking product deleted:', e);
+  }
+}
+
 export async function fetchProducts(category?: string): Promise<Product[]> {
+  const deletedSet = getDeletedProductIds();
   let dbProducts: Product[] = [];
 
   // 1. Fetch from Supabase products table
@@ -522,42 +581,13 @@ export async function fetchProducts(category?: string): Promise<Product[]> {
       .order('created_at', { ascending: false });
 
     if (!error && Array.isArray(data) && data.length > 0) {
-      dbProducts = data.map((p: any) => {
-        const imgs = Array.isArray(p.images) && p.images.length > 0
-          ? p.images
-          : (p.image_url ? [p.image_url] : (p.image ? [p.image] : [PLACEHOLDER_IMAGE]));
-
-        return {
-          id: String(p.id),
-          name: p.name,
-          description: p.description || '',
-          price: Number(p.price) || 0,
-          compare_at_price: p.compare_at_price ? Number(p.compare_at_price) : undefined,
-          originalPrice: p.compare_at_price ? Number(p.compare_at_price) : (p.originalPrice ? Number(p.originalPrice) : undefined),
-          category: p.category || 'Sarees',
-          images: imgs,
-          image: imgs[0],
-          rating: p.rating ? Number(p.rating) : 5.0,
-          stock_quantity: p.stock_quantity != null ? Number(p.stock_quantity) : 25,
-          status: p.status || 'Published',
-          colors: Array.isArray(p.colors) && p.colors.length > 0 ? p.colors : ['#800000'],
-          created_at: p.created_at,
-          badge: 'New Arrival'
-        };
-      });
-    }
-  } catch (err) {
-    console.warn('Supabase fetch products notice:', err);
-  }
-
-  // 2. Fetch from local admin products cache (instant sync for newly added admin products)
-  let localProducts: Product[] = [];
-  try {
-    const rawLocal = localStorage.getItem('local_admin_products');
-    if (rawLocal) {
-      const parsed = JSON.parse(rawLocal);
-      if (Array.isArray(parsed)) {
-        localProducts = parsed.map((p: any) => {
+      dbProducts = data
+        .filter((p: any) => {
+          const idKey = String(p.id).toLowerCase();
+          const nameKey = (p.name || '').trim().toLowerCase();
+          return !deletedSet.has(idKey) && !deletedSet.has(nameKey);
+        })
+        .map((p: any) => {
           const imgs = Array.isArray(p.images) && p.images.length > 0
             ? p.images
             : (p.image_url ? [p.image_url] : (p.image ? [p.image] : [PLACEHOLDER_IMAGE]));
@@ -576,10 +606,51 @@ export async function fetchProducts(category?: string): Promise<Product[]> {
             stock_quantity: p.stock_quantity != null ? Number(p.stock_quantity) : 25,
             status: p.status || 'Published',
             colors: Array.isArray(p.colors) && p.colors.length > 0 ? p.colors : ['#800000'],
-            created_at: p.created_at || new Date().toISOString(),
-            badge: 'New Arrival'
+            created_at: p.created_at,
+            badge: p.status === 'Draft' ? 'Draft' : undefined
           };
         });
+    }
+  } catch (err) {
+    console.warn('Supabase fetch products notice:', err);
+  }
+
+  // 2. Fetch from local admin products cache (instant sync for newly added admin products)
+  let localProducts: Product[] = [];
+  try {
+    const rawLocal = localStorage.getItem('local_admin_products');
+    if (rawLocal) {
+      const parsed = JSON.parse(rawLocal);
+      if (Array.isArray(parsed)) {
+        localProducts = parsed
+          .filter((p: any) => {
+            const idKey = String(p.id).toLowerCase();
+            const nameKey = (p.name || '').trim().toLowerCase();
+            return !deletedSet.has(idKey) && !deletedSet.has(nameKey);
+          })
+          .map((p: any) => {
+            const imgs = Array.isArray(p.images) && p.images.length > 0
+              ? p.images
+              : (p.image_url ? [p.image_url] : (p.image ? [p.image] : [PLACEHOLDER_IMAGE]));
+
+            return {
+              id: String(p.id),
+              name: p.name,
+              description: p.description || '',
+              price: Number(p.price) || 0,
+              compare_at_price: p.compare_at_price ? Number(p.compare_at_price) : undefined,
+              originalPrice: p.compare_at_price ? Number(p.compare_at_price) : (p.originalPrice ? Number(p.originalPrice) : undefined),
+              category: p.category || 'Sarees',
+              images: imgs,
+              image: imgs[0],
+              rating: p.rating ? Number(p.rating) : 5.0,
+              stock_quantity: p.stock_quantity != null ? Number(p.stock_quantity) : 25,
+              status: p.status || 'Published',
+              colors: Array.isArray(p.colors) && p.colors.length > 0 ? p.colors : ['#800000'],
+              created_at: p.created_at || new Date().toISOString(),
+              badge: 'New Arrival'
+            };
+          });
       }
     }
   } catch (e) {}
@@ -600,12 +671,19 @@ export async function fetchProducts(category?: string): Promise<Product[]> {
     nameSet.add(p.name.trim().toLowerCase());
   });
 
-  // Add mock catalog items if not overridden by name or id
-  MOCK_PRODUCTS.forEach(p => {
-    if (!productMap.has(p.id) && !nameSet.has(p.name.trim().toLowerCase())) {
-      productMap.set(p.id, p);
-    }
-  });
+  // Add mock catalog items only if Supabase returned 0 items AND item is not deleted
+  const shouldUseMocks = dbProducts.length === 0;
+  if (shouldUseMocks) {
+    MOCK_PRODUCTS.forEach(p => {
+      const idKey = String(p.id).toLowerCase();
+      const nameKey = p.name.trim().toLowerCase();
+      if (!deletedSet.has(idKey) && !deletedSet.has(nameKey)) {
+        if (!productMap.has(p.id) && !nameSet.has(nameKey)) {
+          productMap.set(p.id, p);
+        }
+      }
+    });
+  }
 
   const allMerged = Array.from(productMap.values()).filter(p => !p.status || p.status === 'Published');
 

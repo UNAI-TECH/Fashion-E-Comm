@@ -185,7 +185,7 @@ export function AdminLogin() {
                 whileTap={{ scale: 0.99 }}
                 type="submit"
                 disabled={isLoading}
-                className="w-full flex justify-center items-center gap-2 py-3.5 px-4 border border-transparent rounded-xl shadow-lg text-sm font-bold text-white bg-[#1A1A1A] hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#1A1A1A] transition-all cursor-pointer disabled:opacity-70"
+                className="w-full flex justify-center items-center gap-2 py-3.5 px-4 border border-transparent rounded-xl shadow-lg text-sm font-bold text-white bg-[#800000] hover:bg-[#680000] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#800000] transition-all cursor-pointer disabled:opacity-70 shadow-[#800000]/20"
               >
                 {isLoading ? (
                   <>

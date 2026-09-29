@@ -236,15 +236,6 @@ export function Navigation() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const menuItems = [
-    { name: 'Sarees',      path: '/category/sarees' },
-    { name: 'Kurtis',     path: '/category/kurtis' },
-    { name: 'Western',    path: '/category/western' },
-    { name: 'Trending',   path: '/category/trending' },
-    { name: 'Salwar Set', path: '/category/salwar-sets' },
-    { name: 'Maxi',       path: '/category/maxi' },
-    { name: 'Lehengas',   path: '/category/lehengas' },
-  ];
 
 
   return (
@@ -388,44 +379,10 @@ export function Navigation() {
             </motion.button>
           </div>
         </div>
-
-        {/* Row 2: Category Navigation — compact padding & sleek size */}
-        <div className="border-t border-gray-100 bg-white">
-          <div className="max-w-[1400px] mx-auto px-6">
-            <nav className="flex items-center justify-center gap-1 sm:gap-2">
-              {menuItems.map((item) => {
-                const isTrending = item.name === 'Trending';
-                const isActive = location.pathname === item.path;
-                return (
-                  <Link key={item.name} to={item.path}>
-                    <motion.span
-                      whileHover={{ scale: 1.04 }}
-                      className={`px-3.5 py-1.5 text-xs sm:text-sm font-bold whitespace-nowrap inline-block transition-all tracking-wide ${
-                        isTrending
-                          ? 'text-[#800000] border-b-0 font-extrabold'
-                          : isActive
-                          ? 'text-[#800000] border-b-2 border-[#800000]'
-                          : 'text-gray-800 border-b-2 border-transparent hover:text-[#800000]'
-                      }`}
-                    >
-                      {isTrending ? (
-                        <span className="font-extrabold text-[#800000] tracking-wider uppercase flex items-center gap-1">
-                          🔥 Trending
-                        </span>
-                      ) : (
-                        item.name
-                      )}
-                    </motion.span>
-                  </Link>
-                );
-              })}
-            </nav>
-          </div>
-        </div>
       </header>
 
-      {/* Spacer so content sits below the fixed desktop header (~96px total) */}
-      <div className="hidden lg:block h-[96px]" aria-hidden="true" />
+      {/* Spacer so content sits below the fixed desktop header (~64px) */}
+      <div className="hidden lg:block h-[64px]" aria-hidden="true" />
 
       {/* 4. Mobile Unified Navigation Pill (Mobile only) */}
       <motion.nav

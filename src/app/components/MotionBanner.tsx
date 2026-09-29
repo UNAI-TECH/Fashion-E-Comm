@@ -78,7 +78,7 @@ export function MotionBanner() {
               onClick={() => window.location.href = '/category/all'}
               whileHover={{ scale: 1.03, x: 5 }}
               whileTap={{ scale: 0.97 }}
-              className="group px-5 py-3 bg-[#1A1A1A] text-white rounded-none flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-all hover:bg-[#800000]"
+              className="group px-6 py-3.5 bg-[#1A1A1A] text-white rounded-none flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-all hover:bg-[#800000]"
             >
               Shop Collection
               <motion.div
@@ -87,15 +87,6 @@ export function MotionBanner() {
               >
                 <ArrowRight className="w-4 h-4" />
               </motion.div>
-            </motion.button>
-
-            <motion.button
-              onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })}
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              className="px-5 py-3 bg-transparent border border-[#1A1A1A] text-[#1A1A1A] rounded-none text-xs font-bold uppercase tracking-wider hover:bg-[#1A1A1A] hover:text-white transition-all"
-            >
-              Learn More
             </motion.button>
           </motion.div>
         </div>

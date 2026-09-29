@@ -127,10 +127,9 @@ export function TermsPage() {
             <div className="bg-gray-50 p-6 rounded-xl mt-8 max-w-sm border border-gray-100">
               <p className="font-bold text-gray-900 mb-2">Legal Entity Contact</p>
               <p className="text-gray-600">Aanya Fashions</p>
-              <p className="text-gray-600">123, Fashion Street</p>
-              <p className="text-gray-600">Mumbai - 400050, India</p>
-              <p className="text-gray-600 mt-4"><strong>Email:</strong> legal@aanyafashions.com</p>
-              <p className="text-gray-600"><strong>Phone:</strong> +91 88382 26394</p>
+              <p className="text-gray-600">Chennai, Tamil Nadu, India</p>
+              <p className="text-gray-600 mt-4"><strong>Email:</strong> owner@aanyafashions.com</p>
+              <p className="text-gray-600"><strong>Phone:</strong> +91 90430 88697</p>
             </div>
           </section>
 

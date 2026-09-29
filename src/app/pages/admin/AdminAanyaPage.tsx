@@ -13,7 +13,7 @@ import {
 import { Link, useNavigate } from 'react-router';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { useAdminAuth } from '../../contexts/AdminAuthContext';
-import { fetchProducts } from '../../data/products';
+import { fetchProducts, markProductDeleted, getDeletedProductIds } from '../../data/products';
 import { toast } from 'sonner';
 
 /* ─── Types ─── */
@@ -99,6 +99,8 @@ export function AdminAanyaPage() {
   const [adding, setAdding]             = useState(false);
   const [imgPreview, setImgPreview]     = useState('');
   const [selectedCust, setSelectedCust] = useState<DerivedUser | null>(null);
+  const [productToDelete, setProductToDelete] = useState<DbProduct | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   /* ── Form ── */
   const emptyForm = { name: '', category: 'Sarees', price: '', compare_at_price: '', image_url: '', description: '', status: 'Published' };
@@ -151,10 +153,16 @@ export function AdminAanyaPage() {
         created_at: null,
       }));
       // Merge: Supabase DB first (override mocks with same id)
+      const deletedSet = getDeletedProductIds();
       const allProdsMap = new Map<string, DbProduct>();
       normalizedMock.forEach((p: any) => allProdsMap.set(p.id, p));
       dbProdsRaw.forEach((p: any) => allProdsMap.set(p.id, p));
-      setDbProducts(Array.from(allProdsMap.values()));
+
+      const activeProducts = Array.from(allProdsMap.values()).filter(p => 
+        !deletedSet.has(String(p.id).toLowerCase()) && 
+        !deletedSet.has((p.name || '').trim().toLowerCase())
+      );
+      setDbProducts(activeProducts);
 
       // --- Orders ---
       const ordersData: Order[] = ordersRes.data || [];
@@ -269,26 +277,67 @@ export function AdminAanyaPage() {
     toast.success(`Order status → ${status}`);
   };
 
-  /* ─── Delete product → Supabase ─── */
-  const deleteProduct = async (id: string) => {
-    if (!confirm('Delete this product?')) return;
-    try {
-      const { error } = await supabaseAdmin.from('products').delete().eq('id', id);
-      if (error) console.warn('Supabase product delete notice:', error);
-    } catch (e) {}
-
-    // Clean from local cache as well
-    try {
-      const raw = localStorage.getItem('local_admin_products');
-      if (raw) {
-        const local = JSON.parse(raw);
-        localStorage.setItem('local_admin_products', JSON.stringify(local.filter((p: any) => p.id !== id)));
+  /* ─── Keyboard listener for delete modal ─── */
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && productToDelete && !isDeleting) {
+        setProductToDelete(null);
       }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [productToDelete, isDeleting]);
+
+  /* ─── Sync real-time deletions across tabs ─── */
+  useEffect(() => {
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel('products_channel');
+      bc.onmessage = (event) => {
+        if (event.data?.type === 'PRODUCT_DELETED') {
+          const { id, name } = event.data;
+          setDbProducts(prev => prev.filter(p => 
+            String(p.id).toLowerCase() !== String(id).toLowerCase() && 
+            (!name || p.name.trim().toLowerCase() !== name.trim().toLowerCase())
+          ));
+        }
+      };
     } catch (e) {}
 
-    window.dispatchEvent(new Event('products_updated'));
-    setDbProducts(prev => prev.filter(p => p.id !== id));
-    toast.success('Product removed from store');
+    return () => {
+      if (bc) bc.close();
+    };
+  }, []);
+
+  /* ─── Delete product → Supabase ─── */
+  const handleConfirmDelete = async () => {
+    if (!productToDelete) return;
+    const id = productToDelete.id;
+    const prodName = productToDelete.name;
+    setIsDeleting(true);
+
+    try {
+      const { error: err1 } = await supabaseAdmin.from('products').delete().eq('id', id);
+      if (err1) console.warn('Supabase product delete by id notice:', err1);
+      if (prodName) {
+        const { error: err2 } = await supabaseAdmin.from('products').delete().eq('name', prodName);
+        if (err2) console.warn('Supabase product delete by name notice:', err2);
+      }
+    } catch (e) {
+      console.warn('Supabase product delete error:', e);
+    }
+
+    // Persist deleted product ID/name in storage & broadcast to all open windows/tabs instantly
+    markProductDeleted(id, prodName);
+
+    // Update in-page state
+    setDbProducts(prev => prev.filter(p => 
+      String(p.id).toLowerCase() !== String(id).toLowerCase() && 
+      (!prodName || p.name.trim().toLowerCase() !== prodName.trim().toLowerCase())
+    ));
+    toast.success(`"${prodName}" removed from store`);
+    setIsDeleting(false);
+    setProductToDelete(null);
   };
 
   /* ─── Add product → Supabase ─── */
@@ -735,8 +784,15 @@ export function AdminAanyaPage() {
                             {product.status || 'Draft'}
                           </div>
                           {/* Delete button */}
-                          <button onClick={() => deleteProduct(product.id)}
-                            className="absolute top-2 right-2 p-1.5 bg-white/90 hover:bg-pink-50 hover:text-pink-500 text-gray-500 rounded-lg shadow-sm transition-all opacity-0 group-hover:opacity-100">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setProductToDelete(product);
+                            }}
+                            title="Delete this product"
+                            className="absolute top-2 right-2 p-1.5 bg-white/95 hover:bg-rose-50 hover:text-rose-600 text-gray-500 rounded-lg shadow-sm transition-all opacity-0 group-hover:opacity-100 cursor-pointer hover:scale-105 active:scale-95"
+                          >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                           {/* Category tag */}
@@ -1103,6 +1159,118 @@ export function AdminAanyaPage() {
               </form>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ═══ UNIQUE LUXURY DELETE CONFIRMATION MODAL (CENTERED) ═══ */}
+      <AnimatePresence>
+        {productToDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+            {/* Backdrop with rich blur */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !isDeleting && setProductToDelete(null)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity"
+            />
+
+            {/* Modal Card in the Center of the Application */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 15 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+              className="relative w-full max-w-md bg-white rounded-[2.25rem] shadow-[0_25px_70px_rgba(0,0,0,0.35)] border border-rose-100 p-6 sm:p-7 overflow-hidden z-10 my-8"
+            >
+              {/* Soft ambient rose glow behind header */}
+              <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-52 h-52 bg-gradient-to-br from-rose-500/15 via-red-500/10 to-transparent rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute top-0 inset-x-8 h-[2px] bg-gradient-to-r from-transparent via-rose-500/40 to-transparent" />
+
+              {/* Close Button */}
+              <button
+                type="button"
+                onClick={() => !isDeleting && setProductToDelete(null)}
+                className="absolute top-4 right-4 p-2 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all cursor-pointer"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              <div className="relative text-center pt-1">
+                <h3 className="font-serif text-2xl font-bold text-gray-900 tracking-tight">
+                  Delete Product?
+                </h3>
+                <p className="text-xs text-gray-500 mt-1.5 leading-relaxed max-w-xs mx-auto">
+                  Are you sure you want to remove this item? It will be permanently removed from your catalog and Supabase database.
+                </p>
+
+                {/* Product Snapshot Preview Card */}
+                <div className="mt-5 p-3 rounded-2xl bg-gradient-to-br from-rose-50/60 to-gray-50 border border-rose-100/70 flex items-center gap-3.5 text-left shadow-xs">
+                  <div className="w-14 h-16 rounded-xl overflow-hidden bg-white flex-shrink-0 shadow-xs border border-gray-200/60 flex items-center justify-center">
+                    {prodImg(productToDelete) ? (
+                      <img
+                        src={prodImg(productToDelete)}
+                        alt={productToDelete.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <ImageIcon className="w-5 h-5 text-gray-300" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 bg-rose-100/70 px-2 py-0.5 rounded-full inline-block mb-1">
+                      {productToDelete.category}
+                    </span>
+                    <h4 className="font-serif font-bold text-xs sm:text-sm text-gray-900 truncate">
+                      {productToDelete.name}
+                    </h4>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-xs font-bold text-[#800000]">
+                        ₹{(productToDelete.price || 0).toLocaleString('en-IN')}
+                      </span>
+                      {productToDelete.compare_at_price && (
+                        <span className="text-[10px] text-gray-400 line-through">
+                          ₹{productToDelete.compare_at_price.toLocaleString('en-IN')}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="grid grid-cols-2 gap-3 mt-6">
+                  <button
+                    type="button"
+                    disabled={isDeleting}
+                    onClick={() => setProductToDelete(null)}
+                    className="py-2.5 px-4 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs font-bold uppercase tracking-wider transition-all shadow-xs active:scale-95 cursor-pointer disabled:opacity-50"
+                  >
+                    Keep Product
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={isDeleting}
+                    onClick={handleConfirmDelete}
+                    className="py-2.5 px-4 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-rose-700 hover:from-red-700 hover:to-rose-800 text-white text-xs font-bold uppercase tracking-wider transition-all shadow-md shadow-rose-600/30 hover:shadow-rose-600/50 active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  >
+                    {isDeleting ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Deleting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Delete</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
