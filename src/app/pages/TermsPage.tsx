@@ -11,7 +11,7 @@ export function TermsPage() {
         <div className="flex-1 flex justify-start">
           <Link to="/" className="h-11 sm:h-12 overflow-visible flex items-center">
             <img
-              src="/logo.webp"
+              src="/logo.png"
               alt="Aanya Fashions"
               className="h-full w-auto object-contain object-left"
             />

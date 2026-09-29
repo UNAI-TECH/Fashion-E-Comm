@@ -14,6 +14,8 @@ export interface Product {
   stock_quantity?: number;
   status: string;
   colors: string[];
+  created_at?: string;
+  badge?: string;
 }
 
 const PLACEHOLDER_IMAGE = 'https://images.unsplash.com/photo-1604176354204-926873ff34b0?q=80&w=1000&auto=format&fit=crop';

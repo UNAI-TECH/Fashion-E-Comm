@@ -66,7 +66,7 @@ export function AdminLayout() {
       >
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-800">
           <NavLink to="/admin/dashboard" className="flex items-center group py-1">
-            <img src="/logo.webp" alt="Aanya Fashions" className="h-10 w-auto object-contain bg-white/95 rounded-lg p-1 group-hover:scale-105 transition-transform drop-shadow-sm" />
+            <img src="/logo.png" alt="Aanya Fashions" className="h-10 w-auto object-contain bg-white/95 rounded-lg p-1 group-hover:scale-105 transition-transform drop-shadow-sm" />
           </NavLink>
           <button onClick={() => setIsMobileMenuOpen(false)} className="lg:hidden text-gray-400 hover:text-white">
             <X className="w-6 h-6" />

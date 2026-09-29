@@ -249,7 +249,7 @@ export function Navigation() {
           <Link to="/" className="flex items-center flex-shrink-0 h-14 sm:h-16 py-1 overflow-visible">
             <motion.img
               whileHover={{ scale: 1.05 }}
-              src="/logo.webp"
+              src="/logo.png"
               alt="Aanya Fashions"
               className="h-full w-auto object-contain object-left"
             />
@@ -402,7 +402,7 @@ export function Navigation() {
               className="flex items-center h-full py-0.5"
             >
               <img
-                src="/logo.webp"
+                src="/logo.png"
                 alt="Aanya Fashions Logo"
                 className="h-full w-auto object-contain object-left"
               />
@@ -733,7 +733,7 @@ export function Navigation() {
             {/* Header */}
             <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md px-6 sm:px-12 py-5 border-b border-gray-100 flex items-center justify-between shadow-sm relative">
               <div className="absolute left-6 sm:left-12 flex items-center">
-                <img src="/logo.webp" alt="Aanya Fashions Logo" className="h-14 sm:h-16 w-auto object-contain mix-blend-multiply drop-shadow-sm hidden sm:block" />
+                <img src="/logo.png" alt="Aanya Fashions Logo" className="h-14 sm:h-16 w-auto object-contain mix-blend-multiply drop-shadow-sm hidden sm:block" />
               </div>
               <div className="flex-1 flex flex-col items-center justify-center">
                 <h2 className="font-serif text-2xl sm:text-3xl font-bold text-gray-900 text-center">Saved Wishlist Collection</h2>
@@ -831,7 +831,7 @@ export function Navigation() {
               {/* Left: Official Logo */}
               <div className="flex items-center justify-start">
                 <img 
-                  src="/logo.webp" 
+                  src="/logo.png" 
                   alt="Aanya Fashions Logo" 
                   className="h-14 sm:h-16 max-h-16 w-auto object-contain mix-blend-multiply drop-shadow-sm flex-shrink-0"
                 />
@@ -991,7 +991,7 @@ export function Navigation() {
                     initial={{ scale: 0.85, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.1, duration: 0.4 }}
-                    src="/logo.webp"
+                    src="/logo.png"
                     alt="Aanya Fashions Logo"
                     className="h-44 sm:h-56 w-auto object-contain mix-blend-multiply drop-shadow-xl mb-8"
                   />

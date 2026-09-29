@@ -73,7 +73,7 @@ export function AdminLogin() {
           transition={{ duration: 0.3 }}
           className="mx-auto w-24 h-24 bg-white/90 rounded-3xl flex items-center justify-center mb-3 shadow-lg border border-gray-100 overflow-hidden p-2"
         >
-          <img src="/logo.webp" alt="Aanya Fashions Logo" className="h-full w-auto object-contain" />
+          <img src="/logo.png" alt="Aanya Fashions Logo" className="h-full w-auto object-contain" />
         </motion.div>
 
         <h1 className="text-center text-2xl sm:text-3xl font-serif font-bold text-gray-900 tracking-tight">

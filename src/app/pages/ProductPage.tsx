@@ -853,7 +853,7 @@ export function ProductPage() {
                 <div className="space-y-6 text-center py-2">
                   {/* Top Aanya Fashions Logo */}
                   <div className="flex justify-center mb-2">
-                    <img src="/logo.webp" alt="Aanya Fashions" className="h-14 w-auto object-contain" />
+                    <img src="/logo.png" alt="Aanya Fashions" className="h-14 w-auto object-contain" />
                   </div>
                   <div>
                     <h3 className="font-serif text-2xl sm:text-3xl text-gray-900">Mobile Number Verification</h3>
@@ -906,7 +906,7 @@ export function ProductPage() {
                 <div className="space-y-6 text-center py-2">
                   {/* Top Aanya Fashions Logo */}
                   <div className="flex justify-center mb-2">
-                    <img src="/logo.webp" alt="Aanya Fashions" className="h-14 w-auto object-contain" />
+                    <img src="/logo.png" alt="Aanya Fashions" className="h-14 w-auto object-contain" />
                   </div>
                   <div>
                     <h3 className="font-serif text-2xl sm:text-3xl text-gray-900">Enter Verification Code</h3>
@@ -960,7 +960,7 @@ export function ProductPage() {
                   {/* Top Header with Aanya Fashions Logo */}
                   <div className="flex flex-col sm:flex-row items-center justify-between border-b border-gray-100 pb-4 gap-3">
                     <div className="flex items-center gap-3">
-                      <img src="/logo.webp" alt="Aanya Fashions" className="h-11 w-auto object-contain" />
+                      <img src="/logo.png" alt="Aanya Fashions" className="h-11 w-auto object-contain" />
                       <div>
                         <h3 className="font-serif text-xl sm:text-2xl text-gray-900">Order Summary & Shipping</h3>
                         <p className="text-xs text-gray-500">Verified Mobile: +91 {buyNowPhone}</p>

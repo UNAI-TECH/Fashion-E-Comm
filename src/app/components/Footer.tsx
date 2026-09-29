@@ -39,7 +39,7 @@ export function Footer() {
               <div className="col-span-2 md:col-span-2 flex flex-col items-start justify-start space-y-2 md:space-y-4">
                 <div className="flex items-center h-28 sm:h-36 md:h-44 lg:h-52 mb-2 md:mb-4 mix-blend-multiply">
                   <img
-                    src="/logo.webp"
+                    src="/logo.png"
                     alt="Aanya Fashions Logo"
                     className="h-full w-auto object-contain drop-shadow-md"
                   />

@@ -27,6 +27,24 @@ interface OrderItem {
   };
 }
 
+interface ShippingAddress {
+  first_name?: string;
+  last_name?: string;
+  firstName?: string;
+  lastName?: string;
+  full_name?: string;
+  fullName?: string;
+  name?: string;
+  customer_name?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  [key: string]: any;
+}
+
 interface Order {
   id: string;
   user_id: string;
@@ -34,13 +52,13 @@ interface Order {
   status: string;
   payment_method: string;
   payment_status: string;
-  shipping_address: {
-    first_name?: string; last_name?: string;
-    email?: string; phone?: string;
-    address?: string; city?: string; state?: string;
-  };
+  shipping_address?: ShippingAddress;
+  customer_name?: string;
+  user_name?: string;
+  name?: string;
   created_at: string;
   order_items?: OrderItem[];
+  [key: string]: any;
 }
 
 interface Payment {
@@ -76,6 +94,41 @@ const NAV_ITEMS: { id: NavTab; label: string; icon: React.ReactNode }[] = [
   { id: 'customers',  label: 'Customers',        icon: <Users className="w-5 h-5" /> },
   { id: 'payments',   label: 'Payments',         icon: <CreditCard className="w-5 h-5" /> },
 ];
+
+/* ─── Customer name extraction helper ─── */
+function getFormattedCustomerName(addr: ShippingAddress = {}, order: Partial<Order> = {}): string {
+  let name = (
+    `${addr.first_name || addr.firstName || ''} ${addr.last_name || addr.lastName || ''}`.trim() ||
+    addr.full_name || addr.fullName || addr.name || addr.customer_name ||
+    order.customer_name || order.user_name || order.name || ''
+  ).trim();
+
+  if (!name || name.toLowerCase() === 'customer') {
+    try {
+      const saved = localStorage.getItem('user_profile_details');
+      if (saved) {
+        const prof = JSON.parse(saved);
+        if (prof.name) name = prof.name;
+      }
+    } catch (e) {}
+  }
+
+  if (!name || name.toLowerCase() === 'customer') {
+    if (addr.email && addr.email !== '—') {
+      const emailUser = addr.email.split('@')[0];
+      const parts = emailUser.split(/[\._-]/).filter(Boolean);
+      name = parts.map((p: string) => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+    } else if (addr.phone && addr.phone !== '—') {
+      name = `User (${addr.phone})`;
+    } else if (order.user_id || order.id) {
+      name = `User #${String(order.user_id || order.id).slice(0, 6)}`;
+    } else {
+      name = 'App User';
+    }
+  }
+
+  return name;
+}
 
 /* ══════════════════════════════════════════════════════════
    MAIN COMPONENT
@@ -180,40 +233,6 @@ export function AdminAanyaPage() {
       // --- Payments ---
       setPayments(paymentsRes.data || []);
 
-      // --- Derive customers from orders ---
-      const getFormattedCustomerName = (addr: any = {}, order: any = {}): string => {
-        let name = (
-          `${addr.first_name || addr.firstName || ''} ${addr.last_name || addr.lastName || ''}`.trim() ||
-          addr.full_name || addr.fullName || addr.name || addr.customer_name ||
-          order.customer_name || order.user_name || order.name || ''
-        ).trim();
-
-        if (!name || name.toLowerCase() === 'customer') {
-          try {
-            const saved = localStorage.getItem('user_profile_details');
-            if (saved) {
-              const prof = JSON.parse(saved);
-              if (prof.name) name = prof.name;
-            }
-          } catch (e) {}
-        }
-
-        if (!name || name.toLowerCase() === 'customer') {
-          if (addr.email && addr.email !== '—') {
-            const emailUser = addr.email.split('@')[0];
-            const parts = emailUser.split(/[\._-]/).filter(Boolean);
-            name = parts.map((p: string) => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
-          } else if (addr.phone && addr.phone !== '—') {
-            name = `User (${addr.phone})`;
-          } else if (order.user_id || order.id) {
-            name = `User #${String(order.user_id || order.id).slice(0, 6)}`;
-          } else {
-            name = 'App User';
-          }
-        }
-
-        return name;
-      };
 
       const customerMap = new Map<string, DerivedUser>();
       allOrders.forEach((o: Order) => {
@@ -469,7 +488,7 @@ export function AdminAanyaPage() {
             title="Go to Admin Dashboard"
           >
             <img
-              src="/logo.webp"
+              src="/logo.png"
               alt="Aanya Fashions"
               className={`${sidebarOpen ? 'h-13 max-h-13' : 'h-8 max-h-8'} w-auto object-contain flex-shrink-0 group-hover:scale-105 transition-all`}
             />
@@ -718,8 +737,7 @@ export function AdminAanyaPage() {
                       <tbody className="divide-y divide-gray-100">
                         {orders.slice(0, 5).map(o => {
                           const addr = o.shipping_address || {};
-                          const rawName = `${addr.first_name || addr.firstName || ''} ${addr.last_name || addr.lastName || ''}`.trim() || addr.full_name || addr.name || '';
-                          const name = rawName && rawName.toLowerCase() !== 'customer' ? rawName : (addr.phone && addr.phone !== '—' ? `User (${addr.phone})` : (addr.email && addr.email !== '—' ? addr.email.split('@')[0] : 'App User'));
+                          const name = getFormattedCustomerName(addr, o);
                           return (
                             <tr key={o.id} className="hover:bg-gray-50/60 transition-colors">
                               <td className="p-3 font-mono text-xs font-bold text-gray-800">#{String(o.id).slice(0, 8)}</td>
@@ -841,8 +859,7 @@ export function AdminAanyaPage() {
                       <tbody className="divide-y divide-gray-100">
                         {orders.map(order => {
                           const addr = order.shipping_address || {};
-                          const rawName = `${addr.first_name || addr.firstName || ''} ${addr.last_name || addr.lastName || ''}`.trim() || addr.full_name || addr.name || '';
-                          const name = rawName && rawName.toLowerCase() !== 'customer' ? rawName : (addr.phone && addr.phone !== '—' ? `User (${addr.phone})` : (addr.email && addr.email !== '—' ? addr.email.split('@')[0] : 'App User'));
+                          const name = getFormattedCustomerName(addr, order);
                           return (
                             <tr key={order.id} className="hover:bg-gray-50/60 transition-colors">
                               <td className="p-4 font-mono text-xs font-bold text-gray-800">#{String(order.id).slice(0, 8)}</td>
@@ -1067,7 +1084,7 @@ export function AdminAanyaPage() {
               {/* Modal header */}
               <div className="bg-pink-50 border-b border-pink-100 px-6 py-5 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <img src="/logo.webp" alt="Aanya" className="h-11 w-auto object-contain mix-blend-multiply" />
+                  <img src="/logo.png" alt="Aanya" className="h-11 w-auto object-contain mix-blend-multiply" />
                   <div>
                     <h3 className="font-serif text-base font-bold text-gray-900">Add New Product</h3>
                     <p className="text-xs text-pink-400 font-medium">Saved directly to Supabase catalog</p>
@@ -1283,7 +1300,9 @@ function EmptyCard({ icon, title, sub }: { icon: React.ReactNode; title: string;
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-16 flex flex-col items-center gap-4 text-center">
       <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-200">
-        {React.cloneElement(icon as React.ReactElement, { className: 'w-8 h-8' })}
+        {React.isValidElement(icon)
+          ? React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: 'w-8 h-8' })
+          : icon}
       </div>
       <div>
         <h3 className="font-serif text-xl font-bold text-gray-700">{title}</h3>
