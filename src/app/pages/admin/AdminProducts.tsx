@@ -295,7 +295,7 @@ export function AdminProducts() {
             setImageError(false);
             setIsModalOpen(true);
           }}
-          className="flex items-center gap-2 bg-[#1A1A1A] text-white px-6 py-3 rounded-full hover:bg-black transition-all shadow-lg cursor-pointer"
+          className="flex items-center gap-2 bg-[#1A1A1A] text-white px-6 py-3 rounded-full hover:bg-[#546944] transition-all shadow-lg cursor-pointer"
         >
           <Plus className="w-5 h-5" /> Add Product
         </button>
@@ -310,13 +310,13 @@ export function AdminProducts() {
               placeholder="Search products..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-[#D4AF37]/20 outline-none"
+              className="w-full pl-12 pr-4 py-3 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-[#698156]/20 outline-none"
             />
           </div>
         </div>
 
         {isLoading ? (
-          <div className="p-20 flex justify-center"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#D4AF37]"></div></div>
+          <div className="p-20 flex justify-center"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#698156]"></div></div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left">
@@ -346,7 +346,7 @@ export function AdminProducts() {
                         </div>
                         <div>
                           <div className="font-medium text-gray-900 leading-tight">{product.name}</div>
-                          <span className="text-[11px] text-[#D4AF37] font-semibold mt-0.5 inline-block">
+                          <span className="text-[11px] text-[#698156] font-semibold mt-0.5 inline-block">
                             {product.images?.length || 1} {(product.images?.length || 1) === 1 ? 'gallery photo' : 'gallery photos'}
                           </span>
                         </div>
@@ -367,7 +367,7 @@ export function AdminProducts() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
-                        <button onClick={() => handleEdit(product)} className="p-2 text-gray-400 hover:text-[#D4AF37] cursor-pointer" title="Edit product & gallery"><Edit className="w-5 h-5" /></button>
+                        <button onClick={() => handleEdit(product)} className="p-2 text-gray-400 hover:text-[#698156] cursor-pointer" title="Edit product & gallery"><Edit className="w-5 h-5" /></button>
                         <button onClick={() => setProductToDelete(product)} className="p-2 text-gray-400 hover:text-red-500 hover:scale-110 transition-transform cursor-pointer" title="Delete product"><Trash2 className="w-5 h-5" /></button>
                       </div>
                     </td>
@@ -429,7 +429,7 @@ export function AdminProducts() {
                   <div className="flex items-start sm:items-center justify-between gap-3 mb-4 flex-wrap">
                     <div>
                       <div className="flex items-center gap-2">
-                        <ImageIcon className="w-5 h-5 text-[#D4AF37]" />
+                        <ImageIcon className="w-5 h-5 text-[#698156]" />
                         <h3 className="font-serif text-base font-bold text-gray-900">
                           Product Gallery (Multiple Images Required)
                           <span className="text-red-500 ml-1 font-bold">*</span>
@@ -455,10 +455,10 @@ export function AdminProducts() {
                       <button
                         type="button"
                         onClick={handleAutofillAngles}
-                        className="text-xs font-bold text-[#800000] hover:text-black bg-white hover:bg-rose-50 border border-rose-200 px-3 py-1 rounded-full flex items-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95"
+                        className="text-xs font-bold text-[#698156] hover:text-black bg-white hover:bg-rose-50 border border-rose-200 px-3 py-1 rounded-full flex items-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95"
                         title="Auto-fill high-fashion editorial angle shots for this category"
                       >
-                        <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
+                        <Sparkles className="w-3.5 h-3.5 text-[#698156]" />
                         Autofill Angles
                       </button>
                     </div>
@@ -479,13 +479,13 @@ export function AdminProducts() {
                               handleAddUrl();
                             }
                           }}
-                          className="flex-1 px-4 py-2.5 bg-white rounded-2xl outline-none border border-gray-200 focus:border-[#D4AF37] text-sm" 
+                          className="flex-1 px-4 py-2.5 bg-white rounded-2xl outline-none border border-gray-200 focus:border-[#698156] text-sm" 
                           placeholder="Paste image URL (e.g. /saree_s1.jpg or https://...)" 
                         />
                         <button
                           type="button"
                           onClick={() => handleAddUrl()}
-                          className="px-4 py-2.5 bg-[#1A1A1A] hover:bg-black text-white text-xs font-bold rounded-2xl transition-all cursor-pointer whitespace-nowrap active:scale-95 flex items-center gap-1"
+                          className="px-4 py-2.5 bg-[#1A1A1A] hover:bg-[#546944] text-white text-xs font-bold rounded-2xl transition-all cursor-pointer whitespace-nowrap active:scale-95 flex items-center gap-1"
                         >
                           <Plus className="w-4 h-4" /> Add URL
                         </button>
@@ -493,7 +493,7 @@ export function AdminProducts() {
 
                       {/* Multi-file upload button */}
                       <label className="cursor-pointer flex items-center justify-center gap-2 px-5 py-2.5 bg-white hover:bg-gray-100 text-gray-800 border border-gray-200 rounded-2xl text-xs font-bold transition-all active:scale-95 whitespace-nowrap shadow-xs">
-                        <Upload className="w-4 h-4 text-[#D4AF37]" />
+                        <Upload className="w-4 h-4 text-[#698156]" />
                         {isUploading ? 'Processing...' : 'Upload Files (Multiple)'}
                         <input 
                           type="file" 
@@ -552,7 +552,7 @@ export function AdminProducts() {
                     {/* Visual Preview Grid of Gallery Images */}
                     {formData.images.length === 0 ? (
                       <div className="p-8 border-2 border-dashed border-gray-300 rounded-2xl text-center bg-white flex flex-col items-center justify-center gap-2">
-                        <div className="w-12 h-12 rounded-full bg-amber-50 text-[#D4AF37] flex items-center justify-center">
+                        <div className="w-12 h-12 rounded-full bg-amber-50 text-[#698156] flex items-center justify-center">
                           <ImageIcon className="w-6 h-6" />
                         </div>
                         <p className="text-sm font-bold text-gray-700">No images added to gallery yet</p>
@@ -562,9 +562,9 @@ export function AdminProducts() {
                         <button
                           type="button"
                           onClick={handleAutofillAngles}
-                          className="mt-2 text-xs font-bold text-[#800000] bg-rose-50 hover:bg-rose-100 border border-rose-200 px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
+                          className="mt-2 text-xs font-bold text-[#698156] bg-rose-50 hover:bg-rose-100 border border-rose-200 px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
                         >
-                          <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
+                          <Sparkles className="w-3.5 h-3.5 text-[#698156]" />
                           Click here to Autofill Recommended Angles
                         </button>
                       </div>
@@ -586,7 +586,7 @@ export function AdminProducts() {
                             <div 
                               key={index} 
                               className={`group relative aspect-[3/4] rounded-2xl overflow-hidden border-2 bg-white shadow-xs transition-all ${
-                                isPrimary ? 'border-[#D4AF37] ring-2 ring-[#D4AF37]/30' : 'border-gray-200 hover:border-gray-400'
+                                isPrimary ? 'border-[#698156] ring-2 ring-[#698156]/30' : 'border-gray-200 hover:border-gray-400'
                               }`}
                             >
                               <img src={imgUrl} alt={`Product shot ${index + 1}`} className="w-full h-full object-cover" />
@@ -595,7 +595,7 @@ export function AdminProducts() {
                               <div className="absolute top-2 left-2 z-10">
                                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shadow-xs backdrop-blur-md ${
                                   isPrimary 
-                                    ? 'bg-[#D4AF37] text-white' 
+                                    ? 'bg-[#698156] text-white' 
                                     : 'bg-black/70 text-white'
                                 }`}>
                                   {slotLabel}
@@ -620,7 +620,7 @@ export function AdminProducts() {
                                     <button
                                       type="button"
                                       onClick={() => handleMakePrimary(index)}
-                                      className="w-full py-1 px-2 bg-[#D4AF37] hover:bg-amber-600 text-white text-[10px] font-bold rounded-lg transition-all flex items-center justify-center gap-1 shadow-sm cursor-pointer"
+                                      className="w-full py-1 px-2 bg-[#698156] hover:bg-amber-600 text-white text-[10px] font-bold rounded-lg transition-all flex items-center justify-center gap-1 shadow-sm cursor-pointer"
                                     >
                                       <Star className="w-3 h-3 fill-white" /> Make Primary
                                     </button>
@@ -732,7 +732,7 @@ export function AdminProducts() {
                       {productToDelete.name}
                     </h4>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-xs font-bold text-[#800000]">
+                      <span className="text-xs font-bold text-[#698156]">
                         ₹{(productToDelete.price || 0).toLocaleString('en-IN')}
                       </span>
                       {productToDelete.originalPrice && (

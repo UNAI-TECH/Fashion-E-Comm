@@ -565,7 +565,7 @@ export function ProductPage() {
             ...data,
             image: itemImages[0],
             images: itemImages,
-            colors: data.colors || ['#D4AF37'],
+            colors: data.colors || ['#698156'],
             rating: data.rating || 4.8,
           });
         } else {
@@ -629,7 +629,7 @@ export function ProductPage() {
         <AnnouncementBar />
         <Navigation />
         <div className="pt-20 sm:pt-24 lg:pt-6 flex justify-center items-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#D4AF37]"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#698156]"></div>
         </div>
         <Footer />
       </div>
@@ -643,7 +643,7 @@ export function ProductPage() {
         <Navigation />
         <div className="pt-20 sm:pt-24 lg:pt-6 text-center min-h-[400px] flex flex-col items-center justify-center">
           <h1 className="text-2xl font-serif">Product not found</h1>
-          <Link to="/" className="text-[#D4AF37] hover:underline mt-4 inline-block">Return to Home</Link>
+          <Link to="/" className="text-[#698156] hover:underline mt-4 inline-block">Return to Home</Link>
         </div>
         <Footer />
       </div>
@@ -658,7 +658,7 @@ export function ProductPage() {
       <div className="pt-24 sm:pt-28 lg:pt-14 pb-20 px-4">
         <div className="max-w-7xl mx-auto">
           {/* Breadcrumb on Top Left */}
-          <div className="text-[#D4AF37] uppercase tracking-wider text-xs font-bold flex items-center gap-1.5 mb-6 flex-wrap">
+          <div className="text-[#698156] uppercase tracking-wider text-xs font-bold flex items-center gap-1.5 mb-6 flex-wrap">
             <Link to="/" className="hover:underline">Home</Link>
             <span>/</span>
             <Link to={`/category/${(product.category || 'all').toLowerCase()}`} className="hover:underline">{product.category || 'Product'}</Link>
@@ -712,7 +712,7 @@ export function ProductPage() {
                       {/* Myntra-style Double-Card / Inspect Button in Bottom Right */}
                       <div className="absolute bottom-3 right-3 z-10 pointer-events-none">
                         <div className="p-2.5 bg-white/95 hover:bg-white text-gray-900 rounded-2xl shadow-md backdrop-blur-xs opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:scale-110 flex items-center gap-1.5 text-xs font-bold">
-                          <Maximize2 className="w-3.5 h-3.5 text-[#D4AF37]" />
+                          <Maximize2 className="w-3.5 h-3.5 text-[#698156]" />
                           <span>Zoom</span>
                         </div>
                       </div>
@@ -749,7 +749,7 @@ export function ProductPage() {
                       />
                       {/* Counter Badge */}
                       <div className="absolute bottom-3 right-3 px-3 py-1 bg-black/75 backdrop-blur-md text-white text-xs font-bold rounded-full shadow-md flex items-center gap-1.5">
-                        <Camera className="w-3.5 h-3.5 text-[#D4AF37]" />
+                        <Camera className="w-3.5 h-3.5 text-[#698156]" />
                         <span>{idx + 1} / {product.images.length}</span>
                       </div>
                     </div>
@@ -766,7 +766,7 @@ export function ProductPage() {
                         setIsLightboxOpen(true);
                       }}
                       className={`relative w-14 h-16 rounded-xl overflow-hidden border-2 transition-all shrink-0 cursor-pointer ${
-                        mobileActiveIndex === idx ? 'border-[#800000] scale-105 shadow-sm' : 'border-gray-200 opacity-70'
+                        mobileActiveIndex === idx ? 'border-[#698156] scale-105 shadow-sm' : 'border-gray-200 opacity-70'
                       }`}
                     >
                       <img src={imgUrl} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
@@ -797,7 +797,7 @@ export function ProductPage() {
                     {/* Header: Brand Name & Title */}
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs uppercase tracking-[0.2em] text-[#D4AF37] font-black">
+                        <span className="text-xs uppercase tracking-[0.2em] text-[#698156] font-black">
                           Aanya Fashions • Sangria Heritage
                         </span>
                         <span className="text-[10px] uppercase font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded">
@@ -813,7 +813,7 @@ export function ProductPage() {
                     <div className="flex items-center gap-3">
                       <div className="inline-flex items-center gap-2 px-3 py-1 bg-white border border-gray-200 rounded-md text-xs font-bold text-gray-800 shadow-2xs">
                         <span className="flex items-center gap-1 font-bold">
-                          {product.rating} <Star className="w-3.5 h-3.5 fill-[#D4AF37] text-[#D4AF37]" />
+                          {product.rating} <Star className="w-3.5 h-3.5 fill-[#698156] text-[#698156]" />
                         </span>
                         <span className="w-px h-3.5 bg-gray-300"></span>
                         <span className="text-gray-500 font-medium">19 Ratings</span>
@@ -856,9 +856,9 @@ export function ProductPage() {
                           <button
                             type="button"
                             onClick={() => setIsSizeChartOpen(true)}
-                            className="text-xs font-bold text-[#800000] hover:text-black uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-colors"
+                            className="text-xs font-bold text-[#698156] hover:text-black uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-colors"
                           >
-                            <Ruler className="w-3.5 h-3.5 text-[#D4AF37]" />
+                            <Ruler className="w-3.5 h-3.5 text-[#698156]" />
                             SIZE CHART &gt;
                           </button>
                         </div>
@@ -886,7 +886,7 @@ export function ProductPage() {
                                   }}
                                   className={`w-12 h-12 rounded-full border text-xs font-bold transition-all flex items-center justify-center cursor-pointer ${
                                     isSelected
-                                      ? 'border-[#800000] bg-[#800000] text-white shadow-md ring-2 ring-[#800000]/30'
+                                      ? 'border-[#698156] bg-[#698156] text-white shadow-md ring-2 ring-[#698156]/30'
                                       : 'border-gray-300 text-gray-800 hover:border-gray-900 bg-white'
                                   }`}
                                 >
@@ -908,7 +908,7 @@ export function ProductPage() {
                           <span className="text-xs font-bold uppercase tracking-wider text-gray-800 block">Drape Size</span>
                           <span className="text-xs text-gray-500">Traditional 5.5m Saree + 0.8m Blouse Piece</span>
                         </div>
-                        <span className="text-xs font-bold text-[#800000] bg-white px-3 py-1 rounded-full border border-rose-200">
+                        <span className="text-xs font-bold text-[#698156] bg-white px-3 py-1 rounded-full border border-[#DCE4D7]">
                           Free Size
                         </span>
                       </div>
@@ -966,8 +966,8 @@ export function ProductPage() {
                         whileTap={{ scale: 0.99 }} 
                         className={`w-full h-13 rounded-2xl font-black text-xs tracking-[0.15em] uppercase shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer ${
                           !isSaree && !selectedSize
-                            ? 'bg-[#FFF0F5] hover:bg-[#FFE4E1] text-[#800000] border-2 border-rose-300'
-                            : 'bg-[#800000] hover:bg-black text-white border-2 border-[#800000]'
+                            ? 'bg-[#F4F6F2] hover:bg-[#EBF0E6] text-[#698156] border-2 border-[#DCE4D7]'
+                            : 'bg-[#698156] hover:bg-[#546944] text-white border-2 border-[#698156]'
                         }`}
                       >
                         <CreditCard className="w-4 h-4" /> 
@@ -978,11 +978,11 @@ export function ProductPage() {
                     {/* ═══ BEST OFFERS SECTION (MYNTRA SCREENSHOT MATCH) ═══ */}
                     <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/80 space-y-2.5">
                       <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-gray-900">
-                        <Tag className="w-4 h-4 text-[#D4AF37]" />
+                        <Tag className="w-4 h-4 text-[#698156]" />
                         <span>BEST OFFERS</span>
                       </div>
                       <div className="text-sm font-bold text-gray-900">
-                        Best Price: <span className="text-[#800000] font-black text-base">Rs. {bestOfferPrice.toLocaleString('en-IN')}</span>
+                        Best Price: <span className="text-[#698156] font-black text-base">Rs. {bestOfferPrice.toLocaleString('en-IN')}</span>
                       </div>
                       <ul className="text-xs text-gray-700 space-y-1.5 list-disc list-inside">
                         <li>
@@ -999,7 +999,7 @@ export function ProductPage() {
                               toast.success('Coupon code AANYAEXCLUSIVE1 copied!');
                               setTimeout(() => setIsCopiedCoupon(false), 2000);
                             }}
-                            className="text-[11px] font-bold text-[#800000] hover:underline flex items-center gap-1 cursor-pointer bg-white px-2 py-0.5 rounded shadow-xs border border-rose-200"
+                            className="text-[11px] font-bold text-[#698156] hover:underline flex items-center gap-1 cursor-pointer bg-white px-2 py-0.5 rounded shadow-xs border border-[#DCE4D7]"
                           >
                             {isCopiedCoupon ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
                             {isCopiedCoupon ? 'Copied!' : 'Copy Code'}
@@ -1011,15 +1011,15 @@ export function ProductPage() {
                     {/* Value Badges: Fast Shipping, Easy Returns, Authenticity */}
                     <div className="grid grid-cols-3 gap-3 py-3 border-y border-gray-100 text-center">
                       <div className="flex flex-col items-center gap-1 p-2 rounded-xl bg-gray-50/70">
-                        <Truck className="w-4 h-4 text-[#D4AF37]" />
+                        <Truck className="w-4 h-4 text-[#698156]" />
                         <span className="text-[10px] font-bold text-gray-700">Fast Shipping</span>
                       </div>
                       <div className="flex flex-col items-center gap-1 p-2 rounded-xl bg-gray-50/70">
-                        <RotateCcw className="w-4 h-4 text-[#D4AF37]" />
+                        <RotateCcw className="w-4 h-4 text-[#698156]" />
                         <span className="text-[10px] font-bold text-gray-700">Easy 7-Day Returns</span>
                       </div>
                       <div className="flex flex-col items-center gap-1 p-2 rounded-xl bg-gray-50/70">
-                        <Shield className="w-4 h-4 text-[#D4AF37]" />
+                        <Shield className="w-4 h-4 text-[#698156]" />
                         <span className="text-[10px] font-bold text-gray-700">100% Authentic</span>
                       </div>
                     </div>
@@ -1027,7 +1027,7 @@ export function ProductPage() {
                     {/* ═══ PRODUCT DETAILS & ABOUT THE BRAND (MYNTRA SCREENSHOT MATCH) ═══ */}
                     <div className="pt-2 space-y-4">
                       <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-[#D4AF37]" />
+                        <FileText className="w-4 h-4 text-[#698156]" />
                         <h3 className="font-serif text-base font-bold text-[#1A1A1A]">PRODUCT DETAILS</h3>
                       </div>
 
@@ -1088,7 +1088,7 @@ export function ProductPage() {
               {/* Top Bar with Counter and Close */}
               <div className="w-full flex items-center justify-between text-white pb-3 px-2">
                 <div className="text-xs font-bold tracking-wider uppercase flex items-center gap-2">
-                  <span className="text-[#D4AF37] font-serif font-black">{product.name}</span>
+                  <span className="text-[#698156] font-serif font-black">{product.name}</span>
                   <span className="text-gray-400">• Photo {lightboxIndex + 1} of {product.images.length}</span>
                 </div>
                 <button
@@ -1115,7 +1115,7 @@ export function ProductPage() {
                       e.stopPropagation();
                       setLightboxIndex(prev => prev - 1);
                     }}
-                    className="absolute left-4 p-3 bg-black/60 hover:bg-black text-white rounded-full transition-all cursor-pointer backdrop-blur-md"
+                    className="absolute left-4 p-3 bg-black/60 hover:bg-[#546944] text-white rounded-full transition-all cursor-pointer backdrop-blur-md"
                     title="Previous photo"
                   >
                     <ChevronLeft className="w-6 h-6" />
@@ -1129,7 +1129,7 @@ export function ProductPage() {
                       e.stopPropagation();
                       setLightboxIndex(prev => prev + 1);
                     }}
-                    className="absolute right-4 p-3 bg-black/60 hover:bg-black text-white rounded-full transition-all cursor-pointer backdrop-blur-md"
+                    className="absolute right-4 p-3 bg-black/60 hover:bg-[#546944] text-white rounded-full transition-all cursor-pointer backdrop-blur-md"
                     title="Next photo"
                   >
                     <ChevronRight className="w-6 h-6" />
@@ -1144,7 +1144,7 @@ export function ProductPage() {
                     key={i}
                     onClick={() => setLightboxIndex(i)}
                     className={`relative w-14 h-16 rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${
-                      lightboxIndex === i ? 'border-[#D4AF37] scale-105 shadow-md' : 'border-white/30 opacity-60 hover:opacity-100'
+                      lightboxIndex === i ? 'border-[#698156] scale-105 shadow-md' : 'border-white/30 opacity-60 hover:opacity-100'
                     }`}
                   >
                     <img src={img} alt={`Thumb ${i + 1}`} className="w-full h-full object-cover" />
@@ -1176,7 +1176,7 @@ export function ProductPage() {
             >
               <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                 <div className="flex items-center gap-2">
-                  <Ruler className="w-5 h-5 text-[#D4AF37]" />
+                  <Ruler className="w-5 h-5 text-[#698156]" />
                   <h3 className="font-serif text-xl font-bold text-gray-900">Garment Size Chart</h3>
                 </div>
                 <button
@@ -1211,7 +1211,7 @@ export function ProductPage() {
                       { size: 'XL', bust: '40', waist: '34', hip: '43', length: '46.5' },
                       { size: 'XXL', bust: '42', waist: '36', hip: '45', length: '47' },
                     ].map((row) => (
-                      <tr key={row.size} className={selectedSize === row.size ? 'bg-amber-50/60 font-bold text-[#800000]' : 'hover:bg-gray-50'}>
+                      <tr key={row.size} className={selectedSize === row.size ? 'bg-amber-50/60 font-bold text-[#698156]' : 'hover:bg-gray-50'}>
                         <td className="px-3 py-2.5 font-black">{row.size}</td>
                         <td className="px-3 py-2.5">{row.bust}"</td>
                         <td className="px-3 py-2.5">{row.waist}"</td>
@@ -1226,7 +1226,7 @@ export function ProductPage() {
               <div className="text-center pt-2">
                 <button
                   onClick={() => setIsSizeChartOpen(false)}
-                  className="w-full py-3 bg-[#1A1A1A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer"
+                  className="w-full py-3 bg-[#1A1A1A] hover:bg-[#546944] text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer"
                 >
                   Got It
                 </button>
@@ -1293,7 +1293,7 @@ export function ProductPage() {
                           placeholder="Enter 10-digit mobile number"
                           value={buyNowPhone}
                           onChange={(e) => setBuyNowPhone(e.target.value.replace(/\D/g, ''))}
-                          className="w-full text-sm font-semibold pl-14 pr-4 py-3.5 border-2 border-gray-200 rounded-2xl bg-white text-gray-900 focus:outline-none focus:border-[#800000] focus:ring-1 focus:ring-[#800000]/20 transition-all"
+                          className="w-full text-sm font-semibold pl-14 pr-4 py-3.5 border-2 border-gray-200 rounded-2xl bg-white text-gray-900 focus:outline-none focus:border-[#698156] focus:ring-1 focus:ring-[#698156]/20 transition-all"
                         />
                       </div>
                     </div>
@@ -1303,7 +1303,7 @@ export function ProductPage() {
                       whileTap={{ scale: 0.98 }}
                       disabled={isSendingOtp}
                       onClick={handleSendOTP}
-                      className="w-full py-4 bg-[#800000] hover:bg-black text-white font-black uppercase tracking-wider rounded-2xl text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                      className="w-full py-4 bg-[#698156] hover:bg-[#546944] text-white font-black uppercase tracking-wider rounded-2xl text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
                     >
                       {isSendingOtp ? (
                         <>
@@ -1329,8 +1329,8 @@ export function ProductPage() {
                   <div>
                     <h3 className="font-serif text-2xl sm:text-3xl text-gray-900">Enter Verification Code</h3>
                     <p className="text-gray-600 text-xs sm:text-sm font-medium mt-1">
-                      OTP sent to the entered mobile number: <span className="font-black text-[#800000]">+91 {buyNowPhone}</span>
-                      <button onClick={() => setBuyNowStep('phone')} className="ml-2 text-xs font-bold text-[#D4AF37] underline">
+                      OTP sent to the entered mobile number: <span className="font-black text-[#698156]">+91 {buyNowPhone}</span>
+                      <button onClick={() => setBuyNowStep('phone')} className="ml-2 text-xs font-bold text-[#698156] underline">
                         Edit
                       </button>
                     </p>
@@ -1347,7 +1347,7 @@ export function ProductPage() {
                         placeholder="Enter 6-digit OTP (e.g. 123456)"
                         value={buyNowOtp}
                         onChange={(e) => setBuyNowOtp(e.target.value)}
-                        className="w-full text-center text-lg font-mono font-bold tracking-[0.3em] px-4 py-3.5 border-2 border-gray-200 rounded-2xl bg-white text-gray-900 focus:outline-none focus:border-[#800000] focus:ring-1 focus:ring-[#800000]/20 transition-all"
+                        className="w-full text-center text-lg font-mono font-bold tracking-[0.3em] px-4 py-3.5 border-2 border-gray-200 rounded-2xl bg-white text-gray-900 focus:outline-none focus:border-[#698156] focus:ring-1 focus:ring-[#698156]/20 transition-all"
                       />
                     </div>
 
@@ -1356,7 +1356,7 @@ export function ProductPage() {
                       whileTap={{ scale: 0.98 }}
                       disabled={isVerifyingOtp}
                       onClick={handleVerifyOTP}
-                      className="w-full py-4 bg-[#800000] hover:bg-black text-white font-black uppercase tracking-wider rounded-2xl text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                      className="w-full py-4 bg-[#698156] hover:bg-[#546944] text-white font-black uppercase tracking-wider rounded-2xl text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
                     >
                       {isVerifyingOtp ? (
                         <>
@@ -1384,7 +1384,7 @@ export function ProductPage() {
                         <p className="text-xs text-gray-500">Verified Mobile: +91 {buyNowPhone}</p>
                       </div>
                     </div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-[#800000] bg-rose-50 px-3 py-1 rounded-full border border-rose-100">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-[#698156] bg-[#F4F6F2] px-3 py-1 rounded-full border border-[#DCE4D7]">
                       Express Buy Now
                     </span>
                   </div>
@@ -1397,7 +1397,7 @@ export function ProductPage() {
                       
                       {/* TOP LEFT CARD: Details of Product */}
                       <div className="bg-gray-50/80 p-4 sm:p-5 rounded-2xl border border-gray-200/80 shadow-sm space-y-3">
-                        <span className="text-[10px] font-black text-[#800000] uppercase tracking-wider block">
+                        <span className="text-[10px] font-black text-[#698156] uppercase tracking-wider block">
                           📦 Product Details
                         </span>
                         <div className="flex gap-4 items-center">
@@ -1409,7 +1409,7 @@ export function ProductPage() {
                           <div className="space-y-1 min-w-0 flex-1">
                             <h4 className="font-serif text-base sm:text-lg text-gray-900 truncate leading-snug">{product.name}</h4>
                             <p className="text-xs text-gray-500">Category: <span className="font-semibold text-gray-700">{product.category}</span></p>
-                            <p className="text-xs text-gray-500">Selected Size: <span className="font-semibold text-[#800000]">{selectedSize || 'Standard Free Size'}</span> | Qty: <span className="font-semibold text-gray-900">{quantity}</span></p>
+                            <p className="text-xs text-gray-500">Selected Size: <span className="font-semibold text-[#698156]">{selectedSize || 'Standard Free Size'}</span> | Qty: <span className="font-semibold text-gray-900">{quantity}</span></p>
                             <p className="text-xs font-bold text-emerald-700 flex items-center gap-1 pt-1">
                               <Truck className="w-3.5 h-3.5" /> Estimated Delivery: <span className="underline">{new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
                             </p>
@@ -1418,8 +1418,8 @@ export function ProductPage() {
                       </div>
 
                       {/* BOTTOM LEFT CARD: User Details */}
-                      <div className="bg-[#FFF0F5]/30 p-4 sm:p-5 rounded-2xl border border-rose-100/80 shadow-sm space-y-3">
-                        <span className="text-[10px] font-black text-[#800000] uppercase tracking-wider flex items-center gap-1.5">
+                      <div className="bg-[#F4F6F2]/30 p-4 sm:p-5 rounded-2xl border border-[#DCE4D7]/80 shadow-sm space-y-3">
+                        <span className="text-[10px] font-black text-[#698156] uppercase tracking-wider flex items-center gap-1.5">
                           <MapPin className="w-3.5 h-3.5" /> Customer & Shipping Contact
                         </span>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1431,7 +1431,7 @@ export function ProductPage() {
                               placeholder="Enter Full Name"
                               value={orderForm.fullName}
                               onChange={handleInputChange}
-                              className="w-full text-xs font-semibold px-3 py-2.5 border rounded-xl bg-white focus:outline-none focus:border-[#800000]"
+                              className="w-full text-xs font-semibold px-3 py-2.5 border rounded-xl bg-white focus:outline-none focus:border-[#698156]"
                             />
                           </div>
                           <div>
@@ -1454,7 +1454,7 @@ export function ProductPage() {
                             placeholder="Flat No / House No / Street Address"
                             value={orderForm.address}
                             onChange={handleInputChange}
-                            className="w-full text-xs font-semibold px-3 py-2.5 border rounded-xl bg-white focus:outline-none focus:border-[#800000]"
+                            className="w-full text-xs font-semibold px-3 py-2.5 border rounded-xl bg-white focus:outline-none focus:border-[#698156]"
                           />
                         </div>
 
@@ -1467,7 +1467,7 @@ export function ProductPage() {
                               placeholder="City"
                               value={orderForm.city}
                               onChange={handleInputChange}
-                              className="w-full text-xs font-semibold px-3 py-2.5 border rounded-xl bg-white focus:outline-none focus:border-[#800000]"
+                              className="w-full text-xs font-semibold px-3 py-2.5 border rounded-xl bg-white focus:outline-none focus:border-[#698156]"
                             />
                           </div>
                           <div>
@@ -1478,7 +1478,7 @@ export function ProductPage() {
                               placeholder="Pincode"
                               value={orderForm.pincode}
                               onChange={handleInputChange}
-                              className="w-full text-xs font-semibold px-3 py-2.5 border rounded-xl bg-white focus:outline-none focus:border-[#800000]"
+                              className="w-full text-xs font-semibold px-3 py-2.5 border rounded-xl bg-white focus:outline-none focus:border-[#698156]"
                             />
                           </div>
                         </div>
@@ -1544,7 +1544,7 @@ export function ProductPage() {
 
                               <div className="border-t-2 border-dashed border-gray-300 pt-3 mt-2 flex justify-between items-center text-sm">
                                 <span className="font-black text-gray-900 uppercase tracking-wider">Total Amount:</span>
-                                <span className="font-serif text-2xl font-black text-[#800000]">₹{basePrice.toLocaleString('en-IN')}</span>
+                                <span className="font-serif text-2xl font-black text-[#698156]">₹{basePrice.toLocaleString('en-IN')}</span>
                               </div>
                             </div>
                           );
@@ -1564,7 +1564,7 @@ export function ProductPage() {
                             }
                             setBuyNowStep('success');
                           }}
-                          className="w-full py-4 bg-[#800000] hover:bg-black text-white font-black uppercase tracking-widest rounded-2xl text-xs shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+                          className="w-full py-4 bg-[#698156] hover:bg-[#546944] text-white font-black uppercase tracking-widest rounded-2xl text-xs shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
                         >
                           Place Order <ChevronRight className="w-4 h-4" />
                         </motion.button>
@@ -1596,7 +1596,7 @@ export function ProductPage() {
                     </div>
                     <div className="flex justify-between border-t border-gray-200 pt-2 font-bold text-sm">
                       <span className="text-gray-700">Total Amount Paid:</span>
-                      <span className="text-[#800000]">₹{(product.price * quantity).toLocaleString('en-IN')}</span>
+                      <span className="text-[#698156]">₹{(product.price * quantity).toLocaleString('en-IN')}</span>
                     </div>
                   </div>
 
@@ -1616,7 +1616,7 @@ export function ProductPage() {
                         }
                         handleCreateOrder('COD');
                       }}
-                      className="flex-1 py-3 bg-[#800000] hover:bg-black text-white rounded-xl font-bold text-xs shadow-md flex items-center justify-center gap-2"
+                      className="flex-1 py-3 bg-[#698156] hover:bg-[#546944] text-white rounded-xl font-bold text-xs shadow-md flex items-center justify-center gap-2"
                     >
                       {isSubmitting ? (
                         <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>

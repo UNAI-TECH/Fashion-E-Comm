@@ -2,7 +2,7 @@ import { motion } from 'motion/react';
 
 export function LoadingAnimation() {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-[#FFD6E8] via-[#FFF0F5] to-[#E6E6FA]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-[#DCE4D7] via-[#F4F6F2] to-[#E6E6FA]">
       <div className="text-center">
         {/* Animated Logo */}
         <motion.div
@@ -11,7 +11,7 @@ export function LoadingAnimation() {
           transition={{ duration: 0.8, ease: 'easeOut' }}
           className="font-serif text-6xl mb-8"
           style={{ 
-            background: 'linear-gradient(135deg, #D4AF37 0%, #FFD6E8 100%)',
+            background: 'linear-gradient(135deg, #698156 0%, #DCE4D7 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text'
@@ -34,7 +34,7 @@ export function LoadingAnimation() {
                 repeat: Infinity,
                 delay: index * 0.2,
               }}
-              className="w-3 h-3 rounded-full bg-[#D4AF37]"
+              className="w-3 h-3 rounded-full bg-[#698156]"
             />
           ))}
         </div>

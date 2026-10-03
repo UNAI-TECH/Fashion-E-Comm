@@ -26,16 +26,16 @@ function StarRatingDisplay({ score, showScore = true }: { score: number; showSco
 
   return (
     <div className="flex items-center gap-1">
-      <div className="flex items-center text-[#D4AF37]">
+      <div className="flex items-center text-[#698156]">
         {[1, 2, 3, 4, 5].map((star) => {
           if (star <= fullStars) {
-            return <Star key={star} className="w-3.5 h-3.5 fill-[#D4AF37] text-[#D4AF37]" />;
+            return <Star key={star} className="w-3.5 h-3.5 fill-[#698156] text-[#698156]" />;
           } else if (star === fullStars + 1 && (hasHalf || decimal > 0.7)) {
             return (
               <div key={star} className="relative w-3.5 h-3.5">
                 <Star className="w-3.5 h-3.5 text-gray-300 fill-gray-200 absolute inset-0" />
                 <div className="overflow-hidden w-1/2 absolute inset-0">
-                  <Star className="w-3.5 h-3.5 fill-[#D4AF37] text-[#D4AF37]" />
+                  <Star className="w-3.5 h-3.5 fill-[#698156] text-[#698156]" />
                 </div>
               </div>
             );
@@ -44,7 +44,7 @@ function StarRatingDisplay({ score, showScore = true }: { score: number; showSco
           }
         })}
       </div>
-      {showScore && <span className="text-xs font-black text-[#800000] ml-0.5">{rounded.toFixed(1)}</span>}
+      {showScore && <span className="text-xs font-black text-[#698156] ml-0.5">{rounded.toFixed(1)}</span>}
     </div>
   );
 }
@@ -220,10 +220,10 @@ export function CompactCustomerReviews({ product }: CompactCustomerReviewsProps)
 
   if (allReviews.length === 0) {
     return (
-      <div className="mt-5 border border-[#D4AF37]/50 rounded-2xl p-5 bg-white shadow-sm text-center">
-        <MessageSquarePlus className="w-8 h-8 text-[#D4AF37] mx-auto mb-2 opacity-80" />
+      <div className="mt-5 border border-[#698156]/50 rounded-2xl p-5 bg-white shadow-sm text-center">
+        <MessageSquarePlus className="w-8 h-8 text-[#698156] mx-auto mb-2 opacity-80" />
         <p className="text-gray-700 text-sm font-semibold italic">Be the first to review this product.</p>
-        <button className="mt-3 px-4 py-2 bg-[#FFF0F5] border border-[#FFD6E8] text-[#800000] rounded-xl text-xs font-bold hover:bg-[#FFE4EF] transition-all cursor-pointer">
+        <button className="mt-3 px-4 py-2 bg-[#F4F6F2] border border-[#DCE4D7] text-[#698156] rounded-xl text-xs font-bold hover:bg-[#EBF0E6] transition-all cursor-pointer">
           Write a Review
         </button>
       </div>
@@ -236,13 +236,13 @@ export function CompactCustomerReviews({ product }: CompactCustomerReviewsProps)
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-2">
           <h3 className="font-serif text-lg text-gray-900 font-bold">Customer Feedback</h3>
-          <span className="text-[11px] font-bold text-[#800000] bg-rose-50 px-2 py-0.5 rounded-full border border-rose-100">
+          <span className="text-[11px] font-bold text-[#698156] bg-[#F4F6F2] px-2 py-0.5 rounded-full border border-[#DCE4D7]">
             {allReviews.length} Verified Reviews
           </span>
         </div>
         <div className="flex items-center gap-1.5">
           <StarRatingDisplay score={averageRating} showScore={false} />
-          <span className="text-xs font-black text-[#800000]">{averageRating.toFixed(1)} / 5.0</span>
+          <span className="text-xs font-black text-[#698156]">{averageRating.toFixed(1)} / 5.0</span>
         </div>
       </div>
 
@@ -262,13 +262,13 @@ export function CompactCustomerReviews({ product }: CompactCustomerReviewsProps)
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.3 }}
-                className="bg-white border border-[#D4AF37]/40 hover:border-[#D4AF37] rounded-2xl p-3.5 sm:p-4 shadow-sm hover:shadow-md transition-all group"
+                className="bg-white border border-[#698156]/40 hover:border-[#698156] rounded-2xl p-3.5 sm:p-4 shadow-sm hover:shadow-md transition-all group"
               >
                 {/* Header: User Info & Rating */}
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2.5">
                     {/* User Avatar / Initials */}
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#FFF0F5] to-[#F5E6BE] border border-[#D4AF37]/50 flex items-center justify-center text-xs font-black text-[#800000] shadow-xs">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#F4F6F2] to-[#EBF0E6] border border-[#698156]/50 flex items-center justify-center text-xs font-black text-[#698156] shadow-xs">
                       {initials}
                     </div>
                     <div>
@@ -297,7 +297,7 @@ export function CompactCustomerReviews({ product }: CompactCustomerReviewsProps)
                 {isLong && (
                   <button
                     onClick={() => toggleExpand(rev.id)}
-                    className="mt-1.5 text-[11px] font-bold text-[#800000] hover:text-black flex items-center gap-0.5 transition-colors cursor-pointer"
+                    className="mt-1.5 text-[11px] font-bold text-[#698156] hover:text-black flex items-center gap-0.5 transition-colors cursor-pointer"
                   >
                     {isExpanded ? (
                       <>Read Less <ChevronUp className="w-3 h-3" /></>

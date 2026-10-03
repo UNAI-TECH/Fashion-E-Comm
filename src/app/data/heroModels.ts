@@ -341,7 +341,7 @@ export async function saveHeroModel(model: Partial<HeroModel>): Promise<HeroMode
       src: resolvedSrc,
       label: model.label || 'New Model Outfit',
       subtitle: model.subtitle || 'Trending Style',
-      color: model.color || '#EC4899',
+      color: model.color || '#698156',
       productId: model.productId,
       productName: model.productName,
       price: model.price,

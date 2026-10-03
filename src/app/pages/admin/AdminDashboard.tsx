@@ -49,7 +49,7 @@ export function AdminDashboard() {
           >
             <div className="flex items-center justify-between mb-4">
               <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center">
-                <stat.icon className="w-6 h-6 text-[#D4AF37]" />
+                <stat.icon className="w-6 h-6 text-[#698156]" />
               </div>
               <div className={`flex items-center gap-1 text-sm font-medium px-2.5 py-1 rounded-full ${stat.isPositive ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
                 {stat.isPositive ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
@@ -77,8 +77,8 @@ export function AdminDashboard() {
               <AreaChart data={salesData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#D4AF37" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="#D4AF37" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#698156" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#698156" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
@@ -88,7 +88,7 @@ export function AdminDashboard() {
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                   itemStyle={{ color: '#1A1A1A', fontWeight: 'bold' }}
                 />
-                <Area type="monotone" dataKey="sales" stroke="#D4AF37" strokeWidth={3} fillOpacity={1} fill="url(#colorSales)" />
+                <Area type="monotone" dataKey="sales" stroke="#698156" strokeWidth={3} fillOpacity={1} fill="url(#colorSales)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -128,7 +128,7 @@ export function AdminDashboard() {
       >
         <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
           <h2 className="text-lg font-bold text-gray-900">Recent Orders</h2>
-          <button className="text-sm font-medium text-[#D4AF37] hover:text-black transition-colors">View All</button>
+          <button className="text-sm font-medium text-[#698156] hover:text-black transition-colors">View All</button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">

@@ -31,7 +31,7 @@ export function Footer() {
 
       {/* 2. Main Footer Card */}
       <div className="px-4 sm:px-6 lg:px-8 pb-4 md:pb-8">
-        <div className="max-w-7xl mx-auto bg-[#FFF0F5] text-[#1A1A1A] rounded-[1.5rem] md:rounded-[3rem] border border-[#FFD6E8]/20 shadow-xl overflow-hidden relative">
+        <div className="max-w-7xl mx-auto bg-[#F4F6F2] text-[#1A1A1A] rounded-[1.5rem] md:rounded-[3rem] border border-[#DCE4D7]/20 shadow-xl overflow-hidden relative">
 
           <div className="px-4 py-6 md:px-16 md:pt-12 md:pb-12">
             <div className="grid grid-cols-2 md:grid-cols-5 gap-6 md:gap-8">
@@ -55,7 +55,7 @@ export function Footer() {
                       href={social.href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-7 h-7 md:w-10 md:h-10 border border-gray-900/10 rounded-full flex items-center justify-center hover:bg-[#800000] hover:text-white hover:border-[#800000] transition-colors text-gray-700"
+                      className="w-7 h-7 md:w-10 md:h-10 border border-gray-900/10 rounded-full flex items-center justify-center hover:bg-[#698156] hover:text-white hover:border-[#698156] transition-colors text-gray-700"
                       aria-label={social.label}
                     >
                       <social.icon className="w-3.5 h-3.5 md:w-4 h-4" />
@@ -70,7 +70,7 @@ export function Footer() {
                 <ul className="space-y-1.5 md:space-y-3">
                   {footerLinks.quickLinks.map((link) => (
                     <li key={link.name}>
-                      <Link to={link.path} className="text-[10px] md:text-sm text-gray-600 hover:text-[#800000] transition-colors">
+                      <Link to={link.path} className="text-[10px] md:text-sm text-gray-600 hover:text-[#698156] transition-colors">
                         {link.name}
                       </Link>
                     </li>
@@ -84,7 +84,7 @@ export function Footer() {
                 <ul className="space-y-1.5 md:space-y-3">
                   {footerLinks.helpSupport.map((link) => (
                     <li key={link.name}>
-                      <Link to={link.path} className="text-[10px] md:text-sm text-gray-600 hover:text-[#800000] transition-colors">
+                      <Link to={link.path} className="text-[10px] md:text-sm text-gray-600 hover:text-[#698156] transition-colors">
                         {link.name}
                       </Link>
                     </li>
@@ -96,23 +96,23 @@ export function Footer() {
               <div className="col-span-1 space-y-3 md:space-y-6">
                 <h4 className="text-[10px] md:text-sm font-extrabold text-gray-900 tracking-wider uppercase">CONTACT US</h4>
                 <div className="space-y-2.5 md:space-y-4 text-left">
-                  <a href="tel:+919043088697" className="flex items-center gap-2 group hover:text-[#D4AF37] transition-colors">
-                    <div className="w-6 h-6 bg-[#FFF0F5] text-[#D4AF37] rounded-full flex items-center justify-center flex-shrink-0 group-hover:bg-[#D4AF37] group-hover:text-white transition-all">
+                  <a href="tel:+919043088697" className="flex items-center gap-2 group hover:text-[#698156] transition-colors">
+                    <div className="w-6 h-6 bg-[#F4F6F2] text-[#698156] rounded-full flex items-center justify-center flex-shrink-0 group-hover:bg-[#698156] group-hover:text-white transition-all">
                       <Phone className="w-3 h-3 stroke-[2.2]" />
                     </div>
                     <div>
                       <p className="text-[10px] text-gray-400 font-bold hidden md:block uppercase tracking-wider">PHONE</p>
-                      <p className="text-[10px] md:text-sm text-gray-900 font-bold group-hover:text-[#D4AF37] transition-colors">+91 90430 88697</p>
+                      <p className="text-[10px] md:text-sm text-gray-900 font-bold group-hover:text-[#698156] transition-colors">+91 90430 88697</p>
                     </div>
                   </a>
 
-                  <a href="mailto:owner@aanyafashions.com" className="flex items-center gap-2 group hover:text-[#D4AF37] transition-colors">
-                    <div className="w-6 h-6 bg-[#FFF0F5] text-[#D4AF37] rounded-full flex items-center justify-center flex-shrink-0 group-hover:bg-[#D4AF37] group-hover:text-white transition-all">
+                  <a href="mailto:owner@aanyafashions.com" className="flex items-center gap-2 group hover:text-[#698156] transition-colors">
+                    <div className="w-6 h-6 bg-[#F4F6F2] text-[#698156] rounded-full flex items-center justify-center flex-shrink-0 group-hover:bg-[#698156] group-hover:text-white transition-all">
                       <Mail className="w-3 h-3 stroke-[2.2]" />
                     </div>
                     <div>
                       <p className="text-[10px] text-gray-400 font-bold hidden md:block uppercase tracking-wider">EMAIL </p>
-                      <p className="text-[10px] md:text-sm text-gray-900 font-bold group-hover:text-[#D4AF37] transition-colors">owner@aanyafashions.com</p>
+                      <p className="text-[10px] md:text-sm text-gray-900 font-bold group-hover:text-[#698156] transition-colors">owner@aanyafashions.com</p>
                     </div>
                   </a>
 
@@ -120,14 +120,14 @@ export function Footer() {
                     href="https://www.google.com/maps/search/?api=1&query=Chennai+Tamil+Nadu"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-start gap-2 group hover:text-[#D4AF37] transition-colors"
+                    className="flex items-start gap-2 group hover:text-[#698156] transition-colors"
                   >
-                    <div className="w-6 h-6 bg-[#FFF0F5] text-[#D4AF37] rounded-full flex items-center justify-center mt-0.5 flex-shrink-0 group-hover:bg-[#D4AF37] group-hover:text-white transition-all">
+                    <div className="w-6 h-6 bg-[#F4F6F2] text-[#698156] rounded-full flex items-center justify-center mt-0.5 flex-shrink-0 group-hover:bg-[#698156] group-hover:text-white transition-all">
                       <MapPin className="w-3 h-3 stroke-[2.2]" />
                     </div>
                     <div>
                       <p className="text-[10px] text-gray-400 font-bold hidden md:block uppercase tracking-wider">ADDRESS</p>
-                      <p className="text-[10px] md:text-sm text-gray-900 font-bold leading-tight group-hover:text-[#D4AF37] transition-colors">
+                      <p className="text-[10px] md:text-sm text-gray-900 font-bold leading-tight group-hover:text-[#698156] transition-colors">
                         Chennai,Tamil Nadu
                       </p>
                     </div>
@@ -138,7 +138,7 @@ export function Footer() {
           </div>
 
           {/* 3. Bottom Bar */}
-          <div className="bg-[#FFE4EC] px-6 md:px-12 py-4 flex flex-col md:flex-row justify-between items-center gap-4 border-t border-[#FFD6E8]/30">
+          <div className="bg-[#EBF0E6] px-6 md:px-12 py-4 flex flex-col md:flex-row justify-between items-center gap-4 border-t border-[#DCE4D7]/30">
             {/* Copyright */}
             <p className="text-xs font-semibold text-gray-700 text-center md:text-left">
               © 2026 Aanya Fashions. All Rights Reserved.

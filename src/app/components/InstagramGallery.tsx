@@ -45,7 +45,7 @@ export function InstagramGallery() {
   }, []);
 
   return (
-    <section className="py-12 sm:py-16 px-4 bg-gradient-to-b from-white to-[#FFF0F5] relative overflow-hidden">
+    <section className="py-12 sm:py-16 px-4 bg-gradient-to-b from-white to-[#F4F6F2] relative overflow-hidden">
       <div className="max-w-6xl mx-auto relative z-10">
         
         {/* Section Header */}
@@ -57,7 +57,7 @@ export function InstagramGallery() {
           className="text-center mb-8 sm:mb-10"
         >
           <div className="inline-block mb-3">
-            <Instagram className="w-10 h-10 text-[#D4AF37]" />
+            <Instagram className="w-10 h-10 text-[#698156]" />
           </div>
 
           <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl mb-2.5 text-[#1A1A1A] tracking-tight font-medium">
@@ -74,7 +74,7 @@ export function InstagramGallery() {
             rel="noopener noreferrer"
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.96 }}
-            className="inline-flex items-center gap-2 px-7 py-2.5 bg-gradient-to-r from-[#D4AF37] to-[#800000] text-white rounded-full shadow-md font-bold text-sm hover:shadow-lg transition-all"
+            className="inline-flex items-center gap-2 px-7 py-2.5 bg-gradient-to-r from-[#698156] to-[#698156] text-white rounded-full shadow-md font-bold text-sm hover:shadow-lg transition-all"
           >
             <span>@aanya.style</span>
             <ExternalLink className="w-3.5 h-3.5 opacity-80" />
@@ -94,7 +94,7 @@ export function InstagramGallery() {
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.05 }}
               whileHover={{ y: -6, scale: 1.02 }}
-              className="relative w-52 h-52 sm:w-60 sm:h-60 rounded-2xl sm:rounded-3xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 group cursor-pointer border border-[#FFD6E8]/60 bg-white flex-shrink-0"
+              className="relative w-52 h-52 sm:w-60 sm:h-60 rounded-2xl sm:rounded-3xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 group cursor-pointer border border-[#DCE4D7]/60 bg-white flex-shrink-0"
             >
               <img
                 src={post.localImage || post.remoteImage || '/instagram/post_1.jpg'}
@@ -104,7 +104,7 @@ export function InstagramGallery() {
 
               {/* Subtle hover overlay with Instagram icon */}
               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                <div className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-[#800000] shadow-md group-hover:scale-110 transition-transform">
+                <div className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-[#698156] shadow-md group-hover:scale-110 transition-transform">
                   <Instagram className="w-5 h-5 text-[#E1306C]" />
                 </div>
               </div>

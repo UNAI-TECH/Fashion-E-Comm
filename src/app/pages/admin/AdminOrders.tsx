@@ -59,7 +59,7 @@ export function AdminOrders() {
             <input 
               type="text" 
               placeholder="Search by Order ID or Customer Name..." 
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#698156]"
             />
           </div>
         </div>
@@ -94,7 +94,7 @@ export function AdminOrders() {
                   <td className="px-6 py-4 text-right">
                     <button 
                       onClick={() => setSelectedOrder(order)}
-                      className="p-2 text-gray-400 hover:text-[#D4AF37] hover:bg-[#D4AF37]/10 rounded-lg transition-colors inline-block"
+                      className="p-2 text-gray-400 hover:text-[#698156] hover:bg-[#698156]/10 rounded-lg transition-colors inline-block"
                       title="View Details"
                     >
                       <Eye className="w-5 h-5" />

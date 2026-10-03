@@ -42,12 +42,12 @@ export function AdminReviews() {
                 <tr key={review.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="font-bold text-gray-900">{review.customer}</div>
-                    <div className="text-[#D4AF37] text-xs font-medium cursor-pointer hover:underline flex items-center gap-1 mt-1">
+                    <div className="text-[#698156] text-xs font-medium cursor-pointer hover:underline flex items-center gap-1 mt-1">
                       {review.product} <ExternalLink className="w-3 h-3" />
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center text-[#D4AF37]">
+                    <div className="flex items-center text-[#698156]">
                       {[...Array(5)].map((_, i) => (
                         <Star key={i} className={`w-4 h-4 ${i < review.rating ? 'fill-current' : 'text-gray-300'}`} />
                       ))}

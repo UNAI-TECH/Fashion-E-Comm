@@ -18,9 +18,9 @@ export function StylePicks({ products, isLoading }: { products?: any, isLoading?
           viewport={{ once: true }}
           className="text-center mb-16"
         >
-          <span className="text-[#D4AF37] font-medium tracking-[0.2em] uppercase text-sm mb-4 block">Style Partners</span>
+          <span className="text-[#698156] font-medium tracking-[0.2em] uppercase text-sm mb-4 block">Style Partners</span>
           <h2 className="text-4xl md:text-5xl font-serif text-[#1A1A1A] mb-6 italic">Featured Brands</h2>
-          <div className="w-24 h-px bg-[#D4AF37] mx-auto opacity-30"></div>
+          <div className="w-24 h-px bg-[#698156] mx-auto opacity-30"></div>
         </motion.div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 sm:gap-8">

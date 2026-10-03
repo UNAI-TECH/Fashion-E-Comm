@@ -216,22 +216,22 @@ export function CheckoutPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#FDFBF7] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#D4AF37]"></div>
+      <div className="min-h-screen bg-[#F9FAF7] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#698156]"></div>
       </div>
     );
   }
 
   if (cartItems.length === 0 && step !== 3) {
     return (
-      <div className="min-h-screen bg-[#FDFBF7]">
+      <div className="min-h-screen bg-[#F9FAF7]">
         <AnnouncementBar />
         <Navigation />
         <div className="pt-20 sm:pt-24 lg:pt-6 pb-20 px-4 text-center">
           <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
           <h1 className="text-3xl font-serif mb-2">Order Placed Successfully!</h1>
           <p className="text-gray-600 mb-6">Thank you for your purchase. We'll send you an email confirmation shortly.</p>
-          <Link to="/" className="inline-block bg-[#800000] text-white px-6 py-3 rounded-full hover:bg-[#600000]">
+          <Link to="/" className="inline-block bg-[#698156] text-white px-6 py-3 rounded-full hover:bg-[#546944]">
             Continue Shopping
           </Link>
         </div>
@@ -261,7 +261,7 @@ export function CheckoutPage() {
                 <h1 className="font-serif text-4xl text-[#1A1A1A] mb-4">Order Placed Successfully!</h1>
                 <p className="text-gray-600 mb-8">Thank you for shopping with us. Your order #{orderId?.slice(0, 8).toUpperCase()} has been placed and will be delivered soon.</p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Link to="/orders" className="px-8 py-4 bg-[#1A1A1A] text-white rounded-full font-medium shadow-lg hover:shadow-xl transition-all">
+                  <Link to="/orders" className="px-8 py-4 bg-[#698156] text-white rounded-full font-medium shadow-lg hover:shadow-xl transition-all">
                     Track My Order
                   </Link>
                   <Link to="/" className="px-8 py-4 bg-white border-2 border-gray-200 text-gray-900 rounded-full font-medium hover:bg-gray-50 transition-all">
@@ -324,14 +324,14 @@ export function CheckoutPage() {
                             <input required type="text" name="state" value={formData.state} onChange={handleInputChange} className="w-full px-4 py-3 border border-gray-300 rounded-xl outline-none" placeholder="State" />
                           </div>
                         </div>
-                        <button type="submit" className="w-full py-4 bg-[#1A1A1A] text-white rounded-full font-medium hover:bg-black shadow-lg">
+                        <button type="submit" className="w-full py-4 bg-[#698156] text-white rounded-full font-medium hover:bg-[#546944] shadow-lg">
                           Proceed to Payment
                         </button>
                       </form>
                     ) : (
                       <div className="space-y-6">
                         <div className="space-y-4">
-                          <label className={`flex items-center p-4 border-2 rounded-2xl cursor-pointer transition-all ${paymentMethod === 'upi' ? 'border-[#D4AF37] bg-[#FFF0F5]/30' : 'border-gray-200'}`}>
+                          <label className={`flex items-center p-4 border-2 rounded-2xl cursor-pointer transition-all ${paymentMethod === 'upi' ? 'border-[#698156] bg-[#F4F6F2]/30' : 'border-gray-200'}`}>
                             <input type="radio" value="upi" checked={paymentMethod === 'upi'} onChange={(e) => setPaymentMethod(e.target.value)} className="hidden" />
                             <Wallet className="w-6 h-6 text-blue-600 mr-4" />
                             <div className="flex-1">
@@ -343,22 +343,22 @@ export function CheckoutPage() {
                                 <img src="https://cdn.simpleicons.org/paytm/00B9F5" className="h-3 object-contain" alt="Paytm" />
                               </div>
                             </div>
-                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'upi' ? 'border-[#D4AF37]' : 'border-gray-300'}`}>
-                              {paymentMethod === 'upi' && <div className="w-3 h-3 bg-[#D4AF37] rounded-full" />}
+                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'upi' ? 'border-[#698156]' : 'border-gray-300'}`}>
+                              {paymentMethod === 'upi' && <div className="w-3 h-3 bg-[#698156] rounded-full" />}
                             </div>
                           </label>
-                          <label className={`flex items-center p-4 border-2 rounded-2xl cursor-pointer transition-all ${paymentMethod === 'cod' ? 'border-[#D4AF37] bg-[#FFF0F5]/30' : 'border-gray-200'}`}>
+                          <label className={`flex items-center p-4 border-2 rounded-2xl cursor-pointer transition-all ${paymentMethod === 'cod' ? 'border-[#698156] bg-[#F4F6F2]/30' : 'border-gray-200'}`}>
                             <input type="radio" value="cod" checked={paymentMethod === 'cod'} onChange={(e) => setPaymentMethod(e.target.value)} className="hidden" />
                             <Truck className="w-6 h-6 text-orange-600 mr-4" />
                             <div className="flex-1">
                               <h4 className="font-medium text-gray-900">Cash on Delivery</h4>
                               <p className="text-xs text-gray-500 mt-1">Pay via Cash or UPI at your doorstep</p>
                             </div>
-                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'cod' ? 'border-[#D4AF37]' : 'border-gray-300'}`}>
-                              {paymentMethod === 'cod' && <div className="w-3 h-3 bg-[#D4AF37] rounded-full" />}
+                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'cod' ? 'border-[#698156]' : 'border-gray-300'}`}>
+                              {paymentMethod === 'cod' && <div className="w-3 h-3 bg-[#698156] rounded-full" />}
                             </div>
                           </label>
-                          <label className={`flex items-center p-4 border-2 rounded-2xl cursor-pointer transition-all ${paymentMethod === 'netbanking' ? 'border-[#D4AF37] bg-[#FFF0F5]/30' : 'border-gray-200'}`}>
+                          <label className={`flex items-center p-4 border-2 rounded-2xl cursor-pointer transition-all ${paymentMethod === 'netbanking' ? 'border-[#698156] bg-[#F4F6F2]/30' : 'border-gray-200'}`}>
                             <input type="radio" value="netbanking" checked={paymentMethod === 'netbanking'} onChange={(e) => setPaymentMethod(e.target.value)} className="hidden" />
                             <Landmark className="w-6 h-6 text-green-600 mr-4" />
                             <div className="flex-1">
@@ -370,15 +370,15 @@ export function CheckoutPage() {
                                 <span className="text-[10px] text-gray-500 font-bold ml-1 border-l pl-2 border-gray-300">50+ Banks</span>
                               </div>
                             </div>
-                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'netbanking' ? 'border-[#D4AF37]' : 'border-gray-300'}`}>
-                              {paymentMethod === 'netbanking' && <div className="w-3 h-3 bg-[#D4AF37] rounded-full" />}
+                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'netbanking' ? 'border-[#698156]' : 'border-gray-300'}`}>
+                              {paymentMethod === 'netbanking' && <div className="w-3 h-3 bg-[#698156] rounded-full" />}
                             </div>
                           </label>
                         </div>
                         <button 
                           disabled={isProcessing}
                           onClick={handlePlaceOrder} 
-                          className={`w-full py-4 bg-[#D4AF37] text-white rounded-full font-medium shadow-lg flex items-center justify-center gap-2 ${isProcessing ? 'opacity-50' : ''}`}
+                          className={`w-full py-4 bg-[#698156] text-white rounded-full font-medium shadow-lg flex items-center justify-center gap-2 ${isProcessing ? 'opacity-50' : ''}`}
                         >
                           <ShieldCheck className="w-5 h-5" />
                           {isProcessing ? 'Processing...' : `Pay ₹${total.toLocaleString('en-IN')} & Place Order`}
@@ -418,7 +418,7 @@ export function CheckoutPage() {
                     <div className="border-t border-gray-100 pt-4">
                       <div className="flex justify-between items-end">
                         <span className="text-lg font-medium">Total Payable</span>
-                        <span className="text-2xl font-serif text-[#D4AF37]">₹{total.toLocaleString('en-IN')}</span>
+                        <span className="text-2xl font-serif text-[#698156]">₹{total.toLocaleString('en-IN')}</span>
                       </div>
                     </div>
                   </div>

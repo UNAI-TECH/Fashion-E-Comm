@@ -65,7 +65,7 @@ export function AdminCustomers() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search by name or phone..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#698156]"
             />
           </div>
         </div>
@@ -89,7 +89,7 @@ export function AdminCustomers() {
                       <div>
                         <button
                           onClick={() => setSelectedCustomer(customer)}
-                          className="font-semibold text-[#800000] hover:underline cursor-pointer text-left"
+                          className="font-semibold text-[#698156] hover:underline cursor-pointer text-left"
                         >
                           {customer.name}
                         </button>
@@ -110,7 +110,7 @@ export function AdminCustomers() {
                     </div>
                   </td>
                   <td className="px-6 py-4 text-center">
-                    <span className="inline-flex items-center gap-1 bg-[#D4AF37]/10 text-[#a07d1c] text-xs font-bold px-2.5 py-1 rounded-full border border-[#D4AF37]/30">
+                    <span className="inline-flex items-center gap-1 bg-[#698156]/10 text-[#a07d1c] text-xs font-bold px-2.5 py-1 rounded-full border border-[#698156]/30">
                       <ShoppingBag className="w-3 h-3" />
                       {customer.orders}
                     </span>
@@ -149,7 +149,7 @@ export function AdminCustomers() {
               </button>
 
               {/* Header */}
-              <div className="bg-gradient-to-br from-[#800000] to-[#a83232] p-5 text-white">
+              <div className="bg-gradient-to-br from-[#698156] to-[#a83232] p-5 text-white">
                 <div className="flex items-center gap-3">
                   <img
                     src={selectedCustomer.avatar}
@@ -194,7 +194,7 @@ export function AdminCustomers() {
                           />
                           <div className="flex-1 min-w-0">
                             <div className="text-xs font-semibold text-gray-800 truncate">{order.productName}</div>
-                            <div className="text-sm font-bold text-[#800000] mt-0.5">Rs.{order.price.toLocaleString()}</div>
+                            <div className="text-sm font-bold text-[#698156] mt-0.5">Rs.{order.price.toLocaleString()}</div>
                           </div>
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border flex-shrink-0 ${cls}`}>
                             <Icon className="w-3 h-3" />

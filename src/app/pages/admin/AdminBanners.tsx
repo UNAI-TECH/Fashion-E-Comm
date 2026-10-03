@@ -18,8 +18,8 @@ export function AdminBanners() {
 
       {/* Upload Section */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center justify-center flex-col h-64 border-dashed border-2 hover:bg-gray-50 transition-colors cursor-pointer group">
-        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center group-hover:bg-[#D4AF37]/10 transition-colors mb-4">
-          <UploadCloud className="w-8 h-8 text-gray-400 group-hover:text-[#D4AF37] transition-colors" />
+        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center group-hover:bg-[#698156]/10 transition-colors mb-4">
+          <UploadCloud className="w-8 h-8 text-gray-400 group-hover:text-[#698156] transition-colors" />
         </div>
         <h3 className="text-lg font-bold text-gray-900 mb-1">Upload New Banner</h3>
         <p className="text-sm text-gray-500">Drag and drop or click to select image (1920x800px recommended)</p>
@@ -40,7 +40,7 @@ export function AdminBanners() {
                 <div className="h-48 bg-gray-100 relative overflow-hidden">
                   <img src={`${banner.image}?w=800&q=80`} alt={banner.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                   <div className="absolute top-4 right-4 flex gap-2">
-                    <button className="p-2 bg-white/90 backdrop-blur-sm shadow-sm rounded-lg text-gray-600 hover:text-[#D4AF37] transition-colors">
+                    <button className="p-2 bg-white/90 backdrop-blur-sm shadow-sm rounded-lg text-gray-600 hover:text-[#698156] transition-colors">
                       <Edit className="w-4 h-4" />
                     </button>
                     <button className="p-2 bg-white/90 backdrop-blur-sm shadow-sm rounded-lg text-red-600 hover:text-red-700 transition-colors">

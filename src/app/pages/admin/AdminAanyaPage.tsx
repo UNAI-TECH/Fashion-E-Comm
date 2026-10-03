@@ -5,16 +5,19 @@ import {
   Plus, Trash2, Search, Store, X, RefreshCw, ChevronRight,
   Phone, Mail, MapPin, ImageIcon, LayoutDashboard,
   ClipboardList, Menu, ChevronLeft, CreditCard, LogOut,
-  Sparkles, Shirt, Upload, Star, Receipt
+  Sparkles, Shirt, Upload, Star, Receipt,
+  Minus, ShoppingCart, ArrowRight, Tags, Boxes
 } from 'lucide-react';
 import { AdminHeroModelsSection } from './AdminHeroModelsSection';
 import { AdminBillingSection } from './AdminBillingSection';
+import { AdminCategories } from './AdminCategories';
+import { AdminInventorySection } from './AdminInventorySection';
 import { saveHeroModel } from '../../data/heroModels';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar
 } from 'recharts';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate, useSearchParams, useLocation } from 'react-router';
 import { supabase, supabaseAdmin } from '../../../lib/supabase';
 import { useAdminAuth } from '../../contexts/AdminAuthContext';
 import { fetchProducts, markProductDeleted, getDeletedProductIds, ensureProductImages, buildComplementaryAngles } from '../../data/products';
@@ -75,6 +78,15 @@ interface DbProduct {
   price: number; compare_at_price?: number;
   images: string[]; image_url?: string;
   description?: string; status: string; created_at?: string;
+  stock_quantity?: number;
+  sku?: string;
+  low_stock_threshold?: number;
+  [key: string]: any;
+}
+
+interface AdminCartItem {
+  product: DbProduct;
+  quantity: number;
 }
 
 interface DerivedUser {
@@ -85,16 +97,23 @@ interface DerivedUser {
 
 /* ─── Category colours ─── */
 const CAT_COLORS: Record<string, string> = {
-  Sarees: '#EC4899', Kurtis: '#D4AF37', Lehengas: '#002D62',
+  Sarees: '#698156', Kurtis: '#849E70', Lehengas: '#546944',
   'Salwar Sets': '#047857', Western: '#7C3AED', Maxi: '#c2410c',
 };
 
 /* ─── Nav items ─── */
-type NavTab = 'overview' | 'hero-models' | 'products' | 'billing' | 'orders' | 'customers' | 'payments';
+export type NavTab = 'overview' | 'hero-models' | 'products' | 'inventory' | 'categories' | 'billing' | 'orders' | 'customers' | 'payments';
+export const VALID_TABS: readonly NavTab[] = [
+  'overview', 'hero-models', 'products', 'inventory', 'categories', 'billing', 'orders', 'customers', 'payments'
+] as const;
+export const isValidTab = (tab: any): tab is NavTab => VALID_TABS.includes(tab);
+
 const NAV_ITEMS: { id: NavTab; label: string; icon: React.ReactNode }[] = [
   { id: 'overview',    label: 'Dashboard',        icon: <LayoutDashboard className="w-5 h-5" /> },
   { id: 'hero-models', label: 'Hero Models',      icon: <Sparkles className="w-5 h-5" /> },
   { id: 'products',    label: 'Catalog Products', icon: <Package className="w-5 h-5" /> },
+  { id: 'inventory',   label: 'Inventory Stock',  icon: <Boxes className="w-5 h-5" /> },
+  { id: 'categories',  label: 'Categories',       icon: <Tags className="w-5 h-5" /> },
   { id: 'billing',     label: 'Manual Billing / POS', icon: <Receipt className="w-5 h-5" /> },
   { id: 'orders',      label: 'Orders',            icon: <ClipboardList className="w-5 h-5" /> },
   { id: 'customers',   label: 'Customers',         icon: <Users className="w-5 h-5" /> },
@@ -140,10 +159,80 @@ function getFormattedCustomerName(addr: ShippingAddress = {}, order: Partial<Ord
    MAIN COMPONENT
 ══════════════════════════════════════════════════════════ */
 export function AdminAanyaPage() {
-  const [activeTab, setActiveTab] = useState<NavTab>('overview');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+
+  // Helper to resolve initial active tab from URL query param, path, localStorage, or fallback to 'overview'
+  const getInitialTab = (): NavTab => {
+    // 1. Query parameter (?tab=...)
+    const queryTab = searchParams.get('tab') as NavTab;
+    if (queryTab && isValidTab(queryTab)) {
+      return queryTab;
+    }
+
+    // 2. URL path suffix (/admin/hero-models, /admin/billing, /admin/products, etc.)
+    const path = location.pathname.toLowerCase().replace(/\/+$/, '');
+    if (path.endsWith('/hero-models')) return 'hero-models';
+    if (path.endsWith('/products')) return 'products';
+    if (path.endsWith('/inventory')) return 'inventory';
+    if (path.endsWith('/categories')) return 'categories';
+    if (path.endsWith('/billing') || path.endsWith('/pos')) return 'billing';
+    if (path.endsWith('/orders')) return 'orders';
+    if (path.endsWith('/customers')) return 'customers';
+    if (path.endsWith('/payments')) return 'payments';
+    if (path.endsWith('/dashboard') || path.endsWith('/overview')) return 'overview';
+
+    // 3. Saved localStorage state so reloading always lands back on the exact same page
+    try {
+      const savedTab = localStorage.getItem('admin_active_tab') as NavTab;
+      if (savedTab && isValidTab(savedTab)) {
+        return savedTab;
+      }
+    } catch (e) {}
+
+    return 'overview';
+  };
+
+  const [activeTab, setActiveTabState] = useState<NavTab>(getInitialTab);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { logout } = useAdminAuth();
   const navigate = useNavigate();
+
+  // Synchronize tab changes: updates React state, saves to localStorage, and updates URL query param ?tab=...
+  const setActiveTab = useCallback((newTab: NavTab) => {
+    setActiveTabState(newTab);
+    try {
+      localStorage.setItem('admin_active_tab', newTab);
+    } catch (e) {}
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.set('tab', newTab);
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  // Ensure URL reflects current activeTab immediately on mount
+  useEffect(() => {
+    const queryTab = searchParams.get('tab');
+    if (!queryTab || queryTab !== activeTab) {
+      setSearchParams(prev => {
+        const next = new URLSearchParams(prev);
+        next.set('tab', activeTab);
+        return next;
+      }, { replace: true });
+    }
+  }, []);
+
+  // Listen to browser Back/Forward or direct URL query changes
+  useEffect(() => {
+    const queryTab = searchParams.get('tab') as NavTab;
+    if (queryTab && isValidTab(queryTab) && queryTab !== activeTab) {
+      setActiveTabState(queryTab);
+      try {
+        localStorage.setItem('admin_active_tab', queryTab);
+      } catch (e) {}
+    }
+  }, [searchParams, activeTab]);
 
   /* ── Data state ── */
   const [dbProducts, setDbProducts] = useState<DbProduct[]>([]);
@@ -162,6 +251,106 @@ export function AdminAanyaPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [featureOnHero, setFeatureOnHero] = useState(false);
   const [billingInitialProduct, setBillingInitialProduct] = useState<DbProduct | null>(null);
+  const [billingInitialProducts, setBillingInitialProducts] = useState<any[] | null>(() => {
+    try {
+      const saved = sessionStorage.getItem('admin_billing_initial_products');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+  const [adminCart, setAdminCart] = useState<AdminCartItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('admin_pos_cart');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+  const [isCheckoutDrawerOpen, setIsCheckoutDrawerOpen] = useState(false);
+
+  // Auto-persist adminCart across reloads
+  useEffect(() => {
+    try {
+      localStorage.setItem('admin_pos_cart', JSON.stringify(adminCart));
+    } catch (e) {}
+  }, [adminCart]);
+
+  /* ── Admin Catalog Multi-Buy Cart & Checkout Helpers ── */
+  const getProductCartQty = useCallback((productId: string) => {
+    const item = adminCart.find(i => String(i.product.id) === String(productId));
+    return item ? item.quantity : 0;
+  }, [adminCart]);
+
+  const handleAddToCart = useCallback((product: DbProduct) => {
+    setAdminCart(prev => {
+      const idx = prev.findIndex(i => String(i.product.id) === String(product.id));
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = { ...next[idx], quantity: next[idx].quantity + 1 };
+        return next;
+      }
+      return [...prev, { product, quantity: 1 }];
+    });
+    setIsCheckoutDrawerOpen(true);
+    toast.success(`"${product.name}" added to cart`);
+  }, []);
+
+  const handleDecrementCart = useCallback((productId: string) => {
+    setAdminCart(prev => {
+      const idx = prev.findIndex(i => String(i.product.id) === String(productId));
+      if (idx < 0) return prev;
+      if (prev[idx].quantity <= 1) {
+        return prev.filter(i => String(i.product.id) !== String(productId));
+      }
+      const next = [...prev];
+      next[idx] = { ...next[idx], quantity: next[idx].quantity - 1 };
+      return next;
+    });
+  }, []);
+
+  const handleRemoveFromCart = useCallback((productId: string) => {
+    setAdminCart(prev => prev.filter(i => String(i.product.id) !== String(productId)));
+  }, []);
+
+  const handleClearCart = useCallback(() => {
+    setAdminCart([]);
+    toast.info('Catalog selection cleared');
+  }, []);
+
+  const handleQuickBuyNow = useCallback((product: DbProduct) => {
+    setAdminCart(prev => {
+      const idx = prev.findIndex(i => String(i.product.id) === String(product.id));
+      if (idx >= 0) {
+        return prev;
+      }
+      return [...prev, { product, quantity: 1 }];
+    });
+    setIsCheckoutDrawerOpen(true);
+  }, []);
+
+  const handleProceedToPOSBilling = useCallback(() => {
+    if (adminCart.length === 0) {
+      toast.error('No products selected. Please add products to cart first.');
+      return;
+    }
+
+    const itemsForBilling = adminCart.map(item => ({
+      ...item.product,
+      quantity: item.quantity,
+    }));
+
+    try {
+      sessionStorage.setItem('admin_billing_initial_products', JSON.stringify(itemsForBilling));
+    } catch (e) {}
+    setBillingInitialProducts(itemsForBilling);
+    setIsCheckoutDrawerOpen(false);
+    setActiveTab('billing');
+    toast.success(`${itemsForBilling.length} product(s) transferred to POS Billing invoice!`);
+  }, [adminCart, setActiveTab]);
+
+  const cartTotalCount = adminCart.reduce((sum, item) => sum + item.quantity, 0);
+  const cartTotalPrice = adminCart.reduce((sum, item) => sum + (Number(item.product.price) || 0) * item.quantity, 0);
 
   /* ── Form ── */
   const emptyForm = { 
@@ -169,6 +358,7 @@ export function AdminAanyaPage() {
     category: 'Sarees', 
     price: '', 
     compare_at_price: '', 
+    stock_quantity: 25,
     image_url: '', 
     images: [] as string[],
     description: '', 
@@ -525,6 +715,7 @@ export function AdminAanyaPage() {
         category: form.category,
         price: parseFloat(form.price),
         compare_at_price: form.compare_at_price ? parseFloat(form.compare_at_price) : null,
+        stock_quantity: Number(form.stock_quantity) || 25,
         image_url: primaryImg,
         images: guaranteedImages,
         image: primaryImg,
@@ -570,7 +761,7 @@ export function AdminAanyaPage() {
           await saveHeroModel({
             label: createdProduct.name,
             subtitle: `Discover Trending ${createdProduct.category}`,
-            color: CAT_COLORS[createdProduct.category] || '#EC4899',
+            color: CAT_COLORS[createdProduct.category] || '#698156',
             src: createdProduct.image_url || primaryImg || '/model_1.png',
             productId: createdProduct.id,
             productName: createdProduct.name,
@@ -634,7 +825,7 @@ export function AdminAanyaPage() {
     switch ((status || '').toLowerCase()) {
       case 'delivered':  return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
       case 'shipped':    return 'bg-blue-50 text-blue-700 border border-blue-200';
-      case 'cancelled':  return 'bg-pink-50 text-pink-600 border border-pink-200';
+      case 'cancelled':  return 'bg-[#F4F6F2] text-[#698156] border border-[#DCE4D7]';
       case 'completed':  return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
       default:           return 'bg-amber-50 text-amber-700 border border-amber-200';
     }
@@ -700,11 +891,11 @@ export function AdminAanyaPage() {
                 title={!sidebarOpen ? item.label : undefined}
                 className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all cursor-pointer ${
                   isActive
-                    ? 'bg-pink-100 text-gray-900 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-900 hover:bg-rose-50'
+                    ? 'bg-[#698156]/15 text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-900 hover:bg-[#F4F6F2]'
                 }`}
               >
-                <span className={`flex-shrink-0 ${isActive ? 'text-pink-500' : ''}`}>{item.icon}</span>
+                <span className={`flex-shrink-0 ${isActive ? 'text-[#698156]' : ''}`}>{item.icon}</span>
                 <AnimatePresence>
                   {sidebarOpen && (
                     <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -714,7 +905,7 @@ export function AdminAanyaPage() {
                   )}
                 </AnimatePresence>
                 {isActive && sidebarOpen && (
-                  <div className="ml-auto w-2 h-2 bg-pink-400 rounded-full flex-shrink-0" />
+                  <div className="ml-auto w-2 h-2 bg-[#698156] rounded-full flex-shrink-0" />
                 )}
               </button>
             );
@@ -724,7 +915,7 @@ export function AdminAanyaPage() {
         {/* Bottom actions */}
         <div className="px-2 pb-6 space-y-1 border-t border-gray-100 pt-4">
           <Link to="/"
-            className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-rose-50 transition-all"
+            className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-[#F4F6F2] transition-all"
             title={!sidebarOpen ? 'Storefront' : undefined}
           >
             <Store className="w-5 h-5 flex-shrink-0" />
@@ -739,7 +930,7 @@ export function AdminAanyaPage() {
                 toast.success('Signed out successfully');
               }
             }}
-            className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-rose-600 hover:text-rose-800 hover:bg-rose-50 transition-all cursor-pointer"
+            className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-rose-600 hover:text-rose-800 hover:bg-[#F4F6F2] transition-all cursor-pointer"
             title={!sidebarOpen ? 'Sign Out' : undefined}
           >
             <LogOut className="w-5 h-5 flex-shrink-0" />
@@ -752,12 +943,14 @@ export function AdminAanyaPage() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
         {/* Top bar */}
-        <header className="bg-white/80 backdrop-blur-md border-b border-gray-200/60 px-6 py-4 flex items-center justify-between flex-shrink-0">
+        <header className={`bg-white/80 backdrop-blur-md border-b border-gray-200/60 px-6 py-4 flex items-center justify-between flex-shrink-0 transition-all duration-300 ${isCheckoutDrawerOpen ? 'lg:mr-[380px]' : ''}`}>
           <div>
             <h1 className="font-serif text-xl font-bold text-gray-900 capitalize">
               {activeTab === 'overview' ? 'Dashboard Overview' :
                activeTab === 'hero-models' ? 'Hero Models & Outfits' :
                activeTab === 'products' ? 'Catalog Products' :
+               activeTab === 'inventory' ? 'Inventory Stock Management' :
+               activeTab === 'categories' ? 'Categories Management' :
                activeTab === 'billing' ? 'Manual Billing & POS' :
                activeTab === 'orders' ? 'Customer Orders' :
                activeTab === 'customers' ? 'Customer Directory' : 'Payment Records'}
@@ -766,15 +959,26 @@ export function AdminAanyaPage() {
           </div>
 
           <div className="flex items-center gap-3">
+            {cartTotalCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setIsCheckoutDrawerOpen(prev => !prev)}
+                className="flex items-center gap-2 px-4 py-2 bg-[#F4F6F2] border border-[#DCE4D7] text-[#546944] hover:bg-[#698156]/15 rounded-full text-xs font-bold shadow-2xs transition-all cursor-pointer"
+                title="Toggle checkout sidebar"
+              >
+                <ShoppingCart className="w-3.5 h-3.5 text-[#698156]" />
+                <span>{isCheckoutDrawerOpen ? 'Close Cart' : `Cart (${cartTotalCount})`}</span>
+              </button>
+            )}
             <button onClick={() => setIsAddOpen(true)}
-              className="flex items-center gap-2 px-5 py-2 bg-[#EC4899] hover:bg-pink-600 text-white rounded-full text-xs font-bold shadow-md transition-all cursor-pointer">
+              className="flex items-center gap-2 px-5 py-2 bg-[#698156] hover:bg-[#546944] text-white rounded-full text-xs font-bold shadow-md transition-all cursor-pointer">
               <Plus className="w-4 h-4" /> Add Product
             </button>
           </div>
         </header>
 
         {/* Scrollable page body */}
-        <main className="flex-1 overflow-y-auto p-6 space-y-6">
+        <main className={`flex-1 overflow-y-auto p-6 space-y-6 transition-all duration-300 ${isCheckoutDrawerOpen ? 'lg:mr-[380px]' : ''}`}>
 
           {/* ─── TAB: OVERVIEW ─── */}
           {activeTab === 'overview' && (
@@ -783,8 +987,8 @@ export function AdminAanyaPage() {
               {/* KPI Cards */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
-                  { label: 'Total Revenue', value: `₹${totalRevenue.toLocaleString('en-IN')}`, icon: <IndianRupee className="w-5 h-5" />, color: 'text-[#D4AF37]', bg: 'bg-amber-50', sub: `${payments.length} payment records` },
-                  { label: 'Total Orders', value: `${orders.length}`, icon: <ShoppingBag className="w-5 h-5" />, color: 'text-[#EC4899]', bg: 'bg-rose-50', sub: `${orders.filter(o => o.status === 'Delivered').length} delivered` },
+                  { label: 'Total Revenue', value: `₹${totalRevenue.toLocaleString('en-IN')}`, icon: <IndianRupee className="w-5 h-5" />, color: 'text-[#698156]', bg: 'bg-amber-50', sub: `${payments.length} payment records` },
+                  { label: 'Total Orders', value: `${orders.length}`, icon: <ShoppingBag className="w-5 h-5" />, color: 'text-[#698156]', bg: 'bg-[#F4F6F2]', sub: `${orders.filter(o => o.status === 'Delivered').length} delivered` },
                   { label: 'Products', value: `${dbProducts.length}`, icon: <Package className="w-5 h-5" />, color: 'text-blue-700', bg: 'bg-blue-50', sub: `${dbProducts.filter(p => p.status === 'Published').length} published` },
                   { label: 'Customers', value: `${customers.length}`, icon: <Users className="w-5 h-5" />, color: 'text-emerald-700', bg: 'bg-emerald-50', sub: 'from order records' },
                 ].map(({ label, value, icon, color, bg, sub }) => (
@@ -811,15 +1015,15 @@ export function AdminAanyaPage() {
                       <h3 className="font-serif text-base font-bold text-gray-900">Weekly Revenue</h3>
                       <p className="text-xs text-gray-400">Live from orders table</p>
                     </div>
-                    <span className="text-xs font-bold text-[#EC4899] bg-rose-50 px-3 py-1 rounded-full">INR ₹</span>
+                    <span className="text-xs font-bold text-[#698156] bg-[#F4F6F2] px-3 py-1 rounded-full">INR ₹</span>
                   </div>
                   <div className="h-56">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={weeklyData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                         <defs>
                           <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#EC4899" stopOpacity={0.25} />
-                            <stop offset="95%" stopColor="#EC4899" stopOpacity={0} />
+                            <stop offset="5%" stopColor="#698156" stopOpacity={0.25} />
+                            <stop offset="95%" stopColor="#698156" stopOpacity={0} />
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
@@ -827,8 +1031,8 @@ export function AdminAanyaPage() {
                         <YAxis axisLine={false} tickLine={false} stroke="#9CA3AF" fontSize={11} />
                         <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}
                           formatter={(v: any) => [`₹${Number(v).toLocaleString('en-IN')}`, 'Revenue']} />
-                        <Area type="monotone" dataKey="revenue" stroke="#EC4899" strokeWidth={2.5}
-                          fillOpacity={1} fill="url(#revGrad)" dot={{ r: 3, fill: '#EC4899', strokeWidth: 0 }} />
+                        <Area type="monotone" dataKey="revenue" stroke="#698156" strokeWidth={2.5}
+                          fillOpacity={1} fill="url(#revGrad)" dot={{ r: 3, fill: '#698156', strokeWidth: 0 }} />
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
@@ -885,7 +1089,7 @@ export function AdminAanyaPage() {
                         <YAxis axisLine={false} tickLine={false} stroke="#9CA3AF" fontSize={11} />
                         <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}
                           formatter={(v: any) => [`₹${Number(v).toLocaleString('en-IN')}`, 'Revenue']} />
-                        <Bar dataKey="revenue" fill="#EC4899" radius={[6, 6, 0, 0]} maxBarSize={48} />
+                        <Bar dataKey="revenue" fill="#698156" radius={[6, 6, 0, 0]} maxBarSize={48} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -898,7 +1102,7 @@ export function AdminAanyaPage() {
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-serif text-base font-bold text-gray-900">Recent Orders</h3>
                     <button onClick={() => setActiveTab('orders')}
-                      className="text-xs font-bold text-[#EC4899] hover:underline flex items-center gap-1">
+                      className="text-xs font-bold text-[#698156] hover:underline flex items-center gap-1">
                       All Orders <ChevronRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -921,7 +1125,7 @@ export function AdminAanyaPage() {
                             <tr key={o.id} className="hover:bg-gray-50/60 transition-colors">
                               <td className="p-3 font-mono text-xs font-bold text-gray-800">#{String(o.id).slice(0, 8)}</td>
                               <td className="p-3 font-medium">{name}</td>
-                              <td className="p-3 font-bold text-[#EC4899]">₹{(o.total_amount || 0).toLocaleString('en-IN')}</td>
+                              <td className="p-3 font-bold text-[#698156]">₹{(o.total_amount || 0).toLocaleString('en-IN')}</td>
                               <td className="p-3"><span className={`px-2.5 py-1 rounded-full text-xs font-bold ${badge(o.status)}`}>{o.status || 'Pending'}</span></td>
                               <td className="p-3 text-xs text-gray-400">{new Date(o.created_at).toLocaleDateString('en-IN')}</td>
                             </tr>
@@ -943,42 +1147,53 @@ export function AdminAanyaPage() {
           {activeTab === 'products' && (
             <div className="space-y-5">
               <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1 max-w-sm">
+                <div className="relative flex-1 max-w-md">
                   <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
                   <input type="text" placeholder="Search products…"
                     value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#EC4899]/20 transition-all" />
+                    className="w-full pl-10 pr-4 py-2.5 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20 transition-all shadow-2xs" />
                 </div>
-                <button onClick={() => setIsAddOpen(true)}
-                  className="px-5 py-2.5 bg-[#EC4899] text-white rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-pink-600 transition-all shadow-sm">
-                  <Plus className="w-4 h-4" /> Add Product
-                </button>
               </div>
 
               {filtered.length === 0 ? (
                 <EmptyCard icon={<Package />} title="No products" sub="Add your first product — it will be saved to Supabase and appear in your store immediately." />
               ) : (
-                /*  ── Vertical image cards grid ── */
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                /*  ── Clean, Non-overlapping Responsive Product Grid ── */
+                <div className={`grid gap-4 ${
+                  isCheckoutDrawerOpen
+                    ? 'grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4'
+                    : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'
+                }`}>
                   {filtered.map(product => {
                     const img = prodImg(product);
+                    const qtyInCart = getProductCartQty(product.id);
                     return (
                       <motion.div key={product.id} initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}
-                        className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden group">
-                        {/* Vertical portrait image (2:3 ratio — good for sarees/kurtis) */}
-                        <div className="relative overflow-hidden bg-gray-50" style={{ aspectRatio: '2/3' }}>
+                        className="bg-white rounded-xl border border-gray-200/80 shadow-2xs hover:shadow-md transition-all overflow-hidden group flex flex-col justify-between">
+                        {/* Compact clean image */}
+                        <div className="relative overflow-hidden bg-gray-50 h-44 sm:h-48 w-full">
                           {img ? (
                             <img src={img} alt={product.name}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                              className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-gray-200">
-                              <ImageIcon className="w-10 h-10" />
+                              <ImageIcon className="w-8 h-8" />
                             </div>
                           )}
                           {/* Status badge */}
-                          <div className={`absolute top-2 left-2 px-2 py-0.5 rounded-md text-xs font-bold ${
+                          <div className={`absolute top-2 left-2 px-2 py-0.5 rounded text-[10px] font-bold shadow-2xs ${
                             product.status === 'Published' ? 'bg-emerald-500 text-white' : 'bg-gray-400 text-white'}`}>
                             {product.status || 'Draft'}
+                          </div>
+                          {/* Stock quantity badge */}
+                          <div className={`absolute top-2 right-9 px-2 py-0.5 rounded text-[10px] font-bold shadow-2xs ${
+                            (product.stock_quantity ?? 25) === 0
+                              ? 'bg-rose-600 text-white'
+                              : (product.stock_quantity ?? 25) <= 10
+                              ? 'bg-amber-600 text-white'
+                              : 'bg-black/60 text-white backdrop-blur-xs'
+                          }`}>
+                            {(product.stock_quantity ?? 25) === 0 ? 'Out of Stock' : `Stock: ${product.stock_quantity ?? 25}`}
                           </div>
                           {/* Delete button */}
                           <button
@@ -988,43 +1203,112 @@ export function AdminAanyaPage() {
                               setProductToDelete(product);
                             }}
                             title="Delete this product"
-                            className="absolute top-2 right-2 p-1.5 bg-white/95 hover:bg-rose-50 hover:text-rose-600 text-gray-500 rounded-lg shadow-sm transition-all opacity-0 group-hover:opacity-100 cursor-pointer hover:scale-105 active:scale-95"
+                            className="absolute top-2 right-2 p-1.5 bg-white/95 hover:bg-[#F4F6F2] hover:text-rose-600 text-gray-500 rounded-md shadow-2xs transition-all opacity-0 group-hover:opacity-100 cursor-pointer hover:scale-105 active:scale-95"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                           {/* Category tag */}
-                          <div className="absolute bottom-2 left-2 px-2 py-0.5 bg-black/60 text-white rounded-md text-xs font-bold backdrop-blur-sm">
+                          <div className="absolute bottom-2 left-2 px-2 py-0.5 bg-black/60 text-white rounded text-[10px] font-medium backdrop-blur-sm">
                             {product.category}
                           </div>
                         </div>
 
                         {/* Info below image */}
-                        <div className="p-3 space-y-1">
-                          <h4 className="font-serif font-bold text-gray-900 text-sm leading-tight line-clamp-2">{product.name}</h4>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[#EC4899] font-bold text-sm">₹{(product.price || 0).toLocaleString('en-IN')}</span>
-                            {product.compare_at_price && (
-                              <span className="text-gray-400 line-through text-xs">₹{product.compare_at_price.toLocaleString('en-IN')}</span>
-                            )}
+                        <div className="p-3 flex-1 flex flex-col justify-between gap-2.5">
+                          <div className="space-y-1">
+                            <h4 className="font-serif font-bold text-gray-900 text-xs sm:text-sm leading-snug line-clamp-2 h-9" title={product.name}>
+                              {product.name}
+                            </h4>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[#698156] font-bold text-xs sm:text-sm">₹{(product.price || 0).toLocaleString('en-IN')}</span>
+                              {product.compare_at_price && (
+                                <span className="text-gray-400 line-through text-[11px]">₹{product.compare_at_price.toLocaleString('en-IN')}</span>
+                              )}
+                            </div>
                           </div>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setBillingInitialProduct(product);
-                              setActiveTab('billing');
-                              toast.success(`Loaded "${product.name}" into Manual Billing`);
-                            }}
-                            className="w-full mt-2 py-1.5 px-2 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-bold text-xs rounded-xl shadow-2xs hover:shadow transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
-                            title="Bill this product immediately"
-                          >
-                            <Receipt className="w-3.5 h-3.5" />
-                            Buy Now / Bill
-                          </button>
+
+                          {/* Cart Action Button - Clean, single full-width button, zero overlapping */}
+                          {qtyInCart > 0 ? (
+                            <div className="flex items-center justify-between bg-[#F4F6F2] border border-[#DCE4D7] rounded-xl p-1 shadow-2xs">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDecrementCart(product.id);
+                                }}
+                                title="Decrease quantity"
+                                className="w-6 h-6 flex items-center justify-center rounded-lg bg-white text-[#698156] hover:bg-[#698156]/15 shadow-2xs transition active:scale-90 cursor-pointer"
+                              >
+                                <Minus className="w-3 h-3" />
+                              </button>
+                              <span className="text-xs font-bold text-[#2F3C25]">
+                                {qtyInCart} in Cart
+                              </span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleAddToCart(product);
+                                }}
+                                title="Increase quantity"
+                                className="w-6 h-6 flex items-center justify-center rounded-lg bg-white text-[#698156] hover:bg-[#698156]/15 shadow-2xs transition active:scale-90 cursor-pointer"
+                              >
+                                <Plus className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAddToCart(product);
+                              }}
+                              className="w-full py-2 px-3 bg-[#F4F6F2] hover:bg-[#698156] text-[#698156] hover:text-white border border-[#DCE4D7] font-bold text-xs rounded-xl transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shadow-2xs"
+                              title="Add product to checkout sidebar"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                              <span>Add to Cart</span>
+                            </button>
+                          )}
                         </div>
                       </motion.div>
                     );
                   })}
+                </div>
+              )}
+
+              {/* Sticky bottom floating checkout bar - only show when sidebar is closed */}
+              {cartTotalCount > 0 && !isCheckoutDrawerOpen && (
+                <div className="sticky bottom-6 z-30 mx-auto max-w-2xl bg-gray-900/95 text-white backdrop-blur-md px-5 py-3 rounded-2xl shadow-2xl border border-white/10 flex items-center justify-between gap-4 animate-in slide-in-from-bottom-4 duration-300">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-[#F4F6F2]0/20 text-[#849E70] border border-[#698156]/30 flex items-center justify-center shrink-0">
+                      <ShoppingCart className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-sm font-bold flex items-center gap-2">
+                        <span>{cartTotalCount} {cartTotalCount === 1 ? 'item' : 'items'} in Cart</span>
+                        <span className="text-[#849E70] font-extrabold text-base">₹{cartTotalPrice.toLocaleString('en-IN')}</span>
+                      </div>
+                      <p className="text-[11px] text-gray-400 truncate">Multi-item selection ready for checkout</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={handleClearCart}
+                      className="text-xs text-gray-400 hover:text-white px-2.5 py-1.5 transition rounded-lg hover:bg-white/10 cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsCheckoutDrawerOpen(true)}
+                      className="px-4 py-2 bg-gradient-to-r from-[#698156] to-[#546944] hover:from-[#546944] hover:to-[#435436] text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+                    >
+                      <span>Checkout & Review</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -1064,14 +1348,14 @@ export function AdminAanyaPage() {
                                 <div className="text-xs flex items-center gap-1 text-gray-600"><Phone className="w-3 h-3" />{addr.phone || '—'}</div>
                                 <div className="text-xs flex items-center gap-1 text-gray-400"><Mail className="w-3 h-3" />{addr.email || '—'}</div>
                               </td>
-                              <td className="p-4 font-bold text-[#EC4899]">₹{(order.total_amount || 0).toLocaleString('en-IN')}</td>
+                              <td className="p-4 font-bold text-[#698156]">₹{(order.total_amount || 0).toLocaleString('en-IN')}</td>
                               <td className="p-4 text-xs text-gray-600">{order.payment_method || '—'}</td>
                               <td className="p-4"><span className={`px-2.5 py-1 rounded-full text-xs font-bold ${badge(order.status)}`}>{order.status || 'Pending'}</span></td>
                               <td className="p-4 text-xs text-gray-400 whitespace-nowrap">{new Date(order.created_at).toLocaleDateString('en-IN')}</td>
                               <td className="p-4">
                                 <select value={order.status || 'Pending'}
                                   onChange={e => updateOrderStatus(order.id, e.target.value)}
-                                  className="px-2.5 py-1.5 bg-gray-50 rounded-lg text-xs font-bold border border-gray-200 outline-none cursor-pointer focus:ring-2 focus:ring-[#EC4899]/20">
+                                  className="px-2.5 py-1.5 bg-gray-50 rounded-lg text-xs font-bold border border-gray-200 outline-none cursor-pointer focus:ring-2 focus:ring-[#698156]/20">
                                   <option value="Pending">Pending</option>
                                   <option value="Order Placed">Order Placed</option>
                                   <option value="Shipped">Shipped</option>
@@ -1099,14 +1383,14 @@ export function AdminAanyaPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                   {customers.map(cust => (
                     <motion.div key={cust.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                      className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex gap-4 cursor-pointer hover:shadow-md hover:border-[#D4AF37]/40 transition-all"
+                      className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex gap-4 cursor-pointer hover:shadow-md hover:border-[#698156]/40 transition-all"
                       onClick={() => setSelectedCust(cust)}>
-                      <div className="w-14 h-14 bg-[#EC4899]/10 text-[#EC4899] rounded-2xl flex items-center justify-center font-bold text-xl flex-shrink-0 uppercase">
+                      <div className="w-14 h-14 bg-[#698156]/10 text-[#698156] rounded-2xl flex items-center justify-center font-bold text-xl flex-shrink-0 uppercase">
                         {cust.name[0]}
                       </div>
                       <div className="flex-1 min-w-0 space-y-1.5">
                         <div className="flex items-start justify-between gap-2">
-                          <span className="font-serif font-bold text-[#800000] hover:underline leading-tight cursor-pointer">{cust.name}</span>
+                          <span className="font-serif font-bold text-[#698156] hover:underline leading-tight cursor-pointer">{cust.name}</span>
                           <span className="flex-shrink-0 text-xs bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full">
                             {cust.orderCount} order{cust.orderCount !== 1 ? 's' : ''}
                           </span>
@@ -1132,7 +1416,7 @@ export function AdminAanyaPage() {
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                   <div className="p-5 border-b border-gray-100">
                     <h3 className="font-serif text-base font-bold text-gray-900">Payment Records ({payments.length})</h3>
-                    <p className="text-xs text-gray-400 mt-0.5">Total collected: <span className="text-[#EC4899] font-bold">₹{payments.reduce((s, p) => s + (p.amount || 0), 0).toLocaleString('en-IN')}</span></p>
+                    <p className="text-xs text-gray-400 mt-0.5">Total collected: <span className="text-[#698156] font-bold">₹{payments.reduce((s, p) => s + (p.amount || 0), 0).toLocaleString('en-IN')}</span></p>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm text-gray-700">
@@ -1151,7 +1435,7 @@ export function AdminAanyaPage() {
                             <td className="p-4">
                               <span className="px-2.5 py-1 bg-gray-100 text-gray-700 rounded-lg text-xs font-bold">{p.method || '—'}</span>
                             </td>
-                            <td className="p-4 font-bold text-[#EC4899]">₹{(p.amount || 0).toLocaleString('en-IN')}</td>
+                            <td className="p-4 font-bold text-[#698156]">₹{(p.amount || 0).toLocaleString('en-IN')}</td>
                             <td className="p-4"><span className={`px-2.5 py-1 rounded-full text-xs font-bold ${badge(p.status)}`}>{p.status || 'Pending'}</span></td>
                             <td className="p-4 text-xs text-gray-400 whitespace-nowrap">{new Date(p.created_at).toLocaleDateString('en-IN')}</td>
                           </tr>
@@ -1177,11 +1461,37 @@ export function AdminAanyaPage() {
             <AdminBillingSection
               products={dbProducts}
               initialProduct={billingInitialProduct}
+              initialProducts={billingInitialProducts}
               onClearInitialProduct={() => setBillingInitialProduct(null)}
+              onClearInitialProducts={() => {
+                setBillingInitialProducts(null);
+                try {
+                  sessionStorage.removeItem('admin_billing_initial_products');
+                } catch (e) {}
+              }}
               onOrderCreated={(order) => {
                 setOrders(prev => [order, ...prev]);
               }}
             />
+          )}
+
+          {/* ─── TAB: INVENTORY STOCK ─── */}
+          {activeTab === 'inventory' && (
+            <AdminInventorySection
+              products={dbProducts}
+              onRefreshProducts={loadData}
+              onNavigateToCatalog={(searchQ) => {
+                if (searchQ) setSearchQuery(searchQ);
+                setActiveTab('products');
+              }}
+            />
+          )}
+
+          {/* ─── TAB: CATEGORIES ─── */}
+          {activeTab === 'categories' && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+              <AdminCategories />
+            </div>
           )}
 
         </main>
@@ -1224,27 +1534,27 @@ export function AdminAanyaPage() {
                 </button>
 
                 {/* Header - Light cream/gold colors */}
-                <div className="bg-gradient-to-br from-[#FFF8EE] to-[#FFF0D6] border-b border-[#D4AF37]/20 p-5">
+                <div className="bg-gradient-to-br from-[#FFF8EE] to-[#FFF0D6] border-b border-[#698156]/20 p-5">
                   <div className="flex items-center gap-3">
-                    <div className="w-14 h-14 rounded-full bg-[#D4AF37]/15 border-2 border-[#D4AF37]/40 flex items-center justify-center text-2xl font-bold uppercase flex-shrink-0 text-[#800000]">
+                    <div className="w-14 h-14 rounded-full bg-[#698156]/15 border-2 border-[#698156]/40 flex items-center justify-center text-2xl font-bold uppercase flex-shrink-0 text-[#698156]">
                       {selectedCust.name[0]}
                     </div>
                     <div className="min-w-0">
                       <h2 className="text-lg font-bold text-gray-900 truncate">{selectedCust.name}</h2>
                       <div className="flex items-center gap-1.5 text-gray-600 text-xs mt-0.5">
-                        <Phone className="w-3 h-3 flex-shrink-0 text-[#800000]" />
+                        <Phone className="w-3 h-3 flex-shrink-0 text-[#698156]" />
                         <span>{selectedCust.phone}</span>
                       </div>
                       <div className="flex items-start gap-1.5 text-gray-500 text-xs mt-0.5">
-                        <MapPin className="w-3 h-3 flex-shrink-0 mt-0.5 text-[#800000]" />
+                        <MapPin className="w-3 h-3 flex-shrink-0 mt-0.5 text-[#698156]" />
                         <span>{selectedCust.city}{selectedCust.state !== '—' ? `, ${selectedCust.state}` : ''}</span>
                       </div>
                     </div>
                   </div>
                   <div className="mt-3">
-                    <div className="bg-[#800000]/10 border border-[#800000]/20 rounded-lg px-3 py-1.5 inline-flex items-center gap-2">
-                      <ShoppingBag className="w-3.5 h-3.5 text-[#800000]" />
-                      <span className="text-sm font-bold text-[#800000]">{selectedCust.orderCount} Order{selectedCust.orderCount !== 1 ? 's' : ''}</span>
+                    <div className="bg-[#698156]/10 border border-[#698156]/20 rounded-lg px-3 py-1.5 inline-flex items-center gap-2">
+                      <ShoppingBag className="w-3.5 h-3.5 text-[#698156]" />
+                      <span className="text-sm font-bold text-[#698156]">{selectedCust.orderCount} Order{selectedCust.orderCount !== 1 ? 's' : ''}</span>
                     </div>
                   </div>
                 </div>
@@ -1263,12 +1573,12 @@ export function AdminAanyaPage() {
                           ? new Date(order.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
                           : '—';
                         return (
-                          <div key={order.id} className="flex items-center justify-between bg-[#FDFBF7] rounded-xl px-3 py-2.5 border border-[#D4AF37]/20">
+                          <div key={order.id} className="flex items-center justify-between #FFFFFF rounded-xl px-3 py-2.5 border border-[#698156]/20">
                             <div className="min-w-0">
                               <div className="text-xs font-bold text-gray-800">Order {idx + 1}</div>
                               <div className="text-[11px] text-gray-400 mt-0.5">{date}</div>
                             </div>
-                            <div className="text-sm font-bold text-[#800000] mx-3">
+                            <div className="text-sm font-bold text-[#698156] mx-3">
                               Rs.{(order.total_amount || 0).toLocaleString('en-IN')}
                             </div>
                             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border flex-shrink-0 ${cfg.cls}`}>
@@ -1302,15 +1612,15 @@ export function AdminAanyaPage() {
               exit={{ scale: 0.95, opacity: 0, y: 10 }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
               onClick={e => e.stopPropagation()}
-              className="bg-[#FDFBF7] rounded-2xl sm:rounded-3xl shadow-2xl max-w-md sm:max-w-xl w-full max-h-[90vh] flex flex-col relative my-auto overflow-hidden border border-pink-100/90"
+              className="#FFFFFF rounded-2xl sm:rounded-3xl shadow-2xl max-w-md sm:max-w-xl w-full max-h-[90vh] flex flex-col relative my-auto overflow-hidden border border-[#DCE4D7]"
             >
               {/* Modal header - Fixed at Top */}
-              <div className="flex-shrink-0 bg-pink-50/95 backdrop-blur-md border-b border-pink-100 px-4 py-3 flex items-center justify-between">
+              <div className="flex-shrink-0 bg-[#F4F6F2] backdrop-blur-md border-b border-[#DCE4D7] px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <img src="/logo.png" alt="Aanya" className="h-7 w-auto object-contain mix-blend-multiply" />
                   <div>
                     <h3 className="font-serif text-sm sm:text-base font-bold text-gray-900 leading-tight">Add New Product</h3>
-                    <p className="text-[10px] text-pink-500 font-medium">Publish directly to Supabase catalog & storefront</p>
+                    <p className="text-[10px] text-[#698156] font-medium">Publish directly to Supabase catalog & storefront</p>
                   </div>
                 </div>
                 {/* Prominent Close X button */}
@@ -1338,12 +1648,12 @@ export function AdminAanyaPage() {
                     placeholder="e.g. Royal Maroon Silk Saree"
                     value={form.name}
                     onChange={e => setForm({ ...form, name: e.target.value })}
-                    className="w-full px-3 py-1.5 bg-white rounded-xl text-xs border border-gray-200 outline-none focus:ring-2 focus:ring-[#EC4899]/20"
+                    className="w-full px-3 py-1.5 bg-white rounded-xl text-xs border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20"
                   />
                 </div>
 
-                {/* Category + Selling Price + MRP */}
-                <div className="grid grid-cols-3 gap-2">
+                {/* Category + Selling Price + MRP + Initial Stock */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <div>
                     <label className="block text-[10px] uppercase tracking-wider font-bold text-gray-600 mb-1">
                       Category
@@ -1351,7 +1661,7 @@ export function AdminAanyaPage() {
                     <select
                       value={form.category}
                       onChange={e => setForm({ ...form, category: e.target.value })}
-                      className="w-full px-2 py-1.5 bg-white rounded-xl text-xs border border-gray-200 outline-none focus:ring-2 focus:ring-[#EC4899]/20 cursor-pointer"
+                      className="w-full px-2 py-1.5 bg-white rounded-xl text-xs border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20 cursor-pointer"
                     >
                       {['Sarees','Kurtis','Lehengas','Salwar Sets','Western','Maxi','Tradition'].map(c => (
                         <option key={c} value={c}>{c}</option>
@@ -1369,7 +1679,7 @@ export function AdminAanyaPage() {
                       placeholder="e.g. 4999"
                       value={form.price}
                       onChange={e => setForm({ ...form, price: e.target.value })}
-                      className="w-full px-2.5 py-1.5 bg-white rounded-xl text-xs border border-gray-200 outline-none focus:ring-2 focus:ring-[#EC4899]/20"
+                      className="w-full px-2.5 py-1.5 bg-white rounded-xl text-xs border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20 font-bold"
                     />
                   </div>
                   <div>
@@ -1382,13 +1692,26 @@ export function AdminAanyaPage() {
                       placeholder="e.g. 6999"
                       value={form.compare_at_price}
                       onChange={e => setForm({ ...form, compare_at_price: e.target.value })}
-                      className="w-full px-2.5 py-1.5 bg-white rounded-xl text-xs border border-gray-200 outline-none focus:ring-2 focus:ring-[#EC4899]/20"
+                      className="w-full px-2.5 py-1.5 bg-white rounded-xl text-xs border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] uppercase tracking-wider font-bold text-gray-600 mb-1">
+                      Initial Stock
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="e.g. 50"
+                      value={form.stock_quantity ?? 25}
+                      onChange={e => setForm({ ...form, stock_quantity: Number(e.target.value) })}
+                      className="w-full px-2.5 py-1.5 bg-[#F4F6F2] rounded-xl text-xs border border-[#DCE4D7] outline-none focus:ring-2 focus:ring-[#698156]/20 font-bold text-[#2F3C25]"
                     />
                   </div>
                 </div>
 
                 {/* Product Images & Gallery Section */}
-                <div className="bg-pink-50/40 rounded-xl p-3 border border-pink-100 space-y-2.5">
+                <div className="bg-[#F4F6F2] rounded-xl p-3 border border-[#DCE4D7] space-y-2.5">
                   <div className="flex items-center justify-between">
                     <div>
                       <label className="block text-[10px] uppercase tracking-wider font-bold text-gray-700">
@@ -1401,10 +1724,10 @@ export function AdminAanyaPage() {
                     <button
                       type="button"
                       onClick={handleAutofillAngles}
-                      className="text-[10px] font-bold text-pink-600 hover:text-pink-700 bg-white hover:bg-pink-50 border border-pink-200 px-2 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
+                      className="text-[10px] font-bold text-[#698156] hover:text-[#546944] bg-white hover:bg-[#F4F6F2] border border-[#DCE4D7] px-2 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
                       title="Automatically generate matching angle shots for this category"
                     >
-                      <Sparkles className="w-3 h-3 text-pink-500" />
+                      <Sparkles className="w-3 h-3 text-[#698156]" />
                       Autofill Angles
                     </button>
                   </div>
@@ -1412,7 +1735,7 @@ export function AdminAanyaPage() {
                   {/* Upload button + URL input row */}
                   <div className="flex flex-col sm:flex-row gap-2">
                     {/* Device File Upload Button */}
-                    <label className="cursor-pointer flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white rounded-xl text-xs font-bold transition-all shadow-xs active:scale-98 text-center select-none">
+                    <label className="cursor-pointer flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-[#698156] to-[#546944] hover:from-[#546944] hover:to-[#435436] text-white rounded-xl text-xs font-bold transition-all shadow-xs active:scale-98 text-center select-none">
                       <Upload className="w-3.5 h-3.5" />
                       <span>{isUploading ? 'Uploading...' : 'Upload Photos (Multiple)'}</span>
                       <input
@@ -1438,7 +1761,7 @@ export function AdminAanyaPage() {
                             handleAddImageUrl();
                           }
                         }}
-                        className="flex-1 px-2.5 py-1.5 bg-white rounded-xl text-xs border border-gray-200 outline-none focus:ring-2 focus:ring-[#EC4899]/20 min-w-0"
+                        className="flex-1 px-2.5 py-1.5 bg-white rounded-xl text-xs border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20 min-w-0"
                       />
                       <button
                         type="button"
@@ -1463,7 +1786,7 @@ export function AdminAanyaPage() {
                           <div
                             key={idx}
                             className={`relative group flex-shrink-0 w-16 h-20 rounded-xl overflow-hidden border-2 bg-white shadow-2xs transition-all ${
-                              idx === 0 ? 'border-pink-500 ring-2 ring-pink-300/40' : 'border-gray-200 hover:border-pink-300'
+                              idx === 0 ? 'border-pink-500 ring-2 ring-[#698156]/30' : 'border-gray-200 hover:border-[#698156]'
                             }`}
                           >
                             <img
@@ -1475,7 +1798,7 @@ export function AdminAanyaPage() {
                             {/* Badge */}
                             <div className="absolute top-1 left-1 pointer-events-none">
                               {idx === 0 ? (
-                                <span className="bg-pink-500 text-white text-[8px] font-black px-1 py-0.5 rounded shadow-xs">
+                                <span className="bg-[#F4F6F2]0 text-white text-[8px] font-black px-1 py-0.5 rounded shadow-xs">
                                   #1 MAIN
                                 </span>
                               ) : (
@@ -1511,7 +1834,7 @@ export function AdminAanyaPage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="border border-dashed border-pink-200 rounded-xl p-2.5 text-center bg-white/60">
+                    <div className="border border-dashed border-[#DCE4D7] rounded-xl p-2.5 text-center bg-white/60">
                       <p className="text-[11px] font-semibold text-gray-600">No images uploaded yet</p>
                       <p className="text-[10px] text-gray-400">
                         Upload photos from your computer or click "Autofill Angles" to generate sample fashion views.
@@ -1530,14 +1853,14 @@ export function AdminAanyaPage() {
                     placeholder="Fabric, embroidery, care instructions…"
                     value={form.description}
                     onChange={e => setForm({ ...form, description: e.target.value })}
-                    className="w-full px-3 py-1.5 bg-white rounded-xl text-xs border border-gray-200 outline-none focus:ring-2 focus:ring-[#EC4899]/20 resize-none leading-relaxed"
+                    className="w-full px-3 py-1.5 bg-white rounded-xl text-xs border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20 resize-none leading-relaxed"
                   />
                 </div>
 
                 {/* Feature on Homepage Hero Model */}
                 <div
                   className={`border rounded-xl p-2.5 transition-all cursor-pointer select-none flex items-start gap-2.5 ${
-                    featureOnHero ? 'bg-pink-50/70 border-pink-300 ring-1 ring-pink-200' : 'bg-gray-50/80 border-gray-200 hover:bg-gray-50'
+                    featureOnHero ? 'bg-[#F4F6F2] border-[#698156] ring-1 ring-[#698156]/20' : 'bg-gray-50/80 border-gray-200 hover:bg-gray-50'
                   }`}
                   onClick={() => setFeatureOnHero(!featureOnHero)}
                 >
@@ -1545,11 +1868,11 @@ export function AdminAanyaPage() {
                     type="checkbox"
                     checked={featureOnHero}
                     onChange={e => setFeatureOnHero(e.target.checked)}
-                    className="w-3.5 h-3.5 mt-0.5 text-pink-500 rounded focus:ring-pink-400 cursor-pointer"
+                    className="w-3.5 h-3.5 mt-0.5 text-[#698156] rounded focus:ring-[#698156] cursor-pointer"
                   />
                   <div>
                     <span className="text-[11px] font-bold text-gray-900 flex items-center gap-1 leading-tight">
-                      <Sparkles className="w-3 h-3 text-pink-500" />
+                      <Sparkles className="w-3 h-3 text-[#698156]" />
                       Show on Homepage Hero Model (Model Dress)
                     </span>
                     <p className="text-[10px] text-gray-500 mt-0.5 leading-snug">
@@ -1560,7 +1883,7 @@ export function AdminAanyaPage() {
               </form>
 
               {/* Modal Footer - Fixed at Bottom */}
-              <div className="flex-shrink-0 bg-white/95 backdrop-blur-md border-t border-pink-100/80 px-4 py-2.5 flex items-center justify-between gap-2">
+              <div className="flex-shrink-0 bg-white/95 backdrop-blur-md border-t border-[#DCE4D7] px-4 py-2.5 flex items-center justify-between gap-2">
                 <button
                   type="button"
                   onClick={() => setIsAddOpen(false)}
@@ -1572,7 +1895,7 @@ export function AdminAanyaPage() {
                   type="submit"
                   form="add-product-form"
                   disabled={adding}
-                  className="px-4 py-1.5 bg-[#EC4899] hover:bg-pink-600 text-white rounded-full text-xs font-bold shadow-xs hover:shadow transition-all disabled:opacity-60 flex items-center gap-1.5 cursor-pointer"
+                  className="px-4 py-1.5 bg-[#698156] hover:bg-[#546944] text-white rounded-full text-xs font-bold shadow-xs hover:shadow transition-all disabled:opacity-60 flex items-center gap-1.5 cursor-pointer"
                 >
                   {adding ? (
                     <>
@@ -1653,7 +1976,7 @@ export function AdminAanyaPage() {
                       {productToDelete.name}
                     </h4>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-xs font-bold text-[#800000]">
+                      <span className="text-xs font-bold text-[#698156]">
                         ₹{(productToDelete.price || 0).toLocaleString('en-IN')}
                       </span>
                       {productToDelete.compare_at_price && (
@@ -1698,6 +2021,200 @@ export function AdminAanyaPage() {
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* ═══ CHECKOUT & ORDER REVIEW DRAWER / MODAL ═══ */}
+      {/* ═══ CHECKOUT & ORDER REVIEW SIDEBAR DRAWER ═══ */}
+      <AnimatePresence>
+        {isCheckoutDrawerOpen && (
+          <>
+            {/* Mobile-only backdrop overlay (hidden on lg+ screens so catalog remains 100% interactive) */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setIsCheckoutDrawerOpen(false)}
+              className="lg:hidden fixed inset-0 bg-black/40 backdrop-blur-xs z-[190] cursor-pointer"
+            />
+
+            {/* Slide-over Right Sidebar - Docked alongside the catalog on desktop */}
+            <motion.aside
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+              className="fixed inset-y-0 right-0 w-full sm:w-[360px] lg:w-[380px] bg-white shadow-2xl flex flex-col h-full border-l border-gray-200 z-[200]"
+            >
+              {/* Sidebar Header */}
+              <div className="p-4 sm:p-5 border-b border-gray-100 bg-gradient-to-r from-pink-50/80 via-white to-rose-50/50 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#698156] to-[#546944] text-white flex items-center justify-center shadow-md shadow-[#698156]/20 shrink-0">
+                    <ShoppingCart className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-serif font-bold text-gray-900 text-base">Checkout & Order Review</h3>
+                    <p className="text-xs text-gray-500">
+                      {cartTotalCount} {cartTotalCount === 1 ? 'item' : 'items'} selected for POS Billing
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsCheckoutDrawerOpen(false)}
+                  className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 flex items-center justify-center transition cursor-pointer"
+                  title="Close sidebar"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Items List - Scrollable */}
+              <div className="p-4 sm:p-5 overflow-y-auto space-y-3 flex-1">
+                {/* Helpful guide badge */}
+                <div className="bg-[#F4F6F2] border border-[#DCE4D7] rounded-xl p-2.5 flex items-center gap-2 text-xs text-[#2F3C25]">
+                  <Plus className="w-3.5 h-3.5 text-[#698156] shrink-0" />
+                  <span>Click <b>+ Add to Cart</b> on any product to add it here.</span>
+                </div>
+
+                {adminCart.length === 0 ? (
+                  <div className="py-16 text-center text-gray-400 space-y-3">
+                    <ShoppingCart className="w-14 h-14 mx-auto text-gray-300 stroke-1" />
+                    <p className="text-sm font-medium">Your checkout selection is empty.</p>
+                    <p className="text-xs text-gray-400 max-w-xs mx-auto">
+                      Click "+ Add to Cart" on any product in the catalog to add items here.
+                    </p>
+                  </div>
+                ) : (
+                  adminCart.map((item) => {
+                    const img = prodImg(item.product);
+                    const itemTotal = (Number(item.product.price) || 0) * item.quantity;
+                    return (
+                      <div
+                        key={item.product.id}
+                        className="p-3 bg-gray-50/90 hover:bg-gray-50 rounded-2xl border border-gray-100 flex gap-3 transition"
+                      >
+                        {/* Thumbnail */}
+                        <div className="w-16 h-20 rounded-xl bg-white border border-gray-200 overflow-hidden shrink-0">
+                          {img ? (
+                            <img src={img} alt={item.product.name} className="w-full h-full object-cover object-top" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-300">
+                              <ImageIcon className="w-6 h-6" />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Right Content */}
+                        <div className="flex-1 min-w-0 flex flex-col justify-between">
+                          {/* Row 1: Full title and Remove button */}
+                          <div className="flex items-start justify-between gap-1.5">
+                            <h4
+                              className="font-serif font-bold text-gray-900 text-xs sm:text-sm leading-snug line-clamp-2"
+                              title={item.product.name}
+                            >
+                              {item.product.name}
+                            </h4>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveFromCart(item.product.id)}
+                              title="Remove item"
+                              className="p-1 rounded-md text-gray-400 hover:text-rose-600 hover:bg-[#F4F6F2] transition cursor-pointer shrink-0"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+
+                          {/* Row 2: Category and unit price */}
+                          <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                            <span className="text-[10px] uppercase font-bold text-gray-500 bg-gray-200/70 px-1.5 py-0.5 rounded">
+                              {item.product.category || 'General'}
+                            </span>
+                            <span>₹{(Number(item.product.price) || 0).toLocaleString('en-IN')} each</span>
+                          </div>
+
+                          {/* Row 3: Stepper and Line Total */}
+                          <div className="flex items-center justify-between mt-2 pt-1 border-t border-gray-200/50">
+                            <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg p-0.5 shadow-2xs">
+                              <button
+                                type="button"
+                                onClick={() => handleDecrementCart(item.product.id)}
+                                className="w-5 h-5 flex items-center justify-center rounded bg-gray-50 hover:bg-gray-100 text-gray-600 transition cursor-pointer"
+                              >
+                                <Minus className="w-2.5 h-2.5" />
+                              </button>
+                              <span className="w-6 text-center text-xs font-bold text-gray-900">{item.quantity}</span>
+                              <button
+                                type="button"
+                                onClick={() => handleAddToCart(item.product)}
+                                className="w-5 h-5 flex items-center justify-center rounded bg-gray-50 hover:bg-gray-100 text-gray-600 transition cursor-pointer"
+                              >
+                                <Plus className="w-2.5 h-2.5" />
+                              </button>
+                            </div>
+                            <span className="text-sm font-bold text-[#698156]">
+                              ₹{itemTotal.toLocaleString('en-IN')}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Sidebar Footer - Clean, Full-Width Non-Clumsy CTA */}
+              {adminCart.length > 0 && (
+                <div className="p-4 sm:p-5 border-t border-gray-100 bg-gray-50/80 space-y-3.5 shrink-0">
+                  <div className="bg-white rounded-2xl p-3.5 border border-gray-100 space-y-2 text-xs">
+                    <div className="flex items-center justify-between text-gray-600">
+                      <span>Items Subtotal ({cartTotalCount} items)</span>
+                      <span className="font-semibold text-gray-900">₹{cartTotalPrice.toLocaleString('en-IN')}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-gray-600">
+                      <span>Est. GST (5% in POS)</span>
+                      <span className="font-semibold text-gray-900">₹{Math.round(cartTotalPrice * 0.05).toLocaleString('en-IN')}</span>
+                    </div>
+                    <div className="border-t border-gray-100 pt-2 flex items-center justify-between font-bold text-sm">
+                      <span className="text-gray-900">Est. Total Payable</span>
+                      <span className="text-rose-600 text-base">₹{Math.round(cartTotalPrice * 1.05).toLocaleString('en-IN')}</span>
+                    </div>
+                  </div>
+
+                  {/* Single Clean Full-Width CTA Button */}
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={handleProceedToPOSBilling}
+                      className="w-full py-3.5 px-5 rounded-xl bg-gradient-to-r from-[#698156] to-[#546944] hover:from-[#546944] hover:to-[#435436] text-white font-bold text-sm shadow-md shadow-[#698156]/25 hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 whitespace-nowrap"
+                    >
+                      <Receipt className="w-4 h-4" />
+                      <span>Proceed to POS Billing</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+
+                    <div className="flex items-center justify-between px-1">
+                      <button
+                        type="button"
+                        onClick={() => setIsCheckoutDrawerOpen(false)}
+                        className="text-xs text-gray-500 hover:text-gray-800 font-medium transition cursor-pointer"
+                      >
+                        Hide Sidebar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleClearCart}
+                        className="text-xs text-gray-400 hover:text-rose-600 transition cursor-pointer"
+                      >
+                        Clear Cart
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </motion.aside>
+          </>
         )}
       </AnimatePresence>
 

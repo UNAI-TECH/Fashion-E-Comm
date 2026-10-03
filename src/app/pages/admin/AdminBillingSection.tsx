@@ -2,29 +2,12 @@ import React, { useState, useEffect } from 'react';
 import {
   Receipt, Printer, Plus, Trash2, Search,
   ShoppingBag, User, Phone, Mail, MapPin,
-  Copy, Check, RefreshCw
+  Check, RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabaseAdmin } from '../../../lib/supabase';
 
-// Brand SVGs for authentic social sharing buttons
-const WhatsAppIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
-  <svg viewBox="0 0 24 24" className={className} fill="currentColor">
-    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.82 11.82 0 00-3.48-8.413z" />
-  </svg>
-);
 
-const InstagramIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
-  <svg viewBox="0 0 24 24" className={className} fill="currentColor">
-    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
-  </svg>
-);
-
-const FacebookIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
-  <svg viewBox="0 0 24 24" className={className} fill="currentColor">
-    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-  </svg>
-);
 
 
 // Crisp vector script signature
@@ -92,14 +75,18 @@ export interface BillItem {
 export interface AdminBillingSectionProps {
   products: any[];
   initialProduct?: any | null;
+  initialProducts?: any[] | null;
   onClearInitialProduct?: () => void;
+  onClearInitialProducts?: () => void;
   onOrderCreated?: (order: any) => void;
 }
 
 export function AdminBillingSection({
   products = [],
   initialProduct,
+  initialProducts,
   onClearInitialProduct,
+  onClearInitialProducts,
   onOrderCreated
 }: AdminBillingSectionProps) {
   // Invoice Meta
@@ -122,10 +109,9 @@ export function AdminBillingSection({
 
   // UI States
   const [productSearch, setProductSearch] = useState('');
-  const [isCopied, setIsCopied] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // If a product was clicked from "Buy Now / Bill" in catalog
+  // If a single product was clicked from "Buy Now / Bill" in catalog
   useEffect(() => {
     if (initialProduct) {
       const prodImg = (initialProduct.images && initialProduct.images.length > 0 ? initialProduct.images[0] : null) || initialProduct.image_url || initialProduct.image || '';
@@ -152,6 +138,35 @@ export function AdminBillingSection({
       if (onClearInitialProduct) onClearInitialProduct();
     }
   }, [initialProduct]);
+
+  // If multiple products were passed from Catalog Checkout
+  useEffect(() => {
+    if (initialProducts && initialProducts.length > 0) {
+      setBillItems(prev => {
+        const next = [...prev];
+        initialProducts.forEach(item => {
+          const prodImg = (item.images && item.images.length > 0 ? item.images[0] : null) || item.image_url || item.image || '';
+          const existingIdx = next.findIndex(bi => String(bi.id) === String(item.id));
+          const addQty = item.quantity || 1;
+          if (existingIdx >= 0) {
+            next[existingIdx].quantity += addQty;
+          } else {
+            next.push({
+              id: String(item.id),
+              name: item.name,
+              category: item.category || 'General',
+              price: Number(item.price) || 0,
+              quantity: addQty,
+              image: prodImg
+            });
+          }
+        });
+        return next;
+      });
+      toast.success(`${initialProducts.length} product(s) loaded into POS Billing invoice!`);
+      if (onClearInitialProducts) onClearInitialProducts();
+    }
+  }, [initialProducts]);
 
   // Calculations
   const subtotal = billItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
@@ -297,14 +312,9 @@ export function AdminBillingSection({
         <body>
           <div style="position: relative; min-height: 980px; display: flex; flex-direction: column; justify-content: space-between;">
             
-            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-12deg); width: 340px; opacity: 0.06; pointer-events: none; text-align: center; z-index: 0;">
-              <img src="/logo.png" style="width: 220px; height: auto; filter: grayscale(100%); margin: 0 auto; display: block;" />
-              <div style="font-size: 26px; font-weight: 900; letter-spacing: 0.35em; text-transform: uppercase; color: #0F172A; margin-top: 10px;">
-                AANYA FASHIONS
-              </div>
-              <div style="font-size: 10px; font-weight: 800; letter-spacing: 0.25em; text-transform: uppercase; color: #64748B; margin-top: 4px;">
-                OFFICIAL TAX INVOICE
-              </div>
+            <!-- Official Centered Brand Logo Watermark -->
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 360px; max-width: 80%; opacity: 0.08; pointer-events: none; text-align: center; z-index: 0;">
+              <img src="/logo.png" alt="Aanya Fashions Watermark" style="width: 100%; height: auto; object-fit: contain; margin: 0 auto; display: block;" />
             </div>
 
             <div style="position: relative; z-index: 1;">
@@ -316,12 +326,12 @@ export function AdminBillingSection({
                       INVOICE
                     </h1>
                     <div style="display: flex; align-items: center; gap: 3px; margin-left: 4px;">
-                      <div style="width: 14px; height: 14px; border-radius: 50%; background: #4F46E5;"></div>
-                      <div style="width: 10px; height: 10px; border-radius: 50%; background: #818CF8; margin-left: -5px;"></div>
+                      <div style="width: 14px; height: 14px; border-radius: 50%; background: #698156;"></div>
+                      <div style="width: 10px; height: 10px; border-radius: 50%; background: #849E70; margin-left: -5px;"></div>
                     </div>
                   </div>
                   <div style="margin-top: 6px; font-size: 11px; font-weight: 700; color: #475569;">
-                    Invoice No : <span style="color: #4F46E5; font-weight: 800;">${invoiceNo}</span>
+                    Invoice No : <span style="color: #698156; font-weight: 800;">${invoiceNo}</span>
                   </div>
                 </div>
 
@@ -382,7 +392,7 @@ export function AdminBillingSection({
                     </div>
                     <div>Bank Account: <span style="font-weight: 700; color: #0F172A;">06410100042434</span></div>
                     <div>Bank: <span style="font-weight: 700; color: #0F172A;">HDFC Bank (IFSC: HDFC0001245)</span></div>
-                    <div>UPI ID: <span style="font-weight: 700; color: #4F46E5;">aanyafashions@okhdfcbank</span></div>
+                    <div>UPI ID: <span style="font-weight: 700; color: #698156;">aanyafashions@okhdfcbank</span></div>
                   </div>
 
                   <div style="margin-top: 14px; font-size: 10px; color: #64748B; line-height: 1.5;">
@@ -420,7 +430,7 @@ export function AdminBillingSection({
 
                     <div style="display: flex; justify-content: space-between; align-items: baseline; padding: 10px 0 6px 0;">
                       <span style="font-size: 13px; font-weight: 800; color: #0F172A;">Total</span>
-                      <span style="font-size: 18px; font-weight: 900; color: #4F46E5;">₹${Math.round(grandTotal).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      <span style="font-size: 18px; font-weight: 900; color: #698156;">₹${Math.round(grandTotal).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </div>
                   </div>
 
@@ -449,9 +459,9 @@ export function AdminBillingSection({
                 +91 91234 56789 | care@aanyafashions.com | Page 1 of 1
               </div>
 
-              <div style="display: flex; align-items: center; gap: 6px; background: #4F46E5; color: #FFFFFF; font-weight: 700; padding: 6px 14px; border-radius: 999px;">
+              <div style="display: flex; align-items: center; gap: 6px; background: #698156; color: #FFFFFF; font-weight: 700; padding: 6px 14px; border-radius: 999px;">
                 <span>Thank you for your Business!</span>
-                <div style="width: 6px; height: 6px; border-radius: 50%; background: #A5B4FC;"></div>
+                <div style="width: 6px; height: 6px; border-radius: 50%; background: #A8BFA0;"></div>
               </div>
             </div>
 
@@ -478,87 +488,7 @@ export function AdminBillingSection({
     }, 600);
   };
 
-  // WhatsApp Share
-  const handleShareWhatsApp = () => {
-    if (billItems.length === 0) {
-      toast.error('Add products to the bill before sharing.');
-      return;
-    }
-    const cleanPhone = customerPhone.replace(/[^0-9]/g, '');
-    const itemsList = billItems.map((item, i) => `${String(i + 1).padStart(2, '0')}. *${item.name}* (Qty: ${item.quantity}) - ₹${(item.price * item.quantity).toLocaleString('en-IN')}`).join('\n');
-    
-    const message = `✨ *AANYA FASHIONS — OFFICIAL INVOICE* ✨
-━━━━━━━━━━━━━━━━━━━━━
-📄 *Invoice No:* ${invoiceNo}
-📅 *Date:* ${new Date(invoiceDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-👤 *Customer:* ${customerName.trim() || 'Valued Customer'}
-${customerPhone.trim() ? `📞 *Phone:* ${customerPhone.trim()}\n` : ''}━━━━━━━━━━━━━━━━━━━━━
-🛍️ *Purchased Items:*
-${itemsList}
 
-💰 *Grand Total:* ₹${Math.round(grandTotal).toLocaleString('en-IN')}
-💳 *Payment:* ${paymentMode} (${paymentStatus})
-━━━━━━━━━━━━━━━━━━━━━
-🙏 *Thank you for your business!*
-Aanya Fashions Pvt Ltd
-🌐 https://aanyafashions.com`;
-
-    const encoded = encodeURIComponent(message);
-    const targetUrl = cleanPhone.length >= 10 ? `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encoded}` : `https://api.whatsapp.com/send?text=${encoded}`;
-    window.open(targetUrl, '_blank');
-    toast.success('Opening WhatsApp with bill summary!');
-  };
-
-  // Facebook Share
-  const handleShareFacebook = () => {
-    if (billItems.length === 0) {
-      toast.error('Add products to bill before sharing');
-      return;
-    }
-    const summary = `Official Invoice ${invoiceNo} for ${customerName || 'Customer'} - Total: ₹${Math.round(grandTotal).toLocaleString('en-IN')} at Aanya Fashions`;
-    const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.origin)}&quote=${encodeURIComponent(summary)}`;
-    window.open(shareUrl, '_blank', 'width=600,height=500');
-  };
-
-  // Instagram / Native Share
-  const handleShareInstagramOrNative = async () => {
-    if (billItems.length === 0) {
-      toast.error('Add products to bill before sharing');
-      return;
-    }
-    const summaryText = `AANYA FASHIONS INVOICE #${invoiceNo}\nCustomer: ${customerName || 'Valued Customer'}\nTotal: ₹${Math.round(grandTotal).toLocaleString('en-IN')}\nStatus: ${paymentStatus}\nThank you for shopping at Aanya Fashions!`;
-
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `Aanya Fashions Bill - ${invoiceNo}`,
-          text: summaryText,
-          url: window.location.origin
-        });
-        toast.success('Shared successfully!');
-        return;
-      } catch (err) {}
-    }
-
-    navigator.clipboard.writeText(summaryText);
-    setIsCopied(true);
-    setTimeout(() => setIsCopied(false), 2500);
-    toast.success('Invoice text copied! You can paste in Instagram DM or post caption.');
-  };
-
-  // Copy Bill Summary
-  const handleCopySummary = () => {
-    if (billItems.length === 0) {
-      toast.error('No items in bill');
-      return;
-    }
-    const itemsList = billItems.map((item, i) => `${i + 1}. ${item.name} x${item.quantity} = ₹${item.price * item.quantity}`).join('\n');
-    const text = `AANYA FASHIONS INVOICE\nInvoice: ${invoiceNo}\nDate: ${invoiceDate}\nCustomer: ${customerName || 'Valued Customer'}\nItems:\n${itemsList}\nTotal: ₹${Math.round(grandTotal).toLocaleString('en-IN')}\nPayment: ${paymentMode} (${paymentStatus})`;
-    navigator.clipboard.writeText(text);
-    setIsCopied(true);
-    setTimeout(() => setIsCopied(false), 2000);
-    toast.success('Invoice summary copied to clipboard');
-  };
 
   // Save to Database
   const handleSaveToOrders = async () => {
@@ -625,7 +555,7 @@ Aanya Fashions Pvt Ltd
       {/* ── TOP HEADER ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-gray-100 shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 flex-shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-[#F4F6F2] border border-[#DCE4D7] flex items-center justify-center text-[#698156] flex-shrink-0">
             <Receipt className="w-5 h-5" />
           </div>
           <div>
@@ -633,7 +563,7 @@ Aanya Fashions Pvt Ltd
               Manual Retail Billing & POS
             </h2>
             <p className="text-xs text-gray-400 mt-0.5">
-              Generate PDF invoice matching your brand theme with centered watermark, clear typography, and multi-channel sharing.
+              Generate PDF invoice matching your brand theme with centered watermark and clear typography.
             </p>
           </div>
         </div>
@@ -672,7 +602,7 @@ Aanya Fashions Pvt Ltd
           <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-xs space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
               <h3 className="font-serif text-sm font-bold text-gray-900 flex items-center gap-2">
-                <User className="w-4 h-4 text-indigo-600" />
+                <User className="w-4 h-4 text-[#698156]" />
                 Customer Information
               </h3>
               <span className="text-[10px] text-gray-400 font-medium">
@@ -690,7 +620,7 @@ Aanya Fashions Pvt Ltd
                     value={customerName}
                     onChange={e => setCustomerName(e.target.value)}
                     placeholder="e.g. Mrs Fathima Ali"
-                    className="w-full pl-9 pr-3 py-2 bg-gray-50/70 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-indigo-500/20 text-xs"
+                    className="w-full pl-9 pr-3 py-2 bg-gray-50/70 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20 text-xs"
                   />
                 </div>
               </div>
@@ -705,7 +635,7 @@ Aanya Fashions Pvt Ltd
                       value={customerPhone}
                       onChange={e => setCustomerPhone(e.target.value)}
                       placeholder="e.g. 9843888807"
-                      className="w-full pl-9 pr-3 py-2 bg-gray-50/70 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-indigo-500/20 text-xs"
+                      className="w-full pl-9 pr-3 py-2 bg-gray-50/70 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20 text-xs"
                     />
                   </div>
                 </div>
@@ -719,7 +649,7 @@ Aanya Fashions Pvt Ltd
                       value={customerEmail}
                       onChange={e => setCustomerEmail(e.target.value)}
                       placeholder="e.g. customer@gmail.com"
-                      className="w-full pl-9 pr-3 py-2 bg-gray-50/70 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-indigo-500/20 text-xs"
+                      className="w-full pl-9 pr-3 py-2 bg-gray-50/70 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20 text-xs"
                     />
                   </div>
                 </div>
@@ -735,7 +665,7 @@ Aanya Fashions Pvt Ltd
                       value={customerAddress}
                       onChange={e => setCustomerAddress(e.target.value)}
                       placeholder="e.g. SITHA, Road 10"
-                      className="w-full pl-9 pr-3 py-2 bg-gray-50/70 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-indigo-500/20 text-xs"
+                      className="w-full pl-9 pr-3 py-2 bg-gray-50/70 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20 text-xs"
                     />
                   </div>
                 </div>
@@ -747,7 +677,7 @@ Aanya Fashions Pvt Ltd
                     value={customerState}
                     onChange={e => setCustomerState(e.target.value)}
                     placeholder="e.g. Tamil Nadu or Hyderabad"
-                    className="w-full px-3 py-2 bg-gray-50/70 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-indigo-500/20 text-xs"
+                    className="w-full px-3 py-2 bg-gray-50/70 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20 text-xs"
                   />
                 </div>
               </div>
@@ -787,10 +717,10 @@ Aanya Fashions Pvt Ltd
           <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-xs space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
               <h3 className="font-serif text-sm font-bold text-gray-900 flex items-center gap-2">
-                <ShoppingBag className="w-4 h-4 text-indigo-600" />
+                <ShoppingBag className="w-4 h-4 text-[#698156]" />
                 Add Products to Bill
               </h3>
-              <span className="text-xs text-indigo-600 font-bold bg-indigo-50 px-2.5 py-0.5 rounded-full">
+              <span className="text-xs text-[#698156] font-bold bg-[#F4F6F2] px-2.5 py-0.5 rounded-full">
                 {billItems.length} {billItems.length === 1 ? 'item' : 'items'}
               </span>
             </div>
@@ -804,7 +734,7 @@ Aanya Fashions Pvt Ltd
                   placeholder="Type product name to search & add…"
                   value={productSearch}
                   onChange={e => setProductSearch(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 bg-gray-50 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-indigo-500/20 text-xs"
+                  className="w-full pl-9 pr-3 py-2 bg-gray-50 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20 text-xs"
                 />
               </div>
 
@@ -820,7 +750,7 @@ Aanya Fashions Pvt Ltd
                         <div
                           key={p.id}
                           onClick={() => handleAddItem(p)}
-                          className="flex items-center justify-between p-2 rounded-lg hover:bg-indigo-50/60 cursor-pointer transition-colors"
+                          className="flex items-center justify-between p-2 rounded-lg hover:bg-[#F4F6F2] cursor-pointer transition-colors"
                         >
                           <div className="flex items-center gap-2.5 min-w-0">
                             {img ? (
@@ -835,7 +765,7 @@ Aanya Fashions Pvt Ltd
                           </div>
                           <button
                             type="button"
-                            className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold rounded-lg flex items-center gap-1 shadow-2xs cursor-pointer"
+                            className="px-2.5 py-1 bg-[#698156] hover:bg-[#546944] text-white text-[10px] font-bold rounded-lg flex items-center gap-1 shadow-2xs cursor-pointer"
                           >
                             <Plus className="w-3 h-3" /> Add
                           </button>
@@ -869,7 +799,7 @@ Aanya Fashions Pvt Ltd
                       )}
                       <div className="min-w-0">
                         <p className="text-xs font-bold text-gray-900 truncate">{item.name}</p>
-                        <p className="text-[10px] text-indigo-600 font-medium">₹{item.price.toLocaleString('en-IN')}</p>
+                        <p className="text-[10px] text-[#698156] font-medium">₹{item.price.toLocaleString('en-IN')}</p>
                       </div>
                     </div>
 
@@ -949,54 +879,16 @@ Aanya Fashions Pvt Ltd
           
           {/* Action Bar */}
           <div className="bg-white p-3 rounded-2xl border border-gray-100 shadow-xs flex items-center justify-between flex-wrap gap-2 text-xs">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[11px] font-bold text-gray-500 mr-1">Share:</span>
-              <button
-                type="button"
-                onClick={handleShareWhatsApp}
-                className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                title="Send bill on WhatsApp"
-              >
-                <WhatsAppIcon className="w-3.5 h-3.5 text-emerald-600" />
-                WhatsApp
-              </button>
-
-              <button
-                type="button"
-                onClick={handleShareInstagramOrNative}
-                className="px-3 py-1.5 bg-pink-50 hover:bg-pink-100 text-pink-700 font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                title="Share to Instagram"
-              >
-                <InstagramIcon className="w-3.5 h-3.5 text-pink-600" />
-                Instagram
-              </button>
-
-              <button
-                type="button"
-                onClick={handleShareFacebook}
-                className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                title="Share to Facebook"
-              >
-                <FacebookIcon className="w-3.5 h-3.5 text-blue-600" />
-                Facebook
-              </button>
-
-              <button
-                type="button"
-                onClick={handleCopySummary}
-                className="px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition-all flex items-center gap-1 cursor-pointer"
-                title="Copy text"
-              >
-                {isCopied ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                {isCopied ? 'Copied' : 'Copy'}
-              </button>
+            <div className="flex items-center gap-2">
+              <span className="font-serif font-bold text-gray-800 text-sm">Invoice Preview</span>
+              <span className="text-[11px] text-gray-400">· Real-time template view</span>
             </div>
 
             {/* Primary Download / Print PDF Button */}
             <button
               type="button"
               onClick={handlePrintPDF}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+              className="px-4 py-2 bg-[#698156] hover:bg-[#546944] text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
               title="Download clean PDF invoice or print"
             >
               <Printer className="w-4 h-4" />
@@ -1021,29 +913,24 @@ Aanya Fashions Pvt Ltd
                 ════════════════════════════════════════════════════════════
               */}
               <div
-                className="watermark-wrapper absolute pointer-events-none select-none z-0 flex flex-col items-center justify-center text-center"
+                className="watermark-wrapper absolute pointer-events-none select-none z-0 flex items-center justify-center text-center"
                 style={{
                   position: 'absolute',
                   top: '50%',
                   left: '50%',
-                  transform: 'translate(-50%, -50%) rotate(-12deg)',
-                  width: '320px',
-                  maxWidth: '85%',
-                  opacity: 0.06
+                  transform: 'translate(-50%, -50%)',
+                  width: '360px',
+                  maxWidth: '80%',
+                  opacity: 0.08,
+                  pointerEvents: 'none'
                 }}
               >
                 <img
                   src="/logo.png"
-                  alt="Aanya Watermark"
-                  className="w-56 h-auto object-contain filter grayscale"
-                  style={{ width: '220px', height: 'auto', display: 'block', margin: '0 auto' }}
+                  alt="Aanya Fashions Watermark"
+                  className="w-full h-auto object-contain"
+                  style={{ width: '100%', height: 'auto', display: 'block', margin: '0 auto' }}
                 />
-                <span className="watermark-text font-serif tracking-[0.35em] text-2xl font-black uppercase text-gray-900 mt-2">
-                  AANYA FASHIONS
-                </span>
-                <span className="watermark-sub text-[10px] tracking-[0.25em] uppercase text-gray-600 font-bold mt-1">
-                  OFFICIAL TAX INVOICE
-                </span>
               </div>
 
               {/* ── Bill Content (relative z-10 for sharp readability) ── */}
@@ -1057,12 +944,12 @@ Aanya Fashions Pvt Ltd
                         INVOICE
                       </h1>
                       <div className="flex items-center gap-0.5 ml-1">
-                        <div className="w-3.5 h-3.5 rounded-full bg-indigo-600" />
-                        <div className="w-2.5 h-2.5 rounded-full bg-indigo-400 -ml-1.5" />
+                        <div className="w-3.5 h-3.5 rounded-full bg-[#698156]" />
+                        <div className="w-2.5 h-2.5 rounded-full bg-[#849E70] -ml-1.5" />
                       </div>
                     </div>
                     <div className="mt-1.5 text-xs font-bold text-gray-600">
-                      Invoice No : <span className="text-indigo-600 font-extrabold">{invoiceNo}</span>
+                      Invoice No : <span className="text-[#698156] font-extrabold">{invoiceNo}</span>
                     </div>
                   </div>
 
@@ -1170,7 +1057,7 @@ Aanya Fashions Pvt Ltd
                       </div>
                       <div>Bank Account: <span className="font-bold text-gray-900">06410100042434</span></div>
                       <div>Bank: <span className="font-bold text-gray-900">HDFC Bank (IFSC: HDFC0001245)</span></div>
-                      <div>UPI ID: <span className="font-bold text-indigo-600">aanyafashions@okhdfcbank</span></div>
+                      <div>UPI ID: <span className="font-bold text-[#698156]">aanyafashions@okhdfcbank</span></div>
                     </div>
 
                     {/* Terms */}
@@ -1212,7 +1099,7 @@ Aanya Fashions Pvt Ltd
 
                       <div className="flex justify-between items-baseline pt-2">
                         <span className="text-sm font-extrabold text-gray-900">Total</span>
-                        <span className="text-lg font-black text-indigo-600">
+                        <span className="text-lg font-black text-[#698156]">
                           ₹{Math.round(grandTotal).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                       </div>
@@ -1243,9 +1130,9 @@ Aanya Fashions Pvt Ltd
                   +91 91234 56789 | care@aanyafashions.com | Page 1 of 1
                 </div>
 
-                <div className="flex items-center gap-1.5 bg-indigo-600 text-white font-bold px-3.5 py-1 rounded-full text-[10px] shadow-2xs">
+                <div className="flex items-center gap-1.5 bg-[#698156] text-white font-bold px-3.5 py-1 rounded-full text-[10px] shadow-2xs">
                   <span>Thank you for your Business!</span>
-                  <div className="w-1.5 h-1.5 rounded-full bg-indigo-300" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#A8BFA0]" />
                 </div>
               </div>
 

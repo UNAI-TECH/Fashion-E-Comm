@@ -110,7 +110,7 @@ export function ProfileModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 15 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
-            className="relative w-full min-h-screen sm:min-h-0 sm:max-w-xl sm:my-8 bg-[#FDFBF7] sm:rounded-3xl shadow-2xl flex flex-col z-10 overflow-hidden border border-gray-100"
+            className="relative w-full min-h-screen sm:min-h-0 sm:max-w-xl sm:my-8 bg-[#FFFFFF] sm:rounded-3xl shadow-2xl flex flex-col z-10 overflow-hidden border border-gray-100"
           >
             {/* Top Navigation Bar with Back button & Close button */}
             <div className="sticky top-0 z-20 px-5 sm:px-8 py-3.5 bg-white/95 backdrop-blur-md border-b border-gray-100 flex items-center justify-between shadow-xs">
@@ -152,7 +152,7 @@ export function ProfileModal({
 
                 {/* Profile Photo Upload */}
                 <div className="flex flex-col items-center justify-center space-y-2 pb-1">
-                  <div className="relative group w-32 h-32 sm:w-36 sm:h-36 rounded-full overflow-hidden border-4 border-[#D4AF37] shadow-xl bg-gray-100 flex items-center justify-center cursor-pointer">
+                  <div className="relative group w-32 h-32 sm:w-36 sm:h-36 rounded-full overflow-hidden border-4 border-[#698156] shadow-xl bg-gray-100 flex items-center justify-center cursor-pointer">
                     {profileImage ? (
                       <img
                         src={profileImage}
@@ -188,7 +188,7 @@ export function ProfileModal({
                       placeholder="Enter full name"
                       value={profileDetails.name}
                       onChange={(e) => setProfileDetails({ ...profileDetails, name: e.target.value })}
-                      className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all text-gray-900 placeholder:text-gray-400"
+                      className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#698156]/25 outline-none transition-all text-gray-900 placeholder:text-gray-400"
                     />
                   </div>
 
@@ -200,7 +200,7 @@ export function ProfileModal({
                     <select
                       value={profileDetails.gender}
                       onChange={(e) => setProfileDetails({ ...profileDetails, gender: e.target.value })}
-                      className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all cursor-pointer text-gray-900"
+                      className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#698156]/25 outline-none transition-all cursor-pointer text-gray-900"
                     >
                       <option value="" disabled>
                         Select Gender
@@ -222,7 +222,7 @@ export function ProfileModal({
                       placeholder="Enter phone number (10 digits)"
                       value={profileDetails.phone}
                       onChange={(e) => setProfileDetails({ ...profileDetails, phone: e.target.value })}
-                      className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all text-gray-900 placeholder:text-gray-400"
+                      className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#698156]/25 outline-none transition-all text-gray-900 placeholder:text-gray-400"
                     />
                   </div>
 
@@ -236,7 +236,7 @@ export function ProfileModal({
                       placeholder="Enter email address"
                       value={profileDetails.email}
                       onChange={(e) => setProfileDetails({ ...profileDetails, email: e.target.value })}
-                      className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all text-gray-900 placeholder:text-gray-400"
+                      className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#698156]/25 outline-none transition-all text-gray-900 placeholder:text-gray-400"
                     />
                   </div>
 
@@ -250,7 +250,7 @@ export function ProfileModal({
                       value={profileDetails.address}
                       rows={3}
                       onChange={(e) => setProfileDetails({ ...profileDetails, address: e.target.value })}
-                      className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all resize-none text-gray-900 placeholder:text-gray-400"
+                      className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#698156]/25 outline-none transition-all resize-none text-gray-900 placeholder:text-gray-400"
                     />
                   </div>
 
@@ -261,10 +261,10 @@ export function ProfileModal({
                       onClick={handleSave}
                       whileHover={{ scale: 1.01 }}
                       whileTap={{ scale: 0.98 }}
-                      className="w-full py-4 bg-[#FFF0F5] border border-[#FFD6E8] text-[#800000] font-black rounded-xl text-xs uppercase tracking-wider shadow-sm hover:bg-[#FFE4EF] hover:border-[#800000]/30 transition-all cursor-pointer text-center flex items-center justify-center gap-2"
+                      className="w-full py-4 bg-[#F4F6F2] border border-[#DCE4D7] text-[#698156] font-black rounded-xl text-xs uppercase tracking-wider shadow-sm hover:bg-[#EBF0E6] hover:border-[#698156]/30 transition-all cursor-pointer text-center flex items-center justify-center gap-2"
                     >
                       <span>{actionButtonText}</span>
-                      <ArrowRight className="w-4 h-4 text-[#800000]" />
+                      <ArrowRight className="w-4 h-4 text-[#698156]" />
                     </motion.button>
                   </div>
                 </div>

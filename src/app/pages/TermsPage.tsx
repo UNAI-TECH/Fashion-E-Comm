@@ -36,7 +36,7 @@ export function TermsPage() {
           <p className="text-sm font-medium text-gray-400 mt-2">Last Updated: August 2, 2026</p>
         </div>
 
-        <div className="prose prose-lg max-w-none prose-headings:font-serif prose-headings:text-gray-900 prose-a:text-[#800000] prose-p:text-gray-600">
+        <div className="prose prose-lg max-w-none prose-headings:font-serif prose-headings:text-gray-900 prose-a:text-[#698156] prose-p:text-gray-600">
           
           <section className="mb-12">
             <div className="flex items-center gap-3 mb-6">

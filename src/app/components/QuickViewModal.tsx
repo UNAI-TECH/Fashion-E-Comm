@@ -50,7 +50,7 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
             <div className="grid grid-cols-1 md:grid-cols-2 max-h-[90vh] overflow-y-auto">
               {/* Image */}
               <div className="relative aspect-square bg-white p-6 flex items-center justify-center border-r border-gray-100">
-                <div className="border border-[#D4AF37] p-2 w-full h-full flex items-center justify-center bg-white rounded-2xl shadow-sm">
+                <div className="border border-[#698156] p-2 w-full h-full flex items-center justify-center bg-white rounded-2xl shadow-sm">
                   <img
                     src={product.image}
                     alt={product.name}
@@ -61,7 +61,7 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
 
               {/* Content */}
               <div className="p-8 space-y-4">
-                <div className="text-[#D4AF37] uppercase tracking-wider text-[10px] font-bold flex items-center gap-1.5 mb-1 flex-wrap">
+                <div className="text-[#698156] uppercase tracking-wider text-[10px] font-bold flex items-center gap-1.5 mb-1 flex-wrap">
                   <span className="cursor-pointer hover:underline" onClick={onClose}>Home</span>
                   <span>/</span>
                   <span className="cursor-pointer hover:underline" onClick={onClose}>{product.category || 'Product'}</span>
@@ -71,7 +71,7 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
                 <h2 className="font-serif text-3xl text-[#1A1A1A]">
                   {product.name}
                 </h2>
-                <div className="w-12 h-px bg-[#D4AF37]"></div>
+                <div className="w-12 h-px bg-[#698156]"></div>
 
                 {/* Rating */}
                 <div className="flex items-center gap-2">
@@ -80,7 +80,7 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
                       key={i}
                       className={`w-3.5 h-3.5 ${
                         i < Math.floor(product.rating)
-                          ? 'fill-[#D4AF37] text-[#D4AF37]'
+                          ? 'fill-[#698156] text-[#698156]'
                           : 'text-gray-300'
                       }`}
                     />
@@ -92,7 +92,7 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
 
                 {/* Price */}
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl text-[#D4AF37] font-serif">₹{product.price.toLocaleString('en-IN')}</span>
+                  <span className="text-2xl text-[#698156] font-serif">₹{product.price.toLocaleString('en-IN')}</span>
                   {product.originalPrice && (
                     <span className="text-lg text-gray-400 line-through">
                       ₹{product.originalPrice.toLocaleString('en-IN')}
@@ -109,7 +109,7 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
                         key={index}
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
-                        className="w-8 h-8 rounded-full border border-gray-300 hover:border-[#D4AF37]"
+                        className="w-8 h-8 rounded-full border border-gray-300 hover:border-[#698156]"
                         style={{ backgroundColor: color }}
                       />
                     ))}
@@ -129,7 +129,7 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
                     }}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="flex-1 h-11 bg-white text-[#D4AF37] border border-[#D4AF37] font-bold text-xs tracking-wider uppercase flex items-center justify-center gap-2 hover:bg-[#D4AF37] hover:text-white transition-all duration-300"
+                    className="flex-1 h-11 bg-white text-[#698156] border border-[#698156] font-bold text-xs tracking-wider uppercase flex items-center justify-center gap-2 hover:bg-[#698156] hover:text-white transition-all duration-300"
                   >
                     <Heart className={`w-4 h-4 ${isInWishlist(product.id) ? 'fill-current' : ''}`} />
                     {isInWishlist(product.id) ? 'Saved to Wishlist' : 'Save to Wishlist'}
@@ -140,7 +140,7 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
                 <motion.a
                   href={`/product/${product.id}`}
                   whileHover={{ x: 5 }}
-                  className="block text-center text-xs font-bold text-[#D4AF37] hover:underline uppercase tracking-wider pt-2"
+                  className="block text-center text-xs font-bold text-[#698156] hover:underline uppercase tracking-wider pt-2"
                 >
                   View Full Details →
                 </motion.a>

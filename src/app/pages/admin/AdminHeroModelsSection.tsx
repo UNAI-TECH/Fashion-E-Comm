@@ -36,8 +36,8 @@ interface AdminHeroModelsSectionProps {
 
 const PRESET_COLORS = [
   { name: 'Royal Blue', hex: '#1E3A8A' },
-  { name: 'Aanya Pink', hex: '#EC4899' },
-  { name: 'Gold / Champagne', hex: '#D4AF37' },
+  { name: 'Aanya Sage', hex: '#698156' },
+  { name: 'Gold / Champagne', hex: '#698156' },
   { name: 'Emerald Green', hex: '#047857' },
   { name: 'Sunset Peach', hex: '#EA580C' },
   { name: 'Pastel Lilac', hex: '#8B5CF6' },
@@ -58,7 +58,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
     id: '',
     label: '',
     subtitle: 'Discover Trending Styles',
-    color: '#EC4899',
+    color: '#698156',
     src: '/model_1.png',
     productId: '',
     productName: '',
@@ -127,7 +127,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
       id: model.id,
       label: model.label,
       subtitle: model.subtitle || 'Discover Trending Styles',
-      color: model.color || '#EC4899',
+      color: model.color || '#698156',
       src: model.src,
       productId: model.productId || '',
       productName: model.productName || '',
@@ -155,7 +155,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
     }
 
     // Auto-detect a matching color from PRESET_COLORS or product colors
-    let selectedColor = '#EC4899';
+    let selectedColor = '#698156';
     if ((prod as any).colors && (prod as any).colors.length > 0) {
       selectedColor = (prod as any).colors[0];
     } else {
@@ -177,7 +177,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
       subtitle: `Discover Trending ${prod.category || 'Styles'}`,
       link: `/product/${prod.id}`,
       src: prodImg || prev.src,
-      color: selectedColor || prev.color || '#EC4899',
+      color: selectedColor || prev.color || '#698156',
     }));
 
     if (prodImg) {
@@ -292,7 +292,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
       prodImg = resolveTransparentCutoutUrl(prodImg);
     }
 
-    let selectedColor = model.color || '#EC4899';
+    let selectedColor = model.color || '#698156';
     if ((prod as any).colors && (prod as any).colors.length > 0) {
       selectedColor = (prod as any).colors[0];
     } else {
@@ -476,7 +476,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
   return (
     <div className="space-y-8">
       {/* ─── Header & Top Actions ─── */}
-      <div className="bg-gradient-to-r from-pink-50 via-rose-50 to-white border border-pink-100/80 rounded-3xl p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-sm">
+      <div className="bg-gradient-to-r from-pink-50 via-rose-50 to-white border border-[#DCE4D7]/80 rounded-3xl p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-sm">
         <div className="space-y-2 max-w-2xl">
           <h2 className="font-serif text-2xl sm:text-3xl font-bold text-gray-900">
             Model Dresses & Hero Showcase
@@ -489,7 +489,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
         <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={handleAddNew}
-            className="flex items-center gap-2 px-6 py-2.5 bg-[#EC4899] hover:bg-pink-600 text-white rounded-full text-xs font-bold uppercase tracking-wider shadow-md hover:shadow-lg transition-all cursor-pointer"
+            className="flex items-center gap-2 px-6 py-2.5 bg-[#698156] hover:bg-[#546944] text-white rounded-full text-xs font-bold uppercase tracking-wider shadow-md hover:shadow-lg transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             Dress New Model
@@ -504,13 +504,13 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
             <h3 className="font-serif text-base font-bold text-gray-900">
               Live Banner Simulator (Active Storefront View)
             </h3>
-            <span className="text-xs text-pink-600 font-semibold hidden sm:inline">
+            <span className="text-xs text-[#698156] font-semibold hidden sm:inline">
               · Click any model below to change her outfit
             </span>
           </div>
           <button
             onClick={handleResetDefaults}
-            className="text-xs font-bold text-gray-400 hover:text-pink-600 flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="text-xs font-bold text-gray-400 hover:text-[#698156] flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Restore Showcase Defaults</span>
@@ -538,7 +538,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
             </p>
             {activeModelPreview?.link && (
               <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-white text-[11px] font-bold shadow-sm mt-2"
-                style={{ backgroundColor: activeModelPreview?.color || '#EC4899' }}>
+                style={{ backgroundColor: activeModelPreview?.color || '#698156' }}>
                 <span>Shop This Look</span>
                 <ArrowUpRight className="w-3 h-3" />
               </div>
@@ -568,7 +568,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
                   </div>
                   <div
                     className="absolute -bottom-2 px-2 py-0.5 rounded-full text-[10px] font-bold text-white whitespace-nowrap shadow-sm z-10"
-                    style={{ backgroundColor: model.color || '#EC4899' }}
+                    style={{ backgroundColor: model.color || '#698156' }}
                   >
                     Slot #{idx + 1}
                   </div>
@@ -583,7 +583,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
       <div className="space-y-6">
         {loading ? (
           <div className="p-16 text-center text-gray-400 flex flex-col items-center gap-3">
-            <RefreshCw className="w-6 h-6 animate-spin text-pink-500" />
+            <RefreshCw className="w-6 h-6 animate-spin text-[#698156]" />
             <p className="text-sm font-medium">Loading hero models…</p>
           </div>
         ) : heroModels.length === 0 ? (
@@ -593,7 +593,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
             <p className="text-xs text-gray-400 max-w-sm mx-auto">
               Add your first model outfit or reset to defaults to showcase dresses on the homepage.
             </p>
-            <button onClick={handleResetDefaults} className="px-5 py-2 bg-pink-500 text-white rounded-full text-xs font-bold cursor-pointer">
+            <button onClick={handleResetDefaults} className="px-5 py-2 bg-[#F4F6F2]0 text-white rounded-full text-xs font-bold cursor-pointer">
               Restore Defaults
             </button>
           </div>
@@ -607,7 +607,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
                   <div className="flex items-center gap-3.5 flex-wrap">
                     <div
                       className="w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-base shadow-xs text-white flex-shrink-0"
-                      style={{ backgroundColor: activeModelPreview.color || '#EC4899' }}
+                      style={{ backgroundColor: activeModelPreview.color || '#698156' }}
                     >
                       #{activePreviewIdx + 1}
                     </div>
@@ -642,7 +642,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
                           className={`w-7 h-7 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                             i === activePreviewIdx
                               ? 'bg-gray-900 text-white shadow-xs scale-105'
-                              : 'bg-gray-100 text-gray-600 hover:bg-pink-50 hover:text-pink-600'
+                              : 'bg-gray-100 text-gray-600 hover:bg-[#F4F6F2] hover:text-[#698156]'
                           }`}
                           title={`Switch to Slot #${i + 1}`}
                         >
@@ -674,7 +674,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
                     </button>
                     <button
                       onClick={() => handleEdit(activeModelPreview)}
-                      className="px-4 py-2 rounded-xl bg-pink-50 hover:bg-pink-100 text-[#EC4899] text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                      className="px-4 py-2 rounded-xl bg-[#F4F6F2] hover:bg-[#EBF0E6] text-[#698156] text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
                     >
                       <Edit3 className="w-3.5 h-3.5" />
                       <span>Custom Photo / Details</span>
@@ -687,7 +687,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                       <h4 className="font-serif text-base font-bold text-gray-900 flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-pink-500" />
+                        <Sparkles className="w-4 h-4 text-[#698156]" />
                         <span>Change Model or Outfit on Slot #{activePreviewIdx + 1}</span>
                       </h4>
                       <p className="text-xs text-gray-400 mt-0.5">
@@ -705,7 +705,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
                             : 'text-gray-500 hover:text-gray-800'
                         }`}
                       >
-                        <Shirt className="w-3.5 h-3.5 text-pink-500" />
+                        <Shirt className="w-3.5 h-3.5 text-[#698156]" />
                         <span>Catalog Dresses</span>
                       </button>
                       <button
@@ -745,7 +745,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
                               onClick={() => setCategoryFilter(cat)}
                               className={`px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
                                 categoryFilter === cat
-                                  ? 'bg-[#EC4899] text-white shadow-xs font-bold scale-102'
+                                  ? 'bg-[#698156] text-white shadow-xs font-bold scale-102'
                                   : 'bg-gray-100/80 text-gray-600 hover:bg-gray-200/80'
                               }`}
                             >
@@ -796,12 +796,12 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
                               </div>
 
                               <div className="mt-2 space-y-0.5">
-                                <p className="text-xs font-bold text-gray-900 line-clamp-1 group-hover:text-pink-600 transition-colors" title={prod.name}>
+                                <p className="text-xs font-bold text-gray-900 line-clamp-1 group-hover:text-[#698156] transition-colors" title={prod.name}>
                                   {prod.name}
                                 </p>
                                 <div className="flex items-center justify-between text-[11px]">
                                   <span className="text-gray-400 capitalize">{prod.category || 'Dress'}</span>
-                                  <span className="font-bold text-[#EC4899]">₹{prod.price?.toLocaleString('en-IN')}</span>
+                                  <span className="font-bold text-[#698156]">₹{prod.price?.toLocaleString('en-IN')}</span>
                                 </div>
                               </div>
 
@@ -812,7 +812,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
                                     Wearing Now
                                   </span>
                                 ) : (
-                                  <span className="text-[10px] font-bold text-gray-500 group-hover:text-[#EC4899] flex items-center gap-1">
+                                  <span className="text-[10px] font-bold text-gray-500 group-hover:text-[#698156] flex items-center gap-1">
                                     <span>Wear on Slot #{activePreviewIdx + 1}</span>
                                     <ArrowUpRight className="w-3 h-3" />
                                   </span>
@@ -884,7 +884,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
 
                   {/* ─── TAB 3: UPLOAD PHOTO ─── */}
                   {studioTab === 'upload' && (
-                    <div className="p-8 border-2 border-dashed border-pink-200 hover:border-pink-400 rounded-3xl bg-pink-50/20 text-center space-y-4">
+                    <div className="p-8 border-2 border-dashed border-[#DCE4D7] hover:border-pink-400 rounded-3xl bg-[#F4F6F2]/20 text-center space-y-4">
                       <input
                         ref={studioFileInputRef}
                         type="file"
@@ -896,7 +896,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
                         onClick={() => studioFileInputRef.current?.click()}
                         className="cursor-pointer flex flex-col items-center justify-center space-y-2 py-4"
                       >
-                        <div className="w-14 h-14 rounded-2xl bg-white shadow-sm flex items-center justify-center text-pink-500">
+                        <div className="w-14 h-14 rounded-2xl bg-white shadow-sm flex items-center justify-center text-[#698156]">
                           <UploadCloud className="w-7 h-7" />
                         </div>
                         <p className="text-sm font-bold text-gray-800">
@@ -931,16 +931,16 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
               className="bg-[#FDFBF7] rounded-3xl shadow-2xl w-full max-w-5xl max-h-[92vh] flex flex-col my-auto overflow-hidden border border-rose-100"
             >
               {/* Modal Header */}
-              <div className="bg-pink-50/90 border-b border-pink-100 px-6 py-4 flex items-center justify-between flex-shrink-0">
+              <div className="bg-[#F4F6F2]/90 border-b border-[#DCE4D7] px-6 py-4 flex items-center justify-between flex-shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-white flex items-center justify-center text-pink-500 shadow-sm flex-shrink-0">
+                  <div className="w-10 h-10 rounded-2xl bg-white flex items-center justify-center text-[#698156] shadow-sm flex-shrink-0">
                     <Shirt className="w-5 h-5" />
                   </div>
                   <div>
                     <h3 className="font-serif text-lg font-bold text-gray-900">
                       {form.id ? `Change Model Dress (Slot #${form.display_order})` : 'Dress New Homepage Model'}
                     </h3>
-                    <p className="text-xs text-pink-600 font-medium flex items-center gap-1.5">
+                    <p className="text-xs text-[#698156] font-medium flex items-center gap-1.5">
                       <Sparkles className="w-3.5 h-3.5" />
                       Click any catalog dress below — model instantly wears it live
                     </p>
@@ -949,7 +949,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="p-2 rounded-full hover:bg-pink-100 text-gray-500 hover:text-gray-900 transition-all cursor-pointer"
+                  className="p-2 rounded-full hover:bg-[#EBF0E6] text-gray-500 hover:text-gray-900 transition-all cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -964,10 +964,10 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
                   <div className="bg-white rounded-2xl p-4 border border-gray-200/90 shadow-xs space-y-3">
                     <div className="flex items-center justify-between">
                       <label className="text-xs uppercase tracking-wider font-bold text-gray-800 flex items-center gap-1.5">
-                        <ShoppingBag className="w-3.5 h-3.5 text-pink-500" />
+                        <ShoppingBag className="w-3.5 h-3.5 text-[#698156]" />
                         Step 1: Choose Catalog Dress to Wear
                       </label>
-                      <span className="text-[11px] text-pink-600 font-semibold">
+                      <span className="text-[11px] text-[#698156] font-semibold">
                         {filteredProducts.length} dresses available
                       </span>
                     </div>
@@ -995,7 +995,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
                             onClick={() => handleSelectProduct(p)}
                             className={`p-2.5 rounded-xl flex items-center justify-between gap-3 text-xs transition-all cursor-pointer ${
                               isSelected
-                                ? 'bg-pink-50 border-2 border-pink-500 shadow-xs'
+                                ? 'bg-[#F4F6F2] border-2 border-pink-500 shadow-xs'
                                 : 'hover:bg-gray-50 border-2 border-transparent'
                             }`}
                           >
@@ -1007,20 +1007,20 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
                               />
                               <div className="truncate">
                                 <p className="font-bold truncate text-gray-900 text-xs">{p.name}</p>
-                                <p className="text-[11px] text-gray-500 mt-0.5">{p.category} · <span className="font-bold text-[#EC4899]">₹{p.price.toLocaleString('en-IN')}</span></p>
+                                <p className="text-[11px] text-gray-500 mt-0.5">{p.category} · <span className="font-bold text-[#698156]">₹{p.price.toLocaleString('en-IN')}</span></p>
                               </div>
                             </div>
 
                             <div className="flex items-center gap-2 flex-shrink-0">
                               {isSelected ? (
-                                <span className="px-2.5 py-1 rounded-full bg-pink-500 text-white text-[10px] font-bold flex items-center gap-1 shadow-xs">
+                                <span className="px-2.5 py-1 rounded-full bg-[#F4F6F2]0 text-white text-[10px] font-bold flex items-center gap-1 shadow-xs">
                                   <Check className="w-3 h-3" />
                                   <span>Wearing</span>
                                 </span>
                               ) : (
                                 <button
                                   type="button"
-                                  className="px-2.5 py-1 rounded-full bg-gray-100 hover:bg-pink-100 text-gray-700 hover:text-pink-700 text-[10px] font-bold transition-all"
+                                  className="px-2.5 py-1 rounded-full bg-gray-100 hover:bg-[#EBF0E6] text-gray-700 hover:text-[#546944] text-[10px] font-bold transition-all"
                                 >
                                   Wear Dress
                                 </button>
@@ -1035,7 +1035,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
                   {/* Step 2: Outfit Photo / Source Options */}
                   <div className="bg-white rounded-2xl p-4 border border-gray-200/90 shadow-xs space-y-3">
                     <label className="text-xs uppercase tracking-wider font-bold text-gray-800 flex items-center gap-1.5">
-                      <Shirt className="w-3.5 h-3.5 text-pink-500" />
+                      <Shirt className="w-3.5 h-3.5 text-[#698156]" />
                       Step 2: Model Photo & Studio Pose
                     </label>
 
@@ -1045,7 +1045,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
                         type="button"
                         onClick={() => setImageSourceTab('product')}
                         className={`py-1.5 px-1.5 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1 truncate ${
-                          imageSourceTab === 'product' ? 'bg-white text-pink-600 shadow-xs' : 'hover:text-gray-900'
+                          imageSourceTab === 'product' ? 'bg-white text-[#698156] shadow-xs' : 'hover:text-gray-900'
                         }`}
                       >
                         <Sparkles className="w-3 h-3 flex-shrink-0" />
@@ -1141,7 +1141,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
                               }))}
                               className={`h-20 rounded-xl border p-1 flex flex-col items-center justify-end relative transition-all cursor-pointer bg-gray-50/50 ${
                                 isSelected
-                                  ? 'border-pink-500 ring-2 ring-pink-300 bg-pink-50/40'
+                                  ? 'border-pink-500 ring-2 ring-pink-300 bg-[#F4F6F2]/40'
                                   : 'border-gray-200 hover:border-gray-300'
                               }`}
                             >
@@ -1151,7 +1151,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
                                 className="h-full w-auto object-contain object-bottom pointer-events-none"
                               />
                               {isSelected && (
-                                <div className="absolute top-1 right-1 w-3.5 h-3.5 bg-pink-500 text-white rounded-full flex items-center justify-center text-[9px]">
+                                <div className="absolute top-1 right-1 w-3.5 h-3.5 bg-[#F4F6F2]0 text-white rounded-full flex items-center justify-center text-[9px]">
                                   ✓
                                 </div>
                               )}
@@ -1173,7 +1173,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
                         />
                         <div
                           onClick={() => fileInputRef.current?.click()}
-                          className="border-2 border-dashed border-pink-200 hover:border-pink-400 bg-pink-50/30 rounded-2xl p-4 text-center cursor-pointer transition-all flex flex-col items-center gap-1.5"
+                          className="border-2 border-dashed border-[#DCE4D7] hover:border-pink-400 bg-[#F4F6F2]/30 rounded-2xl p-4 text-center cursor-pointer transition-all flex flex-col items-center gap-1.5"
                         >
                           <UploadCloud className="w-6 h-6 text-pink-400" />
                           <p className="text-xs font-bold text-gray-700">
@@ -1232,7 +1232,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
                     {/* Color Theme Selector */}
                     <div>
                       <label className="block text-xs uppercase tracking-wider font-bold text-gray-700 mb-2 flex items-center gap-1.5">
-                        <Palette className="w-3.5 h-3.5 text-pink-500" />
+                        <Palette className="w-3.5 h-3.5 text-[#698156]" />
                         Theme Highlight Color
                       </label>
                       <div className="flex flex-wrap items-center gap-2">
@@ -1318,7 +1318,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
                       <div className="space-y-1 relative z-10 text-center sm:text-left">
                         <span
                           className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-white shadow-xs"
-                          style={{ backgroundColor: form.color || '#EC4899' }}
+                          style={{ backgroundColor: form.color || '#698156' }}
                         >
                           {form.label || 'Outfit Title'}
                         </span>
@@ -1343,7 +1343,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
                           }}
                         />
                         {form.productName && (
-                          <span className="mt-2 text-[10px] bg-white/95 backdrop-blur-sm px-3 py-1 rounded-full border border-pink-200 text-pink-700 font-bold shadow-xs">
+                          <span className="mt-2 text-[10px] bg-white/95 backdrop-blur-sm px-3 py-1 rounded-full border border-[#DCE4D7] text-[#546944] font-bold shadow-xs">
                             👗 Wearing: {form.productName}
                           </span>
                         )}
@@ -1356,7 +1356,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
                             {form.productName || form.label || 'Trending Dress'}
                           </span>
                           {form.price > 0 && (
-                            <span className="font-bold text-[#EC4899]">
+                            <span className="font-bold text-[#698156]">
                               ₹{form.price.toLocaleString('en-IN')}
                             </span>
                           )}
@@ -1368,7 +1368,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
                             rel="noreferrer"
                             title="Test live storefront checkout in new tab"
                             className="w-full py-2 rounded-xl text-white text-xs font-bold text-center shadow-xs flex items-center justify-center gap-1.5 hover:opacity-90 active:scale-98 transition-all cursor-pointer"
-                            style={{ backgroundColor: form.color || '#EC4899' }}
+                            style={{ backgroundColor: form.color || '#698156' }}
                           >
                             <span>Test Live Checkout</span>
                             <ArrowUpRight className="w-3.5 h-3.5" />
@@ -1376,7 +1376,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
                         ) : (
                           <div
                             className="w-full py-2 rounded-xl text-white text-xs font-bold text-center shadow-xs flex items-center justify-center gap-1.5"
-                            style={{ backgroundColor: form.color || '#EC4899' }}
+                            style={{ backgroundColor: form.color || '#698156' }}
                           >
                             <span>Shop This Look</span>
                             <ArrowUpRight className="w-3.5 h-3.5" />
@@ -1398,7 +1398,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
                     <button
                       type="submit"
                       disabled={isSaving}
-                      className="flex-[2] py-3 px-6 bg-[#EC4899] hover:bg-pink-600 text-white rounded-full text-xs font-bold uppercase tracking-wider shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
+                      className="flex-[2] py-3 px-6 bg-[#698156] hover:bg-[#546944] text-white rounded-full text-xs font-bold uppercase tracking-wider shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
                     >
                       {isSaving ? (
                         <>

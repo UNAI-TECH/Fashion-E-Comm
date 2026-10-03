@@ -62,7 +62,7 @@ export function AdminLayout() {
 
       {/* Sidebar */}
       <motion.div
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#1A1A1A] text-white shadow-xl transform transition-transform lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#1C2417] text-white shadow-xl transform transition-transform lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-800">
           <NavLink to="/admin/dashboard" className="flex items-center group py-1">
@@ -81,7 +81,7 @@ export function AdminLayout() {
                onClick={() => setIsMobileMenuOpen(false)}
                className={({ isActive }) => `
                  flex items-center gap-3 px-4 py-3 rounded-xl transition-colors
-                 ${isActive ? 'bg-[#D4AF37] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white'}
+                 ${isActive ? 'bg-[#698156] text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white'}
                `}
              >
                <item.icon className="w-5 h-5 flex-shrink-0" />
@@ -114,7 +114,7 @@ export function AdminLayout() {
             </button>
             
             <div className="relative hidden sm:block">
-              <div className="flex items-center bg-gray-100 rounded-full px-4 py-2 border border-transparent focus-within:border-[#D4AF37] focus-within:bg-white transition-all">
+              <div className="flex items-center bg-gray-100 rounded-full px-4 py-2 border border-transparent focus-within:border-[#698156] focus-within:bg-white transition-all">
                 <Search className="w-4 h-4 text-gray-400 mr-2" />
                 <input
                   type="text"
@@ -141,7 +141,7 @@ export function AdminLayout() {
                           onClick={() => setSearchQuery('')}
                           className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors"
                         >
-                          <item.icon className="w-4 h-4 text-[#D4AF37]" />
+                          <item.icon className="w-4 h-4 text-[#698156]" />
                           <span className="text-sm font-medium text-gray-700">{item.name}</span>
                         </NavLink>
                       ))
@@ -158,7 +158,7 @@ export function AdminLayout() {
             <div className="relative">
               <button 
                 onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-                className={`relative p-2 rounded-full transition-colors ${isNotificationsOpen ? 'bg-gray-100 text-[#D4AF37]' : 'text-gray-400 hover:text-gray-600'}`}
+                className={`relative p-2 rounded-full transition-colors ${isNotificationsOpen ? 'bg-gray-100 text-[#698156]' : 'text-gray-400 hover:text-gray-600'}`}
               >
                 <Bell className="w-5 h-5" />
                 {notifications.some(n => n.unread) && (
@@ -176,7 +176,7 @@ export function AdminLayout() {
                   >
                     <div className="px-4 py-3 border-b border-gray-50 flex items-center justify-between">
                       <span className="font-bold text-sm">Notifications</span>
-                      <button className="text-[10px] text-[#D4AF37] font-bold uppercase tracking-wider">Mark all read</button>
+                      <button className="text-[10px] text-[#698156] font-bold uppercase tracking-wider">Mark all read</button>
                     </div>
                     <div className="max-h-80 overflow-y-auto">
                       {notifications.map(n => (
@@ -195,7 +195,7 @@ export function AdminLayout() {
               to="/admin/settings"
               className="flex items-center gap-3 pl-4 border-l border-gray-200 group"
             >
-              <div className="w-8 h-8 rounded-full bg-[#D4AF37] text-white flex items-center justify-center font-bold text-sm shadow-sm group-hover:scale-110 transition-transform">
+              <div className="w-8 h-8 rounded-full bg-[#698156] text-white flex items-center justify-center font-bold text-sm shadow-sm group-hover:scale-110 transition-transform">
                 SA
               </div>
               <div className="hidden sm:block">

@@ -37,7 +37,7 @@ const BENTO_CATEGORIES: BentoCategory[] = [
     image: '/saree_royal_maroon.jpg',
     colSpan: 'col-span-1 sm:col-span-6 lg:col-span-4',
     height: 'h-[190px] sm:h-[360px] lg:h-[400px]',
-    accentGlow: 'from-[#800000]/40',
+    accentGlow: 'from-[#698156]/40',
   },
   {
     id: 'lehengas',
@@ -98,7 +98,7 @@ const BENTO_CATEGORIES: BentoCategory[] = [
 
 export function FeaturedCategories() {
   return (
-    <section className="w-full bg-[#FCFBF8] py-10 sm:py-16 border-b border-gray-100 select-none relative overflow-hidden">
+    <section className="w-full bg-[#FFFFFF] py-10 sm:py-16 border-b border-gray-100 select-none relative overflow-hidden">
       {/* Subtle ambient background glow */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] bg-gradient-to-r from-orange-100/30 via-amber-100/30 to-rose-100/40 blur-3xl pointer-events-none -z-0" />
 
@@ -183,7 +183,7 @@ export function FeaturedCategories() {
                   <div className={`w-7 h-7 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-white/20 backdrop-blur-md border border-white/40 flex items-center justify-center text-white ${
                     cat.isTrending
                       ? 'group-hover:bg-gradient-to-tr group-hover:from-orange-500 group-hover:to-amber-500 group-hover:border-amber-300'
-                      : 'group-hover:bg-[#800000] group-hover:border-[#800000]'
+                      : 'group-hover:bg-[#698156] group-hover:border-[#698156]'
                   } group-hover:scale-110 group-active:scale-95 transition-all duration-300 flex-shrink-0 shadow-lg`}>
                     <ArrowUpRight className="w-3.5 h-3.5 sm:w-5 sm:h-5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                   </div>
@@ -191,7 +191,7 @@ export function FeaturedCategories() {
 
                 {/* Hover Border Ring Glow */}
                 <div className={`absolute inset-0 rounded-2xl sm:rounded-3xl border border-white/10 ${
-                  cat.isTrending ? 'group-hover:border-orange-400/80' : 'group-hover:border-[#D4AF37]/60'
+                  cat.isTrending ? 'group-hover:border-orange-400/80' : 'group-hover:border-[#698156]/60'
                 } pointer-events-none transition-all duration-300`} />
               </Link>
             </motion.div>

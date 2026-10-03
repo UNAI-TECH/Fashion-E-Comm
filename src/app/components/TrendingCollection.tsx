@@ -19,7 +19,7 @@ export function TrendingCollection({ products, isLoading }: { products: Product[
     .slice(0, 16);
 
   return (
-    <section className="py-20 px-4" style={{ background: 'linear-gradient(to bottom, #FFFFFF, #FFF0F5)' }}>
+    <section className="py-20 px-4" style={{ background: 'linear-gradient(to bottom, #FFFFFF, #F4F6F2)' }}>
       <div className="max-w-7xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -54,7 +54,7 @@ export function TrendingCollection({ products, isLoading }: { products: Product[
         <div className="text-center mt-10">
           <Link
             to="/category/trending"
-            className="inline-flex items-center gap-2 px-8 py-3 bg-[#800000] text-white rounded-full font-bold text-sm hover:bg-[#600000] transition-colors shadow-md"
+            className="inline-flex items-center gap-2 px-8 py-3 bg-[#698156] text-white rounded-full font-bold text-sm hover:bg-[#600000] transition-colors shadow-md"
           >
             View All Trending
             <Flame className="w-4 h-4" />

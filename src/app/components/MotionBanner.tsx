@@ -36,7 +36,7 @@ export function MotionBanner() {
               whileInView={{ width: '80px' }}
               viewport={{ once: true }}
               transition={{ delay: 0.3, duration: 0.8 }}
-              className="h-1 bg-[#D4AF37]"
+              className="h-1 bg-[#698156]"
             />
           </motion.div>
 
@@ -51,7 +51,7 @@ export function MotionBanner() {
             <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl text-[#1A1A1A] leading-tight">
               New Season
               <br />
-              <span className="text-[#800000]">Collection</span>
+              <span className="text-[#698156]">Collection</span>
             </h2>
           </motion.div>
 
@@ -78,7 +78,7 @@ export function MotionBanner() {
               onClick={() => window.location.href = '/category/all'}
               whileHover={{ scale: 1.03, x: 5 }}
               whileTap={{ scale: 0.97 }}
-              className="group px-6 py-3.5 bg-[#1A1A1A] text-white rounded-none flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-all hover:bg-[#800000]"
+              className="group px-6 py-3.5 bg-[#1A1A1A] text-white rounded-none flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-all hover:bg-[#698156]"
             >
               Shop Collection
               <motion.div

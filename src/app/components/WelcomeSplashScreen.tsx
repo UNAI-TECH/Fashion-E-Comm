@@ -44,7 +44,7 @@ export function WelcomeSplashScreen() {
           aria-label="Welcome to Aanya Fashions"
         >
           {/* Subtle luxury ambient glow in background */}
-          <div className="absolute w-96 h-96 rounded-full bg-[#D4AF37]/10 blur-3xl pointer-events-none" />
+          <div className="absolute w-96 h-96 rounded-full bg-[#698156]/10 blur-3xl pointer-events-none" />
 
           <div className="relative w-full max-w-sm flex flex-col items-center justify-center text-center">
             {/* Big Transparent Logo */}
@@ -78,9 +78,9 @@ export function WelcomeSplashScreen() {
               transition={{ delay: 0.38, duration: 0.45, ease: 'easeOut' }}
               className="text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-widest mt-3 flex items-center justify-center gap-1.5"
             >
-              <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
+              <Sparkles className="w-3.5 h-3.5 text-[#698156]" />
               <span>Handcrafted Elegance & Designer Wear</span>
-              <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
+              <Sparkles className="w-3.5 h-3.5 text-[#698156]" />
             </motion.p>
 
             {/* Enter Store CTA Button */}
@@ -97,7 +97,7 @@ export function WelcomeSplashScreen() {
                   e.stopPropagation();
                   handleDismiss();
                 }}
-                className="w-full py-4 bg-[#800000] hover:bg-black text-white font-black rounded-full text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 transition-all cursor-pointer border border-[#800000]"
+                className="w-full py-4 bg-[#698156] hover:bg-black text-white font-black rounded-full text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 transition-all cursor-pointer border border-[#698156]"
               >
                 <span>Enter Store</span>
                 <ArrowRight className="w-4 h-4 text-white" />

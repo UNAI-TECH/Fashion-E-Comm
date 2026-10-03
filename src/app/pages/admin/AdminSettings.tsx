@@ -29,7 +29,7 @@ export function AdminSettings() {
                     : 'text-gray-600 hover:bg-white hover:text-gray-900 border border-transparent'
                 }`}
               >
-                <item.icon className={`w-4 h-4 ${activeTab === item.id ? 'text-[#D4AF37]' : 'text-gray-400'}`} />
+                <item.icon className={`w-4 h-4 ${activeTab === item.id ? 'text-[#698156]' : 'text-gray-400'}`} />
                 {item.label}
               </button>
             ))}
@@ -55,11 +55,11 @@ export function AdminSettings() {
                       <div className="space-y-4 max-w-md">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                          <input type="text" defaultValue="Super Admin" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#D4AF37] focus:border-[#D4AF37]" />
+                          <input type="text" defaultValue="Super Admin" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#698156] focus:border-[#698156]" />
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                          <input type="email" defaultValue="admin@afforx.com" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#D4AF37] focus:border-[#D4AF37]" />
+                          <input type="email" defaultValue="admin@afforx.com" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#698156] focus:border-[#698156]" />
                         </div>
                       </div>
                     </div>
@@ -75,11 +75,11 @@ export function AdminSettings() {
                       <div className="space-y-4 max-w-md">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
-                          <input type="password" placeholder="••••••••" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#D4AF37]" />
+                          <input type="password" placeholder="••••••••" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#698156]" />
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
-                          <input type="password" placeholder="••••••••" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#D4AF37]" />
+                          <input type="password" placeholder="••••••••" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#698156]" />
                         </div>
                       </div>
                     </div>
@@ -95,15 +95,15 @@ export function AdminSettings() {
                       <div className="space-y-4 max-w-md">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Store Name</label>
-                          <input type="text" defaultValue="AfforX Fashion" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#D4AF37]" />
+                          <input type="text" defaultValue="AfforX Fashion" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#698156]" />
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Currency Symbol</label>
-                          <input type="text" defaultValue="₹" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#D4AF37]" />
+                          <input type="text" defaultValue="₹" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#698156]" />
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Flat Delivery Fee (₹)</label>
-                          <input type="number" defaultValue="49" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#D4AF37]" />
+                          <input type="number" defaultValue="49" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#698156]" />
                         </div>
                       </div>
                     </div>
@@ -119,11 +119,11 @@ export function AdminSettings() {
                       <div className="space-y-4 max-w-md">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Instagram URL</label>
-                          <input type="url" placeholder="https://instagram.com/..." className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#D4AF37]" />
+                          <input type="url" placeholder="https://instagram.com/..." className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#698156]" />
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Facebook URL</label>
-                          <input type="url" placeholder="https://facebook.com/..." className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#D4AF37]" />
+                          <input type="url" placeholder="https://facebook.com/..." className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#698156]" />
                         </div>
                       </div>
                     </div>
@@ -131,7 +131,7 @@ export function AdminSettings() {
                 )}
 
                 <div className="pt-6 border-t border-gray-100 flex justify-end">
-                   <button className="flex items-center gap-2 px-6 py-2 bg-[#1A1A1A] text-white rounded-lg hover:bg-black transition-colors font-medium">
+                   <button className="flex items-center gap-2 px-6 py-2 bg-[#1A1A1A] text-white rounded-lg hover:bg-[#546944] transition-colors font-medium">
                      <Save className="w-4 h-4" />
                      Save Changes
                    </button>

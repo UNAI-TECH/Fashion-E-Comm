@@ -192,7 +192,7 @@ export function HeroSection() {
             <Link
               to={activeModel.link}
               className="inline-flex items-center gap-2.5 px-6 py-2.5 rounded-full text-white font-sans text-xs font-bold uppercase tracking-wider shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all"
-              style={{ backgroundColor: activeModel?.color || '#EC4899' }}
+              style={{ backgroundColor: activeModel?.color || '#698156' }}
             >
               <span>Shop This Look</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
@@ -300,7 +300,7 @@ export function HeroSection() {
             onClick={() => setActiveIndex(i)}
             className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
               i === activeIndex
-                ? 'w-7 bg-[#EC4899] shadow-sm'
+                ? 'w-7 bg-[#698156] shadow-sm'
                 : 'w-2 bg-gray-400/50 hover:bg-gray-500'
             }`}
             title={`Slot #${i + 1}: ${m.label}`}

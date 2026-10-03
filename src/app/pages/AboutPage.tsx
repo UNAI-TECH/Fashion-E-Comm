@@ -16,7 +16,7 @@ export function AboutPage() {
             <motion.span
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="inline-block px-6 py-2 bg-[#FFF0F5] text-[#D4AF37] rounded-full text-sm tracking-wider mb-4"
+              className="inline-block px-6 py-2 bg-[#F4F6F2] text-[#698156] rounded-full text-sm tracking-wider mb-4"
             >
               OUR JOURNEY
             </motion.span>
@@ -48,15 +48,15 @@ export function AboutPage() {
               {/* Stats Grid */}
               <div className="grid grid-cols-3 gap-6 pt-6 border-t border-gray-200">
                 <div>
-                  <h4 className="font-serif text-3xl text-[#D4AF37] font-bold">10k+</h4>
+                  <h4 className="font-serif text-3xl text-[#698156] font-bold">10k+</h4>
                   <p className="text-sm text-gray-500">Happy Customers</p>
                 </div>
                 <div>
-                  <h4 className="font-serif text-3xl text-[#D4AF37] font-bold">150+</h4>
+                  <h4 className="font-serif text-3xl text-[#698156] font-bold">150+</h4>
                   <p className="text-sm text-gray-500">Artisan Partners</p>
                 </div>
                 <div>
-                  <h4 className="font-serif text-3xl text-[#D4AF37] font-bold">100%</h4>
+                  <h4 className="font-serif text-3xl text-[#698156] font-bold">100%</h4>
                   <p className="text-sm text-gray-500">Handcrafted</p>
                 </div>
               </div>
@@ -73,7 +73,7 @@ export function AboutPage() {
                 whileHover={{ y: -8 }}
                 className="p-8 bg-[#FDFBF7] rounded-[2.5rem] shadow-sm hover:shadow-md transition-shadow"
               >
-                <div className="w-12 h-12 bg-[#FFF0F5] text-[#D4AF37] rounded-full flex items-center justify-center mx-auto mb-6 text-xl font-serif">1</div>
+                <div className="w-12 h-12 bg-[#F4F6F2] text-[#698156] rounded-full flex items-center justify-center mx-auto mb-6 text-xl font-serif">1</div>
                 <h3 className="font-serif text-2xl text-[#1A1A1A] mb-4">Ethical Sourcing</h3>
                 <p className="text-gray-600">We work directly with traditional weavers, ensuring fair wages, healthy working conditions, and direct support to rural communities.</p>
               </motion.div>
@@ -82,7 +82,7 @@ export function AboutPage() {
                 whileHover={{ y: -8 }}
                 className="p-8 bg-[#FDFBF7] rounded-[2.5rem] shadow-sm hover:shadow-md transition-shadow"
               >
-                <div className="w-12 h-12 bg-[#FFF0F5] text-[#D4AF37] rounded-full flex items-center justify-center mx-auto mb-6 text-xl font-serif">2</div>
+                <div className="w-12 h-12 bg-[#F4F6F2] text-[#698156] rounded-full flex items-center justify-center mx-auto mb-6 text-xl font-serif">2</div>
                 <h3 className="font-serif text-2xl text-[#1A1A1A] mb-4">Uncompromising Quality</h3>
                 <p className="text-gray-600">Every silk fiber, zari embroidery thread, and hand-painted design is rigorously inspected to deliver lasting premium quality.</p>
               </motion.div>
@@ -91,7 +91,7 @@ export function AboutPage() {
                 whileHover={{ y: -8 }}
                 className="p-8 bg-[#FDFBF7] rounded-[2.5rem] shadow-sm hover:shadow-md transition-shadow"
               >
-                <div className="w-12 h-12 bg-[#FFF0F5] text-[#D4AF37] rounded-full flex items-center justify-center mx-auto mb-6 text-xl font-serif">3</div>
+                <div className="w-12 h-12 bg-[#F4F6F2] text-[#698156] rounded-full flex items-center justify-center mx-auto mb-6 text-xl font-serif">3</div>
                 <h3 className="font-serif text-2xl text-[#1A1A1A] mb-4">Timeless Designs</h3>
                 <p className="text-gray-600">We avoid fast fashion fads. Our curated collections are designed to be loved, treasured, and worn for a lifetime.</p>
               </motion.div>

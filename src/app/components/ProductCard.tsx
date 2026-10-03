@@ -65,17 +65,17 @@ export function ProductCard({
       {/* Top Floating Controls: Badge & Wishlist Button */}
       <div className="absolute top-3 inset-x-3 z-10 flex items-center justify-between pointer-events-none">
         {badge ? (
-          <span className="px-3 py-1 bg-[#D4AF37] text-white text-[11px] font-bold tracking-wider rounded-full shadow-sm pointer-events-auto">
+          <span className="px-3 py-1 bg-[#698156] text-white text-[11px] font-bold tracking-wider rounded-full shadow-sm pointer-events-auto">
             {badge}
           </span>
         ) : <span />}
 
         <button
           onClick={handleWishlistToggle}
-          className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/90 hover:bg-white backdrop-blur-md flex items-center justify-center shadow-md text-gray-700 hover:text-[#800000] transition-all cursor-pointer pointer-events-auto active:scale-90"
+          className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/90 hover:bg-white backdrop-blur-md flex items-center justify-center shadow-md text-gray-700 hover:text-[#698156] transition-all cursor-pointer pointer-events-auto active:scale-90"
           aria-label={isInWishlist(id) ? "Remove from wishlist" : "Add to wishlist"}
         >
-          <Heart className={`w-4 h-4 transition-colors ${isInWishlist(id) ? 'fill-[#800000] text-[#800000]' : 'text-gray-600'}`} />
+          <Heart className={`w-4 h-4 transition-colors ${isInWishlist(id) ? 'fill-[#698156] text-[#698156]' : 'text-gray-600'}`} />
         </button>
       </div>
 
@@ -96,7 +96,7 @@ export function ProductCard({
       <div className="pt-3 pb-2 px-1 flex flex-col flex-1 justify-between gap-2">
         <div className="space-y-1.5">
           <Link to={`/product/${id}`}>
-            <h3 className="text-sm sm:text-base font-medium text-gray-800 line-clamp-2 hover:text-[#800000] transition-colors leading-tight min-h-[2.4rem]">
+            <h3 className="text-sm sm:text-base font-medium text-gray-800 line-clamp-2 hover:text-[#698156] transition-colors leading-tight min-h-[2.4rem]">
               {name}
             </h3>
           </Link>
@@ -110,7 +110,7 @@ export function ProductCard({
               )}
             </div>
             <div className="flex items-center gap-0.5 flex-shrink-0">
-              <Star className="w-3.5 h-3.5 fill-[#D4AF37] text-[#D4AF37]" />
+              <Star className="w-3.5 h-3.5 fill-[#698156] text-[#698156]" />
               <span className="text-xs text-gray-600 font-semibold">{rating}</span>
             </div>
           </div>
@@ -122,7 +122,7 @@ export function ProductCard({
               onClick={handleAddToCart}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.96 }}
-              className="w-full py-2 px-1.5 bg-white border border-[#800000] text-[#800000] hover:bg-[#FFF0F5] rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition-all shadow-xs cursor-pointer"
+              className="w-full py-2 px-1.5 bg-white border border-[#698156] text-[#698156] hover:bg-[#F4F6F2] rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition-all shadow-xs cursor-pointer"
               title="Add to Cart"
             >
               <ShoppingBag className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
@@ -134,7 +134,7 @@ export function ProductCard({
               onClick={handleBuyNow}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.96 }}
-              className="w-full py-2 px-1.5 bg-[#800000] hover:bg-[#680000] text-white rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition-all shadow-sm shadow-[#800000]/20 cursor-pointer"
+              className="w-full py-2 px-1.5 bg-[#698156] hover:bg-[#546944] text-white rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition-all shadow-sm shadow-[#698156]/20 cursor-pointer"
               title="Buy Now"
             >
               <span className="truncate">Buy Now</span>

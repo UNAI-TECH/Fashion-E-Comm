@@ -45,7 +45,7 @@ export function FlashSale({ products, isLoading }: { products: Product[], isLoad
   );
 
   return (
-    <section className="py-20 px-4 bg-gradient-to-br from-[#FFD6E8] via-[#FFF0F5] to-[#E6E6FA] relative overflow-hidden">
+    <section className="py-20 px-4 bg-gradient-to-br from-[#DCE4D7] via-[#F4F6F2] to-[#E6E6FA] relative overflow-hidden">
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {[...Array(10)].map((_, i) => (
@@ -85,7 +85,7 @@ export function FlashSale({ products, isLoading }: { products: Product[], isLoad
             transition={{ duration: 2, repeat: Infinity }}
             className="inline-block mb-4"
           >
-            <Zap className="w-16 h-16 text-[#D4AF37] fill-[#D4AF37]" />
+            <Zap className="w-16 h-16 text-[#698156] fill-[#698156]" />
           </motion.div>
           <h2 className="font-serif text-4xl sm:text-5xl md:text-6xl mb-4 text-[#1A1A1A]">
             Flash Sale
@@ -97,7 +97,7 @@ export function FlashSale({ products, isLoading }: { products: Product[], isLoad
               { label: 'Seconds', value: timeLeft.seconds },
             ].map((item, index) => (
               <div key={item.label} className="bg-white/80 backdrop-blur-md rounded-2xl p-4 sm:p-6 shadow-lg min-w-[80px]">
-                <div className="text-3xl font-serif text-[#D4AF37]">
+                <div className="text-3xl font-serif text-[#698156]">
                   {String(item.value).padStart(2, '0')}
                 </div>
                 <div className="text-xs text-gray-600 mt-2 uppercase tracking-widest">{item.label}</div>

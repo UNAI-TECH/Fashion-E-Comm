@@ -135,7 +135,7 @@ export function AdminLogin() {
                   autoFocus
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full pl-10 pr-3.5 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#D4AF37] focus:border-[#D4AF37] text-sm bg-gray-50/50 focus:bg-white transition-all outline-none"
+                  className="block w-full pl-10 pr-3.5 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#698156] focus:border-[#698156] text-sm bg-gray-50/50 focus:bg-white transition-all outline-none"
                   placeholder="unaitech2025@gmail.com"
                 />
               </div>
@@ -154,7 +154,7 @@ export function AdminLogin() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#D4AF37] focus:border-[#D4AF37] text-sm bg-gray-50/50 focus:bg-white transition-all outline-none"
+                  className="block w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#698156] focus:border-[#698156] text-sm bg-gray-50/50 focus:bg-white transition-all outline-none"
                   placeholder="••••••••"
                 />
                 <button
@@ -173,7 +173,7 @@ export function AdminLogin() {
                 <input
                   type="checkbox"
                   defaultChecked
-                  className="h-4 w-4 text-[#1A1A1A] rounded border-gray-300 focus:ring-[#D4AF37] accent-[#1A1A1A]"
+                  className="h-4 w-4 text-[#1A1A1A] rounded border-gray-300 focus:ring-[#698156] accent-[#1A1A1A]"
                 />
                 <span>Remember this device</span>
               </label>
@@ -185,11 +185,11 @@ export function AdminLogin() {
                 whileTap={{ scale: 0.99 }}
                 type="submit"
                 disabled={isLoading}
-                className="w-full flex justify-center items-center gap-2 py-3.5 px-4 border border-transparent rounded-xl shadow-lg text-sm font-bold text-white bg-[#800000] hover:bg-[#680000] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#800000] transition-all cursor-pointer disabled:opacity-70 shadow-[#800000]/20"
+                className="w-full flex justify-center items-center gap-2 py-3.5 px-4 border border-transparent rounded-xl shadow-lg text-sm font-bold text-white bg-[#698156] hover:bg-[#680000] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#698156] transition-all cursor-pointer disabled:opacity-70 shadow-[#698156]/20"
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" />
+                    <Loader2 className="w-4 h-4 animate-spin text-[#698156]" />
                     <span>Verifying Credentials...</span>
                   </>
                 ) : (

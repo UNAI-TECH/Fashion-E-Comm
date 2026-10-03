@@ -22,7 +22,7 @@ const HighlightText = ({ text, highlight }: { text: string; highlight: string })
     <>
       {parts.map((part, i) =>
         regex.test(part) ? (
-          <span key={i} className="text-[#800000] font-black bg-[#800000]/10 px-0.5 rounded">{part}</span>
+          <span key={i} className="text-[#698156] font-black bg-[#698156]/10 px-0.5 rounded">{part}</span>
         ) : (
           <span key={i}>{part}</span>
         )
@@ -226,7 +226,7 @@ export function Navigation() {
                 onFocus={() => setIsSearchDropdownOpen(true)}
                 onBlur={() => setTimeout(() => setIsSearchDropdownOpen(false), 200)}
                 onKeyDown={e => { if (e.key === 'Enter') handleSearchSubmit(searchQuery); }}
-                className="w-full pl-10 pr-3 py-2 text-xs border border-gray-300 rounded-lg bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#800000] focus:ring-1 focus:ring-[#800000]/20 transition-all"
+                className="w-full pl-10 pr-3 py-2 text-xs border border-gray-300 rounded-lg bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#698156] focus:ring-1 focus:ring-[#698156]/20 transition-all"
               />
             </div>
 
@@ -241,7 +241,7 @@ export function Navigation() {
                 >
                   {isSearching ? (
                     <div className="flex justify-center py-6">
-                      <div className="w-6 h-6 rounded-full border-2 border-[#800000]/20 border-t-[#800000] animate-spin" />
+                      <div className="w-6 h-6 rounded-full border-2 border-[#698156]/20 border-t-[#698156] animate-spin" />
                     </div>
                   ) : searchResults.length > 0 ? (
                     <div className="space-y-4">
@@ -253,10 +253,10 @@ export function Navigation() {
                               <button
                                 key={suggestion}
                                 onClick={() => handleSearchSubmit(suggestion)}
-                                className="w-full flex items-center gap-2 py-1.5 px-2 rounded-lg hover:bg-rose-50 transition-colors group text-left"
+                                className="w-full flex items-center gap-2 py-1.5 px-2 rounded-lg hover:bg-[#F4F6F2] transition-colors group text-left"
                               >
                                 <Search className="w-3.5 h-3.5 text-gray-300 flex-shrink-0" />
-                                <span className="flex-1 text-xs font-medium text-gray-700 group-hover:text-[#800000] capitalize">
+                                <span className="flex-1 text-xs font-medium text-gray-700 group-hover:text-[#698156] capitalize">
                                   <HighlightText text={suggestion} highlight={searchQuery} />
                                 </span>
                               </button>
@@ -278,10 +278,10 @@ export function Navigation() {
                               key={product.id}
                               to={`/product/${product.id}`}
                               onClick={() => { addToHistory(product.name); setIsSearchDropdownOpen(false); setSearchQuery(''); }}
-                              className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-rose-50 transition-colors group"
+                              className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-[#F4F6F2] transition-colors group"
                             >
                               <div>
-                                <p className="text-xs font-medium text-gray-800 group-hover:text-[#800000] transition-colors">
+                                <p className="text-xs font-medium text-gray-800 group-hover:text-[#698156] transition-colors">
                                   <HighlightText text={product.name} highlight={searchQuery} />
                                 </p>
                               </div>
@@ -305,7 +305,7 @@ export function Navigation() {
             <motion.button
               whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }}
               onClick={() => setIsWishlistOpen(true)}
-              className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-[#800000] transition-colors cursor-pointer"
+              className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-[#698156] transition-colors cursor-pointer"
               aria-label="Wishlist"
             >
               <Heart className="w-5 h-5" />
@@ -315,7 +315,7 @@ export function Navigation() {
             <Link to="/orders">
               <motion.div
                 whileHover={{ scale: 1.08 }}
-                className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-[#800000] transition-colors cursor-pointer"
+                className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-[#698156] transition-colors cursor-pointer"
               >
                 <Package className="w-5 h-5" />
                 <span className="text-[10px] font-semibold">Orders</span>
@@ -326,7 +326,7 @@ export function Navigation() {
             <motion.button
               whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }}
               onClick={() => setIsAccountOpen(true)}
-              className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-[#800000] transition-colors cursor-pointer"
+              className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-[#698156] transition-colors cursor-pointer"
               aria-label="Account"
             >
               {profileImage ? (
@@ -377,13 +377,13 @@ export function Navigation() {
                 whileHover={{ scale: 1.08 }}
                 whileTap={{ scale: 0.92 }}
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="w-9 h-9 flex items-center justify-center bg-[#FEF5E7] border border-[#EAD5A0]/80 text-[#800000] rounded-full shadow-sm hover:bg-[#EAD5A0]/30 transition-all"
+                className="w-9 h-9 flex items-center justify-center bg-[#F4F6F2] border border-[#DCE4D7]/80 text-[#698156] rounded-full shadow-sm hover:bg-[#DCE4D7]/30 transition-all"
                 aria-label="Toggle Menu Features"
               >
                 {isMobileMenuOpen ? (
-                  <X className="w-[18px] h-[18px] text-[#800000]" />
+                  <X className="w-[18px] h-[18px] text-[#698156]" />
                 ) : (
-                  <Menu className="w-[18px] h-[18px] text-[#800000]" />
+                  <Menu className="w-[18px] h-[18px] text-[#698156]" />
                 )}
               </motion.button>
             </div>
@@ -413,8 +413,8 @@ export function Navigation() {
                   onClick={() => setIsMobileCollectionOpen(false)}
                   className={`text-[10px] font-bold px-3 py-1.5 rounded-full border transition-all ${
                     location.pathname === item.path
-                      ? 'bg-[#800000] text-white border-[#800000]'
-                      : 'bg-gray-50 hover:bg-[#FFF0F5] text-gray-800 hover:text-[#800000] border-gray-200/80 hover:border-[#800000]/30'
+                      ? 'bg-[#698156] text-white border-[#698156]'
+                      : 'bg-gray-50 hover:bg-[#F4F6F2] text-gray-800 hover:text-[#698156] border-gray-200/80 hover:border-[#698156]/30'
                   }`}
                 >
                   {item.name}
@@ -539,7 +539,7 @@ export function Navigation() {
                   type="text"
                   autoFocus
                   placeholder="Search women's wear..."
-                  className="w-full pl-11 pr-10 py-3.5 bg-rose-50 rounded-2xl text-sm text-gray-800 placeholder:text-rose-300 outline-none focus:bg-white focus:ring-2 focus:ring-[#800000]/25 border border-rose-100 focus:border-[#800000]/30 transition-all"
+                  className="w-full pl-11 pr-10 py-3.5 bg-[#F4F6F2] rounded-2xl text-sm text-gray-800 placeholder:text-[#698156]/50 outline-none focus:bg-white focus:ring-2 focus:ring-[#698156]/25 border border-[#DCE4D7] focus:border-[#698156]/30 transition-all"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleSearchSubmit(searchQuery); }}
@@ -589,7 +589,7 @@ export function Navigation() {
                     <div>
                       <div className="flex items-center justify-between mb-3">
                         <p className="text-sm font-semibold text-gray-800">History</p>
-                        <button onClick={clearHistory} className="text-xs font-medium text-[#800000] hover:underline">
+                        <button onClick={clearHistory} className="text-xs font-medium text-[#698156] hover:underline">
                           Clear all
                         </button>
                       </div>
@@ -597,7 +597,7 @@ export function Navigation() {
                         {searchHistory.map((item) => (
                           <div
                             key={item}
-                            className="flex items-center gap-3 py-3 px-1 group hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
+                            className="flex items-center gap-3 py-3 px-1 group hover:bg-[#F4F6F2] rounded-xl transition-colors cursor-pointer"
                             onClick={() => handleSearchSubmit(item)}
                           >
                             <Clock className="w-4 h-4 text-gray-400 flex-shrink-0" />
@@ -616,7 +616,7 @@ export function Navigation() {
                 </>
               ) : isSearching ? (
                 <div className="flex justify-center pt-16">
-                  <div className="w-8 h-8 rounded-full border-2 border-[#800000]/20 border-t-[#800000] animate-spin" />
+                  <div className="w-8 h-8 rounded-full border-2 border-[#698156]/20 border-t-[#698156] animate-spin" />
                 </div>
               ) : searchResults.length > 0 ? (
                 <div className="space-y-4">
@@ -629,10 +629,10 @@ export function Navigation() {
                           <button
                             key={suggestion}
                             onClick={() => handleSearchSubmit(suggestion)}
-                            className="w-full flex items-center gap-3 py-2 px-3 rounded-xl hover:bg-rose-50 transition-colors group text-left"
+                            className="w-full flex items-center gap-3 py-2 px-3 rounded-xl hover:bg-[#F4F6F2] transition-colors group text-left"
                           >
                             <Search className="w-4 h-4 text-gray-300 flex-shrink-0" />
-                            <span className="flex-1 text-sm font-medium text-gray-700 group-hover:text-[#800000] capitalize">
+                            <span className="flex-1 text-sm font-medium text-gray-700 group-hover:text-[#698156] capitalize">
                               <HighlightText text={suggestion} highlight={searchQuery} />
                             </span>
                           </button>
@@ -655,14 +655,14 @@ export function Navigation() {
                       key={product.id}
                       to={`/product/${product.id}`}
                       onClick={() => { addToHistory(product.name); setIsSearchOpen(false); setSearchQuery(''); }}
-                      className="flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-rose-50 transition-colors group"
+                      className="flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-[#F4F6F2] transition-colors group"
                     >
                       <div>
-                        <p className="text-sm font-medium text-gray-800 group-hover:text-[#800000] transition-colors">
+                        <p className="text-sm font-medium text-gray-800 group-hover:text-[#698156] transition-colors">
                           <HighlightText text={product.name} highlight={searchQuery} />
                         </p>
                       </div>
-                      <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-[#800000] transition-colors flex-shrink-0 ml-2" />
+                      <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-[#698156] transition-colors flex-shrink-0 ml-2" />
                     </Link>
                   ))}
                     </div>
@@ -733,14 +733,14 @@ export function Navigation() {
                       <div className="p-5 flex flex-col flex-1 justify-between space-y-3 bg-white">
                         <div>
                           <h3 className="font-serif text-lg font-bold text-gray-900 leading-snug line-clamp-1">{item.name}</h3>
-                          <p className="text-2xl font-black text-[#800000] mt-1">₹{item.price.toLocaleString('en-IN')}</p>
+                          <p className="text-2xl font-black text-[#698156] mt-1">₹{item.price.toLocaleString('en-IN')}</p>
                         </div>
                         
                         <div className="flex items-center gap-2 pt-1">
                           <Link
                             to={`/product/${item.id}`}
                             onClick={() => setIsWishlistOpen(false)}
-                            className="flex-1 py-3 bg-gradient-to-r from-[#800000] via-[#990000] to-[#800000] text-white rounded-xl text-xs font-black uppercase tracking-wider text-center shadow-md shadow-[#800000]/20 flex items-center justify-center gap-1.5 cursor-pointer hover:from-black hover:to-[#800000] transition-all"
+                            className="flex-1 py-3 bg-gradient-to-r from-[#698156] via-[#546944] to-[#698156] text-white rounded-xl text-xs font-black uppercase tracking-wider text-center shadow-md shadow-[#698156]/20 flex items-center justify-center gap-1.5 cursor-pointer hover:from-[#546944] hover:to-[#435436] transition-all"
                           >
                             Buy Now <ArrowRight className="w-3.5 h-3.5" />
                           </Link>
@@ -758,12 +758,12 @@ export function Navigation() {
                 </div>
               ) : (
                 <div className="py-24 flex flex-col items-center justify-center text-center opacity-60">
-                  <Heart className="w-24 h-24 mb-4 text-[#800000] stroke-1 fill-rose-50" />
+                  <Heart className="w-24 h-24 mb-4 text-[#698156] stroke-1 fill-[#F4F6F2]" />
                   <h3 className="text-2xl font-serif font-bold text-gray-800 mb-2">Your Wishlist is Empty</h3>
                   <p className="text-sm text-gray-500 max-w-sm mb-6">Explore our latest handcrafted sarees, kurtis, and lehengas to save your favorite styles.</p>
                   <button
                     onClick={() => setIsWishlistOpen(false)}
-                    className="px-8 py-3 bg-[#800000] text-white rounded-full font-bold text-xs uppercase tracking-wider shadow-md hover:bg-black transition-all"
+                    className="px-8 py-3 bg-[#698156] text-white rounded-full font-bold text-xs uppercase tracking-wider shadow-md hover:bg-[#546944] transition-all"
                   >
                     Browse Collections
                   </button>

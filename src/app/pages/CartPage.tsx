@@ -15,7 +15,7 @@ export function CartPage() {
   const total = subtotal + shipping + tax;
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7]">
+    <div className="min-h-screen bg-[#F9FAF7]">
       <AnnouncementBar />
       <Navigation />
       
@@ -35,7 +35,7 @@ export function CartPage() {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="px-8 py-3 bg-[#D4AF37] text-white rounded-full font-medium"
+                  className="px-8 py-3 bg-[#698156] text-white rounded-full font-medium"
                 >
                   Continue Shopping
                 </motion.button>
@@ -67,11 +67,11 @@ export function CartPage() {
                       <div className="flex-grow flex items-center justify-between min-w-0">
                         <div className="space-y-1 min-w-0 pr-4">
                           <Link to={`/product/${item.id}`}>
-                            <h3 className="font-serif text-base text-gray-900 hover:text-[#D4AF37] transition-colors truncate">
+                            <h3 className="font-serif text-base text-gray-900 hover:text-[#698156] transition-colors truncate">
                               {item.name}
                             </h3>
                           </Link>
-                          <div className="text-sm font-bold text-[#D4AF37]">
+                          <div className="text-sm font-bold text-[#698156]">
                             ₹{item.price.toLocaleString('en-IN')}
                           </div>
                         </div>
@@ -105,7 +105,7 @@ export function CartPage() {
                       </span>
                     </div>
                     {shipping > 0 && (
-                      <p className="text-xs text-[#D4AF37]">
+                      <p className="text-xs text-[#698156]">
                         Add items worth ₹{(2000 - subtotal).toLocaleString('en-IN')} more for free shipping!
                       </p>
                     )}
@@ -115,7 +115,7 @@ export function CartPage() {
                     <div className="flex justify-between items-end">
                       <span className="text-lg font-medium text-[#1A1A1A]">Total</span>
                       <div className="text-right">
-                        <span className="text-3xl font-serif text-[#D4AF37]">₹{total.toLocaleString('en-IN')}</span>
+                        <span className="text-3xl font-serif text-[#698156]">₹{total.toLocaleString('en-IN')}</span>
                         <p className="text-xs text-gray-500 mt-1">Inclusive of all taxes</p>
                       </div>
                     </div>
@@ -125,7 +125,7 @@ export function CartPage() {
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      className="w-full py-4 bg-[#1A1A1A] text-white rounded-full flex items-center justify-center gap-2 font-medium hover:bg-black transition-colors shadow-lg hover:shadow-xl"
+                      className="w-full py-4 bg-[#698156] text-white rounded-full flex items-center justify-center gap-2 font-medium hover:bg-[#546944] transition-colors shadow-lg hover:shadow-xl"
                     >
                       Proceed to Checkout
                       <ArrowRight className="w-5 h-5" />

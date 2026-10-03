@@ -44,7 +44,7 @@ export function AdminPayments() {
           >
             <div className="flex items-center justify-between mb-4">
               <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center">
-                <stat.icon className="w-6 h-6 text-[#D4AF37]" />
+                <stat.icon className="w-6 h-6 text-[#698156]" />
               </div>
               <div className={`flex items-center gap-1 text-sm font-medium px-2.5 py-1 rounded-full ${stat.isPositive ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
                 {stat.isPositive ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
@@ -77,7 +77,7 @@ export function AdminPayments() {
               {paymentTransactions.map((txn) => (
                 <tr key={txn.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4 font-mono text-gray-500">{txn.id}</td>
-                  <td className="px-6 py-4 text-[#D4AF37] hover:underline cursor-pointer font-medium">{txn.orderId}</td>
+                  <td className="px-6 py-4 text-[#698156] hover:underline cursor-pointer font-medium">{txn.orderId}</td>
                   <td className="px-6 py-4 text-gray-500">{txn.date}</td>
                   <td className="px-6 py-4 font-medium text-gray-900">{txn.method}</td>
                   <td className="px-6 py-4 text-right font-bold text-gray-900">₹{txn.amount}</td>

@@ -35,7 +35,7 @@ export function AdminCategories() {
         <h1 className="text-2xl font-bold text-gray-900">Categories Management</h1>
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-[#1A1A1A] text-white rounded-lg hover:bg-black transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-[#1A1A1A] text-white rounded-lg hover:bg-[#546944] transition-colors"
         >
           <Plus className="w-4 h-4" />
           Add Category
@@ -52,7 +52,7 @@ export function AdminCategories() {
             className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow relative group"
           >
             <div className="flex justify-between items-start mb-4">
-              <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center text-[#D4AF37]">
+              <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center text-[#698156]">
                 <Folder className="w-6 h-6" />
               </div>
               <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${cat.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
@@ -66,7 +66,7 @@ export function AdminCategories() {
             <div className="pt-4 border-t border-gray-100 flex items-center justify-between text-sm">
               <div className="font-medium text-gray-900">{cat.productsCount} Products</div>
               <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button className="p-1.5 text-gray-400 hover:text-[#D4AF37] rounded-md hover:bg-gray-50 transition-colors">
+                <button className="p-1.5 text-gray-400 hover:text-[#698156] rounded-md hover:bg-gray-50 transition-colors">
                   <Edit className="w-4 h-4" />
                 </button>
                 <button onClick={() => handleDelete(cat.id)} className="p-1.5 text-gray-400 hover:text-red-500 rounded-md hover:bg-red-50 transition-colors">
@@ -107,7 +107,7 @@ export function AdminCategories() {
                     required type="text"
                     value={newCat.name} onChange={e => setNewCat({...newCat, name: e.target.value})}
                     placeholder="e.g. Sarees"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D4AF37] focus:outline-none" 
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#698156] focus:outline-none" 
                   />
                 </div>
                 <div>
@@ -116,14 +116,14 @@ export function AdminCategories() {
                     value={newCat.description} onChange={e => setNewCat({...newCat, description: e.target.value})}
                     placeholder="Brief description..."
                     rows={3}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D4AF37] focus:outline-none resize-none" 
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#698156] focus:outline-none resize-none" 
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                   <select 
                     value={newCat.status} onChange={e => setNewCat({...newCat, status: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D4AF37] focus:outline-none"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#698156] focus:outline-none"
                   >
                     <option value="Active">Active</option>
                     <option value="Inactive">Inactive</option>
@@ -134,7 +134,7 @@ export function AdminCategories() {
                   <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-gray-600 font-medium hover:bg-gray-50 rounded-lg transition-colors">
                     Cancel
                   </button>
-                  <button type="submit" className="px-6 py-2 bg-[#D4AF37] rounded-lg text-white font-medium hover:bg-[#b08d2b] transition-colors">
+                  <button type="submit" className="px-6 py-2 bg-[#698156] rounded-lg text-white font-medium hover:bg-[#b08d2b] transition-colors">
                     Create
                   </button>
                 </div>

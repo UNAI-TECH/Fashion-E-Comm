@@ -124,27 +124,27 @@ export function Testimonials() {
           {infiniteCards.map((testimonial, idx) => (
             <div
               key={`${testimonial.id}-${idx}`}
-              className="relative w-[320px] sm:w-[370px] md:w-[410px] flex-shrink-0 mx-3 sm:mx-4 flex flex-col justify-between bg-gradient-to-b from-[#FFFDFB] via-white to-[#FFF9F6] p-7 sm:p-8 rounded-[2.5rem] rounded-tr-[4.75rem] rounded-bl-[1.5rem] border border-[#D4AF37]/35 shadow-[0_12px_35px_-8px_rgba(128,0,0,0.06)] hover:shadow-[0_22px_50px_-6px_rgba(128,0,0,0.14)] hover:border-[#D4AF37] transition-all duration-500 group select-none overflow-hidden"
+              className="relative w-[320px] sm:w-[370px] md:w-[410px] flex-shrink-0 mx-3 sm:mx-4 flex flex-col justify-between bg-gradient-to-b from-[#FFFDFB] via-white to-[#FFF9F6] p-7 sm:p-8 rounded-[2.5rem] rounded-tr-[4.75rem] rounded-bl-[1.5rem] border border-[#698156]/35 shadow-[0_12px_35px_-8px_rgba(128,0,0,0.06)] hover:shadow-[0_22px_50px_-6px_rgba(128,0,0,0.14)] hover:border-[#698156] transition-all duration-500 group select-none overflow-hidden"
             >
               {/* Asymmetric Royal Corner Accent */}
-              <div className="absolute top-0 right-0 w-28 h-28 bg-gradient-to-bl from-[#D4AF37]/15 via-[#FFF0F5]/40 to-transparent rounded-tr-[4.75rem] pointer-events-none" />
-              <div className="absolute top-0 inset-x-8 h-[2px] bg-gradient-to-r from-transparent via-[#D4AF37]/50 to-transparent" />
+              <div className="absolute top-0 right-0 w-28 h-28 bg-gradient-to-bl from-[#698156]/15 via-[#F4F6F2]/40 to-transparent rounded-tr-[4.75rem] pointer-events-none" />
+              <div className="absolute top-0 inset-x-8 h-[2px] bg-gradient-to-r from-transparent via-[#698156]/50 to-transparent" />
 
               {/* Review Statement */}
               <div className="relative my-2 flex-1">
-                <Quote className="w-8 h-8 text-[#D4AF37]/35 mb-3 rotate-180" />
+                <Quote className="w-8 h-8 text-[#698156]/35 mb-3 rotate-180" />
                 <p className="text-gray-700 text-sm sm:text-[15px] leading-relaxed font-serif italic relative z-10">
                   "{testimonial.review}"
                 </p>
               </div>
 
               {/* Bottom Author Section */}
-              <div className="pt-4 border-t border-[#D4AF37]/20 flex flex-col justify-end mt-4">
+              <div className="pt-4 border-t border-[#698156]/20 flex flex-col justify-end mt-4">
                 <h4 className="font-serif font-bold text-gray-900 text-base leading-tight">
                   {testimonial.name}
                 </h4>
                 <p className="text-xs text-gray-500 flex items-center gap-1.5 mt-1">
-                  <MapPin className="w-3.5 h-3.5 text-[#800000]/70 flex-shrink-0" />
+                  <MapPin className="w-3.5 h-3.5 text-[#698156]/70 flex-shrink-0" />
                   <span>{testimonial.city}</span>
                 </p>
               </div>

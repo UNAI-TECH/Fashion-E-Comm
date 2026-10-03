@@ -30,7 +30,7 @@ export function AdminDiscounts() {
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-gray-900">Coupons & Discounts</h1>
-        <button className="flex items-center gap-2 px-4 py-2 bg-[#1A1A1A] text-white rounded-lg hover:bg-black transition-colors">
+        <button className="flex items-center gap-2 px-4 py-2 bg-[#1A1A1A] text-white rounded-lg hover:bg-[#546944] transition-colors">
           <Plus className="w-4 h-4" />
           Create Coupon
         </button>
@@ -47,7 +47,7 @@ export function AdminDiscounts() {
            >
               <div className="flex justify-between items-start mb-6">
                 <div>
-                  <div className="text-xs font-semibold text-[#D4AF37] uppercase tracking-wider mb-1">{coupon.type} Discount</div>
+                  <div className="text-xs font-semibold text-[#698156] uppercase tracking-wider mb-1">{coupon.type} Discount</div>
                   <h3 className="text-2xl font-bold font-mono tracking-tight text-gray-900 border-2 border-dashed border-gray-300 inline-block px-3 py-1 rounded-lg">
                     {coupon.code}
                   </h3>

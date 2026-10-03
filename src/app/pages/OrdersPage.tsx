@@ -218,7 +218,7 @@ export function OrdersPage() {
                   placeholder="Search by Product, Brand, or Order ID..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm font-medium focus:outline-none focus:border-[#800000] focus:ring-1 focus:ring-[#800000] transition-shadow shadow-sm"
+                  className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm font-medium focus:outline-none focus:border-[#698156] focus:ring-1 focus:ring-[#698156] transition-shadow shadow-sm"
                 />
                 {searchQuery && (
                   <button onClick={() => setSearchQuery('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -250,7 +250,7 @@ export function OrdersPage() {
                         <button
                           key={opt}
                           onClick={() => { setSortBy(opt); setIsSortDropdownOpen(false); }}
-                          className={`w-full text-left px-5 py-3 text-sm hover:bg-gray-50 transition-colors ${sortBy === opt ? 'font-bold text-[#800000] bg-red-50/30' : 'text-gray-700'}`}
+                          className={`w-full text-left px-5 py-3 text-sm hover:bg-gray-50 transition-colors ${sortBy === opt ? 'font-bold text-[#698156] bg-[#698156]/10' : 'text-gray-700'}`}
                         >
                           {opt}
                         </button>
@@ -282,14 +282,14 @@ export function OrdersPage() {
 
         {isLoading ? (
           <div className="flex justify-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#800000]"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#698156]"></div>
           </div>
         ) : computedOrders.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-3xl shadow-sm border border-gray-100">
             <Package className="w-20 h-20 text-gray-200 mx-auto mb-6" />
             <h2 className="text-2xl font-serif text-gray-700 mb-4">No orders found</h2>
             <p className="text-gray-500 mb-8 max-w-md mx-auto">Looks like you haven't placed any orders matching this criteria yet.</p>
-            <button onClick={() => { setSearchQuery(''); setActiveFilter('All Orders'); }} className="px-8 py-3 bg-[#800000] text-white rounded-full font-bold text-sm shadow-md hover:bg-black transition-all">
+            <button onClick={() => { setSearchQuery(''); setActiveFilter('All Orders'); }} className="px-8 py-3 bg-[#698156] text-white rounded-full font-bold text-sm shadow-md hover:bg-[#546944] transition-all">
               Clear Filters
             </button>
           </div>
@@ -333,7 +333,7 @@ export function OrdersPage() {
                         </div>
                         <div className="hidden sm:block">
                           <p className="text-gray-500 uppercase text-[10px] font-bold tracking-wider mb-0.5">Dispatch To</p>
-                          <p className="font-medium text-[#800000] cursor-pointer hover:underline">{order.shipping_address?.full_name || order.shipping_address?.first_name || 'Customer'}</p>
+                          <p className="font-medium text-[#698156] cursor-pointer hover:underline">{order.shipping_address?.full_name || order.shipping_address?.first_name || 'Customer'}</p>
                         </div>
                       </div>
                       <div className="text-right">
@@ -442,7 +442,7 @@ export function OrdersPage() {
                     {/* Actions Bar */}
                     <div className="bg-gray-50/50 border-t border-gray-100 p-4 flex flex-wrap items-center justify-between gap-3">
                       <div className="flex flex-wrap gap-2">
-                        <button onClick={() => toast.success('Tracking information will be sent to your email.')} className="px-4 py-2 bg-gray-900 text-white hover:bg-black rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 shadow-sm">
+                        <button onClick={() => toast.success('Tracking information will be sent to your email.')} className="px-4 py-2 bg-gray-900 text-white hover:bg-[#546944] rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 shadow-sm">
                           <Truck className="w-3.5 h-3.5" /> Track Order
                         </button>
                         <button onClick={() => toast.success('Downloading Invoice...')} className="px-4 py-2 bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 shadow-sm">
@@ -462,11 +462,11 @@ export function OrdersPage() {
                           </button>
                         )}
                         {['Order Placed', 'Pending', 'Confirmed'].includes(status) && (
-                          <button onClick={() => toast.success('Cancellation requested.')} className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5">
+                          <button onClick={() => toast.success('Cancellation requested.')} className="px-4 py-2 text-red-600 hover:bg-[#698156]/10 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5">
                             <Ban className="w-3.5 h-3.5" /> Cancel Order
                           </button>
                         )}
-                        <button onClick={() => toast.success('Adding items back to cart...')} className="px-4 py-2 text-[#800000] hover:bg-red-50 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 border border-[#800000]/10">
+                        <button onClick={() => toast.success('Adding items back to cart...')} className="px-4 py-2 text-[#698156] hover:bg-[#698156]/10 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 border border-[#698156]/10">
                           <ShoppingBag className="w-3.5 h-3.5" /> Buy Again
                         </button>
                       </div>

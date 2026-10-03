@@ -33,7 +33,7 @@ const MOCK_PRODUCTS: Product[] = [
     images: ['/saree_s1.jpg'],
     rating: 4.8,
     status: 'Published',
-    colors: ['#800000']
+    colors: ['#698156']
   },
   {
     id: 's2',
@@ -61,7 +61,7 @@ const MOCK_PRODUCTS: Product[] = [
     images: ['/saree_s3.jpg'],
     rating: 5.0,
     status: 'Published',
-    colors: ['#D4AF37']
+    colors: ['#698156']
   },
   {
     id: 's4',
@@ -131,7 +131,7 @@ const MOCK_PRODUCTS: Product[] = [
     images: ['/lehenga_l1.jpg'],
     rating: 5.0,
     status: 'Published',
-    colors: ['#4A2E1B', '#D4AF37']
+    colors: ['#4A2E1B', '#698156']
   },
   {
     id: 'l2',
@@ -145,7 +145,7 @@ const MOCK_PRODUCTS: Product[] = [
     images: ['/lehenga_l2.jpg'],
     rating: 4.9,
     status: 'Published',
-    colors: ['#005F73', '#D4AF37']
+    colors: ['#005F73', '#698156']
   },
   {
     id: 'l3',
@@ -159,7 +159,7 @@ const MOCK_PRODUCTS: Product[] = [
     images: ['/lehenga_l3.jpg'],
     rating: 4.8,
     status: 'Published',
-    colors: ['#FFD1DC', '#D4AF37']
+    colors: ['#FFD1DC', '#698156']
   },
   {
     id: 'l4',
@@ -173,7 +173,7 @@ const MOCK_PRODUCTS: Product[] = [
     images: ['/lehenga_l4.jpg'],
     rating: 4.7,
     status: 'Published',
-    colors: ['#4B0082', '#D4AF37']
+    colors: ['#4B0082', '#698156']
   },
   {
     id: 'l5',
@@ -215,7 +215,7 @@ const MOCK_PRODUCTS: Product[] = [
     images: ['/salwar_ss2.jpg'],
     rating: 4.7,
     status: 'Published',
-    colors: ['#FFD700', '#D4AF37']
+    colors: ['#FFD700', '#698156']
   },
   {
     id: 'ss3',
@@ -243,7 +243,7 @@ const MOCK_PRODUCTS: Product[] = [
     images: ['/salwar_ss4.jpg'],
     rating: 4.6,
     status: 'Published',
-    colors: ['#722F37', '#D4AF37']
+    colors: ['#722F37', '#698156']
   },
   {
     id: 'ss5',
@@ -327,7 +327,7 @@ const MOCK_PRODUCTS: Product[] = [
     images: ['/kurti_k4.jpg'],
     rating: 4.8,
     status: 'Published',
-    colors: ['#800000', '#D4AF37']
+    colors: ['#698156', '#698156']
   },
   {
     id: 'k5',
@@ -341,7 +341,7 @@ const MOCK_PRODUCTS: Product[] = [
     images: ['/kurti_k5.jpg'],
     rating: 4.9,
     status: 'Published',
-    colors: ['#E6E6FA', '#D4AF37']
+    colors: ['#E6E6FA', '#698156']
   },
   {
     id: 'w4',
@@ -383,7 +383,7 @@ const MOCK_PRODUCTS: Product[] = [
     images: ['/tradition_t1.jpg'],
     rating: 4.8,
     status: 'Published',
-    colors: ['#800000', '#F5F5DC']
+    colors: ['#698156', '#F5F5DC']
   },
   {
     id: 't2',
@@ -397,7 +397,7 @@ const MOCK_PRODUCTS: Product[] = [
     images: ['/tradition_t2.jpg'],
     rating: 4.7,
     status: 'Published',
-    colors: ['#800080', '#D4AF37']
+    colors: ['#800080', '#698156']
   },
   {
     id: 't3',
@@ -425,7 +425,7 @@ const MOCK_PRODUCTS: Product[] = [
     images: ['/tradition_t4.jpg'],
     rating: 4.6,
     status: 'Published',
-    colors: ['#C0C0C0', '#D4AF37']
+    colors: ['#C0C0C0', '#698156']
   },
   {
     id: 't5',
@@ -509,7 +509,7 @@ const MOCK_PRODUCTS: Product[] = [
     images: ['/maxi_mx5.jpg'],
     rating: 4.8,
     status: 'Published',
-    colors: ['#FFF0F5']
+    colors: ['#F4F6F2']
   }
 ];
 
@@ -780,7 +780,7 @@ export async function fetchProducts(category?: string): Promise<Product[]> {
             rating: p.rating ? Number(p.rating) : 5.0,
             stock_quantity: p.stock_quantity != null ? Number(p.stock_quantity) : 25,
             status: p.status || 'Published',
-            colors: Array.isArray(p.colors) && p.colors.length > 0 ? p.colors : ['#800000'],
+            colors: Array.isArray(p.colors) && p.colors.length > 0 ? p.colors : ['#698156'],
             created_at: p.created_at,
             badge: p.status === 'Draft' ? 'Draft' : undefined
           };
@@ -819,7 +819,7 @@ export async function fetchProducts(category?: string): Promise<Product[]> {
               rating: p.rating ? Number(p.rating) : 5.0,
               stock_quantity: p.stock_quantity != null ? Number(p.stock_quantity) : 25,
               status: p.status || 'Published',
-              colors: Array.isArray(p.colors) && p.colors.length > 0 ? p.colors : ['#800000'],
+              colors: Array.isArray(p.colors) && p.colors.length > 0 ? p.colors : ['#698156'],
               created_at: p.created_at || new Date().toISOString(),
               badge: 'New Arrival'
             };

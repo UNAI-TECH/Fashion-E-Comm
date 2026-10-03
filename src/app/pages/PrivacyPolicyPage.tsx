@@ -36,8 +36,8 @@ export function PrivacyPolicyPage() {
       <main className="pt-28 pb-20 px-6 sm:px-10 lg:px-20 max-w-5xl mx-auto">
         {/* Intro */}
         <div className="mb-12 border-b border-gray-100 pb-8">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#FFF0F5] text-[#800000] border border-[#800000]/15 rounded-full text-xs font-bold tracking-widest uppercase mb-3">
-            <ShieldCheck className="w-3.5 h-3.5 text-[#D4AF37]" />
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#F4F6F2] text-[#698156] border border-[#698156]/15 rounded-full text-xs font-bold tracking-widest uppercase mb-3">
+            <ShieldCheck className="w-3.5 h-3.5 text-[#698156]" />
             <span>Aanya Fashions Privacy Commitment</span>
           </div>
 
@@ -123,17 +123,17 @@ export function PrivacyPolicyPage() {
             <p>
               At Aanya Fashions, protecting your personal data is a top priority. We implement robust physical, administrative, and technological security safeguards:
             </p>
-            <div className="mt-4 p-5 bg-[#FFF0F5]/50 border border-[#800000]/10 rounded-2xl space-y-2 text-xs sm:text-sm text-gray-700">
+            <div className="mt-4 p-5 bg-[#F4F6F2]/50 border border-[#698156]/10 rounded-2xl space-y-2 text-xs sm:text-sm text-gray-700">
               <div className="flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-[#800000] flex-shrink-0 mt-0.5" />
+                <CheckCircle2 className="w-4 h-4 text-[#698156] flex-shrink-0 mt-0.5" />
                 <span><strong>SSL Encryption:</strong> All data transmitted between your browser and our servers is secured using modern 256-bit SSL encryption.</span>
               </div>
               <div className="flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-[#800000] flex-shrink-0 mt-0.5" />
+                <CheckCircle2 className="w-4 h-4 text-[#698156] flex-shrink-0 mt-0.5" />
                 <span><strong>Zero Sensitive Card Retention:</strong> We never store CVVs, credit/debit card numbers, or UPI PINs on our servers.</span>
               </div>
               <div className="flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-[#800000] flex-shrink-0 mt-0.5" />
+                <CheckCircle2 className="w-4 h-4 text-[#698156] flex-shrink-0 mt-0.5" />
                 <span><strong>Secure Cloud Database:</strong> Customer accounts and records are stored within protected, authenticated Supabase cloud infrastructure.</span>
               </div>
             </div>
@@ -187,13 +187,13 @@ export function PrivacyPolicyPage() {
               {/* Phone */}
               <a
                 href="tel:+919043088697"
-                className="p-5 bg-gradient-to-br from-[#FFFDFC] to-[#FFF9F9] rounded-2xl border border-gray-200/80 shadow-xs hover:border-[#800000]/30 hover:shadow-md transition-all group block"
+                className="p-5 bg-gradient-to-br from-[#FFFDFC] to-[#FFF9F9] rounded-2xl border border-gray-200/80 shadow-xs hover:border-[#698156]/30 hover:shadow-md transition-all group block"
               >
-                <div className="w-10 h-10 rounded-xl bg-[#FFF0F5] text-[#800000] flex items-center justify-center mb-3 group-hover:bg-[#800000] group-hover:text-white transition-colors">
+                <div className="w-10 h-10 rounded-xl bg-[#F4F6F2] text-[#698156] flex items-center justify-center mb-3 group-hover:bg-[#698156] group-hover:text-white transition-colors">
                   <Phone className="w-5 h-5" />
                 </div>
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Phone</p>
-                <p className="text-base font-bold text-gray-900 mt-0.5 group-hover:text-[#800000] transition-colors">
+                <p className="text-base font-bold text-gray-900 mt-0.5 group-hover:text-[#698156] transition-colors">
                   +91 90430 88697
                 </p>
                 <p className="text-[11px] text-gray-500 mt-1">Mon – Sat, 9:00 AM – 7:00 PM</p>
@@ -202,13 +202,13 @@ export function PrivacyPolicyPage() {
               {/* Email */}
               <a
                 href="mailto:owner@aanyafashions.com"
-                className="p-5 bg-gradient-to-br from-[#FFFDFC] to-[#FFF9F9] rounded-2xl border border-gray-200/80 shadow-xs hover:border-[#800000]/30 hover:shadow-md transition-all group block"
+                className="p-5 bg-gradient-to-br from-[#FFFDFC] to-[#FFF9F9] rounded-2xl border border-gray-200/80 shadow-xs hover:border-[#698156]/30 hover:shadow-md transition-all group block"
               >
-                <div className="w-10 h-10 rounded-xl bg-[#FFF0F5] text-[#800000] flex items-center justify-center mb-3 group-hover:bg-[#800000] group-hover:text-white transition-colors">
+                <div className="w-10 h-10 rounded-xl bg-[#F4F6F2] text-[#698156] flex items-center justify-center mb-3 group-hover:bg-[#698156] group-hover:text-white transition-colors">
                   <Mail className="w-5 h-5" />
                 </div>
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Email</p>
-                <p className="text-base font-bold text-gray-900 mt-0.5 group-hover:text-[#800000] transition-colors truncate">
+                <p className="text-base font-bold text-gray-900 mt-0.5 group-hover:text-[#698156] transition-colors truncate">
                   owner@aanyafashions.com
                 </p>
                 <p className="text-[11px] text-gray-500 mt-1">Direct Owner & Support Team</p>
@@ -219,13 +219,13 @@ export function PrivacyPolicyPage() {
                 href="https://www.google.com/maps/search/?api=1&query=Chennai+Tamil+Nadu"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-5 bg-gradient-to-br from-[#FFFDFC] to-[#FFF9F9] rounded-2xl border border-gray-200/80 shadow-xs hover:border-[#800000]/30 hover:shadow-md transition-all group block"
+                className="p-5 bg-gradient-to-br from-[#FFFDFC] to-[#FFF9F9] rounded-2xl border border-gray-200/80 shadow-xs hover:border-[#698156]/30 hover:shadow-md transition-all group block"
               >
-                <div className="w-10 h-10 rounded-xl bg-[#FFF0F5] text-[#800000] flex items-center justify-center mb-3 group-hover:bg-[#800000] group-hover:text-white transition-colors">
+                <div className="w-10 h-10 rounded-xl bg-[#F4F6F2] text-[#698156] flex items-center justify-center mb-3 group-hover:bg-[#698156] group-hover:text-white transition-colors">
                   <MapPin className="w-5 h-5" />
                 </div>
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Headquarters</p>
-                <p className="text-base font-bold text-gray-900 mt-0.5 group-hover:text-[#800000] transition-colors">
+                <p className="text-base font-bold text-gray-900 mt-0.5 group-hover:text-[#698156] transition-colors">
                   Chennai, Tamil Nadu
                 </p>
                 <p className="text-[11px] text-gray-500 mt-1">India · Click to view on map</p>
@@ -239,7 +239,7 @@ export function PrivacyPolicyPage() {
                 href="https://www.instagram.com/aanya.style?utm_source=ig_web_button_share_sheet&stkn=ZDNlZDc0MzIxNw=="
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 font-semibold text-[#800000] hover:underline"
+                className="inline-flex items-center gap-1 font-semibold text-[#698156] hover:underline"
               >
                 <Instagram className="w-3.5 h-3.5" />
                 <span>@aanya.style</span>
