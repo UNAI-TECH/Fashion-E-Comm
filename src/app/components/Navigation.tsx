@@ -8,6 +8,9 @@ import { supabase } from '../../lib/supabase';
 import { Product, fetchProducts } from '../data/products';
 import { toast } from 'sonner';
 import { intelligentSearch, getRecommendedFallback, getSearchSuggestions } from '../../lib/aiSearchEngine';
+import { ProfileModal } from './ProfileModal';
+import { WelcomeSplashScreen } from './WelcomeSplashScreen';
+import { getUserProfileImage } from '../../lib/userProfile';
 
 const HighlightText = ({ text, highlight }: { text: string; highlight: string }) => {
   if (!highlight.trim()) return <>{text}</>;
@@ -52,44 +55,26 @@ export function Navigation() {
   const location = useLocation();
   const navigate = useNavigate();
   const [isAccountOpen, setIsAccountOpen] = useState(false);
-  const [showMobileAppOpening, setShowMobileAppOpening] = useState(false);
-  const [mobileAppOpeningStep, setMobileAppOpeningStep] = useState<1 | 2>(1);
-  const [profileDetails, setProfileDetails] = useState(() => {
-    try {
-      const saved = localStorage.getItem('user_profile_details');
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return {
-      name: '',
-      gender: '',
-      phone: '',
-      email: '',
-      address: ''
+  const [profileImage, setProfileImage] = useState(() => getUserProfileImage());
+
+  // Keep nav profile avatar in sync with profile updates from anywhere
+  useEffect(() => {
+    const handleProfileUpdate = () => {
+      setProfileImage(getUserProfileImage());
     };
-  });
-  const [profileImage, setProfileImage] = useState(() => {
-    return localStorage.getItem('user_profile_image') || '';
-  });
+    window.addEventListener('user_profile_updated', handleProfileUpdate);
+    window.addEventListener('storage', handleProfileUpdate);
+    const handleOpenProfileModal = () => setIsAccountOpen(true);
+    window.addEventListener('open-profile-modal', handleOpenProfileModal);
 
-  const handleProfileImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const resultStr = reader.result as string;
-        setProfileImage(resultStr);
-        localStorage.setItem('user_profile_image', resultStr);
-        toast.success('Profile picture updated!');
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+    return () => {
+      window.removeEventListener('user_profile_updated', handleProfileUpdate);
+      window.removeEventListener('storage', handleProfileUpdate);
+      window.removeEventListener('open-profile-modal', handleOpenProfileModal);
+    };
+  }, []);
 
-  const handleSaveProfile = () => {
-    localStorage.setItem('user_profile_details', JSON.stringify(profileDetails));
-    toast.success('Profile details saved successfully!');
-    setIsAccountOpen(false);
-  };  // Always navigate to full collection / category page on search submit
+  // Always navigate to full collection / category page on search submit
   const handleSearchSubmit = (query: string) => {
     if (!query.trim()) return;
     addToHistory(query.trim());
@@ -105,41 +90,12 @@ export function Navigation() {
     fetchProducts().then(products => setAllProducts(products));
   }, [isSearchOpen]);
 
-  // Check & show mobile app opening onboarding screen on app launch (<640px)
-  useEffect(() => {
-    try {
-      const hasOpened = localStorage.getItem('has_opened_mobile_app_onboarding');
-      if (!hasOpened && window.innerWidth < 640) {
-        setShowMobileAppOpening(true);
-      }
-    } catch (e) {}
-  }, []);
-
-  // Automatically transition Screen 1 to Screen 2 after 2 seconds
-  useEffect(() => {
-    if (showMobileAppOpening && mobileAppOpeningStep === 1) {
-      const timer = setTimeout(() => {
-        setMobileAppOpeningStep(2);
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [showMobileAppOpening, mobileAppOpeningStep]);
-
   // Listen for 'open-search' event from HeroSection search button
   useEffect(() => {
     const handler = () => setIsSearchOpen(true);
     window.addEventListener('open-search', handler);
     return () => window.removeEventListener('open-search', handler);
   }, []);
-
-  const handleFinishMobileAppOpening = () => {
-    try {
-      localStorage.setItem('user_profile_details', JSON.stringify(profileDetails));
-      localStorage.setItem('has_opened_mobile_app_onboarding', 'true');
-    } catch (e) {}
-    toast.success('Welcome to Aanya Fashions!');
-    setShowMobileAppOpening(false);
-  };
 
   const addToHistory = (query: string) => {
     if (!query.trim()) return;
@@ -240,6 +196,9 @@ export function Navigation() {
 
   return (
     <>
+      {/* First Page: Welcome to Aanya Fashions Splash Screen */}
+      <WelcomeSplashScreen />
+
       {/* ══════════ DESKTOP HEADER (2-row, Meesho style) ══════════ */}
       <header className="hidden lg:block fixed top-0 left-0 right-0 z-[40] bg-white shadow-sm border-b border-gray-100">
         {/* Row 1: Logo | Search | Actions */}
@@ -816,319 +775,14 @@ export function Navigation() {
       </AnimatePresence>
 
 
-      {/* Account Full Screen Overlay (Direct Account Details Form - Perfect Viewport Fit) */}
-      <AnimatePresence>
-        {isAccountOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            className="fixed inset-0 z-[200] bg-[#FDFBF7] overflow-y-auto sm:overflow-hidden flex flex-col justify-start items-center p-2 sm:p-5 select-none"
-          >
-            {/* Header - Logo on Top Left, Centered My Profile Title, Cross Icon at Top Right */}
-            <div className="grid grid-cols-3 items-center w-full flex-shrink-0 px-1 sm:px-2 py-1 mb-1">
-              {/* Left: Official Logo */}
-              <div className="flex items-center justify-start">
-                <img 
-                  src="/logo.png" 
-                  alt="Aanya Fashions Logo" 
-                  className="h-14 sm:h-16 max-h-16 w-auto object-contain mix-blend-multiply drop-shadow-sm flex-shrink-0"
-                />
-              </div>
-
-              {/* Center: My Profile Title (Big & Bold) */}
-              <div className="text-center">
-                <h2 className="text-2xl sm:text-3xl font-serif font-black text-gray-900 tracking-tight">My Profile</h2>
-              </div>
-
-              {/* Right: Close Button */}
-              <div className="flex items-center justify-end">
-                <button
-                  onClick={() => setIsAccountOpen(false)}
-                  className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors border border-gray-200 cursor-pointer"
-                  aria-label="Close profile"
-                >
-                  <X className="w-5 h-5 text-gray-700" />
-                </button>
-              </div>
-            </div>
-
-            {/* Body - Account Details (Minimal space at bottom) */}
-            <div className="w-full max-w-lg mx-auto pt-0.5 pb-2 flex flex-col items-center justify-start">
-              <div className="w-full space-y-3 sm:space-y-4">
-                {/* Center Full Round Circle Profile Image with Upload */}
-                <div className="flex flex-col items-center justify-center space-y-1 pb-1">
-                  <div className="relative group w-28 h-28 sm:w-32 sm:h-32 aspect-square rounded-full overflow-hidden border-4 border-[#D4AF37] shadow-lg bg-gray-100 flex items-center justify-center flex-shrink-0 cursor-pointer">
-                    {profileImage ? (
-                      <img 
-                        src={profileImage} 
-                        alt={profileDetails.name || 'User Profile'} 
-                        className="w-full h-full object-cover object-top rounded-full" 
-                      />
-                    ) : (
-                      <User className="w-12 h-12 text-gray-400" />
-                    )}
-                    <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-[10px] font-bold cursor-pointer transition-opacity duration-300">
-                      <Camera className="w-4 h-4 mb-0.5" />
-                      <span>{profileImage ? 'CHANGE' : 'UPLOAD'}</span>
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        className="hidden" 
-                        onChange={handleProfileImageUpload} 
-                      />
-                    </label>
-                  </div>
-                  <span className="text-[10px] sm:text-[11px] font-semibold text-gray-400">Click avatar image to upload photo</span>
-                </div>
-
-                {/* Form Details */}
-                <div className="space-y-2.5 sm:space-y-3">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
-                    <div>
-                      <label className="block text-[10px] sm:text-xs uppercase tracking-wider text-gray-400 font-bold mb-0.5">Full Name</label>
-                      <input 
-                        type="text" 
-                        placeholder="Enter full name"
-                        value={profileDetails.name}
-                        onChange={(e) => setProfileDetails({ ...profileDetails, name: e.target.value })}
-                        className="w-full px-3 py-2 bg-gray-50 rounded-xl text-xs sm:text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all text-gray-900"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] sm:text-xs uppercase tracking-wider text-gray-400 font-bold mb-0.5">Gender</label>
-                      <select 
-                        value={profileDetails.gender}
-                        onChange={(e) => setProfileDetails({ ...profileDetails, gender: e.target.value })}
-                        className="w-full px-3 py-2 bg-gray-50 rounded-xl text-xs sm:text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all cursor-pointer text-gray-900"
-                      >
-                        <option value="" disabled>Select Gender</option>
-                        <option value="Female">Female</option>
-                        <option value="Male">Male</option>
-                        <option value="Non-binary">Non-binary</option>
-                        <option value="Prefer not to say">Prefer not to say</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
-                    <div>
-                      <label className="block text-[10px] sm:text-xs uppercase tracking-wider text-gray-400 font-bold mb-0.5">Phone Number</label>
-                      <input 
-                        type="text" 
-                        placeholder="Enter phone number"
-                        value={profileDetails.phone}
-                        onChange={(e) => setProfileDetails({ ...profileDetails, phone: e.target.value })}
-                        className="w-full px-3 py-2 bg-gray-50 rounded-xl text-xs sm:text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all text-gray-900"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] sm:text-xs uppercase tracking-wider text-gray-400 font-bold mb-0.5">Email ID</label>
-                      <input 
-                        type="email" 
-                        placeholder="Enter email address"
-                        value={profileDetails.email}
-                        onChange={(e) => setProfileDetails({ ...profileDetails, email: e.target.value })}
-                        className="w-full px-3 py-2 bg-gray-50 rounded-xl text-xs sm:text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all text-gray-900"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] sm:text-xs uppercase tracking-wider text-gray-400 font-bold mb-0.5">Shipping Address</label>
-                    <textarea 
-                      placeholder="Enter shipping address"
-                      value={profileDetails.address}
-                      rows={2}
-                      onChange={(e) => setProfileDetails({ ...profileDetails, address: e.target.value })}
-                      className="w-full px-3 py-2 bg-gray-50 rounded-xl text-xs sm:text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all resize-none text-gray-900"
-                    />
-                  </div>
-                  
-                  <div className="pt-1 sm:pt-2">
-                    <motion.button 
-                      onClick={handleSaveProfile}
-                      whileHover={{ scale: 1.01 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="w-full py-3 bg-[#FFF0F5] border border-[#FFD6E8] text-[#800000] font-black rounded-xl text-xs uppercase tracking-wider shadow-sm hover:bg-[#FFE4EF] hover:border-[#800000]/30 transition-all cursor-pointer text-center block"
-                    >
-                      Save Profile Details
-                    </motion.button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Mobile App Opening Initial Onboarding Overlay (< 640px) */}
-      <AnimatePresence>
-        {showMobileAppOpening && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            className="fixed inset-0 z-[300] bg-[#FDFBF7] overflow-y-auto overflow-x-hidden sm:hidden flex flex-col min-h-screen select-none"
-          >
-            {/* Screen 1: App Opening Welcome Screen with Big Transparent Logo & 5s Auto-transition */}
-            {mobileAppOpeningStep === 1 && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.3 }}
-                onClick={() => setMobileAppOpeningStep(2)}
-                className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center min-h-screen cursor-pointer overflow-hidden"
-              >
-                <div className="w-full max-w-sm flex flex-col items-center justify-center">
-                  {/* Big Transparent Logo - No Background Box */}
-                  <motion.img
-                    initial={{ scale: 0.85, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ delay: 0.1, duration: 0.4 }}
-                    src="/logo.png"
-                    alt="Aanya Fashions Logo"
-                    className="h-44 sm:h-56 w-auto object-contain mix-blend-multiply drop-shadow-xl mb-8"
-                  />
-
-                  {/* Welcome Message Only */}
-                  <motion.h2
-                    initial={{ y: 15, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.2, duration: 0.4 }}
-                    className="text-3xl font-serif font-bold text-gray-900 tracking-tight text-center"
-                  >
-                    Welcome to Aanya Fashions
-                  </motion.h2>
-                </div>
-              </motion.div>
-            )}
-
-            {/* Screen 2: Initial Account Details Form (No Back Button, Clean Inputs) */}
-            {mobileAppOpeningStep === 2 && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.15 }}
-                className="px-6 py-8 flex justify-center flex-1 min-h-screen"
-              >
-                <div className="w-full max-w-xl space-y-6 h-fit my-auto">
-                  <div className="text-center space-y-1 mb-6">
-                    <h3 className="text-xl font-serif font-bold text-gray-900">My Profile</h3>
-                    <p className="text-xs text-gray-500 font-medium">Please enter your profile information to continue</p>
-                  </div>
-
-                  {/* Center Profile Image with Upload */}
-                  <div className="flex flex-col items-center justify-center space-y-2 pb-2">
-                    <div className="relative group w-36 h-36 sm:w-40 sm:h-40 rounded-full overflow-hidden border-4 border-[#D4AF37] shadow-xl bg-gray-100 flex items-center justify-center cursor-pointer">
-                      {profileImage ? (
-                        <img 
-                          src={profileImage} 
-                          alt={profileDetails.name || 'User Profile'} 
-                          className="w-full h-full object-cover object-top" 
-                        />
-                      ) : (
-                        <User className="w-16 h-16 text-gray-400" />
-                      )}
-                      <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-[10px] font-bold cursor-pointer transition-opacity duration-300">
-                        <Camera className="w-4 h-4 mb-1" />
-                        <span>{profileImage ? 'CHANGE' : 'UPLOAD'}</span>
-                        <input 
-                          type="file" 
-                          accept="image/*" 
-                          className="hidden" 
-                          onChange={handleProfileImageUpload} 
-                        />
-                      </label>
-                    </div>
-                    <span className="text-[11px] font-semibold text-gray-400">Click photo to upload</span>
-                  </div>
-
-                  {/* Form Details */}
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1">Full Name</label>
-                      <input 
-                        type="text" 
-                        placeholder="Enter full name"
-                        value={profileDetails.name}
-                        onChange={(e) => setProfileDetails({ ...profileDetails, name: e.target.value })}
-                        className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all text-gray-900"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1">Gender</label>
-                      <select 
-                        value={profileDetails.gender}
-                        onChange={(e) => setProfileDetails({ ...profileDetails, gender: e.target.value })}
-                        className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all cursor-pointer text-gray-900"
-                      >
-                        <option value="" disabled>Select Gender</option>
-                        <option value="Female">Female</option>
-                        <option value="Male">Male</option>
-                        <option value="Non-binary">Non-binary</option>
-                        <option value="Prefer not to say">Prefer not to say</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1">Phone Number</label>
-                      <input 
-                        type="text" 
-                        placeholder="Enter phone number"
-                        value={profileDetails.phone}
-                        onChange={(e) => setProfileDetails({ ...profileDetails, phone: e.target.value })}
-                        className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all text-gray-900"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1">Email ID</label>
-                      <input 
-                        type="email" 
-                        placeholder="Enter email address"
-                        value={profileDetails.email}
-                        onChange={(e) => setProfileDetails({ ...profileDetails, email: e.target.value })}
-                        className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all text-gray-900"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1">Shipping Address</label>
-                      <textarea 
-                        placeholder="Enter shipping address"
-                        value={profileDetails.address}
-                        rows={3}
-                        onChange={(e) => setProfileDetails({ ...profileDetails, address: e.target.value })}
-                        className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:bg-white focus:ring-2 focus:ring-[#800000]/25 outline-none transition-all resize-none text-gray-900"
-                      />
-                    </div>
-                    
-                    <div className="pt-2">
-                      <motion.button 
-                        onClick={handleFinishMobileAppOpening}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        className="w-full py-4 bg-[#FFF0F5] border border-[#FFD6E8] text-[#800000] font-black rounded-xl text-xs uppercase tracking-wider shadow-sm hover:bg-[#FFE4EF] transition-all cursor-pointer text-center flex items-center justify-center gap-2"
-                      >
-                        <span>Save & Open Full App</span>
-                        <ArrowRight className="w-4 h-4 text-[#800000]" />
-                      </motion.button>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Account / Profile Modal */}
+      <ProfileModal
+        isOpen={isAccountOpen}
+        onClose={() => setIsAccountOpen(false)}
+        title="My Profile"
+        subtitle="Manage your personal profile and shipping address"
+        actionButtonText="Save Profile Details"
+      />
     </>
   );
 }

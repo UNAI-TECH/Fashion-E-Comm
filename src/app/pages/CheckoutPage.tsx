@@ -8,6 +8,8 @@ import { Footer } from '../components/Footer';
 import { useCart } from '../contexts/CartContext';
 import { supabase } from '../../lib/supabase';
 import { toast } from 'sonner';
+import { ProfileModal } from '../components/ProfileModal';
+import { isUserProfileComplete, getUserProfileDetails, UserProfileDetails } from '../../lib/userProfile';
 
 export function CheckoutPage() {
   const navigate = useNavigate();
@@ -16,6 +18,7 @@ export function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState('upi');
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null); // Added orderId state
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -29,9 +32,8 @@ export function CheckoutPage() {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('user_profile_details');
-      if (saved) {
-        const prof = JSON.parse(saved);
+      const prof = getUserProfileDetails();
+      if (prof.name || prof.phone || prof.address) {
         const parts = (prof.name || '').split(' ');
         setFormData(prev => ({
           ...prev,
@@ -68,11 +70,39 @@ export function CheckoutPage() {
   const handleProceedToPayment = (e: React.FormEvent) => {
     e.preventDefault();
     if (cartItems.length === 0) return;
+    if (!isUserProfileComplete()) {
+      setShowProfileModal(true);
+      return;
+    }
     setStep(2);
     window.scrollTo(0, 0);
   };
 
-  const handlePlaceOrder = async () => {
+  const handleProfileSaveSuccess = (details: UserProfileDetails) => {
+    const parts = (details.name || '').split(' ');
+    setFormData(prev => ({
+      ...prev,
+      firstName: parts[0] || prev.firstName,
+      lastName: parts.slice(1).join(' ') || prev.lastName,
+      email: details.email || prev.email,
+      phone: details.phone || prev.phone,
+      address: details.address || prev.address,
+    }));
+
+    if (step === 2) {
+      handlePlaceOrder(details);
+    } else {
+      setStep(2);
+      window.scrollTo(0, 0);
+    }
+  };
+
+  const handlePlaceOrder = async (overriddenDetails?: UserProfileDetails) => {
+    if (!overriddenDetails && !isUserProfileComplete()) {
+      setShowProfileModal(true);
+      return;
+    }
+
     setIsProcessing(true);
     try {
       let user = null;
@@ -82,6 +112,16 @@ export function CheckoutPage() {
       } catch (e) {
         console.warn('Auth check skipped:', e);
       }
+
+      const activeFirstName = overriddenDetails
+        ? (overriddenDetails.name || '').split(' ')[0]
+        : formData.firstName;
+      const activeLastName = overriddenDetails
+        ? (overriddenDetails.name || '').split(' ').slice(1).join(' ')
+        : formData.lastName;
+      const activeEmail = overriddenDetails?.email || formData.email;
+      const activePhone = overriddenDetails?.phone || formData.phone;
+      const activeAddress = overriddenDetails?.address || formData.address;
 
       // 1. Generate a mock order record for local storage immediately
       const generatedOrderId = 'ord_' + Math.random().toString(36).substring(2, 9);
@@ -94,11 +134,11 @@ export function CheckoutPage() {
         payment_method: paymentMethod === 'upi' ? 'UPI' : paymentMethod === 'cod' ? 'COD' : 'Card',
         payment_status: paymentMethod === 'cod' ? 'Pending' : 'Success',
         shipping_address: {
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          email: formData.email,
-          phone: formData.phone,
-          address: formData.address,
+          first_name: activeFirstName,
+          last_name: activeLastName,
+          email: activeEmail,
+          phone: activePhone,
+          address: activeAddress,
           city: formData.city,
           state: formData.state,
           pincode: formData.pincode,
@@ -388,6 +428,17 @@ export function CheckoutPage() {
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Profile completion modal when placing order */}
+      <ProfileModal
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+        onSaveSuccess={handleProfileSaveSuccess}
+        title="My Profile"
+        subtitle="Please enter your profile information to continue"
+        actionButtonText="Save & Continue to Order"
+      />
+
       <Footer />
     </div>
   );

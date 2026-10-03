@@ -16,6 +16,8 @@ import { useWishlist } from '../contexts/WishlistContext';
 import { supabase, supabaseAdmin } from '../../lib/supabase';
 import { fetchProducts, Product, ensureProductImages } from '../data/products';
 import { toast } from 'sonner';
+import { ProfileModal } from '../components/ProfileModal';
+import { isUserProfileComplete, getUserProfileDetails, UserProfileDetails } from '../../lib/userProfile';
 
 interface ProductDetailsData {
   attributes: { label: string; value: string }[];
@@ -234,6 +236,7 @@ export function ProductPage() {
   const [selectedColor, setSelectedColor] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [isBuyNowModalOpen, setIsBuyNowModalOpen] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [buyNowStep, setBuyNowStep] = useState<'phone' | 'otp' | 'checkout' | 'success'>('phone');
   const [buyNowPhone, setBuyNowPhone] = useState('');
   const [buyNowOtp, setBuyNowOtp] = useState('');
@@ -1555,6 +1558,10 @@ export function ProductPage() {
                           whileTap={{ scale: 0.98 }}
                           disabled={isSubmitting}
                           onClick={() => {
+                            if (!isUserProfileComplete()) {
+                              setShowProfileModal(true);
+                              return;
+                            }
                             setBuyNowStep('success');
                           }}
                           className="w-full py-4 bg-[#800000] hover:bg-black text-white font-black uppercase tracking-widest rounded-2xl text-xs shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
@@ -1603,6 +1610,10 @@ export function ProductPage() {
                     <button
                       disabled={isSubmitting}
                       onClick={() => {
+                        if (!isUserProfileComplete()) {
+                          setShowProfileModal(true);
+                          return;
+                        }
                         handleCreateOrder('COD');
                       }}
                       className="flex-1 py-3 bg-[#800000] hover:bg-black text-white rounded-xl font-bold text-xs shadow-md flex items-center justify-center gap-2"
@@ -1620,6 +1631,30 @@ export function ProductPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Profile completion modal when placing order */}
+      <ProfileModal
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+        onSaveSuccess={(details) => {
+          setOrderForm(prev => ({
+            ...prev,
+            fullName: details.name || prev.fullName,
+            phone: details.phone || prev.phone,
+            address: details.address || prev.address,
+            city: details.city || prev.city,
+            pincode: details.pincode || prev.pincode,
+          }));
+          if (buyNowStep === 'success') {
+            handleCreateOrder('COD');
+          } else {
+            setBuyNowStep('success');
+          }
+        }}
+        title="My Profile"
+        subtitle="Please enter your profile information to continue"
+        actionButtonText="Save & Place Order"
+      />
     </div>
   );
 } 
