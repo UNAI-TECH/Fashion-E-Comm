@@ -214,23 +214,24 @@ export function HeroSection() {
 
           const scale = (isMobile || isTablet)
             ? (isCenter ? 1.0 : 0.5)
-            : (absOffset === 0 ? 1.0 : absOffset === 1 ? 0.82 : 0.68);
+            : (absOffset === 0 ? 1.0 : absOffset === 1 ? 0.82 : 0.6);
 
           const rotateY = (isMobile || isTablet)
             ? 0
-            : (offset === 0 ? 0 : offset < 0 ? (absOffset === 1 ? 20 : 35) : (absOffset === 1 ? -20 : -35));
+            : (offset === 0 ? 0 : offset < 0 ? 22 : -22);
 
-          const zIndex = 30 - absOffset * 8;
+          const zIndex = 30 - absOffset * 10;
 
+          // Only 3 models show up on desktop: center + 1 on left + 1 on right. All other models are hidden (opacity: 0)
           const opacity = (isMobile || isTablet)
             ? (isCenter ? 1.0 : 0)
-            : (absOffset === 0 ? 1.0 : absOffset === 1 ? 0.88 : 0.65);
+            : (absOffset === 0 ? 1.0 : absOffset === 1 ? 0.88 : 0);
 
-          const blurPx = (isMobile || isTablet) ? 0 : absOffset === 0 ? 0 : absOffset === 1 ? 0.3 : 1.2;
+          const blurPx = (isMobile || isTablet) ? 0 : absOffset === 0 ? 0 : 0.5;
 
           const xVal = (isMobile || isTablet)
             ? (isCenter ? 'calc(0vw - 50%)' : `calc(${offset * 100}vw - 50%)`)
-            : `calc(${offset * 16}vw - 50%)`;
+            : `calc(${offset * 18}vw - 50%)`;
 
           return (
             <motion.div
@@ -256,7 +257,7 @@ export function HeroSection() {
               onClick={() => setActiveIndex(idx)}
               className={`absolute bottom-0 h-[85%] flex items-end justify-center select-none ${
                 isMobile ? 'w-[75vw]' : isTablet ? 'w-[45vw]' : 'w-[25vw]'
-              } ${(isMobile || isTablet) && !isCenter ? 'pointer-events-none' : ''}`}
+              } ${((isMobile || isTablet) && !isCenter) || absOffset > 1 ? 'pointer-events-none' : ''}`}
             >
               <motion.div
                 animate={isCenter ? { y: [0, -8, 0] } : { y: 0 }}

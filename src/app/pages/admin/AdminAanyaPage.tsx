@@ -5,18 +5,19 @@ import {
   Plus, Trash2, Search, Store, X, RefreshCw, ChevronRight,
   Phone, Mail, MapPin, ImageIcon, LayoutDashboard,
   ClipboardList, Menu, ChevronLeft, CreditCard, LogOut,
-  Sparkles, Shirt
+  Sparkles, Shirt, Upload, Star, Receipt
 } from 'lucide-react';
 import { AdminHeroModelsSection } from './AdminHeroModelsSection';
+import { AdminBillingSection } from './AdminBillingSection';
 import { saveHeroModel } from '../../data/heroModels';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar
 } from 'recharts';
 import { Link, useNavigate } from 'react-router';
-import { supabaseAdmin } from '../../../lib/supabase';
+import { supabase, supabaseAdmin } from '../../../lib/supabase';
 import { useAdminAuth } from '../../contexts/AdminAuthContext';
-import { fetchProducts, markProductDeleted, getDeletedProductIds } from '../../data/products';
+import { fetchProducts, markProductDeleted, getDeletedProductIds, ensureProductImages, buildComplementaryAngles } from '../../data/products';
 import { toast } from 'sonner';
 
 /* ─── Types ─── */
@@ -89,11 +90,12 @@ const CAT_COLORS: Record<string, string> = {
 };
 
 /* ─── Nav items ─── */
-type NavTab = 'overview' | 'hero-models' | 'products' | 'orders' | 'customers' | 'payments';
+type NavTab = 'overview' | 'hero-models' | 'products' | 'billing' | 'orders' | 'customers' | 'payments';
 const NAV_ITEMS: { id: NavTab; label: string; icon: React.ReactNode }[] = [
   { id: 'overview',    label: 'Dashboard',        icon: <LayoutDashboard className="w-5 h-5" /> },
   { id: 'hero-models', label: 'Hero Models',      icon: <Sparkles className="w-5 h-5" /> },
   { id: 'products',    label: 'Catalog Products', icon: <Package className="w-5 h-5" /> },
+  { id: 'billing',     label: 'Manual Billing / POS', icon: <Receipt className="w-5 h-5" /> },
   { id: 'orders',      label: 'Orders',            icon: <ClipboardList className="w-5 h-5" /> },
   { id: 'customers',   label: 'Customers',         icon: <Users className="w-5 h-5" /> },
   { id: 'payments',    label: 'Payments',          icon: <CreditCard className="w-5 h-5" /> },
@@ -159,10 +161,22 @@ export function AdminAanyaPage() {
   const [productToDelete, setProductToDelete] = useState<DbProduct | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [featureOnHero, setFeatureOnHero] = useState(false);
+  const [billingInitialProduct, setBillingInitialProduct] = useState<DbProduct | null>(null);
 
   /* ── Form ── */
-  const emptyForm = { name: '', category: 'Sarees', price: '', compare_at_price: '', image_url: '', description: '', status: 'Published' };
+  const emptyForm = { 
+    name: '', 
+    category: 'Sarees', 
+    price: '', 
+    compare_at_price: '', 
+    image_url: '', 
+    images: [] as string[],
+    description: '', 
+    status: 'Published' 
+  };
   const [form, setForm] = useState(emptyForm);
+  const [urlInput, setUrlInput] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
 
   /* ─── Load Supabase data using service-role client (bypasses RLS) ─── */
   const loadData = useCallback(async () => {
@@ -366,20 +380,154 @@ export function AdminAanyaPage() {
     setProductToDelete(null);
   };
 
-  /* ─── Add product → Supabase ─── */
+  /* ─── Image management for Add Product ─── */
+  const handleAddImageUrl = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const trimmed = urlInput.trim();
+    if (!trimmed) {
+      toast.error('Please enter an image URL');
+      return;
+    }
+    setForm(prev => {
+      const nextImages = [...(prev.images || []), trimmed];
+      return {
+        ...prev,
+        images: nextImages,
+        image_url: nextImages[0] || ''
+      };
+    });
+    setUrlInput('');
+    toast.success('Photo added to gallery');
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    setIsUploading(true);
+    try {
+      const newUrls: string[] = [];
+      for (const file of files) {
+        let uploadedUrl = '';
+        try {
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${Date.now()}_${Math.random().toString(36).slice(2)}.${fileExt}`;
+          const filePath = `${form.category.toLowerCase()}/${fileName}`;
+          const { error: uploadError } = await supabase.storage.from('products').upload(filePath, file);
+          if (!uploadError) {
+            const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(filePath);
+            if (publicUrl) uploadedUrl = publicUrl;
+          }
+        } catch (err) {}
+
+        if (!uploadedUrl) {
+          uploadedUrl = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.readAsDataURL(file);
+          });
+        }
+
+        if (uploadedUrl) newUrls.push(uploadedUrl);
+      }
+
+      if (newUrls.length > 0) {
+        setForm(prev => {
+          const nextImages = [...(prev.images || []), ...newUrls];
+          return {
+            ...prev,
+            images: nextImages,
+            image_url: nextImages[0] || ''
+          };
+        });
+        toast.success(`Uploaded ${newUrls.length} ${newUrls.length === 1 ? 'image' : 'images'} successfully!`);
+      }
+    } catch (err) {
+      toast.error('Failed to process image upload');
+    } finally {
+      setIsUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setForm(prev => {
+      const nextImages = prev.images.filter((_, i) => i !== index);
+      return {
+        ...prev,
+        images: nextImages,
+        image_url: nextImages[0] || ''
+      };
+    });
+  };
+
+  const handleMakePrimary = (index: number) => {
+    if (index === 0) return;
+    setForm(prev => {
+      const target = prev.images[index];
+      const rest = prev.images.filter((_, i) => i !== index);
+      const nextImages = [target, ...rest];
+      return {
+        ...prev,
+        images: nextImages,
+        image_url: nextImages[0] || ''
+      };
+    });
+    toast.success('Set as primary storefront image');
+  };
+
+  const handleAutofillAngles = () => {
+    const primary = form.images[0] || form.image_url.trim() || (form.category === 'Sarees' ? '/saree_s1.jpg' : '/kurti_k1.jpg');
+    const angles = buildComplementaryAngles(primary, form.category, form.name);
+    const existing = form.images.length > 0 ? form.images : (form.image_url.trim() ? [form.image_url.trim()] : [primary]);
+    const combined = Array.from(new Set([...existing, ...angles]));
+    setForm(prev => ({
+      ...prev,
+      images: combined,
+      image_url: combined[0] || ''
+    }));
+    toast.success(`Auto-added ${angles.length} complementary fashion angles!`);
+  };
+
+  /* ─── Add product → Supabase & Local Storefront ─── */
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.price) { toast.error('Name and price required'); return; }
+
+    // Gather all images (either uploaded to form.images, or typed into form.image_url)
+    let imagesList = [...(form.images || [])];
+    if (form.image_url.trim() && !imagesList.includes(form.image_url.trim())) {
+      imagesList.unshift(form.image_url.trim());
+    }
+
+    if (imagesList.length === 0) {
+      imagesList = [form.category === 'Sarees' ? '/saree_s1.jpg' : '/kurti_k1.jpg'];
+    }
+
+    // Guarantee full angle set for product page & catalog
+    const guaranteedImages = ensureProductImages({
+      id: 'temp',
+      name: form.name.trim(),
+      category: form.category,
+      price: parseFloat(form.price),
+      images: imagesList,
+      image: imagesList[0],
+      rating: 5,
+      status: form.status,
+      colors: []
+    });
+
+    const primaryImg = guaranteedImages[0];
+
     setAdding(true);
     try {
-      const img = form.image_url.trim();
       const productPayload = {
         name: form.name.trim(),
         category: form.category,
         price: parseFloat(form.price),
         compare_at_price: form.compare_at_price ? parseFloat(form.compare_at_price) : null,
-        image_url: img || null,
-        images: img ? [img] : [],
+        image_url: primaryImg,
+        images: guaranteedImages,
+        image: primaryImg,
         description: form.description.trim() || null,
         status: form.status,
       };
@@ -414,6 +562,7 @@ export function AdminAanyaPage() {
 
       setDbProducts(prev => [createdProduct, ...prev.filter(p => p.id !== createdProduct.id)]);
       window.dispatchEvent(new Event('products_updated'));
+      window.dispatchEvent(new Event('storage'));
 
       // If requested, also feature this newly inserted product on the homepage hero model
       if (featureOnHero) {
@@ -422,7 +571,7 @@ export function AdminAanyaPage() {
             label: createdProduct.name,
             subtitle: `Discover Trending ${createdProduct.category}`,
             color: CAT_COLORS[createdProduct.category] || '#EC4899',
-            src: createdProduct.image_url || '/model_1.png',
+            src: createdProduct.image_url || primaryImg || '/model_1.png',
             productId: createdProduct.id,
             productName: createdProduct.name,
             price: createdProduct.price,
@@ -436,8 +585,12 @@ export function AdminAanyaPage() {
         }
       }
 
-      toast.success(`'${createdProduct.name}' published to store!`);
-      setIsAddOpen(false); setImgPreview(''); setForm(emptyForm); setFeatureOnHero(false);
+      toast.success(`'${createdProduct.name}' published to store with ${guaranteedImages.length} images!`);
+      setIsAddOpen(false); 
+      setImgPreview(''); 
+      setUrlInput('');
+      setForm(emptyForm); 
+      setFeatureOnHero(false);
     } catch (err: any) {
       toast.error('Failed: ' + (err.message || 'Unknown error'));
     } finally { setAdding(false); }
@@ -605,6 +758,7 @@ export function AdminAanyaPage() {
               {activeTab === 'overview' ? 'Dashboard Overview' :
                activeTab === 'hero-models' ? 'Hero Models & Outfits' :
                activeTab === 'products' ? 'Catalog Products' :
+               activeTab === 'billing' ? 'Manual Billing & POS' :
                activeTab === 'orders' ? 'Customer Orders' :
                activeTab === 'customers' ? 'Customer Directory' : 'Payment Records'}
             </h1>
@@ -853,6 +1007,20 @@ export function AdminAanyaPage() {
                               <span className="text-gray-400 line-through text-xs">₹{product.compare_at_price.toLocaleString('en-IN')}</span>
                             )}
                           </div>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setBillingInitialProduct(product);
+                              setActiveTab('billing');
+                              toast.success(`Loaded "${product.name}" into Manual Billing`);
+                            }}
+                            className="w-full mt-2 py-1.5 px-2 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-bold text-xs rounded-xl shadow-2xs hover:shadow transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                            title="Bill this product immediately"
+                          >
+                            <Receipt className="w-3.5 h-3.5" />
+                            Buy Now / Bill
+                          </button>
                         </div>
                       </motion.div>
                     );
@@ -1004,6 +1172,18 @@ export function AdminAanyaPage() {
             />
           )}
 
+          {/* ─── TAB: MANUAL BILLING & POS ─── */}
+          {activeTab === 'billing' && (
+            <AdminBillingSection
+              products={dbProducts}
+              initialProduct={billingInitialProduct}
+              onClearInitialProduct={() => setBillingInitialProduct(null)}
+              onOrderCreated={(order) => {
+                setOrders(prev => [order, ...prev]);
+              }}
+            />
+          )}
+
         </main>
       </div>
 
@@ -1122,7 +1302,7 @@ export function AdminAanyaPage() {
               exit={{ scale: 0.95, opacity: 0, y: 10 }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
               onClick={e => e.stopPropagation()}
-              className="bg-[#FDFBF7] rounded-2xl sm:rounded-3xl shadow-2xl max-w-sm sm:max-w-md w-full max-h-[85vh] flex flex-col relative my-auto overflow-hidden border border-pink-100/90"
+              className="bg-[#FDFBF7] rounded-2xl sm:rounded-3xl shadow-2xl max-w-md sm:max-w-xl w-full max-h-[90vh] flex flex-col relative my-auto overflow-hidden border border-pink-100/90"
             >
               {/* Modal header - Fixed at Top */}
               <div className="flex-shrink-0 bg-pink-50/95 backdrop-blur-md border-b border-pink-100 px-4 py-3 flex items-center justify-between">
@@ -1130,7 +1310,7 @@ export function AdminAanyaPage() {
                   <img src="/logo.png" alt="Aanya" className="h-7 w-auto object-contain mix-blend-multiply" />
                   <div>
                     <h3 className="font-serif text-sm sm:text-base font-bold text-gray-900 leading-tight">Add New Product</h3>
-                    <p className="text-[10px] text-pink-500 font-medium">Publish directly to Supabase catalog</p>
+                    <p className="text-[10px] text-pink-500 font-medium">Publish directly to Supabase catalog & storefront</p>
                   </div>
                 </div>
                 {/* Prominent Close X button */}
@@ -1162,8 +1342,8 @@ export function AdminAanyaPage() {
                   />
                 </div>
 
-                {/* Category + Selling Price */}
-                <div className="grid grid-cols-2 gap-2.5">
+                {/* Category + Selling Price + MRP */}
+                <div className="grid grid-cols-3 gap-2">
                   <div>
                     <label className="block text-[10px] uppercase tracking-wider font-bold text-gray-600 mb-1">
                       Category
@@ -1171,7 +1351,7 @@ export function AdminAanyaPage() {
                     <select
                       value={form.category}
                       onChange={e => setForm({ ...form, category: e.target.value })}
-                      className="w-full px-2.5 py-1.5 bg-white rounded-xl text-xs border border-gray-200 outline-none focus:ring-2 focus:ring-[#EC4899]/20 cursor-pointer"
+                      className="w-full px-2 py-1.5 bg-white rounded-xl text-xs border border-gray-200 outline-none focus:ring-2 focus:ring-[#EC4899]/20 cursor-pointer"
                     >
                       {['Sarees','Kurtis','Lehengas','Salwar Sets','Western','Maxi','Tradition'].map(c => (
                         <option key={c} value={c}>{c}</option>
@@ -1189,14 +1369,10 @@ export function AdminAanyaPage() {
                       placeholder="e.g. 4999"
                       value={form.price}
                       onChange={e => setForm({ ...form, price: e.target.value })}
-                      className="w-full px-3 py-1.5 bg-white rounded-xl text-xs border border-gray-200 outline-none focus:ring-2 focus:ring-[#EC4899]/20"
+                      className="w-full px-2.5 py-1.5 bg-white rounded-xl text-xs border border-gray-200 outline-none focus:ring-2 focus:ring-[#EC4899]/20"
                     />
                   </div>
-                </div>
-
-                {/* MRP + Image URL */}
-                <div className="grid grid-cols-3 gap-2.5">
-                  <div className="col-span-1">
+                  <div>
                     <label className="block text-[10px] uppercase tracking-wider font-bold text-gray-600 mb-1">
                       MRP (₹) <span className="text-gray-400 font-normal">opt</span>
                     </label>
@@ -1209,32 +1385,139 @@ export function AdminAanyaPage() {
                       className="w-full px-2.5 py-1.5 bg-white rounded-xl text-xs border border-gray-200 outline-none focus:ring-2 focus:ring-[#EC4899]/20"
                     />
                   </div>
-                  <div className="col-span-2">
-                    <label className="block text-[10px] uppercase tracking-wider font-bold text-gray-600 mb-1">
-                      Product Image URL
+                </div>
+
+                {/* Product Images & Gallery Section */}
+                <div className="bg-pink-50/40 rounded-xl p-3 border border-pink-100 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="block text-[10px] uppercase tracking-wider font-bold text-gray-700">
+                        Product Gallery Images *
+                      </label>
+                      <p className="text-[10px] text-gray-400 leading-tight">
+                        Upload multiple photos or paste URLs (shows in store & 2-column detail page)
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleAutofillAngles}
+                      className="text-[10px] font-bold text-pink-600 hover:text-pink-700 bg-white hover:bg-pink-50 border border-pink-200 px-2 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
+                      title="Automatically generate matching angle shots for this category"
+                    >
+                      <Sparkles className="w-3 h-3 text-pink-500" />
+                      Autofill Angles
+                    </button>
+                  </div>
+
+                  {/* Upload button + URL input row */}
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    {/* Device File Upload Button */}
+                    <label className="cursor-pointer flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white rounded-xl text-xs font-bold transition-all shadow-xs active:scale-98 text-center select-none">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>{isUploading ? 'Uploading...' : 'Upload Photos (Multiple)'}</span>
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        disabled={isUploading}
+                        onChange={handleFileUpload}
+                        className="hidden"
+                      />
                     </label>
-                    <div className="flex gap-2 items-center">
+
+                    {/* URL Input */}
+                    <div className="flex-[1.4] flex gap-1.5 items-center">
                       <input
                         type="url"
-                        placeholder="https://example.com/image.jpg"
-                        value={form.image_url}
-                        onChange={e => { setForm({ ...form, image_url: e.target.value }); setImgPreview(e.target.value); }}
+                        placeholder="Or paste image URL..."
+                        value={urlInput}
+                        onChange={e => setUrlInput(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddImageUrl();
+                          }
+                        }}
                         className="flex-1 px-2.5 py-1.5 bg-white rounded-xl text-xs border border-gray-200 outline-none focus:ring-2 focus:ring-[#EC4899]/20 min-w-0"
                       />
-                      <div className="w-8 h-8 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center flex-shrink-0">
-                        {imgPreview ? (
-                          <img
-                            src={imgPreview}
-                            alt="Preview"
-                            className="w-full h-full object-cover"
-                            onError={() => setImgPreview('')}
-                          />
-                        ) : (
-                          <ImageIcon className="w-3.5 h-3.5 text-gray-300" />
-                        )}
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleAddImageUrl()}
+                        className="px-2.5 py-1.5 bg-gray-900 hover:bg-black text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1 cursor-pointer flex-shrink-0"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Add
+                      </button>
                     </div>
                   </div>
+
+                  {/* Gallery Thumbnails List */}
+                  {form.images && form.images.length > 0 ? (
+                    <div className="space-y-1.5 pt-1">
+                      <div className="flex items-center justify-between text-[10px] text-gray-500 font-medium">
+                        <span>{form.images.length} photo{form.images.length > 1 ? 's' : ''} in gallery</span>
+                        <span className="text-gray-400">Click ★ to set main thumbnail</span>
+                      </div>
+                      <div className="flex gap-2 overflow-x-auto pb-1.5 scrollbar-thin">
+                        {form.images.map((imgSrc, idx) => (
+                          <div
+                            key={idx}
+                            className={`relative group flex-shrink-0 w-16 h-20 rounded-xl overflow-hidden border-2 bg-white shadow-2xs transition-all ${
+                              idx === 0 ? 'border-pink-500 ring-2 ring-pink-300/40' : 'border-gray-200 hover:border-pink-300'
+                            }`}
+                          >
+                            <img
+                              src={imgSrc}
+                              alt={`Angle ${idx + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+
+                            {/* Badge */}
+                            <div className="absolute top-1 left-1 pointer-events-none">
+                              {idx === 0 ? (
+                                <span className="bg-pink-500 text-white text-[8px] font-black px-1 py-0.5 rounded shadow-xs">
+                                  #1 MAIN
+                                </span>
+                              ) : (
+                                <span className="bg-black/60 backdrop-blur-xs text-white text-[8px] font-bold px-1 py-0.5 rounded">
+                                  #{idx + 1}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Actions Overlay */}
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                              {idx !== 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleMakePrimary(idx)}
+                                  title="Make Primary Image"
+                                  className="w-6 h-6 rounded-full bg-white/90 text-amber-500 hover:bg-white flex items-center justify-center cursor-pointer transition-all shadow"
+                                >
+                                  <Star className="w-3 h-3 fill-amber-500" />
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveImage(idx)}
+                                title="Remove photo"
+                                className="w-6 h-6 rounded-full bg-rose-600 text-white hover:bg-rose-700 flex items-center justify-center cursor-pointer transition-all shadow"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="border border-dashed border-pink-200 rounded-xl p-2.5 text-center bg-white/60">
+                      <p className="text-[11px] font-semibold text-gray-600">No images uploaded yet</p>
+                      <p className="text-[10px] text-gray-400">
+                        Upload photos from your computer or click "Autofill Angles" to generate sample fashion views.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Description */}

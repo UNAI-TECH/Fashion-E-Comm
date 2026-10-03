@@ -1,7 +1,12 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useParams, Link, useNavigate } from 'react-router';
-import { Star, Heart, ShoppingBag, Share2, Truck, RotateCcw, Shield, ChevronLeft, ChevronRight, ZoomIn, CreditCard, CheckCircle2, Loader2, DollarSign, MapPin, Calendar, Sparkles, X } from 'lucide-react';
+import { 
+  Star, Heart, ShoppingBag, Share2, Truck, RotateCcw, Shield, 
+  ChevronLeft, ChevronRight, ZoomIn, CreditCard, CheckCircle2, 
+  Loader2, DollarSign, MapPin, Calendar, Sparkles, X, Tag, 
+  Copy, Check, FileText, Layers, Camera, Maximize2, Ruler
+} from 'lucide-react';
 import { Navigation } from '../components/Navigation';
 import { AnnouncementBar } from '../components/AnnouncementBar';
 import { CompactCustomerReviews } from '../components/CompactCustomerReviews';
@@ -9,7 +14,7 @@ import { Footer } from '../components/Footer';
 import { useCart } from '../contexts/CartContext';
 import { useWishlist } from '../contexts/WishlistContext';
 import { supabase, supabaseAdmin } from '../../lib/supabase';
-import { fetchProducts, Product } from '../data/products';
+import { fetchProducts, Product, ensureProductImages } from '../data/products';
 import { toast } from 'sonner';
 
 interface ProductDetailsData {
@@ -225,6 +230,7 @@ export function ProductPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState('');
+  const [sizeError, setSizeError] = useState(false);
   const [selectedColor, setSelectedColor] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [isBuyNowModalOpen, setIsBuyNowModalOpen] = useState(false);
@@ -235,6 +241,13 @@ export function ProductPage() {
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderReference, setOrderReference] = useState<{ id: string; method: string; total: number } | null>(null);
+
+  // Gallery, Lightbox, Size Chart & Coupon states
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [isSizeChartOpen, setIsSizeChartOpen] = useState(false);
+  const [isCopiedCoupon, setIsCopiedCoupon] = useState(false);
+  const [mobileActiveIndex, setMobileActiveIndex] = useState(0);
 
   const [orderForm, setOrderForm] = useState({
     fullName: '',
@@ -332,12 +345,20 @@ export function ProductPage() {
   };
 
   const handleBuyNow = () => {
-    if (product) {
-      setIsBuyNowModalOpen(true);
-      setBuyNowStep('phone');
-      setBuyNowPhone(orderForm.phone || '');
-      setBuyNowOtp('');
+    if (!product) return;
+
+    const isSaree = (product.category || '').toLowerCase().includes('saree') || (product.name || '').toLowerCase().includes('saree');
+    if (!isSaree && !selectedSize) {
+      setSizeError(true);
+      toast.error('Please select a size before proceeding to Buy Now!');
+      return;
     }
+
+    setSizeError(false);
+    setIsBuyNowModalOpen(true);
+    setBuyNowStep('phone');
+    setBuyNowPhone(orderForm.phone || '');
+    setBuyNowOtp('');
   };
 
   const handleSendOTP = async () => {
@@ -535,16 +556,14 @@ export function ProductPage() {
 
         if (error) throw error;
         if (data) {
-          const itemImages = (data.images && data.images.length > 0) 
-            ? data.images 
-            : (data.image_url ? [data.image_url] : ['https://images.unsplash.com/photo-1604176354204-926873ff34b0?q=80&w=1000&auto=format&fit=crop']);
+          const itemImages = ensureProductImages(data);
             
           setProduct({
             ...data,
             image: itemImages[0],
             images: itemImages,
             colors: data.colors || ['#D4AF37'],
-            rating: data.rating || 4.5,
+            rating: data.rating || 4.8,
           });
         } else {
           throw new Error('No data found');
@@ -555,7 +574,12 @@ export function ProductPage() {
           const allProducts = await fetchProducts();
           const mockProduct = allProducts.find(p => String(p.id) === String(id));
           if (mockProduct) {
-            setProduct(mockProduct);
+            const itemImages = ensureProductImages(mockProduct);
+            setProduct({
+              ...mockProduct,
+              image: itemImages[0],
+              images: itemImages,
+            });
           } else {
             toast.error('Product not found');
           }
@@ -638,187 +662,578 @@ export function ProductPage() {
             <span>/</span>
             <span className="truncate max-w-[200px] sm:max-w-xs">{product.name}</span>
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            {/* Image Gallery & Customer Reviews */}
-            <div>
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.9 }} 
-                animate={{ opacity: 1, scale: 1 }} 
-                className="relative mb-4 aspect-square flex items-center justify-center overflow-hidden group border border-[#D4AF37] p-2 bg-white rounded-[2rem] shadow-sm"
-              >
-                <img 
-                  src={product.image} 
-                  alt={product.name} 
-                  className="w-[90%] h-[90%] object-contain" 
-                />
-              </motion.div>
+          {/* Myntra-Inspired Showcase Layout: 12-column grid on desktop */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
+            
+            {/* ═══ LEFT 7 COLS: MYNTRA MULTI-IMAGE 2-COLUMN GRID + REVIEWS ═══ */}
+            <div className="lg:col-span-7 space-y-8">
+              
+              {/* Desktop 2-Column Multi-Angle Gallery */}
+              <div className="hidden lg:grid grid-cols-2 gap-3.5">
+                {product.images && product.images.map((imgUrl, idx) => {
+                  const angleLabel = idx === 0 
+                    ? 'Front Shot' 
+                    : idx === 1 
+                      ? 'Model Pose' 
+                      : idx === 2 
+                        ? 'Fabric Detail' 
+                        : idx === 3 
+                          ? 'Back View' 
+                          : `Angle #${idx + 1}`;
 
-              {/* Compact Customer Reviews Section (3 reviews, gold border, verified badges) */}
+                  return (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.06, duration: 0.35 }}
+                      onClick={() => {
+                        setLightboxIndex(idx);
+                        setIsLightboxOpen(true);
+                      }}
+                      className="group relative aspect-[3/4] rounded-2xl overflow-hidden border border-gray-200/80 bg-[#FAF9F6] shadow-2xs hover:shadow-xl transition-all duration-300 cursor-zoom-in"
+                    >
+                      <img
+                        src={imgUrl}
+                        alt={`${product.name} - View ${idx + 1}`}
+                        className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                      />
+
+                      {/* Angle Tag Pill in Top Left */}
+                      <div className="absolute top-3 left-3 z-10 pointer-events-none">
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md text-white shadow-xs">
+                          {angleLabel}
+                        </span>
+                      </div>
+
+                      {/* Myntra-style Double-Card / Inspect Button in Bottom Right */}
+                      <div className="absolute bottom-3 right-3 z-10 pointer-events-none">
+                        <div className="p-2.5 bg-white/95 hover:bg-white text-gray-900 rounded-2xl shadow-md backdrop-blur-xs opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:scale-110 flex items-center gap-1.5 text-xs font-bold">
+                          <Maximize2 className="w-3.5 h-3.5 text-[#D4AF37]" />
+                          <span>Zoom</span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+
+              {/* Mobile Swipeable Gallery Carousel (screen < lg) */}
+              <div className="lg:hidden space-y-3">
+                <div 
+                  className="flex overflow-x-auto snap-x snap-mandatory gap-3 pb-2 scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden scroll-smooth"
+                  onScroll={(e) => {
+                    const el = e.currentTarget;
+                    const index = Math.round(el.scrollLeft / (el.offsetWidth * 0.88));
+                    if (index >= 0 && index < (product.images?.length || 1)) {
+                      setMobileActiveIndex(index);
+                    }
+                  }}
+                >
+                  {product.images && product.images.map((imgUrl, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => {
+                        setLightboxIndex(idx);
+                        setIsLightboxOpen(true);
+                      }}
+                      className="snap-center shrink-0 w-[88vw] max-w-[420px] aspect-[3/4] rounded-2xl overflow-hidden border border-gray-200 bg-[#FAF9F6] relative shadow-sm cursor-pointer"
+                    >
+                      <img
+                        src={imgUrl}
+                        alt={`${product.name} - View ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      {/* Counter Badge */}
+                      <div className="absolute bottom-3 right-3 px-3 py-1 bg-black/75 backdrop-blur-md text-white text-xs font-bold rounded-full shadow-md flex items-center gap-1.5">
+                        <Camera className="w-3.5 h-3.5 text-[#D4AF37]" />
+                        <span>{idx + 1} / {product.images.length}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Mobile Thumbnail Navigation Strip */}
+                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none justify-center">
+                  {product.images && product.images.map((imgUrl, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        setLightboxIndex(idx);
+                        setIsLightboxOpen(true);
+                      }}
+                      className={`relative w-14 h-16 rounded-xl overflow-hidden border-2 transition-all shrink-0 cursor-pointer ${
+                        mobileActiveIndex === idx ? 'border-[#800000] scale-105 shadow-sm' : 'border-gray-200 opacity-70'
+                      }`}
+                    >
+                      <img src={imgUrl} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Customer Reviews Section */}
               <CompactCustomerReviews product={product} />
             </div>
 
-            {/* Product Info */}
-            <div className="space-y-6 relative pt-2">
-
-
+            {/* ═══ RIGHT 5 COLS: STICKY PRODUCT SUMMARY (MYNTRA INSPIRED) ═══ */}
+            <div className="lg:col-span-5 lg:sticky lg:top-24 lg:self-start lg:max-h-[calc(100vh-6.5rem)] lg:overflow-y-auto lg:pr-3 space-y-5 scrollbar-thin">
               {(() => {
                 const details = getProductFullDetails(product);
+                const isSaree = (product.category || '').toLowerCase().includes('saree') || (product.name || '').toLowerCase().includes('saree');
+                const discountPercent = product.compare_at_price 
+                  ? Math.round(((product.compare_at_price - product.price) / product.compare_at_price) * 100) 
+                  : 45;
+                const bestOfferPrice = Math.round(product.price * 0.65);
+                const totalSaving = product.compare_at_price 
+                  ? product.compare_at_price - bestOfferPrice 
+                  : Math.round(product.price * 0.35);
+
                 return (
                   <>
-                    <div className="space-y-2 pr-12">
-                      <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl text-[#1A1A1A] leading-tight">{product.name}</h1>
-                      <div className="w-16 h-px bg-[#D4AF37] my-4"></div>
+                    {/* Header: Brand Name & Title */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs uppercase tracking-[0.2em] text-[#D4AF37] font-black">
+                          Aanya Fashions • Sangria Heritage
+                        </span>
+                        <span className="text-[10px] uppercase font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded">
+                          {product.category}
+                        </span>
+                      </div>
+                      <h1 className="font-serif text-2xl sm:text-3xl text-gray-900 leading-snug font-bold">
+                        {product.name}
+                      </h1>
                     </div>
 
-                    {/* Product Details Paragraph */}
-                    <div className="my-5">
-                      <p className="text-gray-600 leading-relaxed text-sm font-normal text-justify line-clamp-5">
-                        This beautiful {product.name} features exquisite detailing focused on premium quality and aesthetics. It is exquisitely designed in a beautiful <strong className="text-gray-800 font-semibold">{details.attributes.find((a: any) => a.label === 'Color')?.value || 'premium'}</strong> tone that gives it a rich and timeless appeal. Expertly crafted from high-quality <strong className="text-gray-800 font-semibold">{details.attributes.find((a: any) => a.label === 'Material')?.value || 'fabric'}</strong>, it ensures both comfort and elegance for any occasion. The outfit showcases a magnificent <strong className="text-gray-800 font-semibold">{details.attributes.find((a: any) => a.label === 'Design')?.value || 'silhouette'}</strong> design that drapes beautifully. Furthermore, the intricate <strong className="text-gray-800 font-semibold">{details.attributes.find((a: any) => a.label === 'Pattern')?.value || 'detailing'}</strong> pattern elevates the overall visual appeal, adding a perfect touch of luxury to your wardrobe.
-                      </p>
-                      <div className="w-16 h-px bg-[#D4AF37] opacity-60 mt-6"></div>
+                    {/* Rating Badge (Exact Myntra border pill) */}
+                    <div className="flex items-center gap-3">
+                      <div className="inline-flex items-center gap-2 px-3 py-1 bg-white border border-gray-200 rounded-md text-xs font-bold text-gray-800 shadow-2xs">
+                        <span className="flex items-center gap-1 font-bold">
+                          {product.rating} <Star className="w-3.5 h-3.5 fill-[#D4AF37] text-[#D4AF37]" />
+                        </span>
+                        <span className="w-px h-3.5 bg-gray-300"></span>
+                        <span className="text-gray-500 font-medium">19 Ratings</span>
+                      </div>
+                      <span className="text-xs text-emerald-600 font-bold bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                        In Stock & Ready to Ship
+                      </span>
                     </div>
 
-                    {/* Occasion & Pair With Styling Recommendations */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 my-6 p-4 sm:p-5 rounded-2xl bg-[#FFFDF9] border border-[#F5E6BE]/60 shadow-sm">
-                      {/* Occasion */}
-                      <div>
-                        <h4 className="text-xs font-black uppercase tracking-widest text-[#800000] mb-2.5 flex items-center gap-1.5">
-                          <Calendar className="w-4 h-4 text-[#D4AF37]" /> Occasion
-                        </h4>
-                        <ul className="space-y-1.5 text-xs font-medium text-gray-700">
-                          {details.occasions.map((occ, i) => (
-                            <li key={i} className="flex items-center gap-2">
-                              <span className="w-1.5 h-1.5 rounded-full bg-[#D4AF37] flex-shrink-0" />
-                              <span>{occ}</span>
-                            </li>
-                          ))}
-                        </ul>
+                    <div className="w-full h-px bg-gray-100"></div>
+
+                    {/* Price Block */}
+                    <div className="space-y-1">
+                      <div className="flex items-baseline gap-3 flex-wrap">
+                        <span className="text-3xl sm:text-4xl text-gray-900 font-bold tracking-tight">
+                          ₹{product.price.toLocaleString('en-IN')}
+                        </span>
+                        {product.compare_at_price && (
+                          <span className="text-lg sm:text-xl text-gray-400 line-through font-normal">
+                            MRP ₹{product.compare_at_price.toLocaleString('en-IN')}
+                          </span>
+                        )}
+                        <span className="text-sm font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-md border border-orange-200">
+                          ({discountPercent}% OFF)
+                        </span>
+                      </div>
+                      <span className="text-xs text-emerald-700 font-semibold block">
+                        inclusive of all taxes
+                      </span>
+                    </div>
+
+                    {/* SELECT SIZE Section */}
+                    {!isSaree ? (
+                      <div className={`space-y-3 p-3.5 rounded-2xl transition-all ${sizeError ? 'bg-red-50/70 border border-red-300 ring-2 ring-red-200' : 'bg-gray-50/50 border border-gray-100'}`}>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs uppercase tracking-widest text-gray-800 font-bold flex items-center gap-1.5">
+                            SELECT SIZE
+                            <span className="text-red-500 font-bold">*</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setIsSizeChartOpen(true)}
+                            className="text-xs font-bold text-[#800000] hover:text-black uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-colors"
+                          >
+                            <Ruler className="w-3.5 h-3.5 text-[#D4AF37]" />
+                            SIZE CHART &gt;
+                          </button>
+                        </div>
+
+                        {sizeError && (
+                          <p className="text-xs font-bold text-red-600 animate-pulse flex items-center gap-1">
+                            ⚠️ Please select a size before proceeding to Buy Now or Cart!
+                          </p>
+                        )}
+
+                        <div className="flex flex-wrap gap-2.5">
+                          {['XS', 'S', 'M', 'L', 'XL', 'XXL'].map((size, sIdx) => {
+                            const isSelected = selectedSize === size;
+                            const isLowStock = size === 'XS' || size === 'S';
+
+                            return (
+                              <div key={size} className="flex flex-col items-center">
+                                <motion.button
+                                  type="button"
+                                  whileHover={{ scale: 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={() => {
+                                    setSelectedSize(size);
+                                    setSizeError(false);
+                                  }}
+                                  className={`w-12 h-12 rounded-full border text-xs font-bold transition-all flex items-center justify-center cursor-pointer ${
+                                    isSelected
+                                      ? 'border-[#800000] bg-[#800000] text-white shadow-md ring-2 ring-[#800000]/30'
+                                      : 'border-gray-300 text-gray-800 hover:border-gray-900 bg-white'
+                                  }`}
+                                >
+                                  {size}
+                                </motion.button>
+                                {isLowStock && (
+                                  <span className="text-[10px] font-bold text-orange-600 mt-1">
+                                    {sIdx === 0 ? '4 left' : '2 left'}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-3 bg-amber-50/50 rounded-2xl border border-amber-200/60 flex items-center justify-between">
+                        <div>
+                          <span className="text-xs font-bold uppercase tracking-wider text-gray-800 block">Drape Size</span>
+                          <span className="text-xs text-gray-500">Traditional 5.5m Saree + 0.8m Blouse Piece</span>
+                        </div>
+                        <span className="text-xs font-bold text-[#800000] bg-white px-3 py-1 rounded-full border border-rose-200">
+                          Free Size
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Quantity Selector */}
+                    <div className="flex items-center gap-4">
+                      <span className="text-xs uppercase tracking-widest text-gray-600 font-bold">Quantity</span>
+                      <div className="flex items-center border border-gray-300 rounded-xl overflow-hidden h-10 bg-white">
+                        <button 
+                          type="button"
+                          onClick={() => setQuantity(Math.max(1, quantity - 1))} 
+                          className="w-10 h-full hover:bg-gray-100 flex items-center justify-center text-gray-600 font-bold cursor-pointer transition-colors"
+                        > - </button>
+                        <span className="w-10 text-center font-bold text-sm text-gray-900">{quantity}</span>
+                        <button 
+                          type="button"
+                          onClick={() => setQuantity(quantity + 1)} 
+                          className="w-10 h-full hover:bg-gray-100 flex items-center justify-center text-gray-600 font-bold cursor-pointer transition-colors"
+                        > + </button>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons (Horizontal layout like Myntra screenshot) */}
+                    <div className="space-y-2.5 pt-1">
+                      <div className="flex gap-3">
+                        <motion.button 
+                          type="button"
+                          onClick={handleAddToCart}
+                          whileHover={{ scale: 1.02 }} 
+                          whileTap={{ scale: 0.98 }} 
+                          className="flex-1 h-14 bg-[#ff3e6c] hover:bg-[#e0355d] text-white font-black text-xs uppercase tracking-[0.15em] rounded-2xl shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer"
+                        >
+                          <ShoppingBag className="w-4 h-4 text-white" />
+                          ADD TO BAG
+                        </motion.button>
+
+                        <motion.button 
+                          type="button"
+                          onClick={handleWishlistToggle} 
+                          whileHover={{ scale: 1.02 }} 
+                          whileTap={{ scale: 0.98 }} 
+                          className="px-6 h-14 bg-white hover:bg-gray-50 text-gray-800 border-2 border-gray-300 hover:border-gray-800 rounded-2xl font-black text-xs uppercase tracking-[0.15em] shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+                        >
+                          <Heart className={`w-4 h-4 ${product && isInWishlist(product.id) ? 'fill-[#ff3e6c] text-[#ff3e6c]' : 'text-gray-700'}`} />
+                          {product && isInWishlist(product.id) ? 'WISHLISTED' : 'WISHLIST'}
+                        </motion.button>
                       </div>
 
-                      {/* Pair With */}
-                      <div>
-                        <h4 className="text-xs font-black uppercase tracking-widest text-[#800000] mb-2.5 flex items-center gap-1.5">
-                          <Sparkles className="w-4 h-4 text-[#D4AF37]" /> Pair With
-                        </h4>
-                        <ul className="space-y-1.5 text-xs font-medium text-gray-700">
-                          {details.pairWith.map((pair, i) => (
-                            <li key={i} className="flex items-center gap-2">
-                              <span className="w-1.5 h-1.5 rounded-full bg-[#800000] flex-shrink-0" />
-                              <span>{pair}</span>
-                            </li>
+                      {/* Direct Buy Now Button */}
+                      <motion.button 
+                        type="button"
+                        onClick={handleBuyNow} 
+                        whileHover={{ scale: 1.01 }} 
+                        whileTap={{ scale: 0.99 }} 
+                        className={`w-full h-13 rounded-2xl font-black text-xs tracking-[0.15em] uppercase shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                          !isSaree && !selectedSize
+                            ? 'bg-[#FFF0F5] hover:bg-[#FFE4E1] text-[#800000] border-2 border-rose-300'
+                            : 'bg-[#800000] hover:bg-black text-white border-2 border-[#800000]'
+                        }`}
+                      >
+                        <CreditCard className="w-4 h-4" /> 
+                        Buy Now
+                      </motion.button>
+                    </div>
+
+                    {/* ═══ BEST OFFERS SECTION (MYNTRA SCREENSHOT MATCH) ═══ */}
+                    <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/80 space-y-2.5">
+                      <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-gray-900">
+                        <Tag className="w-4 h-4 text-[#D4AF37]" />
+                        <span>BEST OFFERS</span>
+                      </div>
+                      <div className="text-sm font-bold text-gray-900">
+                        Best Price: <span className="text-[#800000] font-black text-base">Rs. {bestOfferPrice.toLocaleString('en-IN')}</span>
+                      </div>
+                      <ul className="text-xs text-gray-700 space-y-1.5 list-disc list-inside">
+                        <li>
+                          Coupon Discount: <strong className="text-gray-900">35% off</strong> (Your total saving: Rs. {totalSaving.toLocaleString('en-IN')})
+                        </li>
+                        <li>Applicable on: Orders above Rs. 300 (only on first purchase)</li>
+                        <li className="flex items-center gap-2 flex-wrap pt-0.5">
+                          <span>Coupon code: <strong className="font-mono text-gray-900 bg-white px-2 py-0.5 rounded border border-gray-300">AANYAEXCLUSIVE1</strong></span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText('AANYAEXCLUSIVE1');
+                              setIsCopiedCoupon(true);
+                              toast.success('Coupon code AANYAEXCLUSIVE1 copied!');
+                              setTimeout(() => setIsCopiedCoupon(false), 2000);
+                            }}
+                            className="text-[11px] font-bold text-[#800000] hover:underline flex items-center gap-1 cursor-pointer bg-white px-2 py-0.5 rounded shadow-xs border border-rose-200"
+                          >
+                            {isCopiedCoupon ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
+                            {isCopiedCoupon ? 'Copied!' : 'Copy Code'}
+                          </button>
+                        </li>
+                      </ul>
+                    </div>
+
+                    {/* Value Badges: Fast Shipping, Easy Returns, Authenticity */}
+                    <div className="grid grid-cols-3 gap-3 py-3 border-y border-gray-100 text-center">
+                      <div className="flex flex-col items-center gap-1 p-2 rounded-xl bg-gray-50/70">
+                        <Truck className="w-4 h-4 text-[#D4AF37]" />
+                        <span className="text-[10px] font-bold text-gray-700">Fast Shipping</span>
+                      </div>
+                      <div className="flex flex-col items-center gap-1 p-2 rounded-xl bg-gray-50/70">
+                        <RotateCcw className="w-4 h-4 text-[#D4AF37]" />
+                        <span className="text-[10px] font-bold text-gray-700">Easy 7-Day Returns</span>
+                      </div>
+                      <div className="flex flex-col items-center gap-1 p-2 rounded-xl bg-gray-50/70">
+                        <Shield className="w-4 h-4 text-[#D4AF37]" />
+                        <span className="text-[10px] font-bold text-gray-700">100% Authentic</span>
+                      </div>
+                    </div>
+
+                    {/* ═══ PRODUCT DETAILS & ABOUT THE BRAND (MYNTRA SCREENSHOT MATCH) ═══ */}
+                    <div className="pt-2 space-y-4">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-[#D4AF37]" />
+                        <h3 className="font-serif text-base font-bold text-[#1A1A1A]">PRODUCT DETAILS</h3>
+                      </div>
+
+                      <div className="space-y-2">
+                        <h4 className="text-xs font-black uppercase tracking-wider text-gray-800">ABOUT THE BRAND</h4>
+                        <p className="text-xs text-gray-600 leading-relaxed text-justify">
+                          Aanya Fashions is a luxury heritage couture brand that focuses on modern, empowered women. Our designs celebrate signature artisanal weaves, rich color palettes, and intricate embroidery with a contemporary take on traditional Indian motifs.
+                        </p>
+                      </div>
+
+                      {/* Specifications Grid */}
+                      <div className="pt-1">
+                        <h4 className="text-xs font-black uppercase tracking-wider text-gray-800 mb-2.5">SPECIFICATIONS</h4>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          {details.attributes.map((attr, aIdx) => (
+                            <div key={aIdx} className="p-2.5 rounded-xl bg-gray-50 border border-gray-100">
+                              <span className="text-[10px] uppercase font-bold text-gray-400 block">{attr.label}</span>
+                              <span className="font-semibold text-gray-800">{attr.value}</span>
+                            </div>
                           ))}
-                        </ul>
+                          <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-100">
+                            <span className="text-[10px] uppercase font-bold text-gray-400 block">Occasion</span>
+                            <span className="font-semibold text-gray-800">{details.occasions[0] || 'Festive & Party'}</span>
+                          </div>
+                          <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-100">
+                            <span className="text-[10px] uppercase font-bold text-gray-400 block">Wash Care</span>
+                            <span className="font-semibold text-gray-800">Dry Clean Only</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </>
                 );
               })()}
-
-              {/* Rating / Feedback */}
-              <div className="flex items-center gap-4 text-sm text-gray-500 py-1">
-                <div className="flex text-[#D4AF37]">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className={`w-4 h-4 ${i < Math.floor(product.rating) ? 'fill-[#D4AF37] text-[#D4AF37]' : 'text-gray-300'}`} />
-                  ))}
-                </div>
-                <span className="font-medium text-xs tracking-wider uppercase text-gray-400">({product.rating} customer rating)</span>
-              </div>
-
-              {/* Signature / Brand info */}
-              <div className="py-2 border-b border-gray-100">
-                <h4 className="font-serif text-2xl text-[#1A1A1A] mb-0.5">Aanya Fashions</h4>
-                <span className="text-[9px] tracking-[0.25em] text-[#D4AF37] font-bold block uppercase">Handcrafted Luxury Heritage</span>
-              </div>
-
-              {/* Price */}
-              <div className="flex items-center gap-4 py-2 my-2">
-                <span className="text-4xl text-[#D4AF37] font-serif">₹{product.price.toLocaleString('en-IN')}</span>
-                {product.compare_at_price && (
-                  <span className="text-2xl text-gray-400 line-through">₹{product.compare_at_price.toLocaleString('en-IN')}</span>
-                )}
-              </div>
-
-              {/* Size Selector (Hidden for Sarees) */}
-              {!((product.category || '').toLowerCase().includes('saree') || (product.name || '').toLowerCase().includes('saree')) && (
-                <div className="space-y-3 py-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs uppercase tracking-widest text-gray-400 font-bold">Select Size</span>
-                    {selectedSize && (
-                      <span className="text-xs font-bold text-[#800000] bg-rose-50 px-2.5 py-0.5 rounded-full border border-rose-100">
-                        Selected: {selectedSize}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {['S', 'M', 'L', 'XL', 'XXL', 'XXXL'].map((size) => (
-                      <motion.button
-                        key={size}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => setSelectedSize(size)}
-                        className={`h-11 px-4 border text-xs font-black transition-all rounded-xl cursor-pointer ${
-                          selectedSize === size
-                            ? 'border-[#800000] bg-[#800000] text-white shadow-sm'
-                            : 'border-gray-200 text-gray-800 hover:border-gray-400 hover:bg-gray-50'
-                        }`}
-                      >
-                        {size}
-                      </motion.button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Quantity */}
-              <div className="flex items-center gap-4 py-2">
-                <span className="text-xs uppercase tracking-widest text-gray-400 font-bold">Quantity</span>
-                <div className="flex items-center border border-gray-300 h-11">
-                  <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-11 h-full hover:bg-gray-50 flex items-center justify-center text-gray-500"> - </button>
-                  <span className="w-11 text-center font-bold text-sm text-gray-800">{quantity}</span>
-                  <button onClick={() => setQuantity(quantity + 1)} className="w-11 h-full hover:bg-gray-50 flex items-center justify-center text-gray-500"> + </button>
-                </div>
-              </div>
-
-              {/* Call To Action Buttons */}
-              <div className="flex gap-4 pt-2">
-                <motion.button 
-                  onClick={handleWishlistToggle} 
-                  whileHover={{ scale: 1.02 }} 
-                  whileTap={{ scale: 0.98 }} 
-                  className="flex-1 h-14 bg-[#FFF9E6] hover:bg-[#F5E6BE] text-[#800000] border-2 border-[#F5E6BE] rounded-2xl font-black text-xs tracking-[0.15em] uppercase shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
-                >
-                  <Heart className={`w-4 h-4 text-[#800000] ${product && isInWishlist(product.id) ? 'fill-[#800000]' : ''}`} /> 
-                  {product && isInWishlist(product.id) ? 'Saved to Wishlist' : 'Save to Wishlist'}
-                </motion.button>
-              </div>
-
-              <motion.button 
-                onClick={handleBuyNow} 
-                whileHover={{ scale: 1.02 }} 
-                whileTap={{ scale: 0.98 }} 
-                className="w-full h-14 bg-[#FFF0F5] hover:bg-[#FFE4E1] text-[#800000] border-2 border-rose-200 rounded-2xl font-black text-xs tracking-[0.15em] uppercase shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
-              >
-                <CreditCard className="w-4 h-4 text-[#800000]" /> Buy Now (Online or Cash)
-              </motion.button>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-8 border-t border-gray-100">
-                <div className="flex items-center gap-3">
-                  <Truck className="w-6 h-6 text-[#D4AF37]" />
-                  <span className="text-sm">Fast Shipping</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <RotateCcw className="w-6 h-6 text-[#D4AF37]" />
-                  <span className="text-sm">Easy Returns</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Shield className="w-6 h-6 text-[#D4AF37]" />
-                  <span className="text-sm">Authenticity Check</span>
-                </div>
-              </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* ═══ INTERACTIVE FULLSCREEN LIGHTBOX MODAL ═══ */}
+      <AnimatePresence>
+        {isLightboxOpen && product && product.images && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsLightboxOpen(false)}
+              className="fixed inset-0 bg-black/90 backdrop-blur-md"
+            />
+
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative max-w-4xl max-h-[92vh] w-full flex flex-col items-center z-10"
+            >
+              {/* Top Bar with Counter and Close */}
+              <div className="w-full flex items-center justify-between text-white pb-3 px-2">
+                <div className="text-xs font-bold tracking-wider uppercase flex items-center gap-2">
+                  <span className="text-[#D4AF37] font-serif font-black">{product.name}</span>
+                  <span className="text-gray-400">• Photo {lightboxIndex + 1} of {product.images.length}</span>
+                </div>
+                <button
+                  onClick={() => setIsLightboxOpen(false)}
+                  className="p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all cursor-pointer"
+                  title="Close preview"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Main Image Display */}
+              <div className="relative w-full aspect-[3/4] max-h-[75vh] flex items-center justify-center rounded-2xl overflow-hidden bg-black/40 border border-white/10 shadow-2xl">
+                <img
+                  src={product.images[lightboxIndex]}
+                  alt={`${product.name} view ${lightboxIndex + 1}`}
+                  className="w-full h-full object-contain"
+                />
+
+                {/* Left Navigation Arrow */}
+                {lightboxIndex > 0 && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setLightboxIndex(prev => prev - 1);
+                    }}
+                    className="absolute left-4 p-3 bg-black/60 hover:bg-black text-white rounded-full transition-all cursor-pointer backdrop-blur-md"
+                    title="Previous photo"
+                  >
+                    <ChevronLeft className="w-6 h-6" />
+                  </button>
+                )}
+
+                {/* Right Navigation Arrow */}
+                {lightboxIndex < product.images.length - 1 && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setLightboxIndex(prev => prev + 1);
+                    }}
+                    className="absolute right-4 p-3 bg-black/60 hover:bg-black text-white rounded-full transition-all cursor-pointer backdrop-blur-md"
+                    title="Next photo"
+                  >
+                    <ChevronRight className="w-6 h-6" />
+                  </button>
+                )}
+              </div>
+
+              {/* Bottom Thumbnail Strip */}
+              <div className="flex gap-2 pt-4 overflow-x-auto max-w-full justify-center">
+                {product.images.map((img, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setLightboxIndex(i)}
+                    className={`relative w-14 h-16 rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${
+                      lightboxIndex === i ? 'border-[#D4AF37] scale-105 shadow-md' : 'border-white/30 opacity-60 hover:opacity-100'
+                    }`}
+                  >
+                    <img src={img} alt={`Thumb ${i + 1}`} className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ═══ INTERACTIVE SIZE CHART MODAL ═══ */}
+      <AnimatePresence>
+        {isSizeChartOpen && (
+          <div className="fixed inset-0 z-[115] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsSizeChartOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            />
+
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 15 }}
+              className="relative w-full max-w-lg bg-white rounded-3xl p-6 shadow-2xl border border-gray-100 z-10 space-y-4"
+            >
+              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <Ruler className="w-5 h-5 text-[#D4AF37]" />
+                  <h3 className="font-serif text-xl font-bold text-gray-900">Garment Size Chart</h3>
+                </div>
+                <button
+                  onClick={() => setIsSizeChartOpen(false)}
+                  className="p-1.5 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-700 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <p className="text-xs text-gray-500">
+                All measurements are in inches. Standard tailored Indian sizing.
+              </p>
+
+              <div className="overflow-x-auto rounded-2xl border border-gray-200">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-gray-50 text-gray-600 font-bold uppercase tracking-wider">
+                    <tr>
+                      <th className="px-3 py-2.5">Size</th>
+                      <th className="px-3 py-2.5">Bust (in)</th>
+                      <th className="px-3 py-2.5">Waist (in)</th>
+                      <th className="px-3 py-2.5">Hip (in)</th>
+                      <th className="px-3 py-2.5">Length (in)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 text-gray-800">
+                    {[
+                      { size: 'XS', bust: '32', waist: '26', hip: '35', length: '44' },
+                      { size: 'S', bust: '34', waist: '28', hip: '37', length: '45' },
+                      { size: 'M', bust: '36', waist: '30', hip: '39', length: '45.5' },
+                      { size: 'L', bust: '38', waist: '32', hip: '41', length: '46' },
+                      { size: 'XL', bust: '40', waist: '34', hip: '43', length: '46.5' },
+                      { size: 'XXL', bust: '42', waist: '36', hip: '45', length: '47' },
+                    ].map((row) => (
+                      <tr key={row.size} className={selectedSize === row.size ? 'bg-amber-50/60 font-bold text-[#800000]' : 'hover:bg-gray-50'}>
+                        <td className="px-3 py-2.5 font-black">{row.size}</td>
+                        <td className="px-3 py-2.5">{row.bust}"</td>
+                        <td className="px-3 py-2.5">{row.waist}"</td>
+                        <td className="px-3 py-2.5">{row.hip}"</td>
+                        <td className="px-3 py-2.5">{row.length}"</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="text-center pt-2">
+                <button
+                  onClick={() => setIsSizeChartOpen(false)}
+                  className="w-full py-3 bg-[#1A1A1A] hover:bg-black text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer"
+                >
+                  Got It
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <Footer />
 
       {/* Buy Now Process Modal */}
       <AnimatePresence>
