@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Receipt, Printer, Plus, Trash2, Search,
   ShoppingBag, User, Phone, Mail, MapPin,
-  Check, RefreshCw
+  Check, RefreshCw, ShoppingCart, X, Package,
+  ExternalLink, ArrowRight
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabaseAdmin } from '../../../lib/supabase';
@@ -79,6 +80,7 @@ export interface AdminBillingSectionProps {
   onClearInitialProduct?: () => void;
   onClearInitialProducts?: () => void;
   onOrderCreated?: (order: any) => void;
+  onNavigateToCatalog?: () => void;
 }
 
 export function AdminBillingSection({
@@ -87,7 +89,8 @@ export function AdminBillingSection({
   initialProducts,
   onClearInitialProduct,
   onClearInitialProducts,
-  onOrderCreated
+  onOrderCreated,
+  onNavigateToCatalog
 }: AdminBillingSectionProps) {
   // Invoice Meta
   const [invoiceNo, setInvoiceNo] = useState(() => `INV-${Math.floor(1000 + Math.random() * 9000)}`);
@@ -102,14 +105,152 @@ export function AdminBillingSection({
   const [customerAddress, setCustomerAddress] = useState('');
   const [customerState, setCustomerState] = useState('');
 
-  // Bill Line Items (EMPTY DEFAULT - Only populated on user action)
-  const [billItems, setBillItems] = useState<BillItem[]>([]);
+  // Bill Line Items (Populated from props, localStorage, or catalog cart)
+  const [billItems, setBillItems] = useState<BillItem[]>(() => {
+    try {
+      if (initialProducts && Array.isArray(initialProducts) && initialProducts.length > 0) {
+        return initialProducts.map((item: any) => ({
+          id: String(item.id),
+          name: item.name,
+          category: item.category || 'General',
+          price: Number(item.price) || 0,
+          quantity: Number(item.quantity) || 1,
+          image: (item.images && item.images.length > 0 ? item.images[0] : null) || item.image_url || item.image || ''
+        }));
+      }
+      if (initialProduct) {
+        return [{
+          id: String(initialProduct.id),
+          name: initialProduct.name,
+          category: initialProduct.category || 'General',
+          price: Number(initialProduct.price) || 0,
+          quantity: 1,
+          image: (initialProduct.images && initialProduct.images.length > 0 ? initialProduct.images[0] : null) || initialProduct.image_url || initialProduct.image || ''
+        }];
+      }
+      const savedBill = localStorage.getItem('admin_billing_items');
+      if (savedBill) {
+        const parsed = JSON.parse(savedBill);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+      // If billing items is empty, but admin_pos_cart has items, automatically load them
+      const savedCart = localStorage.getItem('admin_pos_cart');
+      if (savedCart) {
+        const parsedCart = JSON.parse(savedCart);
+        if (Array.isArray(parsedCart) && parsedCart.length > 0) {
+          return parsedCart.map((i: any) => ({
+            id: String(i.product?.id || i.id),
+            name: i.product?.name || i.name,
+            category: i.product?.category || i.category || 'General',
+            price: Number(i.product?.price ?? i.price) || 0,
+            quantity: Number(i.quantity) || 1,
+            image: (i.product?.images && i.product.images.length > 0 ? i.product.images[0] : null) || i.product?.image_url || i.product?.image || i.image || ''
+          }));
+        }
+      }
+    } catch (e) {}
+    return [];
+  });
+
+  // Automatically keep billItems synced to localStorage
+  useEffect(() => {
+    try {
+      if (billItems.length > 0) {
+        localStorage.setItem('admin_billing_items', JSON.stringify(billItems));
+      }
+    } catch (e) {}
+  }, [billItems]);
+
+  // Listen for direct broadcast events from catalog products tab
+  useEffect(() => {
+    const handleLoadItems = (e: any) => {
+      const items = e.detail;
+      if (Array.isArray(items) && items.length > 0) {
+        setBillItems(prev => {
+          const next = [...prev];
+          items.forEach((item: any) => {
+            const prodImg = (item.images && item.images.length > 0 ? item.images[0] : null) || item.image_url || item.image || '';
+            const existingIdx = next.findIndex(bi => String(bi.id) === String(item.id));
+            const addQty = Number(item.quantity) || 1;
+            if (existingIdx >= 0) {
+              next[existingIdx].quantity += addQty;
+            } else {
+              next.push({
+                id: String(item.id),
+                name: item.name,
+                category: item.category || 'General',
+                price: Number(item.price) || 0,
+                quantity: addQty,
+                image: prodImg
+              });
+            }
+          });
+          try {
+            localStorage.setItem('admin_billing_items', JSON.stringify(next));
+          } catch (err) {}
+          return next;
+        });
+      }
+    };
+
+    window.addEventListener('admin_billing_load_items', handleLoadItems);
+    return () => window.removeEventListener('admin_billing_load_items', handleLoadItems);
+  }, []);
+
   const [discountAmount, setDiscountAmount] = useState<number>(0);
   const [includeGst, setIncludeGst] = useState<boolean>(true);
 
   // UI States
   const [productSearch, setProductSearch] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [isCatalogModalOpen, setIsCatalogModalOpen] = useState(false);
+  const [modalSearch, setModalSearch] = useState('');
+  const [modalCategory, setModalCategory] = useState('All');
+  const [cartCount, setCartCount] = useState<number>(() => {
+    try {
+      const raw = localStorage.getItem('admin_pos_cart');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed.length;
+      }
+    } catch (e) {}
+    return 0;
+  });
+
+  const refreshCartCount = () => {
+    try {
+      const raw = localStorage.getItem('admin_pos_cart');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          setCartCount(parsed.length);
+          return;
+        }
+      }
+    } catch (e) {}
+    setCartCount(0);
+  };
+
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    products.forEach((p: any) => {
+      if (p.category && typeof p.category === 'string') set.add(p.category.trim());
+    });
+    return ['All', ...Array.from(set)];
+  }, [products]);
+
+  const modalFilteredProducts = useMemo(() => {
+    return products.filter((p: any) => {
+      const q = modalSearch.trim().toLowerCase();
+      const matchesSearch = !q ||
+        (p.name && p.name.toLowerCase().includes(q)) ||
+        (p.category && p.category.toLowerCase().includes(q));
+      const matchesCat = modalCategory === 'All' || p.category === modalCategory;
+      return matchesSearch && matchesCat;
+    });
+  }, [products, modalSearch, modalCategory]);
 
   // If a single product was clicked from "Buy Now / Bill" in catalog
   useEffect(() => {
@@ -147,9 +288,9 @@ export function AdminBillingSection({
         initialProducts.forEach(item => {
           const prodImg = (item.images && item.images.length > 0 ? item.images[0] : null) || item.image_url || item.image || '';
           const existingIdx = next.findIndex(bi => String(bi.id) === String(item.id));
-          const addQty = item.quantity || 1;
+          const addQty = Number(item.quantity) || 1;
           if (existingIdx >= 0) {
-            next[existingIdx].quantity += addQty;
+            next[existingIdx].quantity = Math.max(next[existingIdx].quantity, addQty);
           } else {
             next.push({
               id: String(item.id),
@@ -213,7 +354,17 @@ export function AdminBillingSection({
   };
 
   const handleRemoveItem = (idx: number) => {
-    setBillItems(prev => prev.filter((_, i) => i !== idx));
+    setBillItems(prev => {
+      const next = prev.filter((_, i) => i !== idx);
+      try {
+        if (next.length === 0) {
+          localStorage.removeItem('admin_billing_items');
+        } else {
+          localStorage.setItem('admin_billing_items', JSON.stringify(next));
+        }
+      } catch (e) {}
+      return next;
+    });
   };
 
   const handleResetBill = () => {
@@ -226,7 +377,36 @@ export function AdminBillingSection({
     setCustomerState('');
     setBillItems([]);
     setDiscountAmount(0);
+    try {
+      localStorage.removeItem('admin_billing_items');
+    } catch (e) {}
     toast.info('Bill cleared.');
+  };
+
+  const handleImportFromCart = () => {
+    try {
+      const raw = localStorage.getItem('admin_pos_cart');
+      if (raw) {
+        const cart = JSON.parse(raw);
+        if (Array.isArray(cart) && cart.length > 0) {
+          const imported = cart.map((i: any) => ({
+            id: String(i.product?.id || i.id),
+            name: i.product?.name || i.name,
+            category: i.product?.category || i.category || 'General',
+            price: Number(i.product?.price ?? i.price) || 0,
+            quantity: Number(i.quantity) || 1,
+            image: (i.product?.images && i.product.images.length > 0 ? i.product.images[0] : null) || i.product?.image_url || i.product?.image || i.image || ''
+          }));
+          setBillItems(imported);
+          localStorage.setItem('admin_billing_items', JSON.stringify(imported));
+          toast.success(`Imported ${imported.length} product(s) from catalog cart!`);
+          return;
+        }
+      }
+      toast.info('Catalog cart is empty. Add products from the Catalog tab first.');
+    } catch (e) {
+      toast.error('Failed to import cart');
+    }
   };
 
   // ════════════════════════════════════════════════════════════════════════
@@ -533,6 +713,10 @@ export function AdminBillingSection({
         onOrderCreated(orderPayload);
       }
 
+      try {
+        localStorage.removeItem('admin_billing_items');
+      } catch (e) {}
+
       toast.success(`Bill ${invoiceNo} recorded successfully!`);
     } catch (err: any) {
       toast.error('Failed to save order record: ' + (err.message || 'Unknown error'));
@@ -720,9 +904,23 @@ export function AdminBillingSection({
                 <ShoppingBag className="w-4 h-4 text-[#698156]" />
                 Add Products to Bill
               </h3>
-              <span className="text-xs text-[#698156] font-bold bg-[#F4F6F2] px-2.5 py-0.5 rounded-full">
-                {billItems.length} {billItems.length === 1 ? 'item' : 'items'}
-              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    refreshCartCount();
+                    setIsCatalogModalOpen(true);
+                  }}
+                  className="px-2.5 py-1 bg-[#F4F6F2] hover:bg-[#E8EDE4] text-[#698156] border border-[#DCE4D7] text-[11px] font-bold rounded-lg transition flex items-center gap-1 cursor-pointer active:scale-95 shadow-2xs"
+                  title="Open Product Catalogue selector"
+                >
+                  <Package className="w-3.5 h-3.5" />
+                  <span>Browse Catalogue</span>
+                </button>
+                <span className="text-xs text-[#698156] font-bold bg-[#F4F6F2] px-2.5 py-0.5 rounded-full">
+                  {billItems.length} {billItems.length === 1 ? 'item' : 'items'}
+                </span>
+              </div>
             </div>
 
             {/* Search Input */}
@@ -779,12 +977,38 @@ export function AdminBillingSection({
 
             {/* List of Added Line Items */}
             {billItems.length === 0 ? (
-              <div className="p-6 border border-dashed border-gray-200 rounded-xl text-center bg-gray-50/40">
-                <ShoppingBag className="w-6 h-6 text-gray-300 mx-auto mb-1.5" />
-                <p className="text-xs font-semibold text-gray-500">Bill is currently empty</p>
-                <p className="text-[11px] text-gray-400 mt-0.5">
-                  Search above or click "Buy Now / Bill" on any product in the Catalog tab.
-                </p>
+              <div className="p-6 border border-dashed border-[#DCE4D7] rounded-2xl text-center bg-[#F4F6F2]/40 space-y-3.5">
+                <ShoppingBag className="w-8 h-8 text-[#698156]/60 mx-auto" />
+                <div>
+                  <p className="text-sm font-bold text-gray-800">Bill is currently empty</p>
+                  <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
+                    Select products from your catalogue to add to this invoice, or import your active cart.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      refreshCartCount();
+                      setIsCatalogModalOpen(true);
+                    }}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#698156] hover:bg-[#546944] text-white text-xs font-bold rounded-xl transition shadow-sm cursor-pointer active:scale-95"
+                  >
+                    <Package className="w-4 h-4" />
+                    <span>Import from Product Catalogue</span>
+                  </button>
+
+                  {cartCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleImportFromCart}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 text-xs font-bold rounded-xl transition shadow-2xs cursor-pointer active:scale-95"
+                    >
+                      <ShoppingCart className="w-3.5 h-3.5 text-[#698156]" />
+                      <span>Import Cart ({cartCount})</span>
+                    </button>
+                  )}
+                </div>
               </div>
             ) : (
               <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
@@ -1142,6 +1366,239 @@ export function AdminBillingSection({
         </div>
 
       </div>
+
+      {/* ─── MODAL: IMPORT FROM PRODUCT CATALOGUE ─── */}
+      {isCatalogModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#F4F6F2] border border-[#DCE4D7] flex items-center justify-center text-[#698156]">
+                  <Package className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-serif font-bold text-base sm:text-lg text-gray-900">
+                    Product Catalogue
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    Select products from your catalogue to add to the invoice
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {onNavigateToCatalog && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCatalogModalOpen(false);
+                      onNavigateToCatalog();
+                    }}
+                    className="hidden sm:flex items-center gap-1 text-xs text-[#698156] hover:text-[#546944] font-bold px-3 py-1.5 rounded-lg hover:bg-[#F4F6F2] transition cursor-pointer"
+                  >
+                    <span>Full Catalog Page</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setIsCatalogModalOpen(false)}
+                  className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center transition cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Search & Filter Bar */}
+            <div className="p-4 bg-gray-50/70 border-b border-gray-100 space-y-3 shrink-0">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-3" />
+                  <input
+                    type="text"
+                    placeholder="Search by product name, category, or style..."
+                    value={modalSearch}
+                    onChange={e => setModalSearch(e.target.value)}
+                    className="w-full pl-10 pr-12 py-2 bg-white rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20 text-xs sm:text-sm text-gray-800 placeholder-gray-400"
+                    autoFocus
+                  />
+                  {modalSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setModalSearch('')}
+                      className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 text-xs font-semibold"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+
+                {cartCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleImportFromCart();
+                      refreshCartCount();
+                    }}
+                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-[#F4F6F2] hover:bg-[#E8EDE4] text-[#698156] border border-[#DCE4D7] rounded-xl text-xs font-bold transition shrink-0 cursor-pointer shadow-2xs"
+                  >
+                    <ShoppingCart className="w-3.5 h-3.5" />
+                    <span>Import Cart Items ({cartCount})</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Category Pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
+                {categories.map(cat => {
+                  const isActive = modalCategory === cat;
+                  return (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setModalCategory(cat)}
+                      className={`px-3 py-1.5 rounded-lg font-bold whitespace-nowrap transition-all cursor-pointer ${
+                        isActive
+                          ? 'bg-[#698156] text-white shadow-2xs'
+                          : 'bg-white hover:bg-gray-100 text-gray-600 border border-gray-200'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Product Grid */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-5 bg-gray-50/40">
+              {modalFilteredProducts.length === 0 ? (
+                <div className="text-center py-16 space-y-2">
+                  <Package className="w-10 h-10 text-gray-300 mx-auto" />
+                  <p className="text-sm font-bold text-gray-700">No products found</p>
+                  <p className="text-xs text-gray-400">Try changing your search term or category filter</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                  {modalFilteredProducts.map((p: any) => {
+                    const prodImg = (p.images && p.images.length > 0 ? p.images[0] : null) || p.image_url || p.image || '';
+                    const itemInBill = billItems.find(item => String(item.id) === String(p.id));
+                    const inBillQty = itemInBill ? itemInBill.quantity : 0;
+
+                    return (
+                      <div
+                        key={p.id}
+                        className={`bg-white rounded-2xl border transition-all p-3 flex flex-col justify-between gap-3 shadow-2xs ${
+                          inBillQty > 0 ? 'border-[#698156] ring-1 ring-[#698156]/20 bg-[#F4F6F2]/30' : 'border-gray-200 hover:border-[#698156]/40 hover:shadow-xs'
+                        }`}
+                      >
+                        <div className="flex gap-3 items-start">
+                          <div className="w-16 h-20 rounded-xl overflow-hidden bg-gray-100 border border-gray-200 shrink-0">
+                            {prodImg ? (
+                              <img src={prodImg} alt={p.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-xl text-gray-400">👗</div>
+                            )}
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <span className="inline-block text-[10px] font-bold text-[#698156] bg-[#F4F6F2] px-2 py-0.5 rounded-md mb-1">
+                              {p.category || 'General'}
+                            </span>
+                            <h4 className="text-xs font-bold text-gray-900 line-clamp-2 leading-snug" title={p.name}>
+                              {p.name}
+                            </h4>
+                            <div className="mt-1.5 flex items-baseline gap-2">
+                              <span className="text-xs sm:text-sm font-extrabold text-[#698156]">
+                                ₹{Number(p.price || 0).toLocaleString('en-IN')}
+                              </span>
+                              {p.compare_at_price && (
+                                <span className="text-[10px] text-gray-400 line-through">
+                                  ₹{Number(p.compare_at_price).toLocaleString('en-IN')}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[10px] text-gray-400 mt-0.5">
+                              Stock: {p.stock_quantity ?? 25} units
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Action inside card */}
+                        <div>
+                          {inBillQty > 0 ? (
+                            <div className="flex items-center justify-between bg-[#F4F6F2] border border-[#DCE4D7] rounded-xl p-1 shadow-2xs">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const idx = billItems.findIndex(i => String(i.id) === String(p.id));
+                                  if (idx >= 0) handleUpdateQty(idx, -1);
+                                }}
+                                className="w-7 h-7 flex items-center justify-center rounded-lg bg-white text-[#698156] hover:bg-[#698156]/15 font-bold text-xs transition cursor-pointer shadow-2xs"
+                              >
+                                -
+                              </button>
+                              <span className="text-xs font-bold text-[#2F3C25] flex items-center gap-1">
+                                <Check className="w-3 h-3 text-[#698156]" />
+                                {inBillQty} in Invoice
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const idx = billItems.findIndex(i => String(i.id) === String(p.id));
+                                  if (idx >= 0) handleUpdateQty(idx, 1);
+                                }}
+                                className="w-7 h-7 flex items-center justify-center rounded-lg bg-white text-[#698156] hover:bg-[#698156]/15 font-bold text-xs transition cursor-pointer shadow-2xs"
+                              >
+                                +
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleAddItem(p)}
+                              className="w-full py-2 px-3 bg-[#698156] hover:bg-[#546944] text-white text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shadow-2xs"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                              <span>Add to Invoice</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 sm:p-5 border-t border-gray-100 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="text-xs text-gray-600">
+                  <span className="font-bold text-gray-900">{billItems.length}</span> {billItems.length === 1 ? 'product' : 'products'} on invoice
+                  <span className="mx-2 text-gray-300">•</span>
+                  Total: <span className="font-extrabold text-[#698156] text-sm">₹{Math.round(grandTotal).toLocaleString('en-IN')}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsCatalogModalOpen(false)}
+                  className="w-full sm:w-auto px-5 py-2.5 bg-[#698156] hover:bg-[#546944] text-white text-xs font-bold rounded-xl transition shadow-md flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>Done & View Invoice</span>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }

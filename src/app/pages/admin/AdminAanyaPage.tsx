@@ -6,7 +6,7 @@ import {
   Phone, Mail, MapPin, ImageIcon, LayoutDashboard,
   ClipboardList, Menu, ChevronLeft, CreditCard, LogOut,
   Sparkles, Shirt, Upload, Star, Receipt,
-  Minus, ShoppingCart, ArrowRight, Tags, Boxes
+  Minus, ShoppingCart, ArrowRight, Tags, Boxes, Compass
 } from 'lucide-react';
 import { AdminHeroModelsSection } from './AdminHeroModelsSection';
 import { AdminBillingSection } from './AdminBillingSection';
@@ -87,6 +87,7 @@ interface DbProduct {
 interface AdminCartItem {
   product: DbProduct;
   quantity: number;
+  [key: string]: any;
 }
 
 interface DerivedUser {
@@ -114,7 +115,6 @@ const NAV_ITEMS: { id: NavTab; label: string; icon: React.ReactNode }[] = [
   { id: 'products',    label: 'Catalog Products', icon: <Package className="w-5 h-5" /> },
   { id: 'inventory',   label: 'Inventory Stock',  icon: <Boxes className="w-5 h-5" /> },
   { id: 'categories',  label: 'Categories',       icon: <Tags className="w-5 h-5" /> },
-  { id: 'billing',     label: 'Manual Billing / POS', icon: <Receipt className="w-5 h-5" /> },
   { id: 'orders',      label: 'Orders',            icon: <ClipboardList className="w-5 h-5" /> },
   { id: 'customers',   label: 'Customers',         icon: <Users className="w-5 h-5" /> },
   { id: 'payments',    label: 'Payments',          icon: <CreditCard className="w-5 h-5" /> },
@@ -329,20 +329,71 @@ export function AdminAanyaPage() {
     setIsCheckoutDrawerOpen(true);
   }, []);
 
+  const handleDirectBillProduct = useCallback((product: DbProduct) => {
+    const billItem = {
+      id: String(product.id),
+      name: product.name,
+      category: product.category || 'General',
+      price: Number(product.price) || 0,
+      quantity: 1,
+      image: (product.images && product.images.length > 0 ? product.images[0] : null) || product.image_url || ''
+    };
+
+    try {
+      const raw = localStorage.getItem('admin_billing_items');
+      let currentItems: any[] = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(currentItems)) currentItems = [];
+      const idx = currentItems.findIndex(i => String(i.id) === String(billItem.id));
+      if (idx >= 0) {
+        currentItems[idx].quantity = (Number(currentItems[idx].quantity) || 1) + 1;
+      } else {
+        currentItems.push(billItem);
+      }
+      localStorage.setItem('admin_billing_items', JSON.stringify(currentItems));
+      window.dispatchEvent(new CustomEvent('admin_billing_load_items', { detail: [billItem] }));
+    } catch (e) {}
+
+    setBillingInitialProduct(product);
+    setActiveTab('billing');
+    toast.success(`"${product.name}" loaded into Billing invoice!`);
+  }, [setActiveTab]);
+
   const handleProceedToPOSBilling = useCallback(() => {
-    if (adminCart.length === 0) {
+    let sourceCart: any[] = adminCart;
+    if (sourceCart.length === 0) {
+      try {
+        const raw = localStorage.getItem('admin_pos_cart');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            sourceCart = parsed;
+          }
+        }
+      } catch (e) {}
+    }
+
+    if (sourceCart.length === 0) {
       toast.error('No products selected. Please add products to cart first.');
       return;
     }
 
-    const itemsForBilling = adminCart.map(item => ({
-      ...item.product,
-      quantity: item.quantity,
+    const itemsForBilling = sourceCart.map((item: any) => ({
+      id: String(item.product?.id || item.id),
+      name: item.product?.name || item.name || 'Product',
+      category: item.product?.category || item.category || 'General',
+      price: Number(item.product?.price ?? item.price) || 0,
+      quantity: Number(item.quantity) || 1,
+      image: (item.product?.images && item.product.images.length > 0 ? item.product.images[0] : null) || item.product?.image_url || item.product?.image || item.image || ''
     }));
 
     try {
+      localStorage.setItem('admin_billing_items', JSON.stringify(itemsForBilling));
       sessionStorage.setItem('admin_billing_initial_products', JSON.stringify(itemsForBilling));
     } catch (e) {}
+
+    // Dispatch event immediately so if AdminBillingSection is already mounted, it updates instantly
+    window.dispatchEvent(new CustomEvent('admin_billing_load_items', { detail: itemsForBilling }));
+
     setBillingInitialProducts(itemsForBilling);
     setIsCheckoutDrawerOpen(false);
     setActiveTab('billing');
@@ -847,11 +898,11 @@ export function AdminAanyaPage() {
   return (
     <div className="flex h-screen bg-[#F7F5F0] overflow-hidden font-sans">
 
-      {/* ═══ LEFT SIDEBAR ═══ */}
+      {/* ═══ LEFT SIDEBAR (Hidden on mobile; replaced by Quick Access) ═══ */}
       <motion.aside
         animate={{ width: sidebarOpen ? 240 : 72 }}
         transition={{ duration: 0.25, ease: 'easeInOut' }}
-        className="flex-shrink-0 bg-white border-r border-gray-100 flex flex-col h-full z-30 overflow-hidden shadow-sm"
+        className="hidden md:flex flex-shrink-0 bg-white border-r border-gray-100 flex-col h-full z-30 overflow-hidden shadow-sm"
       >
         {/* Logo area with collapse toggle button right near the logo */}
         <div className={`flex items-center ${sidebarOpen ? 'justify-between px-4' : 'justify-center px-1 flex-col gap-1.5'} py-4 border-b border-gray-100 min-h-[88px]`}>
@@ -943,66 +994,362 @@ export function AdminAanyaPage() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
         {/* Top bar */}
-        <header className={`bg-white/80 backdrop-blur-md border-b border-gray-200/60 px-6 py-4 flex items-center justify-between flex-shrink-0 transition-all duration-300 ${isCheckoutDrawerOpen ? 'lg:mr-[380px]' : ''}`}>
-          <div>
-            <h1 className="font-serif text-xl font-bold text-gray-900 capitalize">
-              {activeTab === 'overview' ? 'Dashboard Overview' :
-               activeTab === 'hero-models' ? 'Hero Models & Outfits' :
-               activeTab === 'products' ? 'Catalog Products' :
-               activeTab === 'inventory' ? 'Inventory Stock Management' :
-               activeTab === 'categories' ? 'Categories Management' :
-               activeTab === 'billing' ? 'Manual Billing & POS' :
-               activeTab === 'orders' ? 'Customer Orders' :
-               activeTab === 'customers' ? 'Customer Directory' : 'Payment Records'}
-            </h1>
-            <p className="text-xs text-gray-400 mt-0.5">Live data from Supabase · Last synced {new Date().toLocaleTimeString('en-IN')}</p>
+        <header className={`bg-white/80 backdrop-blur-md border-b border-gray-200/60 px-4 py-3 md:px-6 md:py-4 flex items-center justify-between flex-shrink-0 transition-all duration-300 ${isCheckoutDrawerOpen ? 'lg:mr-[380px]' : ''}`}>
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            {/* Mobile Brand Logo (Visible only on mobile when sidebar is hidden) */}
+            <button
+              type="button"
+              onClick={() => setActiveTab('overview')}
+              className="md:hidden flex-shrink-0 focus:outline-none cursor-pointer group"
+              title="Aanya Fashions Admin"
+            >
+              <img
+                src="/logo.png"
+                alt="Aanya Fashions"
+                className="h-8 max-h-8 w-auto object-contain flex-shrink-0 group-hover:scale-105 transition-transform"
+              />
+            </button>
+
+            {/* Desktop-only Title & Subtitle (Hidden on mobile to avoid cramped header overlap) */}
+            <div className="hidden md:block min-w-0">
+              <h1 className="font-serif text-lg md:text-xl font-bold text-gray-900 capitalize truncate">
+                {activeTab === 'overview' ? 'Dashboard Overview' :
+                 activeTab === 'hero-models' ? 'Hero Models & Outfits' :
+                 activeTab === 'products' ? 'Catalog Products' :
+                 activeTab === 'inventory' ? 'Inventory Stock Management' :
+                 activeTab === 'categories' ? 'Categories Management' :
+                 activeTab === 'billing' ? 'Manual Billing & POS' :
+                 activeTab === 'orders' ? 'Customer Orders' :
+                 activeTab === 'customers' ? 'Customer Directory' : 'Payment Records'}
+              </h1>
+              <p className="text-[11px] md:text-xs text-gray-400 mt-0.5 truncate max-w-[200px] sm:max-w-none">
+                Live data from Supabase · Last synced {new Date().toLocaleTimeString('en-IN')}
+              </p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             {cartTotalCount > 0 && (
               <button
                 type="button"
                 onClick={() => setIsCheckoutDrawerOpen(prev => !prev)}
-                className="flex items-center gap-2 px-4 py-2 bg-[#F4F6F2] border border-[#DCE4D7] text-[#546944] hover:bg-[#698156]/15 rounded-full text-xs font-bold shadow-2xs transition-all cursor-pointer"
+                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-[#F4F6F2] border border-[#DCE4D7] text-[#546944] hover:bg-[#698156]/15 rounded-full text-xs font-bold shadow-2xs transition-all cursor-pointer"
                 title="Toggle checkout sidebar"
               >
                 <ShoppingCart className="w-3.5 h-3.5 text-[#698156]" />
                 <span>{isCheckoutDrawerOpen ? 'Close Cart' : `Cart (${cartTotalCount})`}</span>
               </button>
             )}
-            <button onClick={() => setIsAddOpen(true)}
-              className="flex items-center gap-2 px-5 py-2 bg-[#698156] hover:bg-[#546944] text-white rounded-full text-xs font-bold shadow-md transition-all cursor-pointer">
-              <Plus className="w-4 h-4" /> Add Product
+            <button
+              type="button"
+              onClick={() => setActiveTab(activeTab === 'billing' ? 'overview' : 'billing')}
+              className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2 rounded-full text-xs font-bold shadow-md transition-all cursor-pointer active:scale-95 ${
+                activeTab === 'billing'
+                  ? 'bg-[#546944] text-white ring-2 ring-[#698156]/30'
+                  : 'bg-[#698156] hover:bg-[#546944] text-white'
+              }`}
+              title={activeTab === 'billing' ? "Exit Manual Billing" : "Open Manual Billing & POS"}
+            >
+              <Plus className={`w-4 h-4 transition-transform ${activeTab === 'billing' ? 'rotate-45' : ''}`} />
+              <span>{activeTab === 'billing' ? 'Close Billing' : 'Manual Billing'}</span>
             </button>
+
+            {/* Mobile Storefront link */}
+            <Link
+              to="/"
+              className="md:hidden p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-all flex items-center justify-center flex-shrink-0"
+              title="View Storefront"
+            >
+              <Store className="w-4 h-4" />
+            </Link>
           </div>
         </header>
 
         {/* Scrollable page body */}
-        <main className={`flex-1 overflow-y-auto p-6 space-y-6 transition-all duration-300 ${isCheckoutDrawerOpen ? 'lg:mr-[380px]' : ''}`}>
+        <main className={`flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6 transition-all duration-300 ${isCheckoutDrawerOpen ? 'lg:mr-[380px]' : ''}`}>
+
+          {/* ─── MOBILE TAB BAR (Only when inside other tabs, so mobile users can navigate back or switch tabs easily) ─── */}
+          {activeTab !== 'overview' && (
+            <div className="md:hidden bg-white rounded-2xl p-2.5 border border-gray-100 shadow-2xs flex items-center gap-2 overflow-x-auto no-scrollbar">
+              <button
+                type="button"
+                onClick={() => setActiveTab('overview')}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#698156] text-white text-xs font-bold whitespace-nowrap flex-shrink-0 shadow-xs active:scale-95 transition-all cursor-pointer"
+              >
+                <LayoutDashboard className="w-3.5 h-3.5" />
+                <span>Dashboard</span>
+              </button>
+              <div className="h-4 w-px bg-gray-200 flex-shrink-0" />
+              {NAV_ITEMS.filter(item => item.id !== 'overview').map(item => {
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setActiveTab(item.id)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap flex-shrink-0 transition-all cursor-pointer active:scale-95 ${
+                      isActive
+                        ? 'bg-[#698156]/15 text-[#546944] border border-[#698156]/30 shadow-2xs'
+                        : 'bg-[#F9FAF7] text-gray-600 border border-gray-200/60 hover:bg-[#F4F6F2]'
+                    }`}
+                  >
+                    <span className="w-3.5 h-3.5 flex items-center justify-center">{item.icon}</span>
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           {/* ─── TAB: OVERVIEW ─── */}
           {activeTab === 'overview' && (
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
 
-              {/* KPI Cards */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* KPI Cards (Compact & sleek on mobile) */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
                 {[
-                  { label: 'Total Revenue', value: `₹${totalRevenue.toLocaleString('en-IN')}`, icon: <IndianRupee className="w-5 h-5" />, color: 'text-[#698156]', bg: 'bg-amber-50', sub: `${payments.length} payment records` },
-                  { label: 'Total Orders', value: `${orders.length}`, icon: <ShoppingBag className="w-5 h-5" />, color: 'text-[#698156]', bg: 'bg-[#F4F6F2]', sub: `${orders.filter(o => o.status === 'Delivered').length} delivered` },
-                  { label: 'Products', value: `${dbProducts.length}`, icon: <Package className="w-5 h-5" />, color: 'text-blue-700', bg: 'bg-blue-50', sub: `${dbProducts.filter(p => p.status === 'Published').length} published` },
-                  { label: 'Customers', value: `${customers.length}`, icon: <Users className="w-5 h-5" />, color: 'text-emerald-700', bg: 'bg-emerald-50', sub: 'from order records' },
+                  { label: 'Total Revenue', value: `₹${totalRevenue.toLocaleString('en-IN')}`, icon: <IndianRupee className="w-3.5 h-3.5 sm:w-5 sm:h-5" />, color: 'text-[#698156]', bg: 'bg-amber-50', sub: `${payments.length} payment records` },
+                  { label: 'Total Orders', value: `${orders.length}`, icon: <ShoppingBag className="w-3.5 h-3.5 sm:w-5 sm:h-5" />, color: 'text-[#698156]', bg: 'bg-[#F4F6F2]', sub: `${orders.filter(o => o.status === 'Delivered').length} delivered` },
+                  { label: 'Products', value: `${dbProducts.length}`, icon: <Package className="w-3.5 h-3.5 sm:w-5 sm:h-5" />, color: 'text-blue-700', bg: 'bg-blue-50', sub: `${dbProducts.filter(p => p.status === 'Published').length} published` },
+                  { label: 'Customers', value: `${customers.length}`, icon: <Users className="w-3.5 h-3.5 sm:w-5 sm:h-5" />, color: 'text-emerald-700', bg: 'bg-emerald-50', sub: 'from order records' },
                 ].map(({ label, value, icon, color, bg, sub }) => (
                   <motion.div key={label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-                    className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className={`w-10 h-10 ${bg} rounded-xl flex items-center justify-center ${color}`}>{icon}</div>
-                      <ArrowUpRight className="w-4 h-4 text-emerald-500" />
+                    className="bg-white rounded-xl sm:rounded-2xl p-2.5 sm:p-5 border border-gray-100 shadow-2xs sm:shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-center justify-between mb-1 sm:mb-4">
+                      <div className={`w-6 h-6 sm:w-10 sm:h-10 ${bg} rounded-lg sm:rounded-xl flex items-center justify-center ${color}`}>{icon}</div>
+                      <ArrowUpRight className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-500" />
                     </div>
-                    <div className="text-xs uppercase tracking-wider font-bold text-gray-400 mb-1">{label}</div>
-                    <div className="text-2xl font-serif font-bold text-gray-900">{value}</div>
-                    <div className="text-xs text-gray-400 mt-1">{sub}</div>
+                    <div className="text-[9.5px] sm:text-xs uppercase tracking-wider font-bold text-gray-400 mb-0.5 truncate">{label}</div>
+                    <div className="text-sm sm:text-2xl font-serif font-bold text-gray-900 truncate leading-tight">{value}</div>
+                    <div className="text-[9px] sm:text-xs text-gray-400 mt-0.5 truncate">{sub}</div>
                   </motion.div>
                 ))}
+              </div>
+
+              {/* ─── MOBILE QUICK ACCESS (Animated Bento Grid) ─── */}
+              <div className="md:hidden space-y-2.5">
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-5 h-5 rounded-md bg-[#698156]/15 flex items-center justify-center text-[#698156]">
+                      <Compass className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="text-xs font-bold text-gray-800 tracking-wider uppercase">Quick Access</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-[#698156] bg-[#F4F6F2] border border-[#DCE4D7] px-2 py-0.5 rounded-full">
+                    Bento Grid
+                  </span>
+                </div>
+
+                {/* Animated Bento Grid */}
+                <motion.div
+                  initial="hidden"
+                  animate="show"
+                  variants={{
+                    hidden: { opacity: 0 },
+                    show: {
+                      opacity: 1,
+                      transition: { staggerChildren: 0.05 }
+                    }
+                  }}
+                  className="grid grid-cols-2 gap-2.5"
+                >
+                  {/* HERO BENTO CARD: Catalog Products (Spans 2 columns) */}
+                  <motion.button
+                    type="button"
+                    variants={{
+                      hidden: { opacity: 0, y: 12, scale: 0.96 },
+                      show: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 350, damping: 25 } }
+                    }}
+                    whileHover={{ scale: 1.015, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setActiveTab('products')}
+                    className="col-span-2 group relative overflow-hidden rounded-xl sm:rounded-2xl p-3 sm:p-4 bg-gradient-to-br from-[#698156]/12 via-[#698156]/5 to-white border border-[#698156]/25 shadow-xs hover:shadow-md text-left transition-all cursor-pointer"
+                  >
+                    <div className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-[#698156]/10 blur-xl pointer-events-none group-hover:scale-125 transition-transform" />
+                    
+                    <div className="flex items-start justify-between relative z-10">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-[#698156] text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform">
+                        <Package className="w-4 h-4 sm:w-5 sm:h-5" />
+                      </div>
+                      <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/95 border border-[#698156]/20 text-[#546944] text-[10px] sm:text-[11px] font-extrabold shadow-2xs">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#698156] animate-pulse" />
+                        {dbProducts.length} Products
+                      </span>
+                    </div>
+
+                    <div className="mt-2 sm:mt-3 relative z-10 flex items-end justify-between">
+                      <div>
+                        <h4 className="font-serif text-sm sm:text-base font-bold text-gray-900 group-hover:text-[#546944] transition-colors">Catalog Products</h4>
+                        <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5">Manage collections, prices & stock</p>
+                      </div>
+                      <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white border border-[#698156]/20 text-[#698156] flex items-center justify-center group-hover:translate-x-1 group-hover:bg-[#698156] group-hover:text-white transition-all shadow-2xs">
+                        <ArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                      </div>
+                    </div>
+                  </motion.button>
+
+                  {/* BENTO CARD 2: Customer Orders */}
+                  <motion.button
+                    type="button"
+                    variants={{
+                      hidden: { opacity: 0, y: 12, scale: 0.96 },
+                      show: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 350, damping: 25 } }
+                    }}
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => setActiveTab('orders')}
+                    className="group relative overflow-hidden rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 bg-gradient-to-br from-emerald-500/10 via-white to-white border border-emerald-500/20 shadow-xs hover:shadow-md text-left transition-all cursor-pointer"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
+                        <ClipboardList className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      </div>
+                      <span className="text-[9.5px] sm:text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-200">
+                        {orders.length} Total
+                      </span>
+                    </div>
+                    <div className="mt-2">
+                      <h4 className="font-bold text-xs text-gray-900 group-hover:text-emerald-700 transition-colors">Orders</h4>
+                      <p className="text-[9.5px] text-gray-400 mt-0.5">{orders.filter(o => o.status === 'Delivered').length} Delivered</p>
+                    </div>
+                  </motion.button>
+
+                  {/* BENTO CARD 3: Inventory Stock */}
+                  <motion.button
+                    type="button"
+                    variants={{
+                      hidden: { opacity: 0, y: 12, scale: 0.96 },
+                      show: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 350, damping: 25 } }
+                    }}
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => setActiveTab('inventory')}
+                    className="group relative overflow-hidden rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 bg-gradient-to-br from-amber-500/10 via-white to-white border border-amber-500/20 shadow-xs hover:shadow-md text-left transition-all cursor-pointer"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
+                        <Boxes className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      </div>
+                      <span className={`text-[9.5px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${
+                        dbProducts.filter(p => (p.stock_quantity ?? 0) <= (p.low_stock_threshold ?? 5)).length > 0
+                          ? 'text-rose-700 bg-rose-50 border-rose-200 animate-pulse'
+                          : 'text-amber-700 bg-amber-50 border-amber-200'
+                      }`}>
+                        {dbProducts.filter(p => (p.stock_quantity ?? 0) <= (p.low_stock_threshold ?? 5)).length > 0
+                          ? `${dbProducts.filter(p => (p.stock_quantity ?? 0) <= (p.low_stock_threshold ?? 5)).length} Low`
+                          : 'Healthy'}
+                      </span>
+                    </div>
+                    <div className="mt-2">
+                      <h4 className="font-bold text-xs text-gray-900 group-hover:text-amber-700 transition-colors">Inventory</h4>
+                      <p className="text-[9.5px] text-gray-400 mt-0.5">Stock & alerts</p>
+                    </div>
+                  </motion.button>
+
+                  {/* BENTO CARD 4: Hero Models */}
+                  <motion.button
+                    type="button"
+                    variants={{
+                      hidden: { opacity: 0, y: 12, scale: 0.96 },
+                      show: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 350, damping: 25 } }
+                    }}
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => setActiveTab('hero-models')}
+                    className="group relative overflow-hidden rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 bg-gradient-to-br from-purple-500/10 via-white to-white border border-purple-500/20 shadow-xs hover:shadow-md text-left transition-all cursor-pointer"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
+                        <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      </div>
+                      <span className="text-[9.5px] sm:text-[10px] font-bold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded-full border border-purple-200">
+                        Visual
+                      </span>
+                    </div>
+                    <div className="mt-2">
+                      <h4 className="font-bold text-xs text-gray-900 group-hover:text-purple-700 transition-colors">Hero Models</h4>
+                      <p className="text-[9.5px] text-gray-400 mt-0.5">Showcase outfits</p>
+                    </div>
+                  </motion.button>
+
+                  {/* BENTO CARD 5: Categories */}
+                  <motion.button
+                    type="button"
+                    variants={{
+                      hidden: { opacity: 0, y: 12, scale: 0.96 },
+                      show: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 350, damping: 25 } }
+                    }}
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => setActiveTab('categories')}
+                    className="group relative overflow-hidden rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 bg-gradient-to-br from-teal-500/10 via-white to-white border border-teal-500/20 shadow-xs hover:shadow-md text-left transition-all cursor-pointer"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-teal-100 text-teal-700 flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
+                        <Tags className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      </div>
+                      <span className="text-[9.5px] sm:text-[10px] font-bold text-teal-700 bg-teal-50 px-1.5 py-0.5 rounded-full border border-teal-200">
+                        Collections
+                      </span>
+                    </div>
+                    <div className="mt-2">
+                      <h4 className="font-bold text-xs text-gray-900 group-hover:text-teal-700 transition-colors">Categories</h4>
+                      <p className="text-[9.5px] text-gray-400 mt-0.5">Filter groupings</p>
+                    </div>
+                  </motion.button>
+
+                  {/* BENTO CARD 6: Customers Directory */}
+                  <motion.button
+                    type="button"
+                    variants={{
+                      hidden: { opacity: 0, y: 12, scale: 0.96 },
+                      show: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 350, damping: 25 } }
+                    }}
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => setActiveTab('customers')}
+                    className="group relative overflow-hidden rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 bg-gradient-to-br from-blue-500/10 via-white to-white border border-blue-500/20 shadow-xs hover:shadow-md text-left transition-all cursor-pointer"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
+                        <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      </div>
+                      <span className="text-[9.5px] sm:text-[10px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded-full border border-blue-200">
+                        {customers.length} Users
+                      </span>
+                    </div>
+                    <div className="mt-2">
+                      <h4 className="font-bold text-xs text-gray-900 group-hover:text-blue-700 transition-colors">Customers</h4>
+                      <p className="text-[9.5px] text-gray-400 mt-0.5">User directory</p>
+                    </div>
+                  </motion.button>
+
+                  {/* BENTO CARD 7: Payments & Revenue */}
+                  <motion.button
+                    type="button"
+                    variants={{
+                      hidden: { opacity: 0, y: 12, scale: 0.96 },
+                      show: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 350, damping: 25 } }
+                    }}
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => setActiveTab('payments')}
+                    className="group relative overflow-hidden rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 bg-gradient-to-br from-[#698156]/10 via-white to-white border border-[#698156]/20 shadow-xs hover:shadow-md text-left transition-all cursor-pointer"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-[#F4F6F2] text-[#698156] flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
+                        <CreditCard className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      </div>
+                      <span className="text-[9.5px] sm:text-[10px] font-bold text-[#698156] bg-white px-1.5 py-0.5 rounded-full border border-gray-200">
+                        Ledger
+                      </span>
+                    </div>
+                    <div className="mt-2">
+                      <h4 className="font-bold text-xs text-gray-900 group-hover:text-[#546944] transition-colors">Payments</h4>
+                      <p className="text-[9.5px] text-gray-400 mt-0.5">₹{totalRevenue.toLocaleString('en-IN')}</p>
+                    </div>
+                  </motion.button>
+                </motion.div>
               </div>
 
               {/* Charts row */}
@@ -1146,13 +1493,21 @@ export function AdminAanyaPage() {
           {/* ─── TAB: PRODUCTS ─── */}
           {activeTab === 'products' && (
             <div className="space-y-5">
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
                 <div className="relative flex-1 max-w-md">
                   <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
                   <input type="text" placeholder="Search products…"
                     value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
                     className="w-full pl-10 pr-4 py-2.5 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20 transition-all shadow-2xs" />
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setIsAddOpen(true)}
+                  className="flex items-center justify-center gap-2 px-5 py-2.5 bg-[#698156] hover:bg-[#546944] text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer active:scale-95 shrink-0"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Product</span>
+                </button>
               </div>
 
               {filtered.length === 0 ? (
@@ -1227,48 +1582,75 @@ export function AdminAanyaPage() {
                             </div>
                           </div>
 
-                          {/* Cart Action Button - Clean, single full-width button, zero overlapping */}
+                          {/* Cart Action Button - Clean, non-overlapping with Bill Now option */}
                           {qtyInCart > 0 ? (
-                            <div className="flex items-center justify-between bg-[#F4F6F2] border border-[#DCE4D7] rounded-xl p-1 shadow-2xs">
+                            <div className="space-y-1.5">
+                              <div className="flex items-center justify-between bg-[#F4F6F2] border border-[#DCE4D7] rounded-xl p-1 shadow-2xs">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDecrementCart(product.id);
+                                  }}
+                                  title="Decrease quantity"
+                                  className="w-6 h-6 flex items-center justify-center rounded-lg bg-white text-[#698156] hover:bg-[#698156]/15 shadow-2xs transition active:scale-90 cursor-pointer"
+                                >
+                                  <Minus className="w-3 h-3" />
+                                </button>
+                                <span className="text-xs font-bold text-[#2F3C25]">
+                                  {qtyInCart} in Cart
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleAddToCart(product);
+                                  }}
+                                  title="Increase quantity"
+                                  className="w-6 h-6 flex items-center justify-center rounded-lg bg-white text-[#698156] hover:bg-[#698156]/15 shadow-2xs transition active:scale-90 cursor-pointer"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                </button>
+                              </div>
                               <button
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleDecrementCart(product.id);
+                                  handleProceedToPOSBilling();
                                 }}
-                                title="Decrease quantity"
-                                className="w-6 h-6 flex items-center justify-center rounded-lg bg-white text-[#698156] hover:bg-[#698156]/15 shadow-2xs transition active:scale-90 cursor-pointer"
+                                className="w-full py-1.5 px-2 bg-[#698156] hover:bg-[#546944] text-white text-[11px] font-bold rounded-lg flex items-center justify-center gap-1 transition shadow-2xs cursor-pointer active:scale-95"
                               >
-                                <Minus className="w-3 h-3" />
+                                <Receipt className="w-3 h-3" />
+                                <span>Proceed to Bill ({cartTotalCount})</span>
                               </button>
-                              <span className="text-xs font-bold text-[#2F3C25]">
-                                {qtyInCart} in Cart
-                              </span>
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-2 gap-1.5">
                               <button
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleAddToCart(product);
                                 }}
-                                title="Increase quantity"
-                                className="w-6 h-6 flex items-center justify-center rounded-lg bg-white text-[#698156] hover:bg-[#698156]/15 shadow-2xs transition active:scale-90 cursor-pointer"
+                                className="py-2 px-2 bg-[#F4F6F2] hover:bg-[#E8EDE4] text-[#698156] border border-[#DCE4D7] font-bold text-xs rounded-xl transition-all duration-200 flex items-center justify-center gap-1 cursor-pointer active:scale-95 shadow-2xs"
+                                title="Add product to checkout sidebar"
                               >
-                                <Plus className="w-3 h-3" />
+                                <Plus className="w-3.5 h-3.5" />
+                                <span>+ Cart</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDirectBillProduct(product);
+                                }}
+                                className="py-2 px-2 bg-[#698156] hover:bg-[#546944] text-white font-bold text-xs rounded-xl transition-all duration-200 flex items-center justify-center gap-1 cursor-pointer active:scale-95 shadow-2xs"
+                                title="Directly bill this item in POS"
+                              >
+                                <Receipt className="w-3.5 h-3.5" />
+                                <span>Bill Now</span>
                               </button>
                             </div>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleAddToCart(product);
-                              }}
-                              className="w-full py-2 px-3 bg-[#F4F6F2] hover:bg-[#698156] text-[#698156] hover:text-white border border-[#DCE4D7] font-bold text-xs rounded-xl transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shadow-2xs"
-                              title="Add product to checkout sidebar"
-                            >
-                              <Plus className="w-3.5 h-3.5" />
-                              <span>Add to Cart</span>
-                            </button>
                           )}
                         </div>
                       </motion.div>
@@ -1472,6 +1854,7 @@ export function AdminAanyaPage() {
               onOrderCreated={(order) => {
                 setOrders(prev => [order, ...prev]);
               }}
+              onNavigateToCatalog={() => setActiveTab('products')}
             />
           )}
 
