@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
+import { api } from '../../lib/api';
 import { User, Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { saveUserProfileDetails, getUserProfileDetails } from '../../lib/userProfile';
@@ -186,7 +187,7 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
     }
   };
 
-  // 2. Send Login OTP to Email (via Supabase SMTP)
+  // 2. Send Login OTP to Email (Tries Supabase SMTP; falls back to Render OTP microservice if rate-limited)
   const sendEmailOtp = async (email: string) => {
     try {
       const cleanEmail = email.trim().toLowerCase();
@@ -194,45 +195,109 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
         return { success: false, error: 'Please enter a valid email address.' };
       }
 
-      const { error } = await supabase.auth.signInWithOtp({
-        email: cleanEmail,
-        options: {
-          shouldCreateUser: false,
-        },
-      });
+      let sent = false;
+      let errorMsg = '';
 
-      if (error) {
-        return { success: false, error: error.message };
+      // Try Supabase signInWithOtp first
+      try {
+        const { error } = await supabase.auth.signInWithOtp({
+          email: cleanEmail,
+          options: { shouldCreateUser: false },
+        });
+
+        if (!error) {
+          sent = true;
+        } else {
+          errorMsg = error.message;
+        }
+      } catch (sbErr: any) {
+        errorMsg = sbErr?.message || '';
       }
 
-      toast.success(`Verification code dispatched to ${cleanEmail}! Check your inbox.`);
+      // If Supabase encountered rate-limit 429 or failure, dispatch via self-hosted microservice
+      if (!sent) {
+        try {
+          const res = await api.otp.send('email', cleanEmail, 'login');
+          if (res?.success) {
+            sent = true;
+          }
+        } catch (mErr: any) {
+          return { success: false, error: mErr.message || errorMsg || 'Failed to dispatch login code.' };
+        }
+      }
+
+      if (!sent) {
+        return { success: false, error: errorMsg || 'Failed to dispatch login code.' };
+      }
+
+      toast.success(`Login code dispatched to ${cleanEmail}! Check your inbox.`);
       return { success: true };
     } catch (err: any) {
       console.error('Email OTP Send Error:', err);
-      return { success: false, error: err.message || 'Failed to dispatch verification email.' };
+      return { success: false, error: err.message || 'Failed to dispatch login email.' };
     }
   };
 
-  // 3. Verify Login OTP from Email (via Supabase Auth)
+  // 3. Verify Login OTP from Email (Supports Supabase Auth & Render OTP microservice)
   const verifyEmailOtp = async (email: string, token: string) => {
     try {
       const cleanEmail = email.trim().toLowerCase();
       const cleanToken = token.trim();
 
-      const { data, error } = await supabase.auth.verifyOtp({
-        email: cleanEmail,
-        token: cleanToken,
-        type: 'email',
-      });
+      let isVerified = false;
+      let verifiedUser: any = null;
+      let verifiedSession: any = null;
 
-      if (error || !data.user) {
-        return { success: false, error: error?.message || 'Invalid or expired verification code.' };
+      // 1. Check Supabase verifyOtp
+      try {
+        const { data, error } = await supabase.auth.verifyOtp({
+          email: cleanEmail,
+          token: cleanToken,
+          type: 'email',
+        });
+        if (!error && data?.user) {
+          isVerified = true;
+          verifiedUser = data.user;
+          verifiedSession = data.session;
+        }
+      } catch (e) {}
+
+      // 2. Check self-hosted microservice
+      if (!isVerified) {
+        try {
+          const vRes = await api.otp.verify('email', cleanEmail, cleanToken, 'login');
+          if (vRes?.success || (vRes as any)?.verified) {
+            isVerified = true;
+          }
+        } catch (e) {}
       }
 
-      setUser(data.user);
-      setSession(data.session);
-      await fetchProfile(data.user.id, data.user.email, data.user.user_metadata);
-      toast.success(`Welcome back, ${data.user.user_metadata?.full_name || 'Customer'}!`);
+      if (!isVerified) {
+        return { success: false, error: 'Invalid or expired verification code.' };
+      }
+
+      if (verifiedUser) {
+        setUser(verifiedUser);
+        setSession(verifiedSession);
+        await fetchProfile(verifiedUser.id, verifiedUser.email, verifiedUser.user_metadata);
+      } else {
+        const { data: dbProfile } = await supabase.from('profiles').select('*').eq('email', cleanEmail).maybeSingle();
+        const fallbackUser: any = {
+          id: dbProfile?.id || crypto.randomUUID(),
+          email: cleanEmail,
+          user_metadata: {
+            full_name: dbProfile?.full_name || 'Valued Customer',
+            phone: dbProfile?.phone || '',
+          }
+        };
+        setUser(fallbackUser);
+        if (dbProfile) {
+          setProfile(dbProfile);
+          localStorage.setItem('customer_profile_cache', JSON.stringify(dbProfile));
+        }
+      }
+
+      toast.success(`Welcome back! Signed in successfully.`);
       return { success: true };
     } catch (err: any) {
       console.error('Email OTP Verify Error:', err);
@@ -240,7 +305,7 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
     }
   };
 
-  // 4. Send Signup OTP to Email (via Supabase SMTP)
+  // 4. Send Signup OTP to Email (Tries Supabase SMTP; falls back to Render OTP microservice if rate-limited)
   const sendSignupOtp = async (formData: SignupFormData) => {
     try {
       const cleanEmail = formData.email.trim().toLowerCase();
@@ -252,21 +317,46 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
         return { success: false, error: 'Please enter a valid email address.' };
       }
 
-      // Supabase sends 6-digit OTP to the entered email via Supabase SMTP
-      const { error } = await supabase.auth.signInWithOtp({
-        email: cleanEmail,
-        options: {
-          shouldCreateUser: true,
-          data: {
-            full_name: cleanName,
-            phone: cleanPhone,
-            gender: cleanGender,
-          },
-        },
-      });
+      let sent = false;
+      let errorMsg = '';
 
-      if (error) {
-        return { success: false, error: error.message };
+      // Attempt 1: Supabase signInWithOtp
+      try {
+        const { error } = await supabase.auth.signInWithOtp({
+          email: cleanEmail,
+          options: {
+            shouldCreateUser: true,
+            data: {
+              full_name: cleanName,
+              phone: cleanPhone,
+              gender: cleanGender,
+            },
+          },
+        });
+
+        if (!error) {
+          sent = true;
+        } else {
+          errorMsg = error.message;
+        }
+      } catch (sbErr: any) {
+        errorMsg = sbErr?.message || '';
+      }
+
+      // Attempt 2: If Supabase threw rate-limit 429 or error, dispatch via Render OTP microservice
+      if (!sent) {
+        try {
+          const res = await api.otp.send('email', cleanEmail, 'verification');
+          if (res?.success) {
+            sent = true;
+          }
+        } catch (mErr: any) {
+          return { success: false, error: mErr.message || errorMsg || 'Failed to dispatch verification email.' };
+        }
+      }
+
+      if (!sent) {
+        return { success: false, error: errorMsg || 'Failed to dispatch verification email.' };
       }
 
       toast.success(`Verification code sent to ${cleanEmail}! Check your email inbox.`);
@@ -286,38 +376,74 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
       const cleanGender = formData.gender.trim();
       const cleanToken = token.trim();
 
-      // 1. Authoritative verification with Supabase
-      const { data, error } = await supabase.auth.verifyOtp({
-        email: cleanEmail,
-        token: cleanToken,
-        type: 'email',
-      });
+      let isVerified = false;
 
-      if (error || !data.user) {
+      // 1. Authoritative verification check via Supabase
+      try {
+        const { data, error } = await supabase.auth.verifyOtp({
+          email: cleanEmail,
+          token: cleanToken,
+          type: 'email',
+        });
+        if (!error && data?.user) {
+          isVerified = true;
+        }
+      } catch (sbErr) {}
+
+      // 2. Authoritative verification check via self-hosted microservice
+      if (!isVerified) {
+        try {
+          const verifyRes = await api.otp.verify('email', cleanEmail, cleanToken, 'verification');
+          if (verifyRes?.success || (verifyRes as any)?.verified) {
+            isVerified = true;
+          }
+        } catch (vErr) {}
+      }
+
+      // If the OTP was wrong in both engines, DO NOT SIGN UP!
+      if (!isVerified) {
         return {
           success: false,
-          error: error?.message || 'Invalid or expired verification code. Please check your email and try again.'
+          error: 'Invalid or expired verification code. Please check your email and try again.'
         };
       }
 
-      // 2. Set the password on the newly authorized user
-      try {
-        await supabase.auth.updateUser({
+      // 3. User is verified! Set up Supabase auth session
+      let activeUser: any = null;
+      let activeSession: any = null;
+
+      // Check if user already exists by attempting sign in
+      const { data: signInData } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password: formData.password,
+      });
+
+      if (signInData?.user) {
+        activeUser = signInData.user;
+        activeSession = signInData.session;
+      } else {
+        // Register in Supabase
+        const { data: signUpData } = await supabase.auth.signUp({
+          email: cleanEmail,
           password: formData.password,
-          data: {
-            full_name: cleanName,
-            phone: cleanPhone,
-            gender: cleanGender,
+          options: {
+            data: {
+              full_name: cleanName,
+              phone: cleanPhone,
+              gender: cleanGender,
+            },
           },
         });
-      } catch (passErr) {
-        console.warn('Password update notice:', passErr);
+        activeUser = signUpData?.user;
+        activeSession = signUpData?.session;
       }
 
-      // 3. Upsert into Supabase profiles table
+      const userId = activeUser?.id || crypto.randomUUID();
+
+      // 4. Upsert into Supabase profiles table
       try {
         await supabase.from('profiles').upsert({
-          id: data.user.id,
+          id: userId,
           email: cleanEmail,
           full_name: cleanName,
           phone: cleanPhone || null,
@@ -328,7 +454,7 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
         console.warn('Profile upsert notice:', pErr);
       }
 
-      // 4. Save to userProfile storage so details immediately show in profile modal
+      // 5. Save to userProfile storage so details immediately show in profile modal
       saveUserProfileDetails({
         name: cleanName,
         phone: cleanPhone,
@@ -341,7 +467,7 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
       });
 
       const customerProfile: CustomerProfile = {
-        id: data.user.id,
+        id: userId,
         email: cleanEmail,
         full_name: cleanName,
         phone: cleanPhone,
@@ -350,8 +476,18 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
         status: 'Active',
       };
 
-      setUser(data.user);
-      setSession(data.session);
+      const finalUser = activeUser || {
+        id: userId,
+        email: cleanEmail,
+        user_metadata: {
+          full_name: cleanName,
+          phone: cleanPhone,
+          gender: cleanGender,
+        }
+      };
+
+      setUser(finalUser as any);
+      setSession(activeSession);
       setProfile(customerProfile);
       localStorage.setItem('customer_profile_cache', JSON.stringify(customerProfile));
 

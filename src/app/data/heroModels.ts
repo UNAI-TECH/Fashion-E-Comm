@@ -202,21 +202,15 @@ export function setLocalHeroModels(models: HeroModel[], activeIndex?: number): v
     console.warn('[HeroModels] BroadcastChannel postMessage error:', e);
   }
 
-  // Also broadcast via Supabase Realtime channel so any tab/window receives it instantly
+  // Also broadcast via Supabase Realtime channel if available
   try {
     const channel = supabase.channel('banners_sync');
     if (typeof (channel as any).httpSend === 'function') {
-      (channel as any).httpSend({
+      Promise.resolve((channel as any).httpSend({
         type: 'broadcast',
         event: 'hero_update',
         payload: { models, activeIndex },
-      });
-    } else {
-      channel.send({
-        type: 'broadcast',
-        event: 'hero_update',
-        payload: { models, activeIndex },
-      });
+      })).catch(() => {});
     }
   } catch (e) {}
 }

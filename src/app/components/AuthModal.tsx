@@ -149,6 +149,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', onSuccess }
   // 4. Send Signup OTP (Validates full form: name, phone, gender, email, password, confirmPassword)
   const handleSendSignupOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
 
     // Validations
     if (!signupForm.fullName.trim()) {
