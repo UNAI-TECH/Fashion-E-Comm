@@ -81,8 +81,8 @@ async function request<T>(
     }
 
     if (!res.ok) {
-      const errorMessage = data?.error?.message || data?.message || `Request failed with status ${res.status}`;
-      const errorCode = data?.error?.code || 'HTTP_ERROR';
+      const errorMessage = data?.detail || data?.error?.message || data?.message || `Request failed with status ${res.status}`;
+      const errorCode = data?.error?.code || (res.status === 429 ? 'RATE_LIMIT_EXCEEDED' : 'HTTP_ERROR');
       throw new ApiError(errorMessage, errorCode, res.status, data?.requestId || requestId);
     }
 

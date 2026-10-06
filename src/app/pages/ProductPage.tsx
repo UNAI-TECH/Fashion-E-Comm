@@ -243,6 +243,15 @@ export function ProductPage() {
   const [buyNowOtp, setBuyNowOtp] = useState('');
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [buyNowCooldown, setBuyNowCooldown] = useState(0);
+
+  useEffect(() => {
+    if (buyNowCooldown <= 0) return;
+    const interval = setInterval(() => {
+      setBuyNowCooldown((c) => (c > 0 ? c - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [buyNowCooldown]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderReference, setOrderReference] = useState<{ id: string; method: string; total: number } | null>(null);
 
@@ -366,6 +375,10 @@ export function ProductPage() {
   };
 
   const handleSendOTP = async () => {
+    if (buyNowCooldown > 0) {
+      toast.error(`Please wait ${buyNowCooldown} seconds before requesting a new code.`);
+      return;
+    }
     const cleanPhone = buyNowPhone.replace(/\D/g, '');
     if (!cleanPhone || cleanPhone.length < 10) {
       toast.error('Please enter a valid 10-digit mobile number');
@@ -379,6 +392,7 @@ export function ProductPage() {
       await api.otp.send('sms', formatted, 'checkout');
       toast.success(`Verification code dispatched to ${formatted}! (Valid for 30s)`);
       setBuyNowStep('otp');
+      setBuyNowCooldown(30);
     } catch (err: any) {
       console.error('OTP Send Error:', err);
       toast.error(err.message || 'Failed to send OTP. Please try again.');
@@ -1360,6 +1374,24 @@ export function ProductPage() {
                         onChange={(e) => setBuyNowOtp(e.target.value)}
                         className="w-full text-center text-lg font-mono font-bold tracking-[0.3em] px-4 py-3.5 border-2 border-gray-200 rounded-2xl bg-white text-gray-900 focus:outline-none focus:border-[#698156] focus:ring-1 focus:ring-[#698156]/20 transition-all"
                       />
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs px-1">
+                      <button
+                        type="button"
+                        onClick={() => setBuyNowStep('phone')}
+                        className="text-gray-500 hover:text-gray-800 underline cursor-pointer"
+                      >
+                        Change number
+                      </button>
+                      <button
+                        type="button"
+                        disabled={buyNowCooldown > 0 || isSendingOtp}
+                        onClick={handleSendOTP}
+                        className="text-[#698156] font-bold hover:underline cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        {buyNowCooldown > 0 ? `Resend Code (${buyNowCooldown}s)` : 'Resend Code'}
+                      </button>
                     </div>
 
                     <motion.button

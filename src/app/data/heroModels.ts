@@ -204,11 +204,20 @@ export function setLocalHeroModels(models: HeroModel[], activeIndex?: number): v
 
   // Also broadcast via Supabase Realtime channel so any tab/window receives it instantly
   try {
-    supabase.channel('banners_sync').send({
-      type: 'broadcast',
-      event: 'hero_update',
-      payload: { models, activeIndex },
-    });
+    const channel = supabase.channel('banners_sync');
+    if (typeof (channel as any).httpSend === 'function') {
+      (channel as any).httpSend({
+        type: 'broadcast',
+        event: 'hero_update',
+        payload: { models, activeIndex },
+      });
+    } else {
+      channel.send({
+        type: 'broadcast',
+        event: 'hero_update',
+        payload: { models, activeIndex },
+      });
+    }
   } catch (e) {}
 }
 

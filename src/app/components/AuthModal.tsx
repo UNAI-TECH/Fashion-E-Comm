@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Mail, Phone, Lock, User, ArrowRight, ShieldCheck, Sparkles, KeyRound } from 'lucide-react';
 import { useCustomerAuth } from '../contexts/CustomerAuthContext';
@@ -28,6 +28,15 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', onSuccess }
   const [otpCode, setOtpCode] = useState('');
   const [otpTarget, setOtpTarget] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const interval = setInterval(() => {
+      setCooldown((c) => (c > 0 ? c - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [cooldown]);
 
   if (!isOpen) return null;
 
@@ -39,6 +48,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', onSuccess }
     setOtpCode('');
     setOtpStep('input');
     setIsSubmitting(false);
+    setCooldown(0);
   };
 
   const handleClose = () => {
@@ -91,9 +101,13 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', onSuccess }
   };
 
   // 3. Send OTP
-  const handleSendOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const target = phone.trim() || email.trim();
+  const handleSendOtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (cooldown > 0) {
+      toast.error(`Please wait ${cooldown} seconds before requesting a new code.`);
+      return;
+    }
+    const target = phone.trim() || email.trim() || otpTarget;
     if (!target) {
       toast.error('Please enter your mobile number or email');
       return;
@@ -104,6 +118,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', onSuccess }
     if (res.success) {
       setOtpTarget(target);
       setOtpStep('verify');
+      setCooldown(30);
     } else {
       toast.error(res.error || 'Could not send OTP');
     }
@@ -297,10 +312,11 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', onSuccess }
                       </button>
                       <button
                         type="button"
-                        onClick={handleSendOtp}
-                        className="text-[#698156] font-bold hover:underline cursor-pointer"
+                        disabled={cooldown > 0 || isSubmitting}
+                        onClick={() => handleSendOtp()}
+                        className="text-[#698156] font-bold hover:underline cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                       >
-                        Resend Code
+                        {cooldown > 0 ? `Resend Code (${cooldown}s)` : 'Resend Code'}
                       </button>
                     </div>
 
