@@ -15,29 +15,17 @@ interface WishlistContextType {
 const WishlistContext = createContext<WishlistContextType | undefined>(undefined);
 
 export function WishlistProvider({ children }: { children: React.ReactNode }) {
-  const [wishlistItems, setWishlistItems] = useState<Product[]>(() => {
-    try {
-      const cached = localStorage.getItem('aanya_wishlist_items');
-      return cached ? JSON.parse(cached) : [];
-    } catch (e) {
-      return [];
-    }
-  });
+  const [wishlistItems, setWishlistItems] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-
-  // Sync state with localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem('aanya_wishlist_items', JSON.stringify(wishlistItems));
-    } catch (e) {
-      console.error('LocalStorage write error:', e);
-    }
-  }, [wishlistItems]);
 
   const fetchWishlist = async () => {
     try {
+      setIsLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        setWishlistItems([]);
+        return;
+      }
 
       const { data, error } = await supabase
         .from('wishlist')
@@ -47,7 +35,10 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
         `)
         .eq('user_id', user.id);
 
-      if (error || !data) return;
+      if (error || !data) {
+        setWishlistItems([]);
+        return;
+      }
 
       const enrichedItems: Product[] = data
         .filter(item => item.products)
@@ -59,20 +50,20 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
           };
         });
 
-      if (enrichedItems.length > 0) {
-        setWishlistItems(prev => {
-          const map = new Map(prev.map(p => [p.id, p]));
-          enrichedItems.forEach(p => map.set(p.id, p));
-          return Array.from(map.values());
-        });
-      }
+      setWishlistItems(enrichedItems);
     } catch (error: any) {
       console.error('Error fetching wishlist:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
     fetchWishlist();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      fetchWishlist();
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   const addToWishlist = async (product: Product) => {

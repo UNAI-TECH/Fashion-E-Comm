@@ -16,6 +16,7 @@ import { useWishlist } from '../contexts/WishlistContext';
 import { supabase } from '../../lib/supabase';
 import { fetchProducts, Product, ensureProductImages } from '../data/products';
 import { toast } from 'sonner';
+import { api } from '../../lib/api';
 import { ProfileModal } from '../components/ProfileModal';
 import { isUserProfileComplete, getUserProfileDetails, UserProfileDetails } from '../../lib/userProfile';
 
@@ -427,6 +428,47 @@ export function ProductPage() {
 
     setIsSubmitting(true);
     try {
+      // 1. Try unified authoritative backend API
+      try {
+        const createRes = await api.orders.create({
+          orderItems: [{
+            product_id: product.id,
+            name: product.name,
+            qty: quantity,
+            price: product.price,
+            size: selectedSize || 'Regular',
+            color: (product as any).color || null
+          }],
+          address: {
+            first_name: orderForm.fullName.split(' ')[0],
+            last_name: orderForm.fullName.split(' ').slice(1).join(' '),
+            phone: orderForm.phone,
+            address: orderForm.address,
+            city: orderForm.city,
+            pincode: orderForm.pincode,
+            country: 'India'
+          },
+          paymentMethod: paymentType === 'Card' ? 'Card' : 'COD',
+          taxPrice: 0,
+          shippingPrice: 0,
+          totalAmount: (product.price || 0) * quantity
+        });
+
+        if (createRes?.success && createRes.order) {
+          toast.success(`Order Placed! Tracking #${createRes.order.tracking_number}`);
+          window.dispatchEvent(new Event('orders_updated'));
+          navigate('/orders');
+          return;
+        }
+      } catch (apiErr: any) {
+        if (apiErr.code === 'INSUFFICIENT_STOCK') {
+          toast.error(apiErr.message);
+          return;
+        }
+        console.warn('Backend API fallback to direct Supabase:', apiErr.message);
+      }
+
+      // 2. Direct Supabase Order Insertion fallback
       let user = null;
       try {
         const { data } = await supabase.auth.getUser();
@@ -463,24 +505,16 @@ export function ProductPage() {
         ...(user?.id ? { user_id: user.id } : {})
       };
 
-      // 1. Direct Supabase Order Insertion
       const { error: orderError } = await supabase
         .from('orders')
         .insert([orderPayload]);
 
       if (orderError) {
-        console.error('Supabase Orders Insert Error:', orderError);
-        // Fallback without user_id if profile foreign key is not present
         delete (orderPayload as any).user_id;
-        const { error: retryError } = await supabase
-          .from('orders')
-          .insert([orderPayload]);
-        if (retryError) {
-          throw retryError;
-        }
+        const { error: retryError } = await supabase.from('orders').insert([orderPayload]);
+        if (retryError) throw retryError;
       }
 
-      // 2. Insert order item
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
       const orderItemPayload = {
         order_id: generatedOrderId,
@@ -491,13 +525,20 @@ export function ProductPage() {
       };
       await supabase.from('order_items').insert([orderItemPayload]);
 
-      // 3. Deduct stock in database
-      if (uuidRegex.test(product.id) && product.stock_quantity != null) {
-        const remainingStock = Math.max(0, product.stock_quantity - quantity);
-        await supabase
-          .from('products')
-          .update({ stock_quantity: remainingStock })
-          .eq('id', product.id);
+      // Atomic stock deduction
+      if (uuidRegex.test(product.id)) {
+        try {
+          const { error: rpcErr } = await supabase.rpc('decrement_stock', {
+            p_product_id: product.id,
+            p_qty: quantity
+          });
+          if (rpcErr) throw rpcErr;
+        } catch {
+          const { data: prod } = await supabase.from('products').select('stock_quantity').eq('id', product.id).single();
+          if (prod && prod.stock_quantity != null) {
+            await supabase.from('products').update({ stock_quantity: Math.max(0, prod.stock_quantity - quantity) }).eq('id', product.id);
+          }
+        }
       }
 
       toast.success(

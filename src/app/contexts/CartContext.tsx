@@ -5,12 +5,14 @@ import { toast } from 'sonner';
 
 export interface CartItem extends Product {
   quantity: number;
+  selectedSize?: string;
+  selectedColor?: string;
 }
 
 interface CartContextType {
   cartItems: CartItem[];
   cartCount: number;
-  addToCart: (product: Product, quantity?: number) => Promise<void>;
+  addToCart: (product: Product, quantity?: number, selectedSize?: string, selectedColor?: string) => Promise<void>;
   updateQuantity: (productId: string, delta: number) => Promise<void>;
   removeItem: (productId: string) => Promise<void>;
   clearCart: () => Promise<void>;
@@ -20,24 +22,8 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [cartItems, setCartItems] = useState<CartItem[]>(() => {
-    try {
-      const cached = localStorage.getItem('aanya_cart_items');
-      return cached ? JSON.parse(cached) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-
-  // Sync local state with localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem('aanya_cart_items', JSON.stringify(cartItems));
-    } catch (e) {
-      console.error('LocalStorage write error:', e);
-    }
-  }, [cartItems]);
 
   const fetchCart = async () => {
     try {
@@ -91,20 +77,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const addToCart = async (product: Product, quantity: number = 1) => {
+  const addToCart = async (product: Product, quantity: number = 1, selectedSize?: string, selectedColor?: string) => {
     if (!product || !product.id) return;
 
-    // 1. Instantly update local state & localStorage
+    // 1. Instantly update local state
     setCartItems(prev => {
-      const existing = prev.find(item => item.id === product.id);
+      const existing = prev.find(item => item.id === product.id && item.selectedSize === selectedSize);
       if (existing) {
         return prev.map(item => 
-          item.id === product.id 
+          item.id === product.id && item.selectedSize === selectedSize
             ? { ...item, quantity: item.quantity + quantity } 
             : item
         );
       }
-      return [...prev, { ...product, quantity }];
+      return [...prev, { ...product, quantity, selectedSize, selectedColor }];
     });
 
     toast.success(`${product.name} added to Cart!`);

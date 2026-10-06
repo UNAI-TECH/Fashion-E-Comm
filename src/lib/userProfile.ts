@@ -1,3 +1,5 @@
+import { supabase } from './supabase';
+
 export interface UserProfileDetails {
   name: string;
   gender: string;
@@ -68,8 +70,20 @@ export function saveUserProfileDetails(details: UserProfileDetails, profileImage
         detail: { details, profileImage: profileImage ?? getUserProfileImage() }
       })
     );
+
+    // Asynchronously update Supabase profiles table
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        supabase.from('profiles').update({
+          full_name: details.name,
+          phone: details.phone,
+          avatar_url: profileImage || null,
+          updated_at: new Date()
+        }).eq('id', user.id).then(() => {});
+      }
+    }).catch(() => {});
   } catch (e) {
-    console.error('Error saving user profile to localStorage:', e);
+    console.error('Error saving user profile:', e);
   }
 }
 
