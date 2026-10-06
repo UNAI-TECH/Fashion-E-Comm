@@ -31,8 +31,9 @@ export function AdminLogin() {
 
     const success = await login(email, password);
     if (success) {
-      // Force navigation to admin dashboard
-      window.location.href = '/admin';
+      // Use React Router navigate instead of full page reload
+      // This avoids a race condition where the session isn't persisted yet
+      navigate('/admin', { replace: true });
     }
   };
 

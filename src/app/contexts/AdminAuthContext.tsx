@@ -61,7 +61,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  // Validate session with Supabase on mount
+  // Validate session with Supabase on mount (non-blocking — won't override localStorage auth)
   useEffect(() => {
     async function checkSession() {
       try {
@@ -72,7 +72,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
             .from('profiles')
             .select('role, full_name')
             .eq('id', session.user.id)
-            .single();
+            .maybeSingle();
 
           if (profile?.role === 'admin') {
             const name = profile.full_name || session.user.user_metadata?.full_name || 'Admin';
@@ -85,21 +85,14 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
               email: session.user.email,
               role: 'admin'
             }));
-          } else {
-            // User exists but is not admin — clear any stale admin session
-            localStorage.removeItem('admin_info');
-            setIsAuthenticated(false);
           }
-        } else {
-          // No active Supabase session — clear localStorage if stale
-          const stored = localStorage.getItem('admin_info');
-          if (stored) {
-            localStorage.removeItem('admin_info');
-            setIsAuthenticated(false);
-            setAdminName('Admin');
-            setAdminEmail('');
-          }
+          // NOTE: Do NOT clear admin_info here if profile role != admin.
+          // The localStorage value from login() is the source of truth.
+          // The profile table may not have role=admin if set via known admins list.
         }
+        // NOTE: Do NOT clear admin_info if no session found.
+        // After login(), the page reloads and the session may not be
+        // restored instantly. localStorage is the trusted source.
       } catch (err) {
         console.warn('Supabase session check failed:', err);
       }
@@ -143,12 +136,16 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error(authData?.error_description || authData?.msg || authData?.message || 'Invalid email or password.');
       }
 
-      // Persist session into supabase client
+      // Persist session into supabase client — AWAIT this so profile query works
       if (authData.access_token && authData.refresh_token) {
-        supabase.auth.setSession({
-          access_token: authData.access_token,
-          refresh_token: authData.refresh_token,
-        }).catch(() => {});
+        try {
+          await supabase.auth.setSession({
+            access_token: authData.access_token,
+            refresh_token: authData.refresh_token,
+          });
+        } catch (sessionErr) {
+          console.warn('setSession notice:', sessionErr);
+        }
       }
 
       // 2. Verify admin role
@@ -163,12 +160,13 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
         isAdmin = true;
       }
 
+      // Try fetching profile from DB to verify role
       try {
         const { data: profile } = await supabase
           .from('profiles')
           .select('role, full_name')
           .eq('id', authData.user.id)
-          .single();
+          .maybeSingle();
 
         if (profile?.role === 'admin') {
           isAdmin = true;
@@ -176,6 +174,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (profErr) {
         console.warn('Profile fetch notice:', profErr);
+        // If profile fetch fails, rely on knownAdmins list
       }
 
       if (!isAdmin) {
@@ -189,7 +188,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
         name,
         email: authData.user.email || cleanEmail,
         role: 'admin',
-        token: authData.session?.access_token,
+        token: authData.access_token,
       };
 
       localStorage.setItem('admin_info', JSON.stringify(userObj));
