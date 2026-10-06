@@ -241,7 +241,7 @@ export function CheckoutPage() {
         .select('*')
         .eq('code', couponCode.trim().toUpperCase())
         .eq('status', 'Active')
-        .single();
+        .maybeSingle();
 
       if (error || !data) {
         setCouponError('Invalid or expired coupon code');
