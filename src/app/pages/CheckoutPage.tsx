@@ -235,19 +235,18 @@ export function CheckoutPage() {
     if (!couponCode.trim()) { setCouponError('Please enter a coupon code'); return; }
     setCouponLoading(true);
     setCouponError('');
+    const codeUpper = couponCode.trim().toUpperCase();
     try {
+      // 1. First try the coupons table
       const { data, error } = await supabase
         .from('coupons')
         .select('*')
-        .eq('code', couponCode.trim().toUpperCase())
+        .eq('code', codeUpper)
         .eq('status', 'Active')
         .maybeSingle();
 
-      if (error || !data) {
-        setCouponError('Invalid or expired coupon code');
-        setCouponApplied(null);
-      } else {
-        // Check if coupon is product-specific
+      if (!error && data) {
+        // Found in coupons table
         if (data.product_id) {
           const matchesProduct = checkoutItems.some(item => item.id === data.product_id);
           if (!matchesProduct) {
@@ -261,14 +260,37 @@ export function CheckoutPage() {
         const saving = data.discount_type === 'Percentage'
           ? Math.round(sellingTotal * (discValue / 100))
           : Math.min(discValue, sellingTotal);
-        setCouponApplied({
-          code: data.code,
-          discount_type: data.discount_type,
-          discount_value: discValue,
-        });
+        setCouponApplied({ code: data.code, discount_type: data.discount_type, discount_value: discValue });
         setCouponError('');
         toast.success(`Coupon ${data.code} applied! You save ₹${saving.toLocaleString('en-IN')}`);
+        return;
       }
+
+      // 2. Fallback: check product offer_details for matching coupon_code
+      const productIds = checkoutItems.map(item => item.id);
+      const { data: products } = await supabase
+        .from('products')
+        .select('id, offer_enabled, offer_details')
+        .in('id', productIds)
+        .eq('offer_enabled', true);
+
+      if (products && products.length > 0) {
+        for (const prod of products) {
+          const details = typeof prod.offer_details === 'string' ? JSON.parse(prod.offer_details) : prod.offer_details;
+          if (details?.coupon_code?.toUpperCase() === codeUpper) {
+            const discValue = Number(details.coupon_discount || 0);
+            const saving = Math.round(sellingTotal * (discValue / 100));
+            setCouponApplied({ code: codeUpper, discount_type: 'Percentage', discount_value: discValue });
+            setCouponError('');
+            toast.success(`Coupon ${codeUpper} applied! You save ₹${saving.toLocaleString('en-IN')}`);
+            return;
+          }
+        }
+      }
+
+      // Not found anywhere
+      setCouponError('Invalid or expired coupon code');
+      setCouponApplied(null);
     } catch (err) {
       setCouponError('Failed to validate coupon');
     } finally {
