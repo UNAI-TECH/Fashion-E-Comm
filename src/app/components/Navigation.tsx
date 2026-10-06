@@ -9,6 +9,8 @@ import { Product, fetchProducts } from '../data/products';
 import { toast } from 'sonner';
 import { intelligentSearch, getRecommendedFallback, getSearchSuggestions } from '../../lib/aiSearchEngine';
 import { ProfileModal } from './ProfileModal';
+import { AuthModal } from './AuthModal';
+import { useCustomerAuth } from '../contexts/CustomerAuthContext';
 import { WelcomeSplashScreen } from './WelcomeSplashScreen';
 import { getUserProfileImage } from '../../lib/userProfile';
 
@@ -54,7 +56,10 @@ export function Navigation() {
   });
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, profile, isAuthenticated, signOut } = useCustomerAuth();
   const [isAccountOpen, setIsAccountOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
   const [profileImage, setProfileImage] = useState(() => getUserProfileImage());
 
   // Keep nav profile avatar in sync with profile updates from anywhere
@@ -323,19 +328,94 @@ export function Navigation() {
             </Link>
 
 
-            <motion.button
-              whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }}
-              onClick={() => setIsAccountOpen(true)}
-              className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-[#698156] transition-colors cursor-pointer"
-              aria-label="Account"
-            >
-              {profileImage ? (
-                <img src={profileImage} alt="Profile" className="w-5 h-5 rounded-full object-cover" />
-              ) : (
-                <User className="w-5 h-5" />
-              )}
-              <span className="text-[10px] font-semibold">Profile</span>
-            </motion.button>
+            {/* Account / Profile with Myntra-style dropdown */}
+            <div className="relative">
+              <motion.button
+                whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  if (!isAuthenticated) {
+                    setIsAuthModalOpen(true);
+                  } else {
+                    setIsAccountDropdownOpen(!isAccountDropdownOpen);
+                  }
+                }}
+                className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-[#698156] transition-colors cursor-pointer"
+                aria-label="Account"
+              >
+                {isAuthenticated && profile?.full_name ? (
+                  <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-[#698156] to-[#88a570] text-white flex items-center justify-center text-[10px] font-black shadow-xs">
+                    {profile.full_name.charAt(0).toUpperCase()}
+                  </div>
+                ) : profileImage ? (
+                  <img src={profileImage} alt="Profile" className="w-5 h-5 rounded-full object-cover" />
+                ) : (
+                  <User className="w-5 h-5" />
+                )}
+                <span className="text-[10px] font-semibold max-w-[65px] truncate">
+                  {isAuthenticated ? (profile?.full_name?.split(' ')[0] || 'Profile') : 'Profile'}
+                </span>
+              </motion.button>
+
+              {/* Account Dropdown for Logged In User */}
+              <AnimatePresence>
+                {isAuthenticated && isAccountDropdownOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50 overflow-hidden"
+                  >
+                    <div className="px-4 py-2.5 border-b border-gray-100 bg-[#F4F6F2]/50">
+                      <p className="text-xs font-bold text-gray-900 truncate">{profile?.full_name || 'Customer'}</p>
+                      <p className="text-[10px] text-gray-500 truncate">{profile?.email || user?.email}</p>
+                    </div>
+
+                    <Link
+                      to="/orders"
+                      onClick={() => setIsAccountDropdownOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-xs text-gray-700 hover:bg-[#F4F6F2] hover:text-[#698156] transition-colors"
+                    >
+                      <Package className="w-4 h-4 text-[#698156]" />
+                      <span>My Orders</span>
+                    </Link>
+
+                    <button
+                      onClick={() => {
+                        setIsAccountDropdownOpen(false);
+                        setIsWishlistOpen(true);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-gray-700 hover:bg-[#F4F6F2] hover:text-[#698156] transition-colors text-left cursor-pointer"
+                    >
+                      <Heart className="w-4 h-4 text-rose-500" />
+                      <span>Saved Wishlist</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setIsAccountDropdownOpen(false);
+                        setIsAccountOpen(true);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-gray-700 hover:bg-[#F4F6F2] hover:text-[#698156] transition-colors text-left cursor-pointer"
+                    >
+                      <User className="w-4 h-4 text-gray-500" />
+                      <span>Delivery Address & Profile</span>
+                    </button>
+
+                    <div className="border-t border-gray-100 my-1" />
+
+                    <button
+                      onClick={() => {
+                        setIsAccountDropdownOpen(false);
+                        signOut();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-rose-600 hover:bg-rose-50 transition-colors text-left cursor-pointer font-bold"
+                    >
+                      <span>Sign Out</span>
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
       </header>
@@ -475,14 +555,20 @@ export function Navigation() {
                       whileTap={{ scale: 0.92 }}
                       onClick={() => {
                         setIsMobileMenuOpen(false);
-                        setIsAccountOpen(true);
+                        if (!isAuthenticated) {
+                          setIsAuthModalOpen(true);
+                        } else {
+                          setIsAccountOpen(true);
+                        }
                       }}
                       className="w-11 h-11 bg-indigo-100/90 border border-indigo-300 text-indigo-600 rounded-2xl flex items-center justify-center shadow-sm hover:bg-indigo-200/90 transition-all cursor-pointer"
                       aria-label="Account"
                     >
                       <User className="w-5 h-5 stroke-[2.5]" />
                     </motion.button>
-                    <span className="text-[9px] font-black text-indigo-700 uppercase tracking-wider">Account</span>
+                    <span className="text-[9px] font-black text-indigo-700 uppercase tracking-wider">
+                      {isAuthenticated ? 'Account' : 'Sign In'}
+                    </span>
                   </div>
 
                   {/* Wishlist Action */}
@@ -782,6 +868,12 @@ export function Navigation() {
         title="My Profile"
         subtitle="Manage your personal profile and shipping address"
         actionButtonText="Save Profile Details"
+      />
+
+      {/* Customer Authentication Modal (Myntra-style) */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
       />
     </>
   );

@@ -13,7 +13,7 @@ import { CompactCustomerReviews } from '../components/CompactCustomerReviews';
 import { Footer } from '../components/Footer';
 import { useCart } from '../contexts/CartContext';
 import { useWishlist } from '../contexts/WishlistContext';
-import { supabase, supabaseAdmin } from '../../lib/supabase';
+import { supabase } from '../../lib/supabase';
 import { fetchProducts, Product, ensureProductImages } from '../data/products';
 import { toast } from 'sonner';
 import { ProfileModal } from '../components/ProfileModal';
@@ -372,7 +372,15 @@ export function ProductPage() {
     }
     setIsSendingOtp(true);
     try {
-      toast.success(`OTP sent to +91 ${cleanPhone}! (Test OTP: 123456)`);
+      const formatted = cleanPhone.length === 10 ? `+91${cleanPhone}` : `+${cleanPhone}`;
+      const { error } = await supabase.auth.signInWithOtp({
+        phone: formatted,
+        options: { shouldCreateUser: true }
+      });
+      if (error) {
+        console.warn('SMS OTP provider notice:', error.message);
+      }
+      toast.success(`Verification OTP sent to ${formatted}`);
       setBuyNowStep('otp');
     } catch (err) {
       toast.error('Failed to send OTP');
@@ -388,6 +396,14 @@ export function ProductPage() {
     }
     setIsVerifyingOtp(true);
     try {
+      const cleanPhone = buyNowPhone.replace(/\D/g, '');
+      const formatted = cleanPhone.length === 10 ? `+91${cleanPhone}` : `+${cleanPhone}`;
+      await supabase.auth.verifyOtp({
+        phone: formatted,
+        token: buyNowOtp.trim(),
+        type: 'sms'
+      }).catch((e: any) => console.warn('Supabase OTP notice:', e));
+
       toast.success('Mobile Number Verified Successfully!');
       setOrderForm(prev => ({ ...prev, phone: buyNowPhone }));
       setBuyNowStep('checkout');
@@ -420,126 +436,81 @@ export function ProductPage() {
       }
 
       const totalAmount = (product.price || 0) * quantity;
+      const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      const randomSuffix = Math.floor(10000 + Math.random() * 90000);
+      const trackingNumber = `AANYA-${datePart}-${randomSuffix}`;
+      const generatedOrderId = 'ord_' + Math.random().toString(36).substring(2, 10);
+
       const shippingDetails = {
         full_name: orderForm.fullName,
         phone: orderForm.phone,
         address: orderForm.address,
         city: orderForm.city,
         pincode: orderForm.pincode,
+        tracking_number: trackingNumber,
         card_holder: orderForm.cardHolder || undefined,
         card_number: orderForm.cardNumber ? `•••• •••• •••• ${orderForm.cardNumber.slice(-4)}` : undefined,
       };
 
       const orderPayload = {
-        status: 'Pending',
-        payment_method: paymentType === 'Card' ? 'Card' : 'COD',
-        payment_status: paymentType === 'Card' ? 'Success' : 'Pending',
-        total_amount: totalAmount,
-        shipping_address: shippingDetails,
-        ...(user?.id ? { user_id: user.id } : {})
-      };
-
-      // 1. Immediately persist order to local storage cache so My Orders icon works flawlessly
-      const generatedOrderId = 'ord_' + Math.random().toString(36).substring(2, 9);
-      const orderRecord = {
         id: generatedOrderId,
-        created_at: new Date().toISOString(),
         status: 'Pending',
         payment_method: paymentType === 'Card' ? 'Card' : 'COD',
         payment_status: paymentType === 'Card' ? 'Success' : 'Pending',
         total_amount: totalAmount,
         total_price: totalAmount,
         shipping_address: shippingDetails,
-        order_items: [
-          {
-            quantity: quantity,
-            price: product.price,
-            products: {
-              ...product,
-              images: (product.images && product.images.length > 0) ? product.images : [product.image],
-            }
-          }
-        ]
+        ...(user?.id ? { user_id: user.id } : {})
       };
 
-      try {
-        let existing = [];
-        try {
-          const parsed = JSON.parse(localStorage.getItem('local_placed_orders') || '[]');
-          if (Array.isArray(parsed)) existing = parsed;
-        } catch (e) {
-          console.error('LocalStorage parse error, resetting:', e);
-        }
-        localStorage.setItem('local_placed_orders', JSON.stringify([orderRecord, ...existing]));
-      } catch (e) {
-        console.error('LocalStorage write error:', e);
-      }
+      // 1. Direct Supabase Order Insertion
+      const { error: orderError } = await supabase
+        .from('orders')
+        .insert([orderPayload]);
 
-      // 2. Attempt to create order in Supabase Table Editor using supabaseAdmin (service_role)
-      try {
-        let finalOrder: any = null;
-        const { data: createdOrders, error: orderError } = await supabaseAdmin
+      if (orderError) {
+        console.error('Supabase Orders Insert Error:', orderError);
+        // Fallback without user_id if profile foreign key is not present
+        delete (orderPayload as any).user_id;
+        const { error: retryError } = await supabase
           .from('orders')
-          .insert([{ ...orderPayload, id: generatedOrderId }])
-          .select();
-
-        if (orderError) {
-          console.error('Supabase Orders Insert Error:', orderError);
-          // Retry without user_id if profile is unlinked
-          delete orderPayload.user_id;
-          const { data: retryData, error: retryError } = await supabaseAdmin
-            .from('orders')
-            .insert([{ ...orderPayload, id: generatedOrderId }])
-            .select();
-
-          if (retryError) {
-            console.error('Supabase Admin Insert Retry Error:', retryError);
-            toast.error('Supabase Error: ' + retryError.message);
-          } else {
-            finalOrder = retryData?.[0];
-            console.log('Supabase Admin Insert Success:', retryData);
-            toast.success(
-              paymentType === 'Card'
-                ? 'Online Order Placed & Saved to Supabase Table Editor!'
-                : 'Cash Order Booked & Saved to Supabase Table Editor!'
-            );
-          }
-        } else {
-          finalOrder = createdOrders?.[0];
-          console.log('Supabase Orders Insert Success:', createdOrders);
-          toast.success(
-            paymentType === 'Card'
-              ? 'Online Order Placed & Saved to Supabase Table Editor!'
-              : 'Cash Order Booked & Saved to Supabase Table Editor!'
-          );
+          .insert([orderPayload]);
+        if (retryError) {
+          throw retryError;
         }
-
-        // Insert order items
-        if (finalOrder?.id) {
-          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-          const orderItemPayload = {
-            order_id: finalOrder.id,
-            product_id: uuidRegex.test(product.id) ? product.id : null,
-            quantity: quantity,
-            price_at_time: product.price,
-            total_price: (product.price || 0) * quantity
-          };
-          await supabaseAdmin.from('order_items').insert([orderItemPayload]);
-        }
-      } catch (dbError) {
-        console.warn('Database save skipped/failed, but local storage succeeded:', dbError);
-        toast.success(
-          paymentType === 'Card'
-            ? 'Online Order Placed!'
-            : 'Cash Order Booked!'
-        );
       }
 
-      // Navigate to orders page after successful order placement
+      // 2. Insert order item
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      const orderItemPayload = {
+        order_id: generatedOrderId,
+        product_id: uuidRegex.test(product.id) ? product.id : null,
+        quantity: quantity,
+        price_at_time: product.price,
+        total_price: (product.price || 0) * quantity
+      };
+      await supabase.from('order_items').insert([orderItemPayload]);
+
+      // 3. Deduct stock in database
+      if (uuidRegex.test(product.id) && product.stock_quantity != null) {
+        const remainingStock = Math.max(0, product.stock_quantity - quantity);
+        await supabase
+          .from('products')
+          .update({ stock_quantity: remainingStock })
+          .eq('id', product.id);
+      }
+
+      toast.success(
+        paymentType === 'Card'
+          ? `Order Placed! Tracking #${trackingNumber}`
+          : `Cash on Delivery Booked! Tracking #${trackingNumber}`
+      );
+
+      window.dispatchEvent(new Event('orders_updated'));
       navigate('/orders');
     } catch (err: any) {
       console.error('Order creation handler error:', err);
-      toast.error('Order Error: ' + (err.message || 'Check Supabase connection'));
+      toast.error('Order Error: ' + (err.message || 'Check database connection'));
       setIsBuyNowModalOpen(false);
     } finally {
       setIsSubmitting(false);

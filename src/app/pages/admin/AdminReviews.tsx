@@ -1,23 +1,96 @@
-import React, { useState } from 'react';
-import { Star, CheckCircle, Trash2, ExternalLink } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Star, CheckCircle, Trash2, ExternalLink, Loader2 } from 'lucide-react';
+import { supabase } from '../../../lib/supabase';
+import { toast } from 'sonner';
 
-const initialReviews = [
-  { id: 1, product: 'Elegant Maroon Saree', customer: 'Priya Sharma', rating: 5, comment: 'Absolutely stunning! The material is very premium and it looks better than the pictures.', date: '25 Mar, 2026', status: 'Pending' },
-  { id: 2, product: 'Designer Bridal Lehenga', customer: 'Rahul Verma', rating: 4, comment: 'Bought this for my sister. She loved the embroidery. Packaging could be better.', date: '24 Mar, 2026', status: 'Approved' },
-  { id: 3, product: 'Casual Cotton Kurti', customer: 'Anjali Desai', rating: 1, comment: 'Color faded after first wash. Totally unacceptable quality.', date: '22 Mar, 2026', status: 'Pending' },
-  { id: 4, product: 'Chiffon Party Wear', customer: 'Meera Patel', rating: 5, comment: 'Perfect fit! Got so many compliments at the party.', date: '20 Mar, 2026', status: 'Approved' },
-];
+interface Review {
+  id: string;
+  product_name: string;
+  product_id: string;
+  customer_name: string;
+  rating: number;
+  comment: string;
+  date: string;
+  status: string;
+}
 
 export function AdminReviews() {
-  const [reviews, setReviews] = useState(initialReviews);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleApprove = (id: number) => {
-    setReviews(reviews.map(r => r.id === id ? { ...r, status: 'Approved' } : r));
+  useEffect(() => {
+    loadReviews();
+  }, []);
+
+  const loadReviews = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('reviews')
+        .select(`
+          *,
+          products:product_id (name),
+          profiles:user_id (full_name)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const formatted: Review[] = (data || []).map((r: any) => ({
+        id: r.id,
+        product_name: r.products?.name || 'Unknown Product',
+        product_id: r.product_id,
+        customer_name: r.profiles?.full_name || 'Anonymous',
+        rating: r.rating,
+        comment: r.comment || '',
+        date: new Date(r.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+        status: r.status || 'Pending',
+      }));
+
+      setReviews(formatted);
+    } catch (error) {
+      console.error('Error loading reviews:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleDelete = (id: number) => {
-    setReviews(reviews.filter(r => r.id !== id));
+  const handleApprove = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('reviews')
+        .update({ status: 'Approved' })
+        .eq('id', id);
+
+      if (error) throw error;
+      setReviews(reviews.map(r => r.id === id ? { ...r, status: 'Approved' } : r));
+      toast.success('Review approved');
+    } catch (error: any) {
+      toast.error('Failed to approve review: ' + error.message);
+    }
   };
+
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('reviews')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      setReviews(reviews.filter(r => r.id !== id));
+      toast.success('Review deleted');
+    } catch (error: any) {
+      toast.error('Failed to delete review: ' + error.message);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="w-8 h-8 animate-spin text-[#698156]" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
@@ -38,12 +111,12 @@ export function AdminReviews() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-sm">
-              {reviews.map((review) => (
+              {reviews.length > 0 ? reviews.map((review) => (
                 <tr key={review.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4">
-                    <div className="font-bold text-gray-900">{review.customer}</div>
+                    <div className="font-bold text-gray-900">{review.customer_name}</div>
                     <div className="text-[#698156] text-xs font-medium cursor-pointer hover:underline flex items-center gap-1 mt-1">
-                      {review.product} <ExternalLink className="w-3 h-3" />
+                      {review.product_name} <ExternalLink className="w-3 h-3" />
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -81,7 +154,13 @@ export function AdminReviews() {
                     </div>
                   </td>
                 </tr>
-              ))}
+              )) : (
+                <tr>
+                  <td colSpan={5} className="px-6 py-16 text-center text-gray-400">
+                    No customer reviews yet.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

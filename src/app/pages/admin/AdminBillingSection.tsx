@@ -6,7 +6,7 @@ import {
   ExternalLink, ArrowRight
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabaseAdmin } from '../../../lib/supabase';
+import { supabase } from '../../../lib/supabase';
 
 
 
@@ -696,15 +696,10 @@ export function AdminBillingSection({
         created_at: new Date().toISOString()
       };
 
-      try {
-        await supabaseAdmin.from('orders').insert(orderPayload);
-      } catch (dbErr) {}
-
-      try {
-        const raw = localStorage.getItem('local_admin_orders');
-        const existing = raw ? JSON.parse(raw) : [];
-        localStorage.setItem('local_admin_orders', JSON.stringify([orderPayload, ...existing]));
-      } catch (e) {}
+      const { error: billErr } = await supabase.from('orders').insert(orderPayload);
+      if (billErr) {
+        console.warn('Billing record notice:', billErr);
+      }
 
       window.dispatchEvent(new Event('orders_updated'));
       window.dispatchEvent(new Event('storage'));

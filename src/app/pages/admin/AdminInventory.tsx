@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { AdminInventorySection } from './AdminInventorySection';
 import { fetchProducts } from '../../data/products';
-import { supabaseAdmin } from '../../../lib/supabase';
+import { supabase } from '../../../lib/supabase';
 import { useNavigate } from 'react-router';
 
 export function AdminInventory() {
@@ -15,7 +15,7 @@ export function AdminInventory() {
       // 1. Fetch Supabase products
       let dbProds: any[] = [];
       try {
-        const { data } = await supabaseAdmin.from('products').select('*').order('created_at', { ascending: false });
+        const { data } = await supabase.from('products').select('*').order('created_at', { ascending: false });
         if (data) dbProds = data;
       } catch (e) {}
 

@@ -1,4 +1,4 @@
-import { supabase, supabaseAdmin } from '../../lib/supabase';
+import { supabase } from '../../lib/supabase';
 
 export interface HeroModel {
   id: string;
@@ -286,7 +286,7 @@ export async function fetchHeroModels(): Promise<HeroModel[]> {
  */
 export async function fetchAllHeroModelsAdmin(): Promise<HeroModel[]> {
   try {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabase
       .from('banners')
       .select('*')
       .order('display_order', { ascending: true });
@@ -368,7 +368,7 @@ export async function saveHeroModel(model: Partial<HeroModel>): Promise<HeroMode
     let bannerIdToUpdate = isUuid ? model.id : (existingModel && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(existingModel.id)) ? existingModel.id : null;
 
     if (!bannerIdToUpdate) {
-      const { data: matchedBanner } = await supabaseAdmin
+      const { data: matchedBanner } = await supabase
         .from('banners')
         .select('id')
         .eq('display_order', newDisplayOrder)
@@ -381,9 +381,9 @@ export async function saveHeroModel(model: Partial<HeroModel>): Promise<HeroMode
 
     if (bannerIdToUpdate) {
       updatedModel.id = bannerIdToUpdate;
-      await supabaseAdmin.from('banners').update(payload).eq('id', bannerIdToUpdate);
+      await supabase.from('banners').update(payload).eq('id', bannerIdToUpdate);
     } else {
-      const { data: inserted } = await supabaseAdmin.from('banners').insert(payload).select().single();
+      const { data: inserted } = await supabase.from('banners').insert(payload).select().single();
       if (inserted?.id) {
         updatedModel.id = inserted.id;
         const idx = nextList.findIndex(m => m.display_order === newDisplayOrder);
@@ -407,7 +407,7 @@ export async function deleteHeroModel(id: string): Promise<boolean> {
   try {
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     if (isUuid) {
-      await supabaseAdmin.from('banners').delete().eq('id', id);
+      await supabase.from('banners').delete().eq('id', id);
     }
   } catch (e) {
     console.warn('[HeroModels] Supabase delete error:', e);
@@ -424,7 +424,7 @@ export async function deleteHeroModel(id: string): Promise<boolean> {
  */
 export async function resetHeroModelsToDefault(): Promise<HeroModel[]> {
   try {
-    await supabaseAdmin.from('banners').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('banners').delete().neq('id', '00000000-0000-0000-0000-000000000000');
   } catch (e) {
     console.warn('[HeroModels] Clear error:', e);
   }
@@ -440,7 +440,7 @@ export async function resetHeroModelsToDefault(): Promise<HeroModel[]> {
 async function seedDefaultHeroModels(): Promise<void> {
   try {
     const rows = DEFAULT_HERO_MODELS.map(heroModelToBanner);
-    await supabaseAdmin.from('banners').insert(rows);
+    await supabase.from('banners').insert(rows);
   } catch (e) {
     console.warn('[HeroModels] Seed error:', e);
   }
@@ -455,7 +455,7 @@ export async function uploadModelImage(file: File): Promise<string> {
   const path = `hero-models/${Date.now()}_${cleanName}`;
 
   try {
-    const { data, error } = await supabaseAdmin.storage
+    const { data, error } = await supabase.storage
       .from('products')
       .upload(path, file, {
         upsert: true,

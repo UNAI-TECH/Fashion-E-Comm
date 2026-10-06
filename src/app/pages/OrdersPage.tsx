@@ -1,18 +1,22 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Package, Truck, Clock, X, FileText, RotateCcw, MessageSquare, ChevronRight, Ban, CheckCircle2, ShoppingBag, HeadphonesIcon, Search, ListFilter, ArrowDownUp, Download, RefreshCcw, Star } from 'lucide-react';
+import { Package, Truck, Clock, X, FileText, RotateCcw, MessageSquare, ChevronRight, Ban, CheckCircle2, ShoppingBag, HeadphonesIcon, Search, ListFilter, ArrowDownUp, Download, RefreshCcw, Star, LogIn } from 'lucide-react';
 import { Footer } from '../components/Footer';
 import { AnnouncementBar } from '../components/AnnouncementBar';
 import { supabase } from '../../lib/supabase';
 import { Link } from 'react-router';
 import { toast } from 'sonner';
+import { useCustomerAuth } from '../contexts/CustomerAuthContext';
+import { AuthModal } from '../components/AuthModal';
 
 type OrderStatus = 'Order Placed' | 'Confirmed' | 'Packed' | 'Shipped' | 'Out for Delivery' | 'Delivered' | 'Cancelled' | 'Returned' | 'Refunded';
 import React from 'react';
 
 export function OrdersPage() {
+  const { user, profile, isAuthenticated } = useCustomerAuth();
   const [orders, setOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('All Orders');
   const [sortBy, setSortBy] = useState('Newest First');
@@ -21,87 +25,69 @@ export function OrdersPage() {
   const fetchOrders = async () => {
     setIsLoading(true);
     try {
-      let user = null;
-      try {
+      let activeUser = user;
+      if (!activeUser) {
         const { data } = await supabase.auth.getUser();
-        user = data?.user;
-      } catch(e) {
-        console.warn('Auth check skipped:', e);
+        activeUser = data?.user || null;
       }
 
-      let fetchedDbOrders: any[] = [];
-      if (user?.id) {
-        // Authenticated user: fetch their orders strictly
-        const { data: dbData, error } = await supabase
-          .from('orders')
-          .select(`
+      if (!activeUser?.id) {
+        setOrders([]);
+        setIsLoading(false);
+        return;
+      }
+
+      // Query database for this authenticated customer's orders
+      const { data: dbData, error } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          order_items (
             *,
-            order_items (
-              *,
-              products (*)
-            )
-          `)
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
+            products (*)
+          )
+        `)
+        .eq('user_id', activeUser.id)
+        .order('created_at', { ascending: false });
 
-        if (!error && dbData) {
-          fetchedDbOrders = dbData;
-        }
-      }
-
-      // Fetch local storage placed orders cache as a fallback for guest checkouts or network errors
-      let localOrders: any[] = [];
-      try {
-        const parsed = JSON.parse(localStorage.getItem('local_placed_orders') || '[]');
-        if (Array.isArray(parsed)) {
-          localOrders = parsed;
-        } else {
-          localStorage.setItem('local_placed_orders', '[]');
-        }
-      } catch (e) {
-        console.error('LocalStorage parse error:', e);
-      }
-
-      // Combine local cache and database orders intelligently
-      const orderMap = new Map();
-      
-      // If user is not logged in, we rely purely on their local cache.
-      if (!user?.id) {
-        localOrders.forEach(o => orderMap.set(o.id, o));
+      if (error) {
+        console.error('Error fetching orders from Supabase:', error);
+        toast.error('Could not sync latest orders.');
+        setOrders([]);
       } else {
-        // If logged in, prioritize DB, but patch with local cache if DB has missing product data
-        localOrders.forEach(o => orderMap.set(o.id, o));
-        fetchedDbOrders.forEach(o => {
-          const existing = orderMap.get(o.id);
-          if (existing && existing.order_items && existing.order_items.length > 0) {
-            const dbHasProducts = o.order_items && o.order_items.length > 0 && o.order_items[0].products;
-            if (!dbHasProducts) {
-              orderMap.set(o.id, { ...o, order_items: existing.order_items });
-              return;
-            }
-          }
-          orderMap.set(o.id, o);
-        });
+        setOrders(dbData || []);
       }
-      
-      const uniqueOrders = Array.from(orderMap.values()).sort((a: any, b: any) => 
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
-
-      setOrders(uniqueOrders);
     } catch (error: any) {
       console.error('Error fetching orders:', error);
-      toast.error("Could not sync latest orders. Showing offline cache.");
-      try {
-        const parsed = JSON.parse(localStorage.getItem('local_placed_orders') || '[]');
-        if (Array.isArray(parsed)) {
-          setOrders(parsed);
-        }
-      } catch(e) {}
+      toast.error('Could not sync latest orders.');
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Subscribe to real-time order updates for this user
+  useEffect(() => {
+    fetchOrders();
+
+    const channel = supabase
+      .channel('customer_orders_realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders' },
+        () => {
+          fetchOrders();
+        }
+      )
+      .subscribe();
+
+    const handleLocalUpdate = () => fetchOrders();
+    window.addEventListener('orders_updated', handleLocalUpdate);
+
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener('orders_updated', handleLocalUpdate);
+    };
+  }, [user?.id]);
 
   const computedOrders = React.useMemo(() => {
     let result = [...orders];
@@ -285,13 +271,31 @@ export function OrdersPage() {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#698156]"></div>
           </div>
         ) : computedOrders.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-3xl shadow-sm border border-gray-100">
+          <div className="text-center py-20 bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
             <Package className="w-20 h-20 text-gray-200 mx-auto mb-6" />
-            <h2 className="text-2xl font-serif text-gray-700 mb-4">No orders found</h2>
-            <p className="text-gray-500 mb-8 max-w-md mx-auto">Looks like you haven't placed any orders matching this criteria yet.</p>
-            <button onClick={() => { setSearchQuery(''); setActiveFilter('All Orders'); }} className="px-8 py-3 bg-[#698156] text-white rounded-full font-bold text-sm shadow-md hover:bg-[#546944] transition-all">
-              Clear Filters
-            </button>
+            <h2 className="text-2xl font-serif text-gray-800 mb-2">
+              {!isAuthenticated ? 'Sign In to View Your Orders' : 'No Orders Found'}
+            </h2>
+            <p className="text-gray-500 mb-8 max-w-md mx-auto text-sm">
+              {!isAuthenticated
+                ? 'Please log in to your account to view order details, real-time shipment tracking, and download invoices.'
+                : "You don't have any placed orders yet. Explore our handcrafted sarees, kurtis, and festive collections!"}
+            </p>
+            {!isAuthenticated ? (
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
+                className="px-8 py-3.5 bg-gradient-to-r from-[#698156] to-[#546944] text-white rounded-full font-bold text-xs uppercase tracking-wider shadow-md hover:opacity-95 transition-all inline-flex items-center gap-2 cursor-pointer"
+              >
+                <LogIn className="w-4 h-4" /> Sign In to Track Orders
+              </button>
+            ) : (
+              <Link
+                to="/category/sarees"
+                className="px-8 py-3.5 bg-gradient-to-r from-[#698156] to-[#546944] text-white rounded-full font-bold text-xs uppercase tracking-wider shadow-md hover:opacity-95 transition-all inline-flex items-center gap-2 cursor-pointer"
+              >
+                <ShoppingBag className="w-4 h-4" /> Start Shopping
+              </Link>
+            )}
           </div>
         ) : (
           <div className="space-y-6">
@@ -478,6 +482,12 @@ export function OrdersPage() {
           </div>
         )}
       </main>
+
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onSuccess={() => fetchOrders()}
+      />
 
       <Footer />
     </div>

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, Plus, Filter, Edit, Trash2, X, Upload, RefreshCw, ImageIcon, Star, ChevronLeft, ChevronRight, Sparkles, CheckCircle2 } from 'lucide-react';
-import { supabase, supabaseAdmin } from '../../../lib/supabase';
-import { Product, fetchProducts as getStorefrontProducts, markProductDeleted, ensureProductImages, buildComplementaryAngles } from '../../data/products';
+import { supabase } from '../../../lib/supabase';
+import { Product, fetchProducts as getStorefrontProducts, ensureProductImages, buildComplementaryAngles } from '../../data/products';
 import { toast } from 'sonner';
 
 export function AdminProducts() {
@@ -79,14 +79,14 @@ export function AdminProducts() {
     setIsDeleting(true);
     try {
       try {
-        await supabaseAdmin.from('products').delete().eq('id', id);
+        await supabase.from('products').delete().eq('id', id);
         if (prodName) {
-          await supabaseAdmin.from('products').delete().eq('name', prodName);
+          await supabase.from('products').delete().eq('name', prodName);
         }
       } catch (e) {}
 
       // Mark deleted in persistent storage & broadcast to all tabs
-      markProductDeleted(id, prodName);
+      // Product deleted from Supabase
 
       toast.success(`"${prodName}" deleted successfully`);
       await fetchProducts();
@@ -213,50 +213,28 @@ export function AdminProducts() {
       let savedRecord: any = null;
 
       if (editingProduct) {
-        try {
-          const { data, error } = await supabaseAdmin
-            .from('products')
-            .update(productPayload)
-            .eq('id', editingProduct.id)
-            .select()
-            .single();
-          if (!error && data) savedRecord = data;
-        } catch (e) {}
+        const { error } = await supabase
+          .from('products')
+          .update(productPayload)
+          .eq('id', editingProduct.id);
 
-        try {
-          const raw = localStorage.getItem('local_admin_products');
-          const list = raw ? JSON.parse(raw) : [];
-          const updated = list.map((p: any) => String(p.id) === String(editingProduct.id) ? { ...p, ...productPayload } : p);
-          if (!list.some((p: any) => String(p.id) === String(editingProduct.id))) {
-            updated.unshift({ id: editingProduct.id, ...productPayload, created_at: (editingProduct as any).created_at || new Date().toISOString() });
-          }
-          localStorage.setItem('local_admin_products', JSON.stringify(updated));
-        } catch (e) {}
+        if (error) {
+          toast.error('Failed to update product in database: ' + error.message);
+          setIsSubmitting(false);
+          return;
+        }
 
-        toast.success(`'${formData.name}' updated with ${formData.images.length} gallery images!`);
+        toast.success(`'${formData.name}' updated successfully!`);
       } else {
-        try {
-          const { data, error } = await supabaseAdmin
-            .from('products')
-            .insert(productPayload)
-            .select()
-            .single();
-          if (!error && data) savedRecord = data;
-        } catch (e) {}
+        const { error } = await supabase
+          .from('products')
+          .insert(productPayload);
 
-        const newId = savedRecord ? savedRecord.id : 'prod_' + Date.now();
-        const fullNewProduct = {
-          id: String(newId),
-          ...productPayload,
-          created_at: new Date().toISOString()
-        };
-
-        try {
-          const raw = localStorage.getItem('local_admin_products');
-          const list = raw ? JSON.parse(raw) : [];
-          const updated = [fullNewProduct, ...list.filter((p: any) => String(p.id) !== String(newId))];
-          localStorage.setItem('local_admin_products', JSON.stringify(updated));
-        } catch (e) {}
+        if (error) {
+          toast.error('Failed to publish product to database: ' + error.message);
+          setIsSubmitting(false);
+          return;
+        }
 
         toast.success(`'${formData.name}' published with ${formData.images.length} gallery images!`);
       }
@@ -782,3 +760,4 @@ export function AdminProducts() {
     </div>
   );
 }
+

@@ -46,7 +46,8 @@ export function CheckoutPage() {
       }
     } catch (e) {}
 
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then((res: any) => {
+      const user = res?.data?.user;
       if (user) {
         setFormData(prev => ({
           ...prev,
@@ -123,13 +124,17 @@ export function CheckoutPage() {
       const activePhone = overriddenDetails?.phone || formData.phone;
       const activeAddress = overriddenDetails?.address || formData.address;
 
-      // 1. Generate a mock order record for local storage immediately
-      const generatedOrderId = 'ord_' + Math.random().toString(36).substring(2, 9);
-      const orderRecord = {
+      // 1. Generate unique Order ID & Tracking Number
+      const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      const randomSuffix = Math.floor(10000 + Math.random() * 90000);
+      const trackingNumber = `AANYA-${datePart}-${randomSuffix}`;
+      const generatedOrderId = 'ord_' + Math.random().toString(36).substring(2, 10);
+
+      const orderPayload = {
         id: generatedOrderId,
-        created_at: new Date().toISOString(),
         user_id: user?.id || null,
         total_amount: total,
+        total_price: total,
         status: 'Pending',
         payment_method: paymentMethod === 'upi' ? 'UPI' : paymentMethod === 'cod' ? 'COD' : 'Card',
         payment_status: paymentMethod === 'cod' ? 'Pending' : 'Success',
@@ -142,64 +147,61 @@ export function CheckoutPage() {
           city: formData.city,
           state: formData.state,
           pincode: formData.pincode,
-        },
-        order_items: cartItems.map(item => ({
-          quantity: item.quantity,
-          price_at_time: item.price,
-          total_price: (item.price || 0) * item.quantity,
-          products: {
-            name: item.name,
-            images: [item.image]
-          }
-        }))
+          tracking_number: trackingNumber,
+        }
       };
 
-      // 2. Persist to local storage so My Orders works instantly and reliably
-      try {
-        let existing = [];
-        try {
-          const parsed = JSON.parse(localStorage.getItem('local_placed_orders') || '[]');
-          if (Array.isArray(parsed)) existing = parsed;
-        } catch (e) {
-          console.error('LocalStorage parse error, resetting:', e);
-        }
-        localStorage.setItem('local_placed_orders', JSON.stringify([orderRecord, ...existing]));
-      } catch (e) {
-        console.error('LocalStorage write error:', e);
-      }
+      // 2. Insert to Supabase orders table
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .insert([orderPayload])
+        .select()
+        .single();
 
-      // 3. Attempt to save to Supabase (non-blocking)
-      try {
-        const { data: order, error: orderError } = await supabase
+      if (orderError) {
+        console.error('Supabase Order Insert Error:', orderError);
+        // Fallback without user_id if profile foreign key is not present
+        delete (orderPayload as any).user_id;
+        const { error: retryError } = await supabase
           .from('orders')
-          .insert({
-            user_id: user?.id || null,
-            total_amount: total,
-            status: 'Pending',
-            payment_method: orderRecord.payment_method,
-            payment_status: orderRecord.payment_status,
-            shipping_address: orderRecord.shipping_address
-          })
-          .select()
-          .single();
-
-        if (orderError) {
-           console.warn('Could not save order to Supabase, but saved locally:', orderError);
-        } else if (order?.id) {
-          // Create order items in DB
-          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-          const orderItemsData = cartItems.map(item => ({
-            order_id: order.id,
-            product_id: uuidRegex.test(item.id) ? item.id : null,
-            quantity: item.quantity,
-            price_at_time: item.price,
-            total_price: (item.price || 0) * item.quantity
-          }));
-          await supabase.from('order_items').insert(orderItemsData);
+          .insert([orderPayload]);
+        if (retryError) {
+          throw retryError;
         }
-      } catch (dbError) {
-        console.warn('Database save skipped/failed:', dbError);
       }
+
+      // 3. Insert order items & deduct stock
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      const effectiveOrderId = order?.id || generatedOrderId;
+      const orderItemsData = cartItems.map(item => ({
+        order_id: effectiveOrderId,
+        product_id: uuidRegex.test(item.id) ? item.id : null,
+        quantity: item.quantity,
+        price_at_time: item.price,
+        total_price: (item.price || 0) * item.quantity
+      }));
+      await supabase.from('order_items').insert(orderItemsData);
+
+      // Decrement stock in database for each ordered product
+      for (const item of cartItems) {
+        if (uuidRegex.test(item.id)) {
+          const { data: prod } = await supabase
+            .from('products')
+            .select('stock_quantity')
+            .eq('id', item.id)
+            .single();
+          if (prod && prod.stock_quantity != null) {
+            const nextStock = Math.max(0, prod.stock_quantity - item.quantity);
+            await supabase
+              .from('products')
+              .update({ stock_quantity: nextStock })
+              .eq('id', item.id);
+          }
+        }
+      }
+
+      toast.success(`Order placed successfully! Tracking #${trackingNumber}`);
+      window.dispatchEvent(new Event('orders_updated'));
 
       // 4. Clear the cart
       await clearCart();
@@ -377,7 +379,7 @@ export function CheckoutPage() {
                         </div>
                         <button 
                           disabled={isProcessing}
-                          onClick={handlePlaceOrder} 
+                          onClick={() => handlePlaceOrder()} 
                           className={`w-full py-4 bg-[#698156] text-white rounded-full font-medium shadow-lg flex items-center justify-center gap-2 ${isProcessing ? 'opacity-50' : ''}`}
                         >
                           <ShieldCheck className="w-5 h-5" />

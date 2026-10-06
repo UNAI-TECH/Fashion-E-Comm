@@ -18,9 +18,9 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar
 } from 'recharts';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router';
-import { supabase, supabaseAdmin } from '../../../lib/supabase';
+import { supabase } from '../../../lib/supabase';
 import { useAdminAuth } from '../../contexts/AdminAuthContext';
-import { fetchProducts, markProductDeleted, getDeletedProductIds, ensureProductImages, buildComplementaryAngles } from '../../data/products';
+import { fetchProducts, ensureProductImages, buildComplementaryAngles } from '../../data/products';
 import { toast } from 'sonner';
 
 /* ─── Types ─── */
@@ -423,11 +423,11 @@ export function AdminAanyaPage() {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Use supabaseAdmin (service role) to bypass RLS policies
+      // Use supabase (service role) to bypass RLS policies
       const [prodsRes, ordersRes, paymentsRes] = await Promise.all([
-        supabaseAdmin.from('products').select('*').order('created_at', { ascending: false }),
-        supabaseAdmin.from('orders').select('*, order_items(*, products(*))').order('created_at', { ascending: false }),
-        supabaseAdmin.from('payments').select('*').order('created_at', { ascending: false }),
+        supabase.from('products').select('*').order('created_at', { ascending: false }),
+        supabase.from('orders').select('*, order_items(*, products(*))').order('created_at', { ascending: false }),
+        supabase.from('payments').select('*').order('created_at', { ascending: false }),
       ]);
 
       // Log & toast detailed errors for each table
@@ -465,37 +465,19 @@ export function AdminAanyaPage() {
         status: p.status || 'Published',
         created_at: null,
       }));
-      // Merge: Supabase DB first (override mocks with same id)
-      const deletedSet = getDeletedProductIds();
-      const allProdsMap = new Map<string, DbProduct>();
-      normalizedMock.forEach((p: any) => allProdsMap.set(p.id, p));
-      dbProdsRaw.forEach((p: any) => allProdsMap.set(p.id, p));
-
-      const activeProducts = Array.from(allProdsMap.values()).filter(p => 
-        !deletedSet.has(String(p.id).toLowerCase()) && 
-        !deletedSet.has((p.name || '').trim().toLowerCase())
-      );
-      setDbProducts(activeProducts);
+      // Products come directly from Supabase — no mock merging needed
+      setDbProducts(dbProdsRaw);
 
       // --- Orders ---
       const ordersData: Order[] = ordersRes.data || [];
-      // Also check localStorage for any locally cached orders
-      let localOrders: any[] = [];
-      try {
-        localOrders = JSON.parse(localStorage.getItem('local_placed_orders') || '[]');
-      } catch (e) {}
-      const allOrdersMap = new Map<string, Order>();
-      localOrders.forEach((o: any) => allOrdersMap.set(o.id, o));
-      ordersData.forEach((o: any) => allOrdersMap.set(o.id, o));
-      const allOrders = Array.from(allOrdersMap.values());
-      setOrders(allOrders);
+      setOrders(ordersData);
 
       // --- Payments ---
       setPayments(paymentsRes.data || []);
 
 
       const customerMap = new Map<string, DerivedUser>();
-      allOrders.forEach((o: Order) => {
+      ordersData.forEach((o: Order) => {
         const addr = o.shipping_address || {};
         const key = o.user_id || addr.phone || addr.email || o.id;
         const custName = getFormattedCustomerName(addr, o);
@@ -532,8 +514,8 @@ export function AdminAanyaPage() {
       setCustomers(Array.from(customerMap.values()));
 
       console.log('[Admin] Loaded:', {
-        products: allProdsMap.size,
-        orders: allOrders.length,
+        products: dbProdsRaw.length,
+        orders: ordersData.length,
         payments: (paymentsRes.data || []).length,
         customers: customerMap.size,
       });
@@ -550,7 +532,7 @@ export function AdminAanyaPage() {
 
   /* ─── Update order status → Supabase ─── */
   const updateOrderStatus = async (id: string, status: string) => {
-    const { error } = await supabaseAdmin.from('orders').update({ status }).eq('id', id);
+    const { error } = await supabase.from('orders').update({ status }).eq('id', id);
     if (error) { toast.error('Update failed: ' + error.message); return; }
     setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
     toast.success(`Order status → ${status}`);
@@ -598,18 +580,18 @@ export function AdminAanyaPage() {
     setIsDeleting(true);
 
     try {
-      const { error: err1 } = await supabaseAdmin.from('products').delete().eq('id', id);
+      const { error: err1 } = await supabase.from('products').delete().eq('id', id);
       if (err1) console.warn('Supabase product delete by id notice:', err1);
       if (prodName) {
-        const { error: err2 } = await supabaseAdmin.from('products').delete().eq('name', prodName);
+        const { error: err2 } = await supabase.from('products').delete().eq('name', prodName);
         if (err2) console.warn('Supabase product delete by name notice:', err2);
       }
     } catch (e) {
       console.warn('Supabase product delete error:', e);
     }
 
-    // Persist deleted product ID/name in storage & broadcast to all open windows/tabs instantly
-    markProductDeleted(id, prodName);
+
+    // Product deleted from Supabase — no localStorage hack needed
 
     // Update in-page state
     setDbProducts(prev => prev.filter(p => 
@@ -776,7 +758,7 @@ export function AdminAanyaPage() {
 
       let createdProduct: any = null;
       try {
-        const { data, error } = await supabaseAdmin.from('products').insert(productPayload).select().single();
+        const { data, error } = await supabase.from('products').insert(productPayload).select().single();
         if (!error && data) {
           createdProduct = data;
         } else if (error) {
@@ -787,20 +769,10 @@ export function AdminAanyaPage() {
       }
 
       if (!createdProduct) {
-        createdProduct = {
-          id: 'prod_' + Date.now(),
-          ...productPayload,
-          created_at: new Date().toISOString()
-        };
+        toast.error('Failed to save product in database.');
+        setAdding(false);
+        return;
       }
-
-      // Sync to local_admin_products cache for instant storefront availability
-      try {
-        const raw = localStorage.getItem('local_admin_products');
-        const existing = raw ? JSON.parse(raw) : [];
-        const updated = [createdProduct, ...existing.filter((p: any) => p.id !== createdProduct.id && p.name !== createdProduct.name)];
-        localStorage.setItem('local_admin_products', JSON.stringify(updated));
-      } catch (e) {}
 
       setDbProducts(prev => [createdProduct, ...prev.filter(p => p.id !== createdProduct.id)]);
       window.dispatchEvent(new Event('products_updated'));

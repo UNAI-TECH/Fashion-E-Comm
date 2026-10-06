@@ -1,15 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Quote, MapPin } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 
 interface Testimonial {
-  id: number;
+  id: string | number;
   name: string;
   city: string;
   review: string;
 }
 
-const testimonials: Testimonial[] = [
+const DEFAULT_TESTIMONIALS: Testimonial[] = [
   {
     id: 1,
     name: 'Pooja Hegde',
@@ -63,9 +64,36 @@ const testimonials: Testimonial[] = [
 
 export function Testimonials() {
   const [isPaused, setIsPaused] = useState(false);
+  const [activeTestimonials, setActiveTestimonials] = useState<Testimonial[]>(DEFAULT_TESTIMONIALS);
+
+  useEffect(() => {
+    async function loadReviews() {
+      try {
+        const { data, error } = await supabase
+          .from('reviews')
+          .select('id, comment, rating, created_at, profiles:user_id(full_name)')
+          .eq('status', 'Approved')
+          .order('created_at', { ascending: false })
+          .limit(10);
+
+        if (!error && data && data.length > 0) {
+          const mapped: Testimonial[] = data.map((r: any, idx: number) => ({
+            id: r.id || idx + 1,
+            name: r.profiles?.full_name || 'Verified Buyer',
+            city: 'Verified Purchase · India',
+            review: r.comment || 'Exceptional craftsmanship and rich drape. Highly recommended!'
+          }));
+          setActiveTestimonials(mapped);
+        }
+      } catch (err) {
+        console.warn('Error fetching reviews for testimonials:', err);
+      }
+    }
+    loadReviews();
+  }, []);
 
   // Duplicate list to achieve continuous, seamless infinite loop
-  const infiniteCards = [...testimonials, ...testimonials];
+  const infiniteCards = [...activeTestimonials, ...activeTestimonials];
 
   return (
     <section className="py-20 bg-gradient-to-b from-white via-[#FCFAF8] to-white relative overflow-hidden">

@@ -6,7 +6,7 @@ import {
   ArrowRight, ShieldAlert, Sparkles, Upload, Check, ChevronDown,
   Layers, ShoppingBag, Eye, Store, Hash
 } from 'lucide-react';
-import { supabase, supabaseAdmin } from '../../../lib/supabase';
+import { supabase } from '../../../lib/supabase';
 import { ensureProductImages } from '../../data/products';
 import { toast } from 'sonner';
 
@@ -162,7 +162,7 @@ export function AdminInventorySection({
       const newStock = currentStock + Number(restockUnits);
 
       // 1. Update in Supabase
-      const { error } = await supabaseAdmin
+      const { error } = await supabase
         .from('products')
         .update({
           stock_quantity: newStock,
@@ -170,20 +170,10 @@ export function AdminInventorySection({
         })
         .eq('id', selectedProductForRestock.id);
 
-      if (error) console.warn('Supabase restock notice:', error);
-
-      // 2. Update local_admin_products
-      try {
-        const raw = localStorage.getItem('local_admin_products');
-        const list = raw ? JSON.parse(raw) : [];
-        const updated = list.map((p: any) => 
-          String(p.id) === String(selectedProductForRestock.id) ? { ...p, stock_quantity: newStock, status: 'Published' } : p
-        );
-        if (!list.some((p: any) => String(p.id) === String(selectedProductForRestock.id))) {
-          updated.push({ ...selectedProductForRestock, stock_quantity: newStock, status: 'Published' });
-        }
-        localStorage.setItem('local_admin_products', JSON.stringify(updated));
-      } catch (e) {}
+      if (error) {
+        toast.error('Database restock error: ' + error.message);
+        return;
+      }
 
       // 3. Broadcast events
       window.dispatchEvent(new CustomEvent('products_updated'));
@@ -264,7 +254,7 @@ export function AdminInventorySection({
       // 2. Insert into Supabase
       let createdProduct: any = null;
       try {
-        const { data, error } = await supabaseAdmin.from('products').insert(productPayload).select().single();
+        const { data, error } = await supabase.from('products').insert(productPayload).select().single();
         if (!error && data) {
           createdProduct = data;
         } else if (error) {
@@ -275,20 +265,9 @@ export function AdminInventorySection({
       }
 
       if (!createdProduct) {
-        createdProduct = {
-          id: 'prod_' + Date.now(),
-          ...productPayload,
-          created_at: new Date().toISOString()
-        };
+        toast.error('Failed to create product in database.');
+        return;
       }
-
-      // 3. Save to local_admin_products in localStorage
-      try {
-        const raw = localStorage.getItem('local_admin_products');
-        const existing = raw ? JSON.parse(raw) : [];
-        const updated = [createdProduct, ...existing.filter((p: any) => p.id !== createdProduct.id)];
-        localStorage.setItem('local_admin_products', JSON.stringify(updated));
-      } catch (e) {}
 
       // 4. Broadcast instant update to all tabs/windows
       window.dispatchEvent(new CustomEvent('products_updated'));
