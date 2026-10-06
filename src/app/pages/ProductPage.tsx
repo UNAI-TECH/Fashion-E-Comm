@@ -229,9 +229,9 @@ export function ProductPage() {
             {/* ═══ LEFT 7 COLS: IMAGE CAROUSEL ═══ */}
             <div className="lg:col-span-7 space-y-4">
               
-              {/* Main Image Display */}
+              {/* Main Image Display — compact aspect ratio */}
               <div 
-                className="relative aspect-[3/4] rounded-2xl overflow-hidden border border-gray-200/80 bg-[#FAF9F6] shadow-sm cursor-zoom-in group"
+                className="relative aspect-[4/5] max-h-[520px] rounded-2xl overflow-hidden border border-gray-200/80 bg-[#FAF9F6] shadow-sm cursor-zoom-in group"
                 onClick={() => {
                   setLightboxIndex(selectedImage);
                   setIsLightboxOpen(true);
@@ -307,8 +307,8 @@ export function ProductPage() {
               )}
             </div>
 
-            {/* ═══ RIGHT 5 COLS: PRODUCT DETAILS ═══ */}
-            <div className="lg:col-span-5 lg:sticky lg:top-24 lg:self-start lg:max-h-[calc(100vh-6.5rem)] lg:overflow-y-auto lg:pr-3 space-y-5 scrollbar-thin">
+            {/* ═══ RIGHT 5 COLS: PRODUCT DETAILS (no separate scroll) ═══ */}
+            <div className="lg:col-span-5 space-y-5">
               {/* Header: Brand & Title */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
