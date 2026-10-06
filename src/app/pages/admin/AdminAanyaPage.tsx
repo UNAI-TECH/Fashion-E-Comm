@@ -810,7 +810,7 @@ export function AdminAanyaPage() {
       // If offer is enabled and coupon code provided, save to coupons table
       if (form.offer_enabled && form.coupon_code.trim()) {
         try {
-          await supabase.from('coupons').upsert({
+          const couponPayload = {
             code: form.coupon_code.trim().toUpperCase(),
             discount_type: 'Percentage',
             discount_value: form.coupon_discount ? parseFloat(form.coupon_discount) : 0,
@@ -818,9 +818,25 @@ export function AdminAanyaPage() {
             product_id: createdProduct.id,
             min_order_amount: 0,
             applicable_on: form.applicable_on.trim() || 'All Orders',
-          }, { onConflict: 'code' });
+          };
+          // Try insert first, if code exists update it
+          const { error: couponError } = await supabase.from('coupons').insert(couponPayload);
+          if (couponError) {
+            // If duplicate code, try update
+            if (couponError.code === '23505') {
+              await supabase.from('coupons')
+                .update({ ...couponPayload })
+                .eq('code', couponPayload.code);
+            } else {
+              console.error('Coupon save error:', couponError);
+              toast.error('Product saved but coupon failed to save: ' + couponError.message);
+            }
+          } else {
+            toast.success(`Coupon ${couponPayload.code} saved!`);
+          }
         } catch (couponErr) {
-          console.warn('Coupon save notice:', couponErr);
+          console.error('Coupon save error:', couponErr);
+          toast.error('Product saved but coupon failed to save');
         }
       }
 
