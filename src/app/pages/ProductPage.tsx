@@ -369,63 +369,24 @@ export function ProductPage() {
 
     setSizeError(false);
     setIsBuyNowModalOpen(true);
-    setBuyNowStep('phone');
+    setBuyNowStep('checkout');
     setBuyNowPhone(orderForm.phone || '');
     setBuyNowOtp('');
   };
 
   const handleSendOTP = async () => {
-    if (buyNowCooldown > 0) {
-      toast.error(`Please wait ${buyNowCooldown} seconds before requesting a new code.`);
-      return;
-    }
     const cleanPhone = buyNowPhone.replace(/\D/g, '');
     if (!cleanPhone || cleanPhone.length < 10) {
       toast.error('Please enter a valid 10-digit mobile number');
       return;
     }
-    setIsSendingOtp(true);
-    try {
-      const formatted = cleanPhone.length === 10 ? `+91${cleanPhone}` : `+${cleanPhone}`;
-      
-      // Use production Python OTP microservice on Render
-      await api.otp.send('sms', formatted, 'checkout');
-      toast.success(`Verification code dispatched to ${formatted}! (Valid for 30s)`);
-      setBuyNowStep('otp');
-      setBuyNowCooldown(30);
-    } catch (err: any) {
-      console.error('OTP Send Error:', err);
-      toast.error(err.message || 'Failed to send OTP. Please try again.');
-    } finally {
-      setIsSendingOtp(false);
-    }
+    setOrderForm(prev => ({ ...prev, phone: buyNowPhone }));
+    setBuyNowStep('checkout');
   };
 
   const handleVerifyOTP = async () => {
-    if (!buyNowOtp || buyNowOtp.trim().length < 4) {
-      toast.error('Please enter the 6-digit OTP code');
-      return;
-    }
-    setIsVerifyingOtp(true);
-    try {
-      const cleanPhone = buyNowPhone.replace(/\D/g, '');
-      const formatted = cleanPhone.length === 10 ? `+91${cleanPhone}` : `+${cleanPhone}`;
-      
-      // Authoritatively verify code against Render OTP microservice
-      const verifyRes = await api.otp.verify('sms', formatted, buyNowOtp.trim(), 'checkout');
-      if (verifyRes.success || (verifyRes as any).verified) {
-        toast.success('Mobile Number Verified Successfully!');
-        setOrderForm(prev => ({ ...prev, phone: buyNowPhone }));
-        setBuyNowStep('checkout');
-      } else {
-        toast.error(verifyRes.message || 'Invalid or expired OTP');
-      }
-    } catch (err: any) {
-      console.error('OTP Verification Error:', err);
-      toast.error(err.message || 'Invalid or expired code. Please request a new OTP.');
-    } finally {
-      setIsVerifyingOtp(false);
-    }
+    setOrderForm(prev => ({ ...prev, phone: buyNowPhone }));
+    setBuyNowStep('checkout');
   };
 
   const handleCreateOrder = async (paymentType: 'Card' | 'COD') => {

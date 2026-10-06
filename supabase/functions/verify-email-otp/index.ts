@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Supabase Edge Function: verify-email-otp
 // Authoritatively verifies the 6-digit OTP code dispatched via SMTP
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";

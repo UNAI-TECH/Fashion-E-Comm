@@ -30,3 +30,6 @@ yarn-error.log*
 
 # VS Code
 .vscode/
+
+# Supabase CLI temp files
+supabase/.temp/

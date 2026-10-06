@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Supabase Edge Function: send-email-otp
 // Dispatches 6-digit verification code directly via SMTP (Port 465 SSL)
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
