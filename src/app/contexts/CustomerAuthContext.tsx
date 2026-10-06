@@ -188,19 +188,44 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
           error.message.toLowerCase().includes('not confirmed') ||
           error.message.toLowerCase().includes('verification');
 
-        return {
-          success: false,
-          unconfirmedEmail: isUnconfirmed,
-          error: isUnconfirmed
-            ? 'Please verify your email before signing in. Check your inbox (and Spam/Promotions folder) for the confirmation link.'
-            : error.message,
-        };
+        if (isUnconfirmed) {
+          // Auto-confirm via Edge Function and retry sign-in
+          try {
+            const { data: edgeData } = await supabase.functions.invoke('customer-register', {
+              body: { email: cleanEmail, password },
+            });
+
+            if (edgeData?.success) {
+              const retry = await supabase.auth.signInWithPassword({
+                email: cleanEmail,
+                password,
+              });
+              if (retry.data?.user) {
+                setUser(retry.data.user);
+                setSession(retry.data.session);
+                fetchProfile(retry.data.user.id, retry.data.user.email, retry.data.user.user_metadata).catch(() => {});
+                toast.success(`Welcome back, ${retry.data.user.user_metadata?.full_name || 'Customer'}!`);
+                return { success: true };
+              }
+            }
+          } catch (autoConfirmErr) {
+            console.warn('Auto-confirm fallback failed:', autoConfirmErr);
+          }
+
+          return {
+            success: false,
+            unconfirmedEmail: true,
+            error: 'Please verify your email before signing in. Check your inbox (and Spam/Promotions folder) for the confirmation link.',
+          };
+        }
+
+        return { success: false, error: error.message };
       }
 
       if (data.user) {
         setUser(data.user);
         setSession(data.session);
-        await fetchProfile(data.user.id, data.user.email, data.user.user_metadata);
+        fetchProfile(data.user.id, data.user.email, data.user.user_metadata).catch(() => {});
         toast.success(`Welcome back, ${data.user.user_metadata?.full_name || 'Customer'}!`);
         return { success: true };
       }
@@ -211,7 +236,7 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
     }
   };
 
-  // ─── 2. Sign Up with Native Supabase Email Confirmation ───
+  // ─── 2. Sign Up — Native Supabase first, Edge Function fallback ───
   const signUp = async (formData: SignupFormData) => {
     try {
       const cleanEmail = formData.email.trim().toLowerCase();
@@ -226,53 +251,7 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
         return { success: false, error: 'Password must be at least 6 characters long.' };
       }
 
-      // Determine redirect URL based on environment
-      const redirectUrl =
-        typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-          ? window.location.origin
-          : 'https://www.aanyafashions.com/';
-
-      // Register via Supabase native auth — this sends the confirmation email
-      const { data, error } = await supabase.auth.signUp({
-        email: cleanEmail,
-        password: formData.password,
-        options: {
-          data: {
-            full_name: cleanName,
-            phone: cleanPhone,
-            gender: cleanGender,
-          },
-          emailRedirectTo: redirectUrl,
-        },
-      });
-
-      if (error) {
-        // Friendly message for rate limit errors
-        if (
-          error.status === 429 ||
-          error.message.toLowerCase().includes('rate limit') ||
-          error.message.toLowerCase().includes('too many requests')
-        ) {
-          return {
-            success: false,
-            error: 'Too many sign-up attempts. Please wait a few minutes before trying again.',
-          };
-        }
-        return { success: false, error: error.message };
-      }
-
-      // Check if user was already registered (Supabase returns a user with fake ID)
-      // In that case, data.user exists but no session and identities is empty
-      if (data.user && data.user.identities && data.user.identities.length === 0) {
-        return {
-          success: false,
-          error: 'An account with this email already exists. Please sign in instead.',
-        };
-      }
-
-      const userId = data.user?.id;
-
-      // Save into local storage for ProfileModal (gender, address etc. are local-only)
+      // Save local profile data early (gender, address etc. are local-only)
       saveUserProfileDetails({
         name: cleanName,
         phone: cleanPhone,
@@ -284,33 +263,126 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
         state: '',
       });
 
-      const needsEmailVerification = !data.session;
+      // Determine redirect URL based on environment
+      const redirectUrl =
+        typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+          ? window.location.origin
+          : 'https://www.aanyafashions.com/';
 
-      if (data.session && data.user) {
-        // Email confirmation is disabled in Supabase settings — user is logged in immediately
-        const customerProfile: CustomerProfile = {
-          id: data.user.id,
+      // ── Strategy 1: Native Supabase signUp (sends confirmation email if SMTP configured) ──
+      let nativeSuccess = false;
+      try {
+        const { data, error } = await supabase.auth.signUp({
           email: cleanEmail,
-          full_name: cleanName,
-          phone: cleanPhone,
-          gender: cleanGender,
-          role: 'customer',
-          status: 'Active',
-        };
-        setUser(data.user);
-        setSession(data.session);
-        setProfile(customerProfile);
-        localStorage.setItem('customer_profile_cache', JSON.stringify(customerProfile));
-        toast.success(`Welcome to Aanya Fashions, ${cleanName}!`);
-      } else {
-        // Email confirmation is enabled — email was sent, user must verify
-        toast.success('Registration successful! Please check your email for the confirmation link.');
+          password: formData.password,
+          options: {
+            data: {
+              full_name: cleanName,
+              phone: cleanPhone,
+              gender: cleanGender,
+            },
+            emailRedirectTo: redirectUrl,
+          },
+        });
+
+        if (!error && data.user) {
+          // Check if user already exists (Supabase returns user with empty identities)
+          if (data.user.identities && data.user.identities.length === 0) {
+            return {
+              success: false,
+              error: 'An account with this email already exists. Please sign in instead.',
+            };
+          }
+
+          nativeSuccess = true;
+          const needsEmailVerification = !data.session;
+
+          if (data.session && data.user) {
+            // Email confirmation disabled or auto-confirmed — user is logged in
+            const customerProfile: CustomerProfile = {
+              id: data.user.id,
+              email: cleanEmail,
+              full_name: cleanName,
+              phone: cleanPhone,
+              gender: cleanGender,
+              role: 'customer',
+              status: 'Active',
+            };
+            setUser(data.user);
+            setSession(data.session);
+            setProfile(customerProfile);
+            localStorage.setItem('customer_profile_cache', JSON.stringify(customerProfile));
+            toast.success(`Welcome to Aanya Fashions, ${cleanName}!`);
+          } else {
+            toast.success('Registration successful! Please check your email for the confirmation link.');
+          }
+
+          return { success: true, needsEmailVerification };
+        }
+
+        // If error is NOT a server/rate issue, return it directly
+        if (error && error.status !== 500 && error.status !== 429) {
+          return { success: false, error: error.message };
+        }
+      } catch (nativeErr) {
+        console.warn('Native signup failed, trying Edge Function fallback:', nativeErr);
       }
 
-      return {
-        success: true,
-        needsEmailVerification,
-      };
+      // ── Strategy 2: Edge Function fallback (when SMTP fails with 500 or 429) ──
+      if (!nativeSuccess) {
+        try {
+          const { data: edgeData, error: edgeErr } = await supabase.functions.invoke('customer-register', {
+            body: {
+              email: cleanEmail,
+              password: formData.password,
+              fullName: cleanName,
+              phone: cleanPhone,
+              gender: cleanGender,
+            },
+          });
+
+          if (edgeErr) {
+            return { success: false, error: edgeErr.message || 'Registration failed. Please try again.' };
+          }
+
+          if (edgeData?.success) {
+            // Edge Function auto-confirms the user — sign in immediately
+            const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({
+              email: cleanEmail,
+              password: formData.password,
+            });
+
+            if (!signInErr && signInData?.session && signInData?.user) {
+              const customerProfile: CustomerProfile = {
+                id: signInData.user.id,
+                email: cleanEmail,
+                full_name: cleanName,
+                phone: cleanPhone,
+                gender: cleanGender,
+                role: 'customer',
+                status: 'Active',
+              };
+              setUser(signInData.user);
+              setSession(signInData.session);
+              setProfile(customerProfile);
+              localStorage.setItem('customer_profile_cache', JSON.stringify(customerProfile));
+              toast.success(`Welcome to Aanya Fashions, ${cleanName}!`);
+              return { success: true, needsEmailVerification: false };
+            }
+
+            // Edge function succeeded but sign-in failed — account exists, ask to sign in
+            toast.success('Account created! Please sign in with your email and password.');
+            return { success: true, needsEmailVerification: false };
+          }
+
+          return { success: false, error: edgeData?.error || 'Registration failed.' };
+        } catch (edgeCatch) {
+          console.error('Edge function registration error:', edgeCatch);
+          return { success: false, error: 'Registration service is temporarily unavailable. Please try again in a moment.' };
+        }
+      }
+
+      return { success: false, error: 'Registration failed. Please try again.' };
     } catch (err: any) {
       console.error('Sign up error:', err);
       return { success: false, error: err.message || 'Registration failed.' };
