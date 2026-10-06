@@ -59,23 +59,36 @@ serve(async (req: Request) => {
     const smtpPort = Number(Deno.env.get("SMTP_PORT") || 465);
     const smtpUser = Deno.env.get("SMTP_USER") || Deno.env.get("SMTP_USERNAME") || "";
     const smtpPass = Deno.env.get("SMTP_PASS") || Deno.env.get("SMTP_PASSWORD") || "";
-    const smtpFrom = Deno.env.get("SMTP_FROM") || (smtpUser ? `Aanya Fashions <${smtpUser}>` : "Aanya Fashions <no-reply@aanyafashions.com>");
+    const cleanUser = smtpUser.trim();
+    const cleanPass = smtpPass.replace(/\s+/g, "");
+    const smtpFrom = Deno.env.get("SMTP_FROM") || (cleanUser ? `Aanya Fashions <${cleanUser}>` : "Aanya Fashions <no-reply@aanyafashions.com>");
 
     // If SMTP credentials are configured, dispatch directly via SMTP
-    if (smtpUser && smtpPass) {
+    if (cleanUser && cleanPass) {
       try {
-        const transporter = nodemailer.createTransport({
-          host: smtpHost,
-          port: smtpPort,
-          secure: smtpPort === 465, // SSL for 465, STARTTLS for 587
-          auth: {
-            user: smtpUser,
-            pass: smtpPass,
-          },
-          tls: {
-            rejectUnauthorized: false
-          }
-        });
+        const isGmail = smtpHost.includes("gmail") || cleanUser.endsWith("@gmail.com");
+        const transportConfig = isGmail
+          ? {
+              service: "gmail",
+              auth: {
+                user: cleanUser,
+                pass: cleanPass,
+              },
+            }
+          : {
+              host: smtpHost,
+              port: smtpPort,
+              secure: smtpPort === 465, // SSL for 465, STARTTLS for 587
+              auth: {
+                user: cleanUser,
+                pass: cleanPass,
+              },
+              tls: {
+                rejectUnauthorized: false,
+              },
+            };
+
+        const transporter = nodemailer.createTransport(transportConfig);
 
         const htmlContent = `<!DOCTYPE html>
 <html>
@@ -116,10 +129,18 @@ serve(async (req: Request) => {
         console.log(`[Supabase Edge Function] Direct SMTP OTP successfully sent to ${cleanEmail}`);
       } catch (smtpErr: any) {
         console.error('[Supabase Edge Function SMTP Error]:', smtpErr);
+        const isGoogleAuthError =
+          smtpErr?.message?.includes('534') ||
+          smtpErr?.message?.includes('WebLoginRequired') ||
+          smtpErr?.response?.includes('534');
+        const helpfulMsg = isGoogleAuthError
+          ? "Google security requires verification. Please open https://accounts.google.com/DisplayUnlockCaptcha while logged into your Gmail and click 'Continue', then try again."
+          : `SMTP Delivery Failed: ${smtpErr.message || 'Check your SMTP credentials in Supabase secrets.'}`;
+
         return new Response(
           JSON.stringify({
             success: false,
-            error: `SMTP Delivery Failed: ${smtpErr.message || 'Check your SMTP credentials in Supabase secrets.'}`
+            error: helpfulMsg
           }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
