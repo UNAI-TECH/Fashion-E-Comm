@@ -128,7 +128,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       const timeoutPromise = new Promise<{ data: any; error: any }>((_, reject) =>
-        setTimeout(() => reject(new Error('Connection timed out. Please check your network and try again.')), 10000)
+        setTimeout(() => reject(new Error('Connection timed out. Please check your network and try again.')), 20000)
       );
 
       const { data: authData, error: sbError } = await Promise.race([authPromise, timeoutPromise]);
