@@ -1465,6 +1465,330 @@ export function AdminAanyaPage() {
           {/* ─── TAB: PRODUCTS ─── */}
           {activeTab === 'products' && (
             <div className="space-y-5">
+
+              {/* ═══ FULL PAGE: ADD NEW PRODUCT (replaces grid when open) ═══ */}
+              {isAddOpen ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                  className="w-full"
+                >
+                  {/* Page Header */}
+                  <div className="bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-[#DCE4D7] overflow-hidden">
+                    <div className="bg-[#F4F6F2] border-b border-[#DCE4D7] px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setIsAddOpen(false)}
+                          className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-white hover:bg-gray-100 border border-gray-200 text-gray-500 hover:text-gray-900 transition-all flex items-center justify-center cursor-pointer shadow-xs"
+                          title="Back to Products"
+                        >
+                          <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+                        </button>
+                        <img src="/logo.png" alt="Aanya" className="h-8 sm:h-10 w-auto object-contain mix-blend-multiply" />
+                        <div>
+                          <h2 className="font-serif text-base sm:text-xl font-bold text-gray-900 leading-tight">Add New Product</h2>
+                          <p className="text-[10px] sm:text-xs text-[#698156] font-medium">Publish directly to Supabase catalog & storefront</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsAddOpen(false)}
+                        className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white hover:bg-rose-50 border border-gray-200 hover:border-rose-200 text-gray-400 hover:text-rose-600 transition-all flex items-center justify-center cursor-pointer shadow-xs"
+                        title="Close (Esc)"
+                        aria-label="Close"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Full Page Form Body */}
+                    <form id="add-product-form" onSubmit={handleAddSubmit} className="p-4 sm:p-6 lg:p-8 space-y-5 sm:space-y-6">
+                      {/* Two-column layout on large screens */}
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6 lg:gap-8">
+                        
+                        {/* LEFT COLUMN: Product Info */}
+                        <div className="space-y-4 sm:space-y-5">
+                          {/* Product Title */}
+                          <div>
+                            <label className="block text-[11px] sm:text-xs uppercase tracking-wider font-bold text-gray-600 mb-1.5">
+                              Product Title *
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="e.g. Royal Maroon Silk Saree"
+                              value={form.name}
+                              onChange={e => setForm({ ...form, name: e.target.value })}
+                              className="w-full px-4 py-2.5 sm:py-3 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20 transition-all"
+                            />
+                          </div>
+
+                          {/* Category + Selling Price + MRP + Initial Stock */}
+                          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                            <div>
+                              <label className="block text-[11px] sm:text-xs uppercase tracking-wider font-bold text-gray-600 mb-1.5">
+                                Category
+                              </label>
+                              <select
+                                value={form.category}
+                                onChange={e => setForm({ ...form, category: e.target.value })}
+                                className="w-full px-3 py-2.5 sm:py-3 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20 cursor-pointer"
+                              >
+                                {['Sarees','Kurtis','Lehengas','Salwar Sets','Western','Maxi','Tradition'].map(c => (
+                                  <option key={c} value={c}>{c}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-[11px] sm:text-xs uppercase tracking-wider font-bold text-gray-600 mb-1.5">
+                                Selling Price (₹) *
+                              </label>
+                              <input
+                                type="number"
+                                required
+                                min="1"
+                                placeholder="e.g. 4999"
+                                value={form.price}
+                                onChange={e => setForm({ ...form, price: e.target.value })}
+                                className="w-full px-3 py-2.5 sm:py-3 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20 font-bold"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[11px] sm:text-xs uppercase tracking-wider font-bold text-gray-600 mb-1.5">
+                                MRP (₹) <span className="text-gray-400 font-normal">opt</span>
+                              </label>
+                              <input
+                                type="number"
+                                min="1"
+                                placeholder="e.g. 6999"
+                                value={form.compare_at_price}
+                                onChange={e => setForm({ ...form, compare_at_price: e.target.value })}
+                                className="w-full px-3 py-2.5 sm:py-3 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[11px] sm:text-xs uppercase tracking-wider font-bold text-gray-600 mb-1.5">
+                                Initial Stock
+                              </label>
+                              <input
+                                type="number"
+                                min="0"
+                                placeholder="e.g. 50"
+                                value={form.stock_quantity ?? 25}
+                                onChange={e => setForm({ ...form, stock_quantity: Number(e.target.value) })}
+                                className="w-full px-3 py-2.5 sm:py-3 bg-[#F4F6F2] rounded-xl text-sm border border-[#DCE4D7] outline-none focus:ring-2 focus:ring-[#698156]/20 font-bold text-[#2F3C25]"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Description */}
+                          <div>
+                            <label className="block text-[11px] sm:text-xs uppercase tracking-wider font-bold text-gray-600 mb-1.5">
+                              Description
+                            </label>
+                            <textarea
+                              rows={4}
+                              placeholder="Fabric, embroidery, care instructions…"
+                              value={form.description}
+                              onChange={e => setForm({ ...form, description: e.target.value })}
+                              className="w-full px-4 py-2.5 sm:py-3 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20 resize-none leading-relaxed"
+                            />
+                          </div>
+
+                          {/* Feature on Homepage Hero Model */}
+                          <div
+                            className={`border rounded-xl p-3 sm:p-4 transition-all cursor-pointer select-none flex items-start gap-3 ${
+                              featureOnHero ? 'bg-[#F4F6F2] border-[#698156] ring-1 ring-[#698156]/20' : 'bg-gray-50/80 border-gray-200 hover:bg-gray-50'
+                            }`}
+                            onClick={() => setFeatureOnHero(!featureOnHero)}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={featureOnHero}
+                              onChange={e => setFeatureOnHero(e.target.checked)}
+                              className="w-4 h-4 mt-0.5 text-[#698156] rounded focus:ring-[#698156] cursor-pointer"
+                            />
+                            <div>
+                              <span className="text-xs sm:text-sm font-bold text-gray-900 flex items-center gap-1.5 leading-tight">
+                                <Sparkles className="w-3.5 h-3.5 text-[#698156]" />
+                                Show on Homepage Hero Model (Model Dress)
+                              </span>
+                              <p className="text-[11px] sm:text-xs text-gray-500 mt-1 leading-snug">
+                                If checked, a model wearing this dress will appear in the homepage hero coverflow.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* RIGHT COLUMN: Images & Gallery */}
+                        <div className="space-y-4 sm:space-y-5">
+                          <div className="bg-[#F4F6F2] rounded-xl sm:rounded-2xl p-4 sm:p-5 border border-[#DCE4D7] space-y-4">
+                            <div className="flex items-start sm:items-center justify-between gap-2 flex-col sm:flex-row">
+                              <div>
+                                <label className="block text-[11px] sm:text-xs uppercase tracking-wider font-bold text-gray-700">
+                                  Product Gallery Images *
+                                </label>
+                                <p className="text-[11px] sm:text-xs text-gray-400 leading-tight mt-0.5">
+                                  Upload multiple photos or paste URLs (shows in store & 2-column detail page)
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={handleAutofillAngles}
+                                className="text-[11px] sm:text-xs font-bold text-[#698156] hover:text-[#546944] bg-white hover:bg-[#F4F6F2] border border-[#DCE4D7] px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs whitespace-nowrap"
+                                title="Automatically generate matching angle shots for this category"
+                              >
+                                <Sparkles className="w-3.5 h-3.5 text-[#698156]" />
+                                Autofill Angles
+                              </button>
+                            </div>
+
+                            {/* Upload button + URL input row */}
+                            <div className="flex flex-col sm:flex-row gap-2.5">
+                              {/* Device File Upload Button */}
+                              <label className="cursor-pointer flex-1 flex items-center justify-center gap-2 px-4 py-2.5 sm:py-3 bg-gradient-to-r from-[#698156] to-[#546944] hover:from-[#546944] hover:to-[#435436] text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-xs active:scale-98 text-center select-none">
+                                <Upload className="w-4 h-4" />
+                                <span>{isUploading ? 'Uploading...' : 'Upload Photos (Multiple)'}</span>
+                                <input
+                                  type="file"
+                                  multiple
+                                  accept="image/*"
+                                  disabled={isUploading}
+                                  onChange={handleFileUpload}
+                                  className="hidden"
+                                />
+                              </label>
+
+                              {/* URL Input */}
+                              <div className="flex-[1.4] flex gap-2 items-center">
+                                <input
+                                  type="url"
+                                  placeholder="Or paste image URL..."
+                                  value={urlInput}
+                                  onChange={e => setUrlInput(e.target.value)}
+                                  onKeyDown={e => {
+                                    if (e.key === 'Enter') {
+                                      e.preventDefault();
+                                      handleAddImageUrl();
+                                    }
+                                  }}
+                                  className="flex-1 px-3 py-2.5 sm:py-3 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20 min-w-0"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleAddImageUrl()}
+                                  className="px-3 py-2.5 sm:py-3 bg-gray-900 hover:bg-black text-white text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer flex-shrink-0"
+                                >
+                                  <Plus className="w-4 h-4" />
+                                  Add
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Gallery Thumbnails Grid */}
+                            {form.images && form.images.length > 0 ? (
+                              <div className="space-y-2 pt-1">
+                                <div className="flex items-center justify-between text-[11px] sm:text-xs text-gray-500 font-medium">
+                                  <span>{form.images.length} photo{form.images.length > 1 ? 's' : ''} in gallery</span>
+                                  <span className="text-gray-400">Click ★ to set main thumbnail</span>
+                                </div>
+                                <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5">
+                                  {form.images.map((imgSrc, idx) => (
+                                    <div
+                                      key={idx}
+                                      className={`relative group aspect-[3/4] rounded-xl overflow-hidden border-2 bg-white shadow-2xs transition-all ${
+                                        idx === 0 ? 'border-pink-500 ring-2 ring-[#698156]/30' : 'border-gray-200 hover:border-[#698156]'
+                                      }`}
+                                    >
+                                      <img
+                                        src={imgSrc}
+                                        alt={`Angle ${idx + 1}`}
+                                        className="w-full h-full object-cover"
+                                      />
+
+                                      {/* Badge */}
+                                      <div className="absolute top-1.5 left-1.5 pointer-events-none">
+                                        {idx === 0 ? (
+                                          <span className="bg-[#698156] text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-xs">
+                                            #1 MAIN
+                                          </span>
+                                        ) : (
+                                          <span className="bg-black/60 backdrop-blur-xs text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
+                                            #{idx + 1}
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      {/* Actions Overlay */}
+                                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
+                                        {idx !== 0 && (
+                                          <button
+                                            type="button"
+                                            onClick={() => handleMakePrimary(idx)}
+                                            title="Make Primary Image"
+                                            className="w-7 h-7 rounded-full bg-white/90 text-amber-500 hover:bg-white flex items-center justify-center cursor-pointer transition-all shadow"
+                                          >
+                                            <Star className="w-3.5 h-3.5 fill-amber-500" />
+                                          </button>
+                                        )}
+                                        <button
+                                          type="button"
+                                          onClick={() => handleRemoveImage(idx)}
+                                          title="Remove photo"
+                                          className="w-7 h-7 rounded-full bg-rose-600 text-white hover:bg-rose-700 flex items-center justify-center cursor-pointer transition-all shadow"
+                                        >
+                                          <X className="w-3.5 h-3.5" />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="border border-dashed border-[#DCE4D7] rounded-xl p-5 sm:p-6 text-center bg-white/60">
+                                <ImageIcon className="w-8 h-8 sm:w-10 sm:h-10 text-gray-300 mx-auto mb-2" />
+                                <p className="text-xs sm:text-sm font-semibold text-gray-600">No images uploaded yet</p>
+                                <p className="text-[11px] sm:text-xs text-gray-400 mt-1">
+                                  Upload photos from your computer or click "Autofill Angles" to generate sample fashion views.
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Footer Actions — Full Width */}
+                      <div className="flex items-center justify-between gap-3 pt-4 sm:pt-5 border-t border-[#DCE4D7]">
+                        <button
+                          type="button"
+                          onClick={() => setIsAddOpen(false)}
+                          className="px-5 sm:px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full text-xs sm:text-sm font-bold transition-all cursor-pointer"
+                        >
+                          ← Back to Products
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={adding}
+                          className="px-5 sm:px-7 py-2.5 bg-[#698156] hover:bg-[#546944] text-white rounded-full text-xs sm:text-sm font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-60 flex items-center gap-2 cursor-pointer"
+                        >
+                          {adding ? (
+                            <>
+                              <RefreshCw className="w-4 h-4 animate-spin" />
+                              <span>Publishing…</span>
+                            </>
+                          ) : (
+                            'Publish to Store'
+                          )}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </motion.div>
+              ) : (
+              /* ═══ NORMAL PRODUCTS VIEW (Search + Grid) ═══ */
+              <>
               <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
                 <div className="relative flex-1 max-w-md">
                   <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
@@ -1664,6 +1988,8 @@ export function AdminAanyaPage() {
                     </button>
                   </div>
                 </div>
+              )}
+              </>
               )}
             </div>
           )}
@@ -1951,321 +2277,7 @@ export function AdminAanyaPage() {
         })()}
       </AnimatePresence>
 
-      {/* ═══ COMPACT ADD PRODUCT MODAL (EASY TO CLOSE VIA X, ESC, CANCEL, OR BACKDROP) ═══ */}
-      <AnimatePresence>
-        {isAddOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => !adding && setIsAddOpen(false)}
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 10 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 10 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              onClick={e => e.stopPropagation()}
-              className="#FFFFFF rounded-2xl sm:rounded-3xl shadow-2xl max-w-md sm:max-w-xl w-full max-h-[90vh] flex flex-col relative my-auto overflow-hidden border border-[#DCE4D7]"
-            >
-              {/* Modal header - Fixed at Top */}
-              <div className="flex-shrink-0 bg-[#F4F6F2] backdrop-blur-md border-b border-[#DCE4D7] px-4 py-3 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <img src="/logo.png" alt="Aanya" className="h-7 w-auto object-contain mix-blend-multiply" />
-                  <div>
-                    <h3 className="font-serif text-sm sm:text-base font-bold text-gray-900 leading-tight">Add New Product</h3>
-                    <p className="text-[10px] text-[#698156] font-medium">Publish directly to Supabase catalog & storefront</p>
-                  </div>
-                </div>
-                {/* Prominent Close X button */}
-                <button
-                  type="button"
-                  onClick={() => setIsAddOpen(false)}
-                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white hover:bg-rose-100 border border-gray-200 hover:border-rose-200 text-gray-500 hover:text-rose-600 transition-all flex items-center justify-center cursor-pointer shadow-xs"
-                  title="Close (Esc)"
-                  aria-label="Close dialog"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* Modal Body - Scrollable Form */}
-              <form id="add-product-form" onSubmit={handleAddSubmit} className="flex-1 overflow-y-auto p-3.5 sm:p-4 space-y-2.5">
-                {/* Product Title */}
-                <div>
-                  <label className="block text-[10px] uppercase tracking-wider font-bold text-gray-600 mb-1">
-                    Product Title *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Royal Maroon Silk Saree"
-                    value={form.name}
-                    onChange={e => setForm({ ...form, name: e.target.value })}
-                    className="w-full px-3 py-1.5 bg-white rounded-xl text-xs border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20"
-                  />
-                </div>
-
-                {/* Category + Selling Price + MRP + Initial Stock */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  <div>
-                    <label className="block text-[10px] uppercase tracking-wider font-bold text-gray-600 mb-1">
-                      Category
-                    </label>
-                    <select
-                      value={form.category}
-                      onChange={e => setForm({ ...form, category: e.target.value })}
-                      className="w-full px-2 py-1.5 bg-white rounded-xl text-xs border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20 cursor-pointer"
-                    >
-                      {['Sarees','Kurtis','Lehengas','Salwar Sets','Western','Maxi','Tradition'].map(c => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase tracking-wider font-bold text-gray-600 mb-1">
-                      Selling Price (₹) *
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      min="1"
-                      placeholder="e.g. 4999"
-                      value={form.price}
-                      onChange={e => setForm({ ...form, price: e.target.value })}
-                      className="w-full px-2.5 py-1.5 bg-white rounded-xl text-xs border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20 font-bold"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase tracking-wider font-bold text-gray-600 mb-1">
-                      MRP (₹) <span className="text-gray-400 font-normal">opt</span>
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      placeholder="e.g. 6999"
-                      value={form.compare_at_price}
-                      onChange={e => setForm({ ...form, compare_at_price: e.target.value })}
-                      className="w-full px-2.5 py-1.5 bg-white rounded-xl text-xs border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase tracking-wider font-bold text-gray-600 mb-1">
-                      Initial Stock
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      placeholder="e.g. 50"
-                      value={form.stock_quantity ?? 25}
-                      onChange={e => setForm({ ...form, stock_quantity: Number(e.target.value) })}
-                      className="w-full px-2.5 py-1.5 bg-[#F4F6F2] rounded-xl text-xs border border-[#DCE4D7] outline-none focus:ring-2 focus:ring-[#698156]/20 font-bold text-[#2F3C25]"
-                    />
-                  </div>
-                </div>
-
-                {/* Product Images & Gallery Section */}
-                <div className="bg-[#F4F6F2] rounded-xl p-3 border border-[#DCE4D7] space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <label className="block text-[10px] uppercase tracking-wider font-bold text-gray-700">
-                        Product Gallery Images *
-                      </label>
-                      <p className="text-[10px] text-gray-400 leading-tight">
-                        Upload multiple photos or paste URLs (shows in store & 2-column detail page)
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleAutofillAngles}
-                      className="text-[10px] font-bold text-[#698156] hover:text-[#546944] bg-white hover:bg-[#F4F6F2] border border-[#DCE4D7] px-2 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
-                      title="Automatically generate matching angle shots for this category"
-                    >
-                      <Sparkles className="w-3 h-3 text-[#698156]" />
-                      Autofill Angles
-                    </button>
-                  </div>
-
-                  {/* Upload button + URL input row */}
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    {/* Device File Upload Button */}
-                    <label className="cursor-pointer flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-[#698156] to-[#546944] hover:from-[#546944] hover:to-[#435436] text-white rounded-xl text-xs font-bold transition-all shadow-xs active:scale-98 text-center select-none">
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>{isUploading ? 'Uploading...' : 'Upload Photos (Multiple)'}</span>
-                      <input
-                        type="file"
-                        multiple
-                        accept="image/*"
-                        disabled={isUploading}
-                        onChange={handleFileUpload}
-                        className="hidden"
-                      />
-                    </label>
-
-                    {/* URL Input */}
-                    <div className="flex-[1.4] flex gap-1.5 items-center">
-                      <input
-                        type="url"
-                        placeholder="Or paste image URL..."
-                        value={urlInput}
-                        onChange={e => setUrlInput(e.target.value)}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handleAddImageUrl();
-                          }
-                        }}
-                        className="flex-1 px-2.5 py-1.5 bg-white rounded-xl text-xs border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20 min-w-0"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleAddImageUrl()}
-                        className="px-2.5 py-1.5 bg-gray-900 hover:bg-black text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1 cursor-pointer flex-shrink-0"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        Add
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Gallery Thumbnails List */}
-                  {form.images && form.images.length > 0 ? (
-                    <div className="space-y-1.5 pt-1">
-                      <div className="flex items-center justify-between text-[10px] text-gray-500 font-medium">
-                        <span>{form.images.length} photo{form.images.length > 1 ? 's' : ''} in gallery</span>
-                        <span className="text-gray-400">Click ★ to set main thumbnail</span>
-                      </div>
-                      <div className="flex gap-2 overflow-x-auto pb-1.5 scrollbar-thin">
-                        {form.images.map((imgSrc, idx) => (
-                          <div
-                            key={idx}
-                            className={`relative group flex-shrink-0 w-16 h-20 rounded-xl overflow-hidden border-2 bg-white shadow-2xs transition-all ${
-                              idx === 0 ? 'border-pink-500 ring-2 ring-[#698156]/30' : 'border-gray-200 hover:border-[#698156]'
-                            }`}
-                          >
-                            <img
-                              src={imgSrc}
-                              alt={`Angle ${idx + 1}`}
-                              className="w-full h-full object-cover"
-                            />
-
-                            {/* Badge */}
-                            <div className="absolute top-1 left-1 pointer-events-none">
-                              {idx === 0 ? (
-                                <span className="bg-[#F4F6F2]0 text-white text-[8px] font-black px-1 py-0.5 rounded shadow-xs">
-                                  #1 MAIN
-                                </span>
-                              ) : (
-                                <span className="bg-black/60 backdrop-blur-xs text-white text-[8px] font-bold px-1 py-0.5 rounded">
-                                  #{idx + 1}
-                                </span>
-                              )}
-                            </div>
-
-                            {/* Actions Overlay */}
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
-                              {idx !== 0 && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleMakePrimary(idx)}
-                                  title="Make Primary Image"
-                                  className="w-6 h-6 rounded-full bg-white/90 text-amber-500 hover:bg-white flex items-center justify-center cursor-pointer transition-all shadow"
-                                >
-                                  <Star className="w-3 h-3 fill-amber-500" />
-                                </button>
-                              )}
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveImage(idx)}
-                                title="Remove photo"
-                                className="w-6 h-6 rounded-full bg-rose-600 text-white hover:bg-rose-700 flex items-center justify-center cursor-pointer transition-all shadow"
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="border border-dashed border-[#DCE4D7] rounded-xl p-2.5 text-center bg-white/60">
-                      <p className="text-[11px] font-semibold text-gray-600">No images uploaded yet</p>
-                      <p className="text-[10px] text-gray-400">
-                        Upload photos from your computer or click "Autofill Angles" to generate sample fashion views.
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Description */}
-                <div>
-                  <label className="block text-[10px] uppercase tracking-wider font-bold text-gray-600 mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    rows={2}
-                    placeholder="Fabric, embroidery, care instructions…"
-                    value={form.description}
-                    onChange={e => setForm({ ...form, description: e.target.value })}
-                    className="w-full px-3 py-1.5 bg-white rounded-xl text-xs border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20 resize-none leading-relaxed"
-                  />
-                </div>
-
-                {/* Feature on Homepage Hero Model */}
-                <div
-                  className={`border rounded-xl p-2.5 transition-all cursor-pointer select-none flex items-start gap-2.5 ${
-                    featureOnHero ? 'bg-[#F4F6F2] border-[#698156] ring-1 ring-[#698156]/20' : 'bg-gray-50/80 border-gray-200 hover:bg-gray-50'
-                  }`}
-                  onClick={() => setFeatureOnHero(!featureOnHero)}
-                >
-                  <input
-                    type="checkbox"
-                    checked={featureOnHero}
-                    onChange={e => setFeatureOnHero(e.target.checked)}
-                    className="w-3.5 h-3.5 mt-0.5 text-[#698156] rounded focus:ring-[#698156] cursor-pointer"
-                  />
-                  <div>
-                    <span className="text-[11px] font-bold text-gray-900 flex items-center gap-1 leading-tight">
-                      <Sparkles className="w-3 h-3 text-[#698156]" />
-                      Show on Homepage Hero Model (Model Dress)
-                    </span>
-                    <p className="text-[10px] text-gray-500 mt-0.5 leading-snug">
-                      If checked, a model wearing this dress will appear in the homepage hero coverflow.
-                    </p>
-                  </div>
-                </div>
-              </form>
-
-              {/* Modal Footer - Fixed at Bottom */}
-              <div className="flex-shrink-0 bg-white/95 backdrop-blur-md border-t border-[#DCE4D7] px-4 py-2.5 flex items-center justify-between gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsAddOpen(false)}
-                  className="px-3.5 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full text-xs font-bold transition-all cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  form="add-product-form"
-                  disabled={adding}
-                  className="px-4 py-1.5 bg-[#698156] hover:bg-[#546944] text-white rounded-full text-xs font-bold shadow-xs hover:shadow transition-all disabled:opacity-60 flex items-center gap-1.5 cursor-pointer"
-                >
-                  {adding ? (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Publishing…</span>
-                    </>
-                  ) : (
-                    'Publish to Store'
-                  )}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Add Product modal removed — now rendered inline in Products tab */}
 
       {/* ═══ UNIQUE LUXURY DELETE CONFIRMATION MODAL (CENTERED) ═══ */}
       <AnimatePresence>
