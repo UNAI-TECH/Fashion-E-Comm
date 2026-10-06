@@ -331,23 +331,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', onSuccess }
                     className="w-full py-3 bg-[#F4F6F2] hover:bg-[#EBF0E6] text-[#698156] border border-[#DCE4D7] rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${isSubmitting ? 'animate-spin' : ''}`} />
-                    {resendCooldown > 0 ? `Resend Link in ${resendCooldown}s` : 'Resend Verification Link'}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      if (verificationSentEmail) {
-                        await resendVerificationEmail(verificationSentEmail);
-                        setVerificationSentEmail(null);
-                        setMode('signin');
-                        setSignInEmail(verificationSentEmail);
-                      }
-                    }}
-                    className="w-full py-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    Didn't receive email? Verify Instantly
+                    {resendCooldown > 0 ? `Resend Link in ${resendCooldown}s` : 'Resend Verification Email'}
                   </button>
 
                   <button
@@ -379,30 +363,17 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', onSuccess }
                           Your email <strong>{unconfirmedEmail}</strong> is awaiting verification.
                         </p>
                         <p className="text-[11px] text-amber-700">
-                          Please check your <strong>Inbox, Spam, or Promotions</strong> folder.
+                          Please check your <strong>Inbox, Spam, or Promotions</strong> folder for the confirmation link.
                         </p>
-                        <div className="flex flex-col sm:flex-row gap-2 pt-1">
-                          <button
-                            type="button"
-                            disabled={resendCooldown > 0 || isSubmitting}
-                            onClick={() => handleResendVerification(unconfirmedEmail)}
-                            className="text-[#698156] font-bold underline hover:opacity-80 flex items-center gap-1 cursor-pointer disabled:opacity-40"
-                          >
-                            <RefreshCw className="w-3 h-3" />
-                            {resendCooldown > 0 ? `Resend (${resendCooldown}s)` : 'Resend Email'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              await resendVerificationEmail(unconfirmedEmail);
-                              setUnconfirmedEmail(null);
-                            }}
-                            className="text-emerald-700 font-bold hover:underline flex items-center gap-1 cursor-pointer text-xs"
-                          >
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                            Verify Instantly
-                          </button>
-                        </div>
+                        <button
+                          type="button"
+                          disabled={resendCooldown > 0 || isSubmitting}
+                          onClick={() => handleResendVerification(unconfirmedEmail)}
+                          className="text-[#698156] font-bold underline hover:opacity-80 flex items-center gap-1 cursor-pointer disabled:opacity-40"
+                        >
+                          <RefreshCw className="w-3 h-3" />
+                          {resendCooldown > 0 ? `Resend (${resendCooldown}s)` : 'Resend Verification Email'}
+                        </button>
                       </div>
                     )}
 

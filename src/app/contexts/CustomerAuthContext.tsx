@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { api } from '../../lib/api';
 import { User, Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { saveUserProfileDetails, getUserProfileDetails } from '../../lib/userProfile';
@@ -38,12 +37,6 @@ interface CustomerAuthContextType {
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   updateProfile: (updates: Partial<CustomerProfile>) => Promise<{ success: boolean; error?: string }>;
-  sendSignupOtp?: (formData: SignupFormData) => Promise<{ success: boolean; error?: string }>;
-  verifySignupOtp?: (formData: SignupFormData, token: string) => Promise<{ success: boolean; error?: string }>;
-  sendEmailOtp?: (email: string) => Promise<{ success: boolean; error?: string }>;
-  verifyEmailOtp?: (email: string, token: string) => Promise<{ success: boolean; error?: string }>;
-  sendOtp?: (email: string) => Promise<{ success: boolean; error?: string }>;
-  verifyOtp?: (email: string, token: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 const CustomerAuthContext = createContext<CustomerAuthContextType | undefined>(undefined);
@@ -60,10 +53,8 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
     }
   });
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [signupVerificationToken, setSignupVerificationToken] = useState<string>('');
-  const [loginVerificationToken, setLoginVerificationToken] = useState<string>('');
 
-  // Fetch full user profile from 'profiles' table & sync to storage
+  // ─── Fetch user profile from 'profiles' table & sync to localStorage ───
   const fetchProfile = async (userId: string, userEmail?: string, userMeta?: any) => {
     try {
       const { data, error } = await supabase
@@ -103,8 +94,7 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
         return;
       }
 
-      // If profile doesn't exist yet, create it
-      // Only include columns that exist in the profiles table
+      // If profile doesn't exist yet (trigger should create it, but just in case)
       const dbProfile = {
         id: userId,
         email: userEmail || '',
@@ -138,7 +128,7 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
     }
   };
 
-  // Sync auth state on mount and subscribe to changes
+  // ─── Sync auth state on mount and subscribe to changes ───
   useEffect(() => {
     let mounted = true;
 
@@ -159,7 +149,7 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
 
     initAuth();
 
-    // Listen for auth state transitions
+    // Listen for auth state transitions (includes email confirmation callback)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
       if (!mounted) return;
       setSession(newSession);
@@ -180,7 +170,7 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
     };
   }, []);
 
-  // 1. Sign In with Email & Password
+  // ─── 1. Sign In with Email & Password ───
   const signInWithEmail = async (email: string, password: string) => {
     try {
       const cleanEmail = email.trim().toLowerCase();
@@ -190,37 +180,18 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
       });
 
       if (error) {
+        // Check if the error is because email isn't confirmed yet
         const isUnconfirmed =
           error.message.toLowerCase().includes('email not confirmed') ||
           error.message.toLowerCase().includes('not confirmed') ||
           error.message.toLowerCase().includes('verification');
 
-        if (isUnconfirmed) {
-          // Self-heal: auto-confirm via Edge Function and retry sign in
-          try {
-            await supabase.functions.invoke('customer-register', {
-              body: { email: cleanEmail, password },
-            });
-            const retry = await supabase.auth.signInWithPassword({
-              email: cleanEmail,
-              password,
-            });
-            if (retry.data?.user) {
-              setUser(retry.data.user);
-              setSession(retry.data.session);
-              await fetchProfile(retry.data.user.id, retry.data.user.email, retry.data.user.user_metadata);
-              toast.success(`Account verified! Welcome back, ${retry.data.user.user_metadata?.full_name || 'Customer'}!`);
-              return { success: true };
-            }
-          } catch (autoConfirmErr) {
-            console.warn('Auto-confirm error:', autoConfirmErr);
-          }
-        }
-
         return {
           success: false,
           unconfirmedEmail: isUnconfirmed,
-          error: error.message,
+          error: isUnconfirmed
+            ? 'Please verify your email before signing in. Check your inbox (and Spam/Promotions folder) for the confirmation link.'
+            : error.message,
         };
       }
 
@@ -238,7 +209,7 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
     }
   };
 
-  // 2. Sign Up with Email Verification (Native Supabase Auth)
+  // ─── 2. Sign Up with Native Supabase Email Confirmation ───
   const signUp = async (formData: SignupFormData) => {
     try {
       const cleanEmail = formData.email.trim().toLowerCase();
@@ -253,68 +224,13 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
         return { success: false, error: 'Password must be at least 6 characters long.' };
       }
 
+      // Determine redirect URL based on environment
       const redirectUrl =
         typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
           ? window.location.origin
           : 'https://www.aanyafashions.com/';
 
-      // 1. Direct Edge Function registration (bypasses Supabase SMTP 429 rate limit)
-      try {
-        const { data: edgeData, error: edgeErr } = await supabase.functions.invoke('customer-register', {
-          body: {
-            email: cleanEmail,
-            password: formData.password,
-            fullName: cleanName,
-            phone: cleanPhone,
-            gender: cleanGender,
-          },
-        });
-
-        if (!edgeErr && edgeData?.success) {
-          // Immediately sign in with password to obtain active JWT session
-          const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({
-            email: cleanEmail,
-            password: formData.password,
-          });
-
-          if (!signInErr && signInData?.session && signInData?.user) {
-            const customerProfile: CustomerProfile = {
-              id: signInData.user.id,
-              email: cleanEmail,
-              full_name: cleanName,
-              phone: cleanPhone,
-              gender: cleanGender,
-              role: 'customer',
-              status: 'Active',
-            };
-
-            setUser(signInData.user);
-            setSession(signInData.session);
-            setProfile(customerProfile);
-            localStorage.setItem('customer_profile_cache', JSON.stringify(customerProfile));
-            saveUserProfileDetails({
-              name: cleanName,
-              phone: cleanPhone,
-              gender: cleanGender,
-              email: cleanEmail,
-              address: '',
-              city: '',
-              pincode: '',
-              state: '',
-            });
-
-            toast.success(`Welcome to Aanya Fashions, ${cleanName}!`);
-            return {
-              success: true,
-              needsEmailVerification: false,
-            };
-          }
-        }
-      } catch (edgeCatch) {
-        console.warn('Edge function registration notice:', edgeCatch);
-      }
-
-      // 2. Standard fallback registration with Supabase native email confirmation
+      // Register via Supabase native auth — this sends the confirmation email
       const { data, error } = await supabase.auth.signUp({
         email: cleanEmail,
         password: formData.password,
@@ -329,6 +245,7 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
       });
 
       if (error) {
+        // Friendly message for rate limit errors
         if (
           error.status === 429 ||
           error.message.toLowerCase().includes('rate limit') ||
@@ -336,30 +253,24 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
         ) {
           return {
             success: false,
-            error: 'Email rate limit reached. Please wait a moment before trying again, or Sign In with your password.',
+            error: 'Too many sign-up attempts. Please wait a few minutes before trying again.',
           };
         }
         return { success: false, error: error.message };
       }
 
-      const userId = data.user?.id || crypto.randomUUID();
-
-      // Upsert into Supabase profiles table (only DB columns)
-      try {
-        await supabase.from('profiles').upsert({
-          id: userId,
-          email: cleanEmail,
-          full_name: cleanName,
-          phone: cleanPhone || null,
-          role: 'customer',
-          status: 'Active',
-          updated_at: new Date().toISOString(),
-        });
-      } catch (pErr) {
-        console.warn('Profile upsert notice:', pErr);
+      // Check if user was already registered (Supabase returns a user with fake ID)
+      // In that case, data.user exists but no session and identities is empty
+      if (data.user && data.user.identities && data.user.identities.length === 0) {
+        return {
+          success: false,
+          error: 'An account with this email already exists. Please sign in instead.',
+        };
       }
 
-      // Save into local storage for ProfileModal
+      const userId = data.user?.id;
+
+      // Save into local storage for ProfileModal (gender, address etc. are local-only)
       saveUserProfileDetails({
         name: cleanName,
         phone: cleanPhone,
@@ -371,25 +282,26 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
         state: '',
       });
 
-      const customerProfile: CustomerProfile = {
-        id: userId,
-        email: cleanEmail,
-        full_name: cleanName,
-        phone: cleanPhone,
-        gender: cleanGender,
-        role: 'customer',
-        status: 'Active',
-      };
-
       const needsEmailVerification = !data.session;
 
       if (data.session && data.user) {
+        // Email confirmation is disabled in Supabase settings — user is logged in immediately
+        const customerProfile: CustomerProfile = {
+          id: data.user.id,
+          email: cleanEmail,
+          full_name: cleanName,
+          phone: cleanPhone,
+          gender: cleanGender,
+          role: 'customer',
+          status: 'Active',
+        };
         setUser(data.user);
         setSession(data.session);
         setProfile(customerProfile);
         localStorage.setItem('customer_profile_cache', JSON.stringify(customerProfile));
         toast.success(`Welcome to Aanya Fashions, ${cleanName}!`);
       } else {
+        // Email confirmation is enabled — email was sent, user must verify
         toast.success('Registration successful! Please check your email for the confirmation link.');
       }
 
@@ -403,7 +315,7 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
     }
   };
 
-  // 3. Resend Verification Link
+  // ─── 3. Resend Verification Email (Native Supabase API) ───
   const resendVerificationEmail = async (email: string) => {
     try {
       const cleanEmail = email.trim().toLowerCase();
@@ -411,23 +323,36 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
         return { success: false, error: 'Please enter a valid email address.' };
       }
 
-      // Automatically confirm the user so they can sign in without waiting for email
-      try {
-        await supabase.functions.invoke('customer-register', {
-          body: { email: cleanEmail, password: 'TemporaryPassword123!' },
-        });
-      } catch (e) {
-        console.warn('Auto confirm notice:', e);
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: cleanEmail,
+        options: {
+          emailRedirectTo:
+            typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+              ? window.location.origin
+              : 'https://www.aanyafashions.com/',
+        },
+      });
+
+      if (error) {
+        // Friendly message for rate limit
+        if (error.status === 429 || error.message.toLowerCase().includes('rate limit')) {
+          return {
+            success: false,
+            error: 'Too many requests. Please wait a few minutes before trying again.',
+          };
+        }
+        return { success: false, error: error.message };
       }
 
-      toast.success(`Account verified! You can now sign in with your email and password.`);
+      toast.success(`Verification email resent to ${cleanEmail}. Check your inbox and Spam/Promotions folder.`);
       return { success: true };
     } catch (err: any) {
-      return { success: false, error: err.message || 'Failed to verify account.' };
+      return { success: false, error: err.message || 'Failed to resend verification email.' };
     }
   };
 
-  // 4. Password Reset
+  // ─── 4. Password Reset ───
   const resetPasswordForEmail = async (email: string) => {
     try {
       const cleanEmail = email.trim().toLowerCase();
@@ -439,7 +364,14 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
       const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
         redirectTo: redirectUrl,
       });
-      if (error) return { success: false, error: error.message };
+
+      if (error) {
+        if (error.status === 429 || error.message.toLowerCase().includes('rate limit')) {
+          return { success: false, error: 'Too many requests. Please wait a few minutes.' };
+        }
+        return { success: false, error: error.message };
+      }
+
       toast.success(`Password reset instructions sent to ${cleanEmail}!`);
       return { success: true };
     } catch (err: any) {
@@ -447,24 +379,23 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
     }
   };
 
-  // 6. Sign Out
+  // ─── 5. Sign Out ───
   const signOut = async () => {
+    // Sign out locally first for instant UI update
+    setUser(null);
+    setSession(null);
+    setProfile(null);
+
     try {
       await supabase.auth.signOut({ scope: 'local' });
     } catch (e) {
       console.warn('Local sign out warning:', e);
     }
 
-    try {
-      supabase.auth.signOut({ scope: 'global' }).catch(() => {});
-    } catch (e) {}
+    // Fire global sign-out in background (revokes refresh token on server)
+    supabase.auth.signOut({ scope: 'global' }).catch(() => {});
 
-    // Reset React state immediately
-    setUser(null);
-    setSession(null);
-    setProfile(null);
-
-    // Thoroughly purge all auth & profile data from localStorage
+    // Purge all auth & profile data from localStorage
     try {
       localStorage.removeItem('customer_profile_cache');
       localStorage.removeItem('admin_info');
@@ -488,14 +419,14 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
     toast.success('You have been signed out.');
   };
 
-  // 7. Refresh Profile
+  // ─── 6. Refresh Profile ───
   const refreshProfile = async () => {
     if (user?.id) {
       await fetchProfile(user.id, user.email, user.user_metadata);
     }
   };
 
-  // 8. Update Profile
+  // ─── 7. Update Profile ───
   const updateProfile = async (updates: Partial<CustomerProfile>) => {
     if (!user?.id) return { success: false, error: 'User not logged in' };
     try {

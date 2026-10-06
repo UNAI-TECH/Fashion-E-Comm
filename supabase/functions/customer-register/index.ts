@@ -91,7 +91,6 @@ serve(async (req: Request) => {
         email: cleanEmail,
         full_name: cleanName,
         phone: cleanPhone || null,
-        gender: cleanGender || null,
         role: "customer",
         status: "Active",
         updated_at: new Date().toISOString(),
