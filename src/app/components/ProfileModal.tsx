@@ -8,6 +8,7 @@ import {
   getUserProfileImage,
   saveUserProfileDetails
 } from '../../lib/userProfile';
+import { useCustomerAuth } from '../contexts/CustomerAuthContext';
 
 export interface ProfileModalProps {
   isOpen: boolean;
@@ -26,16 +27,28 @@ export function ProfileModal({
   subtitle = 'Please enter your profile information to continue',
   actionButtonText = 'Save Details & Continue'
 }: ProfileModalProps) {
+  const { user, profile } = useCustomerAuth();
   const [profileDetails, setProfileDetails] = useState<UserProfileDetails>(getUserProfileDetails());
   const [profileImage, setProfileImage] = useState<string>(getUserProfileImage());
 
-  // Re-sync with storage when modal opens
+  // Re-sync with auth profile & storage when modal opens
   useEffect(() => {
     if (isOpen) {
-      setProfileDetails(getUserProfileDetails());
+      const stored = getUserProfileDetails();
+      const meta = (user?.user_metadata || {}) as any;
+      setProfileDetails({
+        name: stored.name || profile?.full_name || meta.full_name || meta.name || '',
+        phone: stored.phone || profile?.phone || meta.phone || '',
+        gender: stored.gender || profile?.gender || meta.gender || '',
+        email: stored.email || profile?.email || user?.email || '',
+        address: stored.address || '',
+        city: stored.city || '',
+        pincode: stored.pincode || '',
+        state: stored.state || '',
+      });
       setProfileImage(getUserProfileImage());
     }
-  }, [isOpen]);
+  }, [isOpen, user, profile]);
 
   // Lock background scroll when open
   useEffect(() => {

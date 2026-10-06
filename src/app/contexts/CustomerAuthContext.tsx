@@ -1,18 +1,27 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { api } from '../../lib/api';
 import { User, Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
+import { saveUserProfileDetails, getUserProfileDetails } from '../../lib/userProfile';
 
 export interface CustomerProfile {
   id: string;
   email: string;
   full_name: string;
   phone?: string;
+  gender?: string;
   avatar_url?: string;
   role: 'customer' | 'admin';
   status: 'Active' | 'Blocked';
   created_at?: string;
+}
+
+export interface SignupFormData {
+  fullName: string;
+  phone: string;
+  gender: string;
+  email: string;
+  password: string;
 }
 
 interface CustomerAuthContextType {
@@ -22,9 +31,12 @@ interface CustomerAuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   signInWithEmail: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  signUpWithEmail: (email: string, password: string, fullName: string, phone?: string) => Promise<{ success: boolean; error?: string }>;
-  sendOtp: (emailOrPhone: string) => Promise<{ success: boolean; error?: string }>;
-  verifyOtp: (emailOrPhone: string, token: string) => Promise<{ success: boolean; error?: string }>;
+  sendEmailOtp: (email: string) => Promise<{ success: boolean; error?: string }>;
+  verifyEmailOtp: (email: string, token: string) => Promise<{ success: boolean; error?: string }>;
+  sendSignupOtp: (formData: SignupFormData) => Promise<{ success: boolean; error?: string }>;
+  verifySignupOtp: (formData: SignupFormData, token: string) => Promise<{ success: boolean; error?: string }>;
+  sendOtp: (email: string) => Promise<{ success: boolean; error?: string }>;
+  verifyOtp: (email: string, token: string) => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   updateProfile: (updates: Partial<CustomerProfile>) => Promise<{ success: boolean; error?: string }>;
@@ -45,7 +57,7 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
   });
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Fetch full user profile from 'profiles' table
+  // Fetch full user profile from 'profiles' table & sync to storage
   const fetchProfile = async (userId: string, userEmail?: string, userMeta?: any) => {
     try {
       const { data, error } = await supabase
@@ -55,8 +67,25 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
         .maybeSingle();
 
       if (!error && data) {
-        setProfile(data);
-        localStorage.setItem('customer_profile_cache', JSON.stringify(data));
+        const enriched: CustomerProfile = {
+          ...data,
+          gender: data.gender || userMeta?.gender || '',
+        };
+        setProfile(enriched);
+        localStorage.setItem('customer_profile_cache', JSON.stringify(enriched));
+
+        // Sync into local user_profile_details for ProfileModal
+        const savedLocal = getUserProfileDetails();
+        saveUserProfileDetails({
+          name: data.full_name || userMeta?.full_name || savedLocal.name || '',
+          phone: data.phone || userMeta?.phone || savedLocal.phone || '',
+          gender: data.gender || userMeta?.gender || savedLocal.gender || '',
+          email: data.email || userEmail || savedLocal.email || '',
+          address: data.address || savedLocal.address || '',
+          city: data.city || savedLocal.city || '',
+          pincode: data.pincode || savedLocal.pincode || '',
+          state: data.state || savedLocal.state || '',
+        });
         return;
       }
 
@@ -66,6 +95,7 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
         email: userEmail || '',
         full_name: userMeta?.full_name || userMeta?.name || userEmail?.split('@')[0] || 'Valued Customer',
         phone: userMeta?.phone || '',
+        gender: userMeta?.gender || '',
         role: 'customer',
         status: 'Active',
       };
@@ -132,7 +162,7 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
   // 1. Sign In with Email & Password
   const signInWithEmail = async (email: string, password: string) => {
     try {
-      const cleanEmail = email.trim();
+      const cleanEmail = email.trim().toLowerCase();
       const { data, error } = await supabase.auth.signInWithPassword({
         email: cleanEmail,
         password,
@@ -156,20 +186,81 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
     }
   };
 
-  // 2. Sign Up with Email, Password & Name
-  const signUpWithEmail = async (email: string, password: string, fullName: string, phone?: string) => {
+  // 2. Send Login OTP to Email (via Supabase SMTP)
+  const sendEmailOtp = async (email: string) => {
     try {
-      const cleanEmail = email.trim();
-      const cleanName = fullName.trim();
-      const cleanPhone = phone?.trim();
+      const cleanEmail = email.trim().toLowerCase();
+      if (!cleanEmail || !cleanEmail.includes('@')) {
+        return { success: false, error: 'Please enter a valid email address.' };
+      }
 
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signInWithOtp({
         email: cleanEmail,
-        password,
         options: {
+          shouldCreateUser: false,
+        },
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      toast.success(`Verification code dispatched to ${cleanEmail}! Check your inbox.`);
+      return { success: true };
+    } catch (err: any) {
+      console.error('Email OTP Send Error:', err);
+      return { success: false, error: err.message || 'Failed to dispatch verification email.' };
+    }
+  };
+
+  // 3. Verify Login OTP from Email (via Supabase Auth)
+  const verifyEmailOtp = async (email: string, token: string) => {
+    try {
+      const cleanEmail = email.trim().toLowerCase();
+      const cleanToken = token.trim();
+
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: cleanEmail,
+        token: cleanToken,
+        type: 'email',
+      });
+
+      if (error || !data.user) {
+        return { success: false, error: error?.message || 'Invalid or expired verification code.' };
+      }
+
+      setUser(data.user);
+      setSession(data.session);
+      await fetchProfile(data.user.id, data.user.email, data.user.user_metadata);
+      toast.success(`Welcome back, ${data.user.user_metadata?.full_name || 'Customer'}!`);
+      return { success: true };
+    } catch (err: any) {
+      console.error('Email OTP Verify Error:', err);
+      return { success: false, error: err.message || 'Invalid verification code.' };
+    }
+  };
+
+  // 4. Send Signup OTP to Email (via Supabase SMTP)
+  const sendSignupOtp = async (formData: SignupFormData) => {
+    try {
+      const cleanEmail = formData.email.trim().toLowerCase();
+      const cleanName = formData.fullName.trim();
+      const cleanPhone = formData.phone.trim();
+      const cleanGender = formData.gender.trim();
+
+      if (!cleanEmail || !cleanEmail.includes('@')) {
+        return { success: false, error: 'Please enter a valid email address.' };
+      }
+
+      // Supabase sends 6-digit OTP to the entered email via Supabase SMTP
+      const { error } = await supabase.auth.signInWithOtp({
+        email: cleanEmail,
+        options: {
+          shouldCreateUser: true,
           data: {
             full_name: cleanName,
             phone: cleanPhone,
+            gender: cleanGender,
           },
         },
       });
@@ -178,8 +269,53 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
         return { success: false, error: error.message };
       }
 
-      if (data.user) {
-        // Create initial profile in database
+      toast.success(`Verification code sent to ${cleanEmail}! Check your email inbox.`);
+      return { success: true };
+    } catch (err: any) {
+      console.error('Signup OTP Send Error:', err);
+      return { success: false, error: err.message || 'Failed to dispatch verification code.' };
+    }
+  };
+
+  // 5. Verify Signup OTP (Authoritative check: if wrong OTP, user does NOT get signed up!)
+  const verifySignupOtp = async (formData: SignupFormData, token: string) => {
+    try {
+      const cleanEmail = formData.email.trim().toLowerCase();
+      const cleanName = formData.fullName.trim();
+      const cleanPhone = formData.phone.trim();
+      const cleanGender = formData.gender.trim();
+      const cleanToken = token.trim();
+
+      // 1. Authoritative verification with Supabase
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: cleanEmail,
+        token: cleanToken,
+        type: 'email',
+      });
+
+      if (error || !data.user) {
+        return {
+          success: false,
+          error: error?.message || 'Invalid or expired verification code. Please check your email and try again.'
+        };
+      }
+
+      // 2. Set the password on the newly authorized user
+      try {
+        await supabase.auth.updateUser({
+          password: formData.password,
+          data: {
+            full_name: cleanName,
+            phone: cleanPhone,
+            gender: cleanGender,
+          },
+        });
+      } catch (passErr) {
+        console.warn('Password update notice:', passErr);
+      }
+
+      // 3. Upsert into Supabase profiles table
+      try {
         await supabase.from('profiles').upsert({
           id: data.user.id,
           email: cleanEmail,
@@ -188,114 +324,46 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
           role: 'customer',
           status: 'Active',
         });
-
-        setUser(data.user);
-        setSession(data.session);
-        await fetchProfile(data.user.id, cleanEmail, { full_name: cleanName, phone: cleanPhone });
-        toast.success('Account created successfully!');
-        return { success: true };
+      } catch (pErr) {
+        console.warn('Profile upsert notice:', pErr);
       }
 
-      return { success: false, error: 'Registration failed' };
-    } catch (err: any) {
-      return { success: false, error: err.message || 'Registration error' };
-    }
-  };
+      // 4. Save to userProfile storage so details immediately show in profile modal
+      saveUserProfileDetails({
+        name: cleanName,
+        phone: cleanPhone,
+        gender: cleanGender,
+        email: cleanEmail,
+        address: '',
+        city: '',
+        pincode: '',
+        state: '',
+      });
 
-  // 3. Send OTP (Email or Phone via Render Python OTP microservice)
-  const sendOtp = async (emailOrPhone: string) => {
-    try {
-      const input = emailOrPhone.trim();
-      const isEmail = input.includes('@');
-      const channel = isEmail ? 'email' : 'sms';
-
-      let destination = input;
-      if (!isEmail) {
-        const clean = input.replace(/\D/g, '');
-        destination = clean.length === 10 ? `+91${clean}` : `+${clean}`;
-      }
-
-      // Dispatch via Render OTP microservice
-      await api.otp.send(channel, destination, 'login');
-      toast.success(`Verification code dispatched to ${destination}! (Valid for 30s)`);
-      return { success: true };
-    } catch (err: any) {
-      console.error('OTP Send Error:', err);
-      const msg = err.status === 429
-        ? (err.message || 'Please wait before requesting a new OTP.')
-        : (err.message || 'Failed to send OTP.');
-      return { success: false, error: msg };
-    }
-  };
-
-  // 4. Verify OTP (via Render Python OTP microservice)
-  const verifyOtp = async (emailOrPhone: string, token: string) => {
-    try {
-      const input = emailOrPhone.trim();
-      const isEmail = input.includes('@');
-      const channel = isEmail ? 'email' : 'sms';
-      const cleanToken = token.trim();
-
-      let destination = input;
-      if (!isEmail) {
-        const clean = input.replace(/\D/g, '');
-        destination = clean.length === 10 ? `+91${clean}` : `+${clean}`;
-      }
-
-      // 1. Authoritative verification with Render OTP microservice
-      const verifyRes = await api.otp.verify(channel, destination, cleanToken, 'login');
-      if (!verifyRes?.success && !(verifyRes as any)?.verified) {
-        return { success: false, error: verifyRes?.message || 'Invalid or expired code. Please request a new OTP.' };
-      }
-
-      // 2. Fetch or create user profile in Supabase profiles table
-      let profileData: CustomerProfile | null = null;
-      if (isEmail) {
-        const { data } = await supabase.from('profiles').select('*').eq('email', destination).maybeSingle();
-        profileData = data;
-      } else {
-        const { data } = await supabase.from('profiles').select('*').eq('phone', destination).maybeSingle();
-        profileData = data;
-      }
-
-      if (!profileData) {
-        const newId = crypto.randomUUID();
-        const newProfile: any = {
-          id: newId,
-          email: isEmail ? destination : null,
-          phone: !isEmail ? destination : null,
-          full_name: 'Valued Customer',
-          role: 'customer',
-          status: 'Active',
-          created_at: new Date().toISOString()
-        };
-        const { data: inserted } = await supabase.from('profiles').upsert(newProfile).select().single();
-        if (inserted) {
-          profileData = inserted as CustomerProfile;
-        }
-      }
-
-      const authUser: any = {
-        id: profileData?.id || crypto.randomUUID(),
-        email: isEmail ? destination : undefined,
-        phone: !isEmail ? destination : undefined,
-        user_metadata: {
-          full_name: profileData?.full_name || 'Valued Customer',
-          phone: destination
-        }
+      const customerProfile: CustomerProfile = {
+        id: data.user.id,
+        email: cleanEmail,
+        full_name: cleanName,
+        phone: cleanPhone,
+        gender: cleanGender,
+        role: 'customer',
+        status: 'Active',
       };
 
-      setUser(authUser);
-      setProfile(profileData);
-      toast.success('Signed in successfully!');
+      setUser(data.user);
+      setSession(data.session);
+      setProfile(customerProfile);
+      localStorage.setItem('customer_profile_cache', JSON.stringify(customerProfile));
+
+      toast.success(`Welcome to Aanya Fashions, ${cleanName}! Account created successfully.`);
       return { success: true };
     } catch (err: any) {
-      console.error('OTP Verification Error:', err);
-      return { success: false, error: err.message || 'Invalid or expired code.' };
+      console.error('Signup OTP Verification Error:', err);
+      return { success: false, error: err.message || 'Verification failed.' };
     }
   };
 
-  // 5. Sign Out
+  // 6. Sign Out
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
@@ -309,37 +377,31 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
     toast.success('You have been signed out.');
   };
 
-  // 6. Refresh Profile
+  // 7. Refresh Profile
   const refreshProfile = async () => {
     if (user?.id) {
       await fetchProfile(user.id, user.email, user.user_metadata);
     }
   };
 
-  // 7. Update Profile
+  // 8. Update Profile
   const updateProfile = async (updates: Partial<CustomerProfile>) => {
-    if (!user?.id) return { success: false, error: 'Not logged in' };
+    if (!user?.id) return { success: false, error: 'User not logged in' };
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updates)
         .eq('id', user.id)
         .select()
         .single();
 
-      if (error) return { success: false, error: error.message };
-
-      if (data) {
-        setProfile(data);
-        localStorage.setItem('customer_profile_cache', JSON.stringify(data));
-        toast.success('Profile updated successfully!');
-        return { success: true };
-      }
-      return { success: false, error: 'Update failed' };
+      if (error) throw error;
+      setProfile(data);
+      localStorage.setItem('customer_profile_cache', JSON.stringify(data));
+      toast.success('Profile updated successfully!');
+      return { success: true };
     } catch (err: any) {
+      console.error('Update profile error:', err);
       return { success: false, error: err.message || 'Profile update error' };
     }
   };
@@ -353,9 +415,12 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
         isAuthenticated: !!user,
         isLoading,
         signInWithEmail,
-        signUpWithEmail,
-        sendOtp,
-        verifyOtp,
+        sendEmailOtp,
+        verifyEmailOtp,
+        sendSignupOtp,
+        verifySignupOtp,
+        sendOtp: sendEmailOtp,
+        verifyOtp: verifyEmailOtp,
         signOut,
         refreshProfile,
         updateProfile,
@@ -368,7 +433,7 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
 
 export function useCustomerAuth() {
   const context = useContext(CustomerAuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useCustomerAuth must be used within a CustomerAuthProvider');
   }
   return context;
