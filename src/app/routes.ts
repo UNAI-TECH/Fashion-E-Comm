@@ -7,6 +7,7 @@ import { CheckoutPage } from "./pages/CheckoutPage";
 import { ContactPage } from "./pages/ContactPage";
 import { CategoryPage } from "./pages/CategoryPage";
 import { OrdersPage } from "./pages/OrdersPage";
+import { ProfilePage } from "./pages/ProfilePage";
 import { RootLayout } from "./components/RootLayout";
 import { AboutPage } from "./pages/AboutPage";
 import { PrivacyPolicyPage } from "./pages/PrivacyPolicyPage";
@@ -44,6 +45,8 @@ export const router = createBrowserRouter([
       { path: "/checkout", Component: CheckoutPage },
       { path: "/contact", Component: ContactPage },
       { path: "/orders", Component: OrdersPage },
+      { path: "/profile", Component: ProfilePage },
+      { path: "/account", Component: ProfilePage },
       { path: "/search", Component: SearchPage },
       { path: "/category/:category", Component: CategoryPage },
       { path: "/new-arrivals", Component: CategoryPage },

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, User, Package, Heart, ChevronDown, ArrowRight, X, Phone, Plus, Minus, Trash2, Menu, Clock, ArrowLeft, ShoppingBag, Camera, LogOut } from 'lucide-react';
+import { Search, User, Package, Heart, ChevronDown, ArrowRight, X, Phone, Plus, Minus, Trash2, Menu, Clock, ArrowLeft, ShoppingBag, Camera, LogOut, Truck, MapPin } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import { useWishlist } from '../contexts/WishlistContext';
 import { Link, useLocation, useNavigate } from 'react-router';
@@ -8,7 +8,6 @@ import { supabase } from '../../lib/supabase';
 import { Product, fetchProducts } from '../data/products';
 import { toast } from 'sonner';
 import { intelligentSearch, getRecommendedFallback, getSearchSuggestions } from '../../lib/aiSearchEngine';
-import { ProfileModal } from './ProfileModal';
 import { AuthModal } from './AuthModal';
 import { useCustomerAuth } from '../contexts/CustomerAuthContext';
 import { WelcomeSplashScreen } from './WelcomeSplashScreen';
@@ -69,7 +68,7 @@ export function Navigation() {
     };
     window.addEventListener('user_profile_updated', handleProfileUpdate);
     window.addEventListener('storage', handleProfileUpdate);
-    const handleOpenProfileModal = () => setIsAccountOpen(true);
+    const handleOpenProfileModal = () => navigate('/profile');
     window.addEventListener('open-profile-modal', handleOpenProfileModal);
     const handleSignedOut = () => {
       setIsAccountDropdownOpen(false);
@@ -370,15 +369,24 @@ export function Navigation() {
                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50 overflow-hidden"
+                    className="absolute right-0 mt-2 w-60 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50 overflow-hidden"
                   >
-                    <div className="px-4 py-2.5 border-b border-gray-100 bg-[#F4F6F2]/50">
+                    <div
+                      onClick={() => {
+                        setIsAccountDropdownOpen(false);
+                        navigate('/profile?tab=profile');
+                      }}
+                      className="px-4 py-3 border-b border-gray-100 bg-[#F4F6F2]/50 hover:bg-[#F4F6F2] cursor-pointer transition-colors"
+                    >
                       <p className="text-xs font-bold text-gray-900 truncate">{profile?.full_name || 'Customer'}</p>
                       <p className="text-[10px] text-gray-500 truncate">{profile?.email || user?.email}</p>
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#698156] mt-1 hover:underline">
+                        View Full Profile →
+                      </span>
                     </div>
 
                     <Link
-                      to="/orders"
+                      to="/profile?tab=orders"
                       onClick={() => setIsAccountDropdownOpen(false)}
                       className="flex items-center gap-2.5 px-4 py-2.5 text-xs text-gray-700 hover:bg-[#F4F6F2] hover:text-[#698156] transition-colors"
                     >
@@ -386,27 +394,41 @@ export function Navigation() {
                       <span>My Orders</span>
                     </Link>
 
-                    <button
-                      onClick={() => {
-                        setIsAccountDropdownOpen(false);
-                        setIsWishlistOpen(true);
-                      }}
-                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-gray-700 hover:bg-[#F4F6F2] hover:text-[#698156] transition-colors text-left cursor-pointer"
+                    <Link
+                      to="/profile?tab=track"
+                      onClick={() => setIsAccountDropdownOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-xs text-gray-700 hover:bg-[#F4F6F2] hover:text-[#698156] transition-colors"
+                    >
+                      <Truck className="w-4 h-4 text-emerald-600" />
+                      <span>Track Order</span>
+                    </Link>
+
+                    <Link
+                      to="/profile?tab=wishlist"
+                      onClick={() => setIsAccountDropdownOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-xs text-gray-700 hover:bg-[#F4F6F2] hover:text-[#698156] transition-colors"
                     >
                       <Heart className="w-4 h-4 text-rose-500" />
                       <span>Saved Wishlist</span>
-                    </button>
+                    </Link>
 
-                    <button
-                      onClick={() => {
-                        setIsAccountDropdownOpen(false);
-                        setIsAccountOpen(true);
-                      }}
-                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-gray-700 hover:bg-[#F4F6F2] hover:text-[#698156] transition-colors text-left cursor-pointer"
+                    <Link
+                      to="/profile?tab=addresses"
+                      onClick={() => setIsAccountDropdownOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-xs text-gray-700 hover:bg-[#F4F6F2] hover:text-[#698156] transition-colors"
+                    >
+                      <MapPin className="w-4 h-4 text-amber-600" />
+                      <span>Delivery Addresses</span>
+                    </Link>
+
+                    <Link
+                      to="/profile?tab=profile"
+                      onClick={() => setIsAccountDropdownOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-xs text-gray-700 hover:bg-[#F4F6F2] hover:text-[#698156] transition-colors"
                     >
                       <User className="w-4 h-4 text-gray-500" />
-                      <span>Delivery Address & Profile</span>
-                    </button>
+                      <span>Profile Details</span>
+                    </Link>
 
                     <div className="border-t border-gray-100 my-1" />
 
@@ -549,7 +571,7 @@ export function Navigation() {
                   {/* My Orders Action */}
                   <div className="flex flex-col items-center gap-1.5 w-full">
                     <Link
-                      to="/orders"
+                      to="/profile?tab=orders"
                       onClick={() => setIsMobileMenuOpen(false)}
                       className="w-11 h-11 bg-emerald-100/90 border border-emerald-300 text-emerald-600 rounded-2xl flex items-center justify-center shadow-sm hover:bg-emerald-200/90 transition-all relative"
                       aria-label="My Orders"
@@ -569,7 +591,7 @@ export function Navigation() {
                         if (!isAuthenticated) {
                           setIsAuthModalOpen(true);
                         } else {
-                          setIsAccountOpen(true);
+                          navigate('/profile');
                         }
                       }}
                       className="w-11 h-11 bg-indigo-100/90 border border-indigo-300 text-indigo-600 rounded-2xl flex items-center justify-center shadow-sm hover:bg-indigo-200/90 transition-all cursor-pointer"
@@ -578,24 +600,20 @@ export function Navigation() {
                       <User className="w-5 h-5 stroke-[2.5]" />
                     </motion.button>
                     <span className="text-[9px] font-black text-indigo-700 uppercase tracking-wider">
-                      {isAuthenticated ? 'Account' : 'Sign In'}
+                      {isAuthenticated ? 'Profile' : 'Sign In'}
                     </span>
                   </div>
 
                   {/* Wishlist Action */}
                   <div className="flex flex-col items-center gap-1.5 w-full">
-                    <motion.button
-                      whileHover={{ scale: 1.08 }}
-                      whileTap={{ scale: 0.92 }}
-                      onClick={() => {
-                        setIsMobileMenuOpen(false);
-                        setIsWishlistOpen(true);
-                      }}
+                    <Link
+                      to="/profile?tab=wishlist"
+                      onClick={() => setIsMobileMenuOpen(false)}
                       className="w-11 h-11 bg-rose-100/90 border border-rose-300 text-rose-600 rounded-2xl flex items-center justify-center shadow-sm hover:bg-rose-200/90 transition-all cursor-pointer"
                       aria-label="Wishlist"
                     >
                       <Heart className="w-5 h-5 stroke-[2.5]" />
-                    </motion.button>
+                    </Link>
                     <span className="text-[9px] font-black text-rose-700 uppercase tracking-wider">Wishlist</span>
                   </div>
                 </div>
@@ -872,14 +890,6 @@ export function Navigation() {
       </AnimatePresence>
 
 
-      {/* Account / Profile Modal */}
-      <ProfileModal
-        isOpen={isAccountOpen}
-        onClose={() => setIsAccountOpen(false)}
-        title="My Profile"
-        subtitle="Manage your personal profile and shipping address"
-        actionButtonText="Save Profile Details"
-      />
 
       {/* Customer Authentication Modal (Myntra-style) */}
       <AuthModal
