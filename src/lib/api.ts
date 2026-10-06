@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-const OTP_BASE_URL = 'http://localhost:8000';
+const OTP_BASE_URL = import.meta.env.VITE_OTP_SERVICE_URL || 'https://aanya-otp-service.onrender.com';
 
 export interface ApiResponse<T = any> {
   success?: boolean;
