@@ -751,7 +751,6 @@ export function AdminAanyaPage() {
         stock_quantity: Number(form.stock_quantity) || 25,
         image_url: primaryImg,
         images: guaranteedImages,
-        image: primaryImg,
         description: form.description.trim() || null,
         status: form.status,
       };
