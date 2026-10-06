@@ -57,6 +57,8 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
     }
   });
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [signupVerificationToken, setSignupVerificationToken] = useState<string>('');
+  const [loginVerificationToken, setLoginVerificationToken] = useState<string>('');
 
   // Fetch full user profile from 'profiles' table & sync to storage
   const fetchProfile = async (userId: string, userEmail?: string, userMeta?: any) => {
@@ -187,7 +189,7 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
     }
   };
 
-  // 2. Send Login OTP to Email (Tries Supabase SMTP; falls back to Render OTP microservice if rate-limited)
+  // 2. Send Login OTP to Email via Supabase Edge Function (SMTP)
   const sendEmailOtp = async (email: string) => {
     try {
       const cleanEmail = email.trim().toLowerCase();
@@ -195,42 +197,28 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
         return { success: false, error: 'Please enter a valid email address.' };
       }
 
-      let sent = false;
-      let errorMsg = '';
-
-      // Try Supabase signInWithOtp first
-      try {
-        const { error } = await supabase.auth.signInWithOtp({
+      const { data, error } = await supabase.functions.invoke('send-email-otp', {
+        body: {
           email: cleanEmail,
-          options: { shouldCreateUser: false },
-        });
+          purpose: 'login',
+        },
+      });
 
-        if (!error) {
-          sent = true;
-        } else {
-          errorMsg = error.message;
-        }
-      } catch (sbErr: any) {
-        errorMsg = sbErr?.message || '';
+      if (error || !data?.success) {
+        return {
+          success: false,
+          error: data?.error || error?.message || 'Failed to dispatch login verification code via Edge Function.'
+        };
       }
 
-      // If Supabase encountered rate-limit 429 or failure, dispatch via self-hosted microservice
-      if (!sent) {
+      if (data.verification_token) {
+        setLoginVerificationToken(data.verification_token);
         try {
-          const res = await api.otp.send('email', cleanEmail, 'login');
-          if (res?.success) {
-            sent = true;
-          }
-        } catch (mErr: any) {
-          return { success: false, error: mErr.message || errorMsg || 'Failed to dispatch login code.' };
-        }
+          sessionStorage.setItem(`login_vtoken_${cleanEmail}`, data.verification_token);
+        } catch {}
       }
 
-      if (!sent) {
-        return { success: false, error: errorMsg || 'Failed to dispatch login code.' };
-      }
-
-      toast.success(`Login code dispatched to ${cleanEmail}! Check your inbox.`);
+      toast.success(`Verification code dispatched to ${cleanEmail}! Check your inbox.`);
       return { success: true };
     } catch (err: any) {
       console.error('Email OTP Send Error:', err);
@@ -238,63 +226,50 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
     }
   };
 
-  // 3. Verify Login OTP from Email (Supports Supabase Auth & Render OTP microservice)
+  // 3. Verify Login OTP from Email via Supabase Edge Function (SMTP)
   const verifyEmailOtp = async (email: string, token: string) => {
     try {
       const cleanEmail = email.trim().toLowerCase();
       const cleanToken = token.trim();
+      const vToken = loginVerificationToken || sessionStorage.getItem(`login_vtoken_${cleanEmail}`) || '';
 
-      let isVerified = false;
-      let verifiedUser: any = null;
-      let verifiedSession: any = null;
-
-      // 1. Check Supabase verifyOtp
-      try {
-        const { data, error } = await supabase.auth.verifyOtp({
+      const { data, error } = await supabase.functions.invoke('verify-email-otp', {
+        body: {
           email: cleanEmail,
-          token: cleanToken,
-          type: 'email',
-        });
-        if (!error && data?.user) {
-          isVerified = true;
-          verifiedUser = data.user;
-          verifiedSession = data.session;
-        }
-      } catch (e) {}
+          code: cleanToken,
+          verification_token: vToken,
+          purpose: 'login',
+        },
+      });
 
-      // 2. Check self-hosted microservice
-      if (!isVerified) {
-        try {
-          const vRes = await api.otp.verify('email', cleanEmail, cleanToken, 'login');
-          if (vRes?.success || (vRes as any)?.verified) {
-            isVerified = true;
-          }
-        } catch (e) {}
-      }
-
-      if (!isVerified) {
-        return { success: false, error: 'Invalid or expired verification code.' };
-      }
-
-      if (verifiedUser) {
-        setUser(verifiedUser);
-        setSession(verifiedSession);
-        await fetchProfile(verifiedUser.id, verifiedUser.email, verifiedUser.user_metadata);
-      } else {
-        const { data: dbProfile } = await supabase.from('profiles').select('*').eq('email', cleanEmail).maybeSingle();
-        const fallbackUser: any = {
-          id: dbProfile?.id || crypto.randomUUID(),
-          email: cleanEmail,
-          user_metadata: {
-            full_name: dbProfile?.full_name || 'Valued Customer',
-            phone: dbProfile?.phone || '',
-          }
+      if (error || (!data?.success && !data?.verified)) {
+        return {
+          success: false,
+          error: data?.error || error?.message || 'Invalid or expired verification code. Please check your email and try again.'
         };
-        setUser(fallbackUser);
-        if (dbProfile) {
-          setProfile(dbProfile);
-          localStorage.setItem('customer_profile_cache', JSON.stringify(dbProfile));
+      }
+
+      // Code authoritatively verified! Fetch profile from profiles table
+      const { data: dbProfile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('email', cleanEmail)
+        .maybeSingle();
+
+      const verifiedUser: any = {
+        id: dbProfile?.id || crypto.randomUUID(),
+        email: cleanEmail,
+        user_metadata: {
+          full_name: dbProfile?.full_name || 'Valued Customer',
+          phone: dbProfile?.phone || '',
+          gender: dbProfile?.gender || '',
         }
+      };
+
+      setUser(verifiedUser);
+      if (dbProfile) {
+        setProfile(dbProfile);
+        localStorage.setItem('customer_profile_cache', JSON.stringify(dbProfile));
       }
 
       toast.success(`Welcome back! Signed in successfully.`);
@@ -305,61 +280,36 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
     }
   };
 
-  // 4. Send Signup OTP to Email (Tries Supabase SMTP; falls back to Render OTP microservice if rate-limited)
+  // 4. Send Signup OTP to Email via Supabase Edge Function (SMTP)
   const sendSignupOtp = async (formData: SignupFormData) => {
     try {
       const cleanEmail = formData.email.trim().toLowerCase();
-      const cleanName = formData.fullName.trim();
-      const cleanPhone = formData.phone.trim();
-      const cleanGender = formData.gender.trim();
-
       if (!cleanEmail || !cleanEmail.includes('@')) {
         return { success: false, error: 'Please enter a valid email address.' };
       }
 
-      let sent = false;
-      let errorMsg = '';
-
-      // Attempt 1: Supabase signInWithOtp
-      try {
-        const { error } = await supabase.auth.signInWithOtp({
+      const { data, error } = await supabase.functions.invoke('send-email-otp', {
+        body: {
           email: cleanEmail,
-          options: {
-            shouldCreateUser: true,
-            data: {
-              full_name: cleanName,
-              phone: cleanPhone,
-              gender: cleanGender,
-            },
-          },
-        });
+          purpose: 'signup',
+        },
+      });
 
-        if (!error) {
-          sent = true;
-        } else {
-          errorMsg = error.message;
-        }
-      } catch (sbErr: any) {
-        errorMsg = sbErr?.message || '';
+      if (error || !data?.success) {
+        return {
+          success: false,
+          error: data?.error || error?.message || 'Failed to dispatch verification code via Edge Function.'
+        };
       }
 
-      // Attempt 2: If Supabase threw rate-limit 429 or error, dispatch via Render OTP microservice
-      if (!sent) {
+      if (data.verification_token) {
+        setSignupVerificationToken(data.verification_token);
         try {
-          const res = await api.otp.send('email', cleanEmail, 'verification');
-          if (res?.success) {
-            sent = true;
-          }
-        } catch (mErr: any) {
-          return { success: false, error: mErr.message || errorMsg || 'Failed to dispatch verification email.' };
-        }
+          sessionStorage.setItem(`signup_vtoken_${cleanEmail}`, data.verification_token);
+        } catch {}
       }
 
-      if (!sent) {
-        return { success: false, error: errorMsg || 'Failed to dispatch verification email.' };
-      }
-
-      toast.success(`Verification code sent to ${cleanEmail}! Check your email inbox.`);
+      toast.success(`Verification code dispatched to ${cleanEmail}! Check your inbox.`);
       return { success: true };
     } catch (err: any) {
       console.error('Signup OTP Send Error:', err);
@@ -367,7 +317,7 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
     }
   };
 
-  // 5. Verify Signup OTP (Authoritative check: if wrong OTP, user does NOT get signed up!)
+  // 5. Verify Signup OTP via Supabase Edge Function (Authoritative: does NOT sign up if OTP is wrong!)
   const verifySignupOtp = async (formData: SignupFormData, token: string) => {
     try {
       const cleanEmail = formData.email.trim().toLowerCase();
@@ -375,40 +325,27 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
       const cleanPhone = formData.phone.trim();
       const cleanGender = formData.gender.trim();
       const cleanToken = token.trim();
+      const vToken = signupVerificationToken || sessionStorage.getItem(`signup_vtoken_${cleanEmail}`) || '';
 
-      let isVerified = false;
-
-      // 1. Authoritative verification check via Supabase
-      try {
-        const { data, error } = await supabase.auth.verifyOtp({
+      // 1. Authoritative verification check via Supabase Edge Function
+      const { data, error } = await supabase.functions.invoke('verify-email-otp', {
+        body: {
           email: cleanEmail,
-          token: cleanToken,
-          type: 'email',
-        });
-        if (!error && data?.user) {
-          isVerified = true;
-        }
-      } catch (sbErr) {}
+          code: cleanToken,
+          verification_token: vToken,
+          purpose: 'signup',
+        },
+      });
 
-      // 2. Authoritative verification check via self-hosted microservice
-      if (!isVerified) {
-        try {
-          const verifyRes = await api.otp.verify('email', cleanEmail, cleanToken, 'verification');
-          if (verifyRes?.success || (verifyRes as any)?.verified) {
-            isVerified = true;
-          }
-        } catch (vErr) {}
-      }
-
-      // If the OTP was wrong in both engines, DO NOT SIGN UP!
-      if (!isVerified) {
+      // If OTP was wrong or invalid, DO NOT PROCEED TO SIGN UP!
+      if (error || (!data?.success && !data?.verified)) {
         return {
           success: false,
-          error: 'Invalid or expired verification code. Please check your email and try again.'
+          error: data?.error || error?.message || 'Invalid or expired verification code. Please check your email and try again.'
         };
       }
 
-      // 3. User is verified! Set up Supabase auth session
+      // 2. User is verified! Set up Supabase auth session
       let activeUser: any = null;
       let activeSession: any = null;
 
@@ -440,21 +377,23 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
 
       const userId = activeUser?.id || crypto.randomUUID();
 
-      // 4. Upsert into Supabase profiles table
+      // 3. Upsert into Supabase profiles table
       try {
         await supabase.from('profiles').upsert({
           id: userId,
           email: cleanEmail,
           full_name: cleanName,
           phone: cleanPhone || null,
+          gender: cleanGender || null,
           role: 'customer',
           status: 'Active',
+          updated_at: new Date().toISOString(),
         });
       } catch (pErr) {
         console.warn('Profile upsert notice:', pErr);
       }
 
-      // 5. Save to userProfile storage so details immediately show in profile modal
+      // 4. Save to userProfile storage so details immediately show in profile modal
       saveUserProfileDetails({
         name: cleanName,
         phone: cleanPhone,
@@ -487,7 +426,7 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
       };
 
       setUser(finalUser as any);
-      setSession(activeSession);
+      if (activeSession) setSession(activeSession);
       setProfile(customerProfile);
       localStorage.setItem('customer_profile_cache', JSON.stringify(customerProfile));
 

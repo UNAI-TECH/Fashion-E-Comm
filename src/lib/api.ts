@@ -1,7 +1,6 @@
 import { supabase } from './supabase';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-const OTP_BASE_URL = import.meta.env.VITE_OTP_SERVICE_URL || 'https://aanya-otp-service.onrender.com';
 
 export interface ApiResponse<T = any> {
   success?: boolean;
@@ -271,20 +270,26 @@ export const api = {
     }
   },
 
-  // ─── OTP MICROSERVICE ───
+  // ─── OTP VIA SUPABASE EDGE FUNCTIONS (SMTP) ───
   otp: {
-    send: (channel: 'email' | 'sms', destination: string, purpose = 'auth') =>
-      request<{ success: boolean; message: string; request_id: string; expires_in_seconds: number }>(
-        '/otp/send',
-        { method: 'POST', body: JSON.stringify({ channel, destination, purpose }) },
-        OTP_BASE_URL
-      ),
-    verify: (channel: 'email' | 'sms', destination: string, code: string, purpose = 'auth') =>
-      request<{ success: boolean; message: string }>(
-        '/otp/verify',
-        { method: 'POST', body: JSON.stringify({ channel, destination, code, purpose }) },
-        OTP_BASE_URL
-      )
+    send: async (email: string, purpose = 'auth') => {
+      const { data, error } = await supabase.functions.invoke('send-email-otp', {
+        body: { email: email.trim().toLowerCase(), purpose }
+      });
+      if (error) {
+        throw new Error(error.message || 'Failed to dispatch verification email via Edge Function');
+      }
+      return data as { success: boolean; message: string; verification_token: string; expires_in_seconds: number };
+    },
+    verify: async (email: string, code: string, verification_token: string, purpose = 'auth') => {
+      const { data, error } = await supabase.functions.invoke('verify-email-otp', {
+        body: { email: email.trim().toLowerCase(), code: code.trim(), verification_token, purpose }
+      });
+      if (error) {
+        throw new Error(error.message || 'Verification failed');
+      }
+      return data as { success: boolean; message: string; verified: boolean };
+    }
   },
 
   // ─── HEALTH ───
