@@ -312,16 +312,13 @@ export function ProductPage() {
 
             const { data: dbProfile } = await supabase
               .from('profiles')
-              .select('*')
+              .select('id, email, full_name, phone, avatar_url, role, status')
               .eq('id', user.id)
               .maybeSingle();
 
             if (dbProfile) {
               if (dbProfile.full_name) name = dbProfile.full_name;
               if (dbProfile.phone) phone = dbProfile.phone;
-              if (dbProfile.address) address = dbProfile.address;
-              if (dbProfile.city) city = dbProfile.city;
-              if (dbProfile.pincode) pincode = dbProfile.pincode;
             }
           }
         } catch (e) {

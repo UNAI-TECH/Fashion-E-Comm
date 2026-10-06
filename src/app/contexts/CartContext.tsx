@@ -21,6 +21,38 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
+/**
+ * Helper: Get or create the user's cart row in `public.carts`.
+ * Returns the cart UUID, or null if unauthenticated.
+ */
+async function getOrCreateCart(userId: string): Promise<string | null> {
+  try {
+    // Try to get existing cart
+    const { data: existing, error: fetchErr } = await supabase
+      .from('carts')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (!fetchErr && existing?.id) return existing.id;
+
+    // Create new cart for user
+    const { data: created, error: createErr } = await supabase
+      .from('carts')
+      .insert({ user_id: userId })
+      .select('id')
+      .single();
+
+    if (!createErr && created?.id) return created.id;
+
+    console.warn('Could not get or create cart:', createErr);
+    return null;
+  } catch (e) {
+    console.warn('getOrCreateCart error:', e);
+    return null;
+  }
+}
+
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -31,16 +63,23 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       if (!user) return;
 
       setIsLoading(true);
+
+      const cartId = await getOrCreateCart(user.id);
+      if (!cartId) return;
+
       const { data, error } = await supabase
-        .from('cart')
+        .from('cart_items')
         .select(`
           quantity,
           product_id,
           products:product_id (*)
         `)
-        .eq('user_id', user.id);
+        .eq('cart_id', cartId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching cart_items:', error);
+        return;
+      }
 
       const enrichedItems: CartItem[] = (data || [])
         .filter(item => item.products)
@@ -101,24 +140,27 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       if (user?.id) {
         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(product.id);
         if (isUUID) {
+          const cartId = await getOrCreateCart(user.id);
+          if (!cartId) return;
+
           const { data: existingItem } = await supabase
-            .from('cart')
+            .from('cart_items')
             .select('*')
-            .eq('user_id', user.id)
+            .eq('cart_id', cartId)
             .eq('product_id', product.id)
             .single();
 
           if (existingItem) {
             await supabase
-              .from('cart')
+              .from('cart_items')
               .update({ quantity: existingItem.quantity + quantity })
-              .eq('user_id', user.id)
+              .eq('cart_id', cartId)
               .eq('product_id', product.id);
           } else {
             await supabase
-              .from('cart')
+              .from('cart_items')
               .insert({
-                user_id: user.id,
+                cart_id: cartId,
                 product_id: product.id,
                 quantity: quantity
               });
@@ -141,13 +183,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user?.id) {
+        const cartId = await getOrCreateCart(user.id);
+        if (!cartId) return;
+
         const currentItem = cartItems.find(item => item.id === productId);
         if (currentItem) {
           const newQty = Math.max(1, currentItem.quantity + delta);
           await supabase
-            .from('cart')
+            .from('cart_items')
             .update({ quantity: newQty })
-            .eq('user_id', user.id)
+            .eq('cart_id', cartId)
             .eq('product_id', productId);
         }
       }
@@ -163,10 +208,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user?.id) {
+        const cartId = await getOrCreateCart(user.id);
+        if (!cartId) return;
+
         await supabase
-          .from('cart')
+          .from('cart_items')
           .delete()
-          .eq('user_id', user.id)
+          .eq('cart_id', cartId)
           .eq('product_id', productId);
       }
     } catch (error) {
@@ -181,10 +229,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user?.id) {
+        const cartId = await getOrCreateCart(user.id);
+        if (!cartId) return;
+
         await supabase
-          .from('cart')
+          .from('cart_items')
           .delete()
-          .eq('user_id', user.id);
+          .eq('cart_id', cartId);
       }
     } catch (error) {
       console.error('Error clearing cart in Supabase:', error);

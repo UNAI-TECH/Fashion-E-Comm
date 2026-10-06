@@ -68,55 +68,70 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, email, full_name, phone, avatar_url, role, status, created_at, updated_at')
         .eq('id', userId)
         .maybeSingle();
 
       if (!error && data) {
         const enriched: CustomerProfile = {
-          ...data,
-          gender: data.gender || userMeta?.gender || '',
+          id: data.id,
+          email: data.email,
+          full_name: data.full_name || '',
+          phone: data.phone || '',
+          avatar_url: data.avatar_url || '',
+          gender: userMeta?.gender || '',
+          role: data.role || 'customer',
+          status: data.status || 'Active',
+          created_at: data.created_at,
         };
         setProfile(enriched);
         localStorage.setItem('customer_profile_cache', JSON.stringify(enriched));
 
         // Sync into local user_profile_details for ProfileModal
+        // Gender, address, city, pincode, state are stored locally only (not in DB)
         const savedLocal = getUserProfileDetails();
         saveUserProfileDetails({
           name: data.full_name || userMeta?.full_name || savedLocal.name || '',
           phone: data.phone || userMeta?.phone || savedLocal.phone || '',
-          gender: data.gender || userMeta?.gender || savedLocal.gender || '',
+          gender: userMeta?.gender || savedLocal.gender || '',
           email: data.email || userEmail || savedLocal.email || '',
-          address: data.address || savedLocal.address || '',
-          city: data.city || savedLocal.city || '',
-          pincode: data.pincode || savedLocal.pincode || '',
-          state: data.state || savedLocal.state || '',
+          address: savedLocal.address || '',
+          city: savedLocal.city || '',
+          pincode: savedLocal.pincode || '',
+          state: savedLocal.state || '',
         });
         return;
       }
 
       // If profile doesn't exist yet, create it
-      const newProfile: CustomerProfile = {
+      // Only include columns that exist in the profiles table
+      const dbProfile = {
         id: userId,
         email: userEmail || '',
         full_name: userMeta?.full_name || userMeta?.name || userEmail?.split('@')[0] || 'Valued Customer',
         phone: userMeta?.phone || '',
-        gender: userMeta?.gender || '',
-        role: 'customer',
-        status: 'Active',
+        role: 'customer' as const,
+        status: 'Active' as const,
+        updated_at: new Date().toISOString(),
       };
 
       const { data: inserted } = await supabase
         .from('profiles')
-        .upsert(newProfile)
+        .upsert(dbProfile)
         .select()
         .single();
 
+      const newProfile: CustomerProfile = {
+        ...dbProfile,
+        gender: userMeta?.gender || '',
+      };
+
       if (inserted) {
-        setProfile(inserted);
-        localStorage.setItem('customer_profile_cache', JSON.stringify(inserted));
+        setProfile({ ...inserted, gender: userMeta?.gender || '' });
+        localStorage.setItem('customer_profile_cache', JSON.stringify({ ...inserted, gender: userMeta?.gender || '' }));
       } else {
         setProfile(newProfile);
+        localStorage.setItem('customer_profile_cache', JSON.stringify(newProfile));
       }
     } catch (e) {
       console.warn('Error fetching customer profile:', e);
@@ -329,14 +344,13 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
 
       const userId = data.user?.id || crypto.randomUUID();
 
-      // Upsert into Supabase profiles table
+      // Upsert into Supabase profiles table (only DB columns)
       try {
         await supabase.from('profiles').upsert({
           id: userId,
           email: cleanEmail,
           full_name: cleanName,
           phone: cleanPhone || null,
-          gender: cleanGender || null,
           role: 'customer',
           status: 'Active',
           updated_at: new Date().toISOString(),
@@ -485,16 +499,29 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
   const updateProfile = async (updates: Partial<CustomerProfile>) => {
     if (!user?.id) return { success: false, error: 'User not logged in' };
     try {
+      // Only send columns that exist in the DB profiles table
+      const dbUpdates: Record<string, any> = {};
+      const allowedDbCols = ['email', 'full_name', 'phone', 'avatar_url', 'role', 'status'];
+      for (const key of allowedDbCols) {
+        if (key in updates) {
+          dbUpdates[key] = (updates as any)[key];
+        }
+      }
+      dbUpdates.updated_at = new Date().toISOString();
+
       const { data, error } = await supabase
         .from('profiles')
-        .update(updates)
+        .update(dbUpdates)
         .eq('id', user.id)
         .select()
         .single();
 
       if (error) throw error;
-      setProfile(data);
-      localStorage.setItem('customer_profile_cache', JSON.stringify(data));
+
+      // Merge DB response with local-only fields (gender)
+      const merged = { ...data, gender: updates.gender || profile?.gender || '' };
+      setProfile(merged);
+      localStorage.setItem('customer_profile_cache', JSON.stringify(merged));
       toast.success('Profile updated successfully!');
       return { success: true };
     } catch (err: any) {
