@@ -374,17 +374,14 @@ export function ProductPage() {
     setIsSendingOtp(true);
     try {
       const formatted = cleanPhone.length === 10 ? `+91${cleanPhone}` : `+${cleanPhone}`;
-      const { error } = await supabase.auth.signInWithOtp({
-        phone: formatted,
-        options: { shouldCreateUser: true }
-      });
-      if (error) {
-        console.warn('SMS OTP provider notice:', error.message);
-      }
-      toast.success(`Verification OTP sent to ${formatted}`);
+      
+      // Use production Python OTP microservice on Render
+      const res = await api.otp.send('sms', formatted, 'checkout');
+      toast.success(`Verification code dispatched to ${formatted}! (Valid for 30s)`);
       setBuyNowStep('otp');
-    } catch (err) {
-      toast.error('Failed to send OTP');
+    } catch (err: any) {
+      console.error('OTP Send Error:', err);
+      toast.error(err.message || 'Failed to send OTP. Please try again.');
     } finally {
       setIsSendingOtp(false);
     }
@@ -399,17 +396,19 @@ export function ProductPage() {
     try {
       const cleanPhone = buyNowPhone.replace(/\D/g, '');
       const formatted = cleanPhone.length === 10 ? `+91${cleanPhone}` : `+${cleanPhone}`;
-      await supabase.auth.verifyOtp({
-        phone: formatted,
-        token: buyNowOtp.trim(),
-        type: 'sms'
-      }).catch((e: any) => console.warn('Supabase OTP notice:', e));
-
-      toast.success('Mobile Number Verified Successfully!');
-      setOrderForm(prev => ({ ...prev, phone: buyNowPhone }));
-      setBuyNowStep('checkout');
-    } catch (err) {
-      toast.error('Invalid OTP');
+      
+      // Authoritatively verify code against Render OTP microservice
+      const verifyRes = await api.otp.verify('sms', formatted, buyNowOtp.trim(), 'checkout');
+      if (verifyRes.success || (verifyRes as any).verified) {
+        toast.success('Mobile Number Verified Successfully!');
+        setOrderForm(prev => ({ ...prev, phone: buyNowPhone }));
+        setBuyNowStep('checkout');
+      } else {
+        toast.error(verifyRes.message || 'Invalid or expired OTP');
+      }
+    } catch (err: any) {
+      console.error('OTP Verification Error:', err);
+      toast.error(err.message || 'Invalid or expired code. Please request a new OTP.');
     } finally {
       setIsVerifyingOtp(false);
     }

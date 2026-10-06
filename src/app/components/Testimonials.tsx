@@ -71,7 +71,7 @@ export function Testimonials() {
       try {
         const { data, error } = await supabase
           .from('reviews')
-          .select('id, comment, rating, created_at, profiles:user_id(full_name)')
+          .select('id, comment, rating, created_at, user_id')
           .eq('status', 'Approved')
           .order('created_at', { ascending: false })
           .limit(10);
@@ -79,14 +79,14 @@ export function Testimonials() {
         if (!error && data && data.length > 0) {
           const mapped: Testimonial[] = data.map((r: any, idx: number) => ({
             id: r.id || idx + 1,
-            name: r.profiles?.full_name || 'Verified Buyer',
+            name: 'Verified Buyer',
             city: 'Verified Purchase · India',
             review: r.comment || 'Exceptional craftsmanship and rich drape. Highly recommended!'
           }));
           setActiveTestimonials(mapped);
         }
       } catch (err) {
-        console.warn('Error fetching reviews for testimonials:', err);
+        console.warn('Reviews notice:', err);
       }
     }
     loadReviews();

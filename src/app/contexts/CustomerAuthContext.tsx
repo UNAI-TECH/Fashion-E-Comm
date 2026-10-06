@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
+import { api } from '../../lib/api';
 import { User, Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 
@@ -201,93 +202,96 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
     }
   };
 
-  // 3. Send OTP (Email or Phone)
+  // 3. Send OTP (Email or Phone via Render Python OTP microservice)
   const sendOtp = async (emailOrPhone: string) => {
     try {
       const input = emailOrPhone.trim();
       const isEmail = input.includes('@');
+      const channel = isEmail ? 'email' : 'sms';
 
-      if (isEmail) {
-        const { error } = await supabase.auth.signInWithOtp({
-          email: input,
-          options: {
-            shouldCreateUser: true,
-          },
-        });
-        if (error) return { success: false, error: error.message };
-        toast.success(`One-Time Password sent to ${input}`);
-        return { success: true };
-      } else {
-        // Phone number formatting (+91 for India by default if not prefixed)
-        let phoneFormatted = input.replace(/\D/g, '');
-        if (phoneFormatted.length === 10) {
-          phoneFormatted = `+91${phoneFormatted}`;
-        } else if (!phoneFormatted.startsWith('+')) {
-          phoneFormatted = `+${phoneFormatted}`;
-        }
-
-        const { error } = await supabase.auth.signInWithOtp({
-          phone: phoneFormatted,
-          options: {
-            shouldCreateUser: true,
-          },
-        });
-        if (error) return { success: false, error: error.message };
-        toast.success(`OTP sent to ${phoneFormatted}`);
-        return { success: true };
+      let destination = input;
+      if (!isEmail) {
+        const clean = input.replace(/\D/g, '');
+        destination = clean.length === 10 ? `+91${clean}` : `+${clean}`;
       }
+
+      // Dispatch via Render OTP microservice
+      await api.otp.send(channel, destination, 'login');
+      toast.success(`Verification code dispatched to ${destination}! (Valid for 30 seconds)`);
+      return { success: true };
     } catch (err: any) {
-      return { success: false, error: err.message || 'Failed to send OTP' };
+      console.error('OTP Send Error:', err);
+      const msg = err.status === 429
+        ? (err.message || 'Please wait before requesting a new OTP.')
+        : (err.message || 'Failed to send OTP.');
+      return { success: false, error: msg };
     }
   };
 
-  // 4. Verify OTP
+  // 4. Verify OTP (via Render Python OTP microservice)
   const verifyOtp = async (emailOrPhone: string, token: string) => {
     try {
       const input = emailOrPhone.trim();
       const isEmail = input.includes('@');
+      const channel = isEmail ? 'email' : 'sms';
       const cleanToken = token.trim();
 
-      if (isEmail) {
-        const { data, error } = await supabase.auth.verifyOtp({
-          email: input,
-          token: cleanToken,
-          type: 'email',
-        });
-        if (error) return { success: false, error: error.message };
-        if (data.user) {
-          setUser(data.user);
-          setSession(data.session);
-          await fetchProfile(data.user.id, data.user.email);
-          toast.success('Successfully authenticated!');
-          return { success: true };
-        }
-      } else {
-        let phoneFormatted = input.replace(/\D/g, '');
-        if (phoneFormatted.length === 10) {
-          phoneFormatted = `+91${phoneFormatted}`;
-        } else if (!phoneFormatted.startsWith('+')) {
-          phoneFormatted = `+${phoneFormatted}`;
-        }
+      let destination = input;
+      if (!isEmail) {
+        const clean = input.replace(/\D/g, '');
+        destination = clean.length === 10 ? `+91${clean}` : `+${clean}`;
+      }
 
-        const { data, error } = await supabase.auth.verifyOtp({
-          phone: phoneFormatted,
-          token: cleanToken,
-          type: 'sms',
-        });
-        if (error) return { success: false, error: error.message };
-        if (data.user) {
-          setUser(data.user);
-          setSession(data.session);
-          await fetchProfile(data.user.id, data.user.email, { phone: phoneFormatted });
-          toast.success('Successfully authenticated!');
-          return { success: true };
+      // 1. Authoritative verification with Render OTP microservice
+      const verifyRes = await api.otp.verify(channel, destination, cleanToken, 'login');
+      if (!verifyRes?.success && !(verifyRes as any)?.verified) {
+        return { success: false, error: verifyRes?.message || 'Invalid or expired code. Please request a new OTP.' };
+      }
+
+      // 2. Fetch or create user profile in Supabase profiles table
+      let profileData: CustomerProfile | null = null;
+      if (isEmail) {
+        const { data } = await supabase.from('profiles').select('*').eq('email', destination).maybeSingle();
+        profileData = data;
+      } else {
+        const { data } = await supabase.from('profiles').select('*').eq('phone', destination).maybeSingle();
+        profileData = data;
+      }
+
+      if (!profileData) {
+        const newId = crypto.randomUUID();
+        const newProfile: any = {
+          id: newId,
+          email: isEmail ? destination : null,
+          phone: !isEmail ? destination : null,
+          full_name: 'Valued Customer',
+          role: 'customer',
+          status: 'Active',
+          created_at: new Date().toISOString()
+        };
+        const { data: inserted } = await supabase.from('profiles').upsert(newProfile).select().single();
+        if (inserted) {
+          profileData = inserted as CustomerProfile;
         }
       }
 
-      return { success: false, error: 'Verification failed' };
+      const authUser: any = {
+        id: profileData?.id || crypto.randomUUID(),
+        email: isEmail ? destination : undefined,
+        phone: !isEmail ? destination : undefined,
+        user_metadata: {
+          full_name: profileData?.full_name || 'Valued Customer',
+          phone: destination
+        }
+      };
+
+      setUser(authUser);
+      setProfile(profileData);
+      toast.success('Signed in successfully!');
+      return { success: true };
     } catch (err: any) {
-      return { success: false, error: err.message || 'Verification error' };
+      console.error('OTP Verification Error:', err);
+      return { success: false, error: err.message || 'Invalid or expired code.' };
     }
   };
 

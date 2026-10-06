@@ -274,13 +274,13 @@ export const api = {
   // ─── OTP MICROSERVICE ───
   otp: {
     send: (channel: 'email' | 'sms', destination: string, purpose = 'auth') =>
-      request<{ status: string; request_id: string; expires_in_seconds: number }>(
+      request<{ success: boolean; message: string; request_id: string; expires_in_seconds: number }>(
         '/otp/send',
         { method: 'POST', body: JSON.stringify({ channel, destination, purpose }) },
         OTP_BASE_URL
       ),
     verify: (channel: 'email' | 'sms', destination: string, code: string, purpose = 'auth') =>
-      request<{ status: string; verified: boolean; message: string }>(
+      request<{ success: boolean; message: string; verified?: boolean }>(
         '/otp/verify',
         { method: 'POST', body: JSON.stringify({ channel, destination, code, purpose }) },
         OTP_BASE_URL
