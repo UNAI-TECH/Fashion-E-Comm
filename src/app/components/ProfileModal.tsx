@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Camera, User, ArrowRight } from 'lucide-react';
+import { ArrowLeft, Camera, User, ArrowRight, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   UserProfileDetails,
@@ -27,7 +27,7 @@ export function ProfileModal({
   subtitle = 'Please enter your profile information to continue',
   actionButtonText = 'Save Details & Continue'
 }: ProfileModalProps) {
-  const { user, profile } = useCustomerAuth();
+  const { user, profile, signOut } = useCustomerAuth();
   const [profileDetails, setProfileDetails] = useState<UserProfileDetails>(getUserProfileDetails());
   const [profileImage, setProfileImage] = useState<string>(getUserProfileImage());
 
@@ -280,6 +280,22 @@ export function ProfileModal({
                       <ArrowRight className="w-4 h-4 text-[#698156]" />
                     </motion.button>
                   </div>
+
+                  {user && (
+                    <div className="pt-1">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          onClose();
+                          await signOut();
+                        }}
+                        className="w-full py-3.5 bg-rose-50 hover:bg-rose-100/90 border border-rose-200 text-rose-600 font-bold rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer text-center flex items-center justify-center gap-2"
+                      >
+                        <LogOut className="w-4 h-4 text-rose-500" />
+                        <span>Sign Out of Account</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

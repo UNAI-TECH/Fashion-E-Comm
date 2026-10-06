@@ -366,14 +366,41 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
   // 6. Sign Out
   const signOut = async () => {
     try {
-      await supabase.auth.signOut();
+      await supabase.auth.signOut({ scope: 'local' });
     } catch (e) {
-      console.warn('Sign out warning:', e);
+      console.warn('Local sign out warning:', e);
     }
+
+    try {
+      supabase.auth.signOut({ scope: 'global' }).catch(() => {});
+    } catch (e) {}
+
+    // Reset React state immediately
     setUser(null);
     setSession(null);
     setProfile(null);
-    localStorage.removeItem('customer_profile_cache');
+
+    // Thoroughly purge all auth & profile data from localStorage
+    try {
+      localStorage.removeItem('customer_profile_cache');
+      localStorage.removeItem('admin_info');
+      localStorage.removeItem('user_profile_details');
+      localStorage.removeItem('user_profile_image');
+
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('sb-') || key.includes('supabase.auth'))) {
+          localStorage.removeItem(key);
+        }
+      }
+    } catch (e) {
+      console.warn('Storage purge error:', e);
+    }
+
+    // Broadcast sign-out event across components
+    window.dispatchEvent(new CustomEvent('user_profile_updated'));
+    window.dispatchEvent(new CustomEvent('user-signed-out'));
+
     toast.success('You have been signed out.');
   };
 

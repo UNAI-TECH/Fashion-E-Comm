@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, User, Package, Heart, ChevronDown, ArrowRight, X, Phone, Plus, Minus, Trash2, Menu, Clock, ArrowLeft, ShoppingBag, Camera } from 'lucide-react';
+import { Search, User, Package, Heart, ChevronDown, ArrowRight, X, Phone, Plus, Minus, Trash2, Menu, Clock, ArrowLeft, ShoppingBag, Camera, LogOut } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import { useWishlist } from '../contexts/WishlistContext';
 import { Link, useLocation, useNavigate } from 'react-router';
@@ -71,11 +71,18 @@ export function Navigation() {
     window.addEventListener('storage', handleProfileUpdate);
     const handleOpenProfileModal = () => setIsAccountOpen(true);
     window.addEventListener('open-profile-modal', handleOpenProfileModal);
+    const handleSignedOut = () => {
+      setIsAccountDropdownOpen(false);
+      setIsAccountOpen(false);
+      setProfileImage('');
+    };
+    window.addEventListener('user-signed-out', handleSignedOut);
 
     return () => {
       window.removeEventListener('user_profile_updated', handleProfileUpdate);
       window.removeEventListener('storage', handleProfileUpdate);
       window.removeEventListener('open-profile-modal', handleOpenProfileModal);
+      window.removeEventListener('user-signed-out', handleSignedOut);
     };
   }, []);
 
@@ -404,12 +411,16 @@ export function Navigation() {
                     <div className="border-t border-gray-100 my-1" />
 
                     <button
-                      onClick={() => {
+                      type="button"
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
                         setIsAccountDropdownOpen(false);
-                        signOut();
+                        await signOut();
                       }}
-                      className="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-rose-600 hover:bg-rose-50 transition-colors text-left cursor-pointer font-bold"
+                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-rose-600 hover:bg-rose-50 transition-colors text-left cursor-pointer font-bold"
                     >
+                      <LogOut className="w-4 h-4 text-rose-500" />
                       <span>Sign Out</span>
                     </button>
                   </motion.div>
