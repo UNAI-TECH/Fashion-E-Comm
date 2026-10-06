@@ -30,31 +30,30 @@ CREATE TABLE IF NOT EXISTS public.reviews (
 -- 5. RLS for reviews (public read, authenticated write)
 ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS "Reviews are publicly readable"
+DROP POLICY IF EXISTS "Reviews are publicly readable" ON public.reviews;
+CREATE POLICY "Reviews are publicly readable"
   ON public.reviews FOR SELECT
   USING (true);
 
-CREATE POLICY IF NOT EXISTS "Authenticated users can insert reviews"
+DROP POLICY IF EXISTS "Authenticated users can insert reviews" ON public.reviews;
+CREATE POLICY "Authenticated users can insert reviews"
   ON public.reviews FOR INSERT
   WITH CHECK (auth.uid() IS NOT NULL);
 
-CREATE POLICY IF NOT EXISTS "Users can update their own reviews"
+DROP POLICY IF EXISTS "Users can update their own reviews" ON public.reviews;
+CREATE POLICY "Users can update their own reviews"
   ON public.reviews FOR UPDATE
   USING (auth.uid() = user_id);
 
-CREATE POLICY IF NOT EXISTS "Users can delete their own reviews"
+DROP POLICY IF EXISTS "Users can delete their own reviews" ON public.reviews;
+CREATE POLICY "Users can delete their own reviews"
   ON public.reviews FOR DELETE
   USING (auth.uid() = user_id);
 
 -- 6. RLS for coupons (public read for validation)
--- Allow reading coupons for coupon code validation at checkout
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename = 'coupons' AND policyname = 'Coupons are publicly readable'
-  ) THEN
-    CREATE POLICY "Coupons are publicly readable"
-      ON public.coupons FOR SELECT
-      USING (true);
-  END IF;
-END $$;
+ALTER TABLE public.coupons ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Coupons are publicly readable" ON public.coupons;
+CREATE POLICY "Coupons are publicly readable"
+  ON public.coupons FOR SELECT
+  USING (true);
