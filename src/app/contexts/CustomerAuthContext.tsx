@@ -223,7 +223,63 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
           ? window.location.origin
           : 'https://www.aanyafashions.com/';
 
-      // Register with Supabase native email confirmation
+      // 1. Direct Edge Function registration (bypasses Supabase SMTP 429 rate limit)
+      try {
+        const { data: edgeData, error: edgeErr } = await supabase.functions.invoke('customer-register', {
+          body: {
+            email: cleanEmail,
+            password: formData.password,
+            fullName: cleanName,
+            phone: cleanPhone,
+            gender: cleanGender,
+          },
+        });
+
+        if (!edgeErr && edgeData?.success) {
+          // Immediately sign in with password to obtain active JWT session
+          const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({
+            email: cleanEmail,
+            password: formData.password,
+          });
+
+          if (!signInErr && signInData?.session && signInData?.user) {
+            const customerProfile: CustomerProfile = {
+              id: signInData.user.id,
+              email: cleanEmail,
+              full_name: cleanName,
+              phone: cleanPhone,
+              gender: cleanGender,
+              role: 'customer',
+              status: 'Active',
+            };
+
+            setUser(signInData.user);
+            setSession(signInData.session);
+            setProfile(customerProfile);
+            localStorage.setItem('customer_profile_cache', JSON.stringify(customerProfile));
+            saveUserProfileDetails({
+              name: cleanName,
+              phone: cleanPhone,
+              gender: cleanGender,
+              email: cleanEmail,
+              address: '',
+              city: '',
+              pincode: '',
+              state: '',
+            });
+
+            toast.success(`Welcome to Aanya Fashions, ${cleanName}!`);
+            return {
+              success: true,
+              needsEmailVerification: false,
+            };
+          }
+        }
+      } catch (edgeCatch) {
+        console.warn('Edge function registration notice:', edgeCatch);
+      }
+
+      // 2. Standard fallback registration with Supabase native email confirmation
       const { data, error } = await supabase.auth.signUp({
         email: cleanEmail,
         password: formData.password,
@@ -243,36 +299,9 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
           error.message.toLowerCase().includes('rate limit') ||
           error.message.toLowerCase().includes('too many requests')
         ) {
-          // Smart check: If user already created this account, log them in directly
-          try {
-            const { data: loginData, error: loginErr } = await supabase.auth.signInWithPassword({
-              email: cleanEmail,
-              password: formData.password,
-            });
-            if (!loginErr && loginData?.session && loginData?.user) {
-              const customerProfile: CustomerProfile = {
-                id: loginData.user.id,
-                email: cleanEmail,
-                full_name: cleanName || loginData.user.user_metadata?.full_name || 'Customer',
-                phone: cleanPhone || loginData.user.user_metadata?.phone,
-                gender: cleanGender || loginData.user.user_metadata?.gender,
-                role: 'customer',
-                status: 'Active',
-              };
-              setUser(loginData.user);
-              setSession(loginData.session);
-              setProfile(customerProfile);
-              localStorage.setItem('customer_profile_cache', JSON.stringify(customerProfile));
-              toast.success(`Account already registered. Signed in successfully!`);
-              return { success: true, needsEmailVerification: false };
-            }
-          } catch (autoLoginErr) {
-            // Fall through to error
-          }
-
           return {
             success: false,
-            error: 'Email rate limit reached (too many signup requests in a short time). Please wait 1-2 minutes before trying again, or Sign In with your password.',
+            error: 'Email rate limit reached. Please wait a moment before trying again, or Sign In with your password.',
           };
         }
         return { success: false, error: error.message };
