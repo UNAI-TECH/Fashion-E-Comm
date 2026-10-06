@@ -121,20 +121,34 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      // 1. Authenticate via Supabase Auth with timeout protection
-      const authPromise = supabase.auth.signInWithPassword({
-        email: cleanEmail,
-        password: cleanPassword,
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://cvhofhdwedszsqcngxbt.supabase.co';
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+
+      // Direct REST call to bypass browser WebLock deadlocks completely
+      const res = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
+        method: 'POST',
+        headers: {
+          apikey: supabaseAnonKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: cleanEmail,
+          password: cleanPassword,
+        }),
       });
 
-      const timeoutPromise = new Promise<{ data: any; error: any }>((_, reject) =>
-        setTimeout(() => reject(new Error('Connection timed out. Please check your network and try again.')), 20000)
-      );
+      const authData = await res.json();
 
-      const { data: authData, error: sbError } = await Promise.race([authPromise, timeoutPromise]);
+      if (!res.ok || !authData?.user) {
+        throw new Error(authData?.error_description || authData?.msg || authData?.message || 'Invalid email or password.');
+      }
 
-      if (sbError || !authData?.user) {
-        throw new Error(sbError?.message || 'Invalid email or password.');
+      // Persist session into supabase client
+      if (authData.access_token && authData.refresh_token) {
+        supabase.auth.setSession({
+          access_token: authData.access_token,
+          refresh_token: authData.refresh_token,
+        }).catch(() => {});
       }
 
       // 2. Verify admin role

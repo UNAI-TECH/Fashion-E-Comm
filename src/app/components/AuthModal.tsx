@@ -336,6 +336,22 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', onSuccess }
 
                   <button
                     type="button"
+                    onClick={async () => {
+                      if (verificationSentEmail) {
+                        await resendVerificationEmail(verificationSentEmail);
+                        setVerificationSentEmail(null);
+                        setMode('signin');
+                        setSignInEmail(verificationSentEmail);
+                      }
+                    }}
+                    className="w-full py-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    Didn't receive email? Verify Instantly
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={() => {
                       setVerificationSentEmail(null);
                       setMode('signin');
@@ -358,19 +374,35 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', onSuccess }
                   <form onSubmit={handlePasswordSignIn} className="space-y-4">
                     {/* Unconfirmed Email Alert */}
                     {unconfirmedEmail && (
-                      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-xs text-amber-800 space-y-2">
+                      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3.5 text-xs text-amber-800 space-y-2">
                         <p className="font-semibold">
-                          Your email <strong>{unconfirmedEmail}</strong> is not verified yet.
+                          Your email <strong>{unconfirmedEmail}</strong> is awaiting verification.
                         </p>
-                        <button
-                          type="button"
-                          disabled={resendCooldown > 0 || isSubmitting}
-                          onClick={() => handleResendVerification(unconfirmedEmail)}
-                          className="text-[#698156] font-bold underline hover:opacity-80 flex items-center gap-1 cursor-pointer disabled:opacity-40"
-                        >
-                          <RefreshCw className="w-3 h-3" />
-                          {resendCooldown > 0 ? `Resend link in ${resendCooldown}s` : 'Click here to resend verification email'}
-                        </button>
+                        <p className="text-[11px] text-amber-700">
+                          Please check your <strong>Inbox, Spam, or Promotions</strong> folder.
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                          <button
+                            type="button"
+                            disabled={resendCooldown > 0 || isSubmitting}
+                            onClick={() => handleResendVerification(unconfirmedEmail)}
+                            className="text-[#698156] font-bold underline hover:opacity-80 flex items-center gap-1 cursor-pointer disabled:opacity-40"
+                          >
+                            <RefreshCw className="w-3 h-3" />
+                            {resendCooldown > 0 ? `Resend (${resendCooldown}s)` : 'Resend Email'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              await resendVerificationEmail(unconfirmedEmail);
+                              setUnconfirmedEmail(null);
+                            }}
+                            className="text-emerald-700 font-bold hover:underline flex items-center gap-1 cursor-pointer text-xs"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                            Verify Instantly
+                          </button>
+                        </div>
                       </div>
                     )}
 
