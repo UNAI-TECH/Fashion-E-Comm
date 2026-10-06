@@ -152,7 +152,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       let isAdmin = false;
       let name = authData.user.user_metadata?.full_name || 'Admin';
 
-      const knownAdmins = ['unai.technology@gmail.com', 'unaitech2025@gmail.com'];
+      const knownAdmins = ['admin@aanyafashion.com'];
       if (
         knownAdmins.includes(cleanEmail.toLowerCase()) ||
         authData.user.user_metadata?.role === 'admin'
