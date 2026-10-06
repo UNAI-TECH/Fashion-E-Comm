@@ -31,16 +31,19 @@ interface CustomerAuthContextType {
   session: Session | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  signInWithEmail: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  sendEmailOtp: (email: string) => Promise<{ success: boolean; error?: string }>;
-  verifyEmailOtp: (email: string, token: string) => Promise<{ success: boolean; error?: string }>;
-  sendSignupOtp: (formData: SignupFormData) => Promise<{ success: boolean; error?: string }>;
-  verifySignupOtp: (formData: SignupFormData, token: string) => Promise<{ success: boolean; error?: string }>;
-  sendOtp: (email: string) => Promise<{ success: boolean; error?: string }>;
-  verifyOtp: (email: string, token: string) => Promise<{ success: boolean; error?: string }>;
+  signUp: (formData: SignupFormData) => Promise<{ success: boolean; needsEmailVerification?: boolean; error?: string }>;
+  signInWithEmail: (email: string, password: string) => Promise<{ success: boolean; unconfirmedEmail?: boolean; error?: string }>;
+  resendVerificationEmail: (email: string) => Promise<{ success: boolean; error?: string }>;
+  resetPasswordForEmail: (email: string) => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   updateProfile: (updates: Partial<CustomerProfile>) => Promise<{ success: boolean; error?: string }>;
+  sendSignupOtp?: (formData: SignupFormData) => Promise<{ success: boolean; error?: string }>;
+  verifySignupOtp?: (formData: SignupFormData, token: string) => Promise<{ success: boolean; error?: string }>;
+  sendEmailOtp?: (email: string) => Promise<{ success: boolean; error?: string }>;
+  verifyEmailOtp?: (email: string, token: string) => Promise<{ success: boolean; error?: string }>;
+  sendOtp?: (email: string) => Promise<{ success: boolean; error?: string }>;
+  verifyOtp?: (email: string, token: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 const CustomerAuthContext = createContext<CustomerAuthContextType | undefined>(undefined);
@@ -172,7 +175,18 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
       });
 
       if (error) {
-        return { success: false, error: error.message };
+        const isUnconfirmed =
+          error.message.toLowerCase().includes('email not confirmed') ||
+          error.message.toLowerCase().includes('not confirmed') ||
+          error.message.toLowerCase().includes('verification');
+
+        return {
+          success: false,
+          unconfirmedEmail: isUnconfirmed,
+          error: isUnconfirmed
+            ? 'Your email is not verified yet. Please check your inbox and click the verification link.'
+            : error.message,
+        };
       }
 
       if (data.user) {
@@ -189,195 +203,42 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
     }
   };
 
-  // 2. Send Login OTP to Email via Supabase Edge Function (SMTP)
-  const sendEmailOtp = async (email: string) => {
-    try {
-      const cleanEmail = email.trim().toLowerCase();
-      if (!cleanEmail || !cleanEmail.includes('@')) {
-        return { success: false, error: 'Please enter a valid email address.' };
-      }
-
-      const { data, error } = await supabase.functions.invoke('send-email-otp', {
-        body: {
-          email: cleanEmail,
-          purpose: 'login',
-        },
-      });
-
-      if (error || !data?.success) {
-        return {
-          success: false,
-          error: data?.error || error?.message || 'Failed to dispatch login verification code via Edge Function.'
-        };
-      }
-
-      if (data.verification_token) {
-        setLoginVerificationToken(data.verification_token);
-        try {
-          sessionStorage.setItem(`login_vtoken_${cleanEmail}`, data.verification_token);
-        } catch {}
-      }
-
-      toast.success(`Verification code dispatched to ${cleanEmail}! Check your inbox.`);
-      return { success: true };
-    } catch (err: any) {
-      console.error('Email OTP Send Error:', err);
-      return { success: false, error: err.message || 'Failed to dispatch login email.' };
-    }
-  };
-
-  // 3. Verify Login OTP from Email via Supabase Edge Function (SMTP)
-  const verifyEmailOtp = async (email: string, token: string) => {
-    try {
-      const cleanEmail = email.trim().toLowerCase();
-      const cleanToken = token.trim();
-      const vToken = loginVerificationToken || sessionStorage.getItem(`login_vtoken_${cleanEmail}`) || '';
-
-      const { data, error } = await supabase.functions.invoke('verify-email-otp', {
-        body: {
-          email: cleanEmail,
-          code: cleanToken,
-          verification_token: vToken,
-          purpose: 'login',
-        },
-      });
-
-      if (error || (!data?.success && !data?.verified)) {
-        return {
-          success: false,
-          error: data?.error || error?.message || 'Invalid or expired verification code. Please check your email and try again.'
-        };
-      }
-
-      // Code authoritatively verified! Fetch profile from profiles table
-      const { data: dbProfile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('email', cleanEmail)
-        .maybeSingle();
-
-      const verifiedUser: any = {
-        id: dbProfile?.id || crypto.randomUUID(),
-        email: cleanEmail,
-        user_metadata: {
-          full_name: dbProfile?.full_name || 'Valued Customer',
-          phone: dbProfile?.phone || '',
-          gender: dbProfile?.gender || '',
-        }
-      };
-
-      setUser(verifiedUser);
-      if (dbProfile) {
-        setProfile(dbProfile);
-        localStorage.setItem('customer_profile_cache', JSON.stringify(dbProfile));
-      }
-
-      toast.success(`Welcome back! Signed in successfully.`);
-      return { success: true };
-    } catch (err: any) {
-      console.error('Email OTP Verify Error:', err);
-      return { success: false, error: err.message || 'Invalid verification code.' };
-    }
-  };
-
-  // 4. Send Signup OTP to Email via Supabase Edge Function (SMTP)
-  const sendSignupOtp = async (formData: SignupFormData) => {
-    try {
-      const cleanEmail = formData.email.trim().toLowerCase();
-      if (!cleanEmail || !cleanEmail.includes('@')) {
-        return { success: false, error: 'Please enter a valid email address.' };
-      }
-
-      const { data, error } = await supabase.functions.invoke('send-email-otp', {
-        body: {
-          email: cleanEmail,
-          purpose: 'signup',
-        },
-      });
-
-      if (error || !data?.success) {
-        return {
-          success: false,
-          error: data?.error || error?.message || 'Failed to dispatch verification code via Edge Function.'
-        };
-      }
-
-      if (data.verification_token) {
-        setSignupVerificationToken(data.verification_token);
-        try {
-          sessionStorage.setItem(`signup_vtoken_${cleanEmail}`, data.verification_token);
-        } catch {}
-      }
-
-      toast.success(`Verification code dispatched to ${cleanEmail}! Check your inbox.`);
-      return { success: true };
-    } catch (err: any) {
-      console.error('Signup OTP Send Error:', err);
-      return { success: false, error: err.message || 'Failed to dispatch verification code.' };
-    }
-  };
-
-  // 5. Verify Signup OTP via Supabase Edge Function (Authoritative: does NOT sign up if OTP is wrong!)
-  const verifySignupOtp = async (formData: SignupFormData, token: string) => {
+  // 2. Sign Up with Email Verification (Native Supabase Auth)
+  const signUp = async (formData: SignupFormData) => {
     try {
       const cleanEmail = formData.email.trim().toLowerCase();
       const cleanName = formData.fullName.trim();
       const cleanPhone = formData.phone.trim();
       const cleanGender = formData.gender.trim();
-      const cleanToken = token.trim();
-      const vToken = signupVerificationToken || sessionStorage.getItem(`signup_vtoken_${cleanEmail}`) || '';
 
-      // 1. Authoritative verification check via Supabase Edge Function
-      const { data, error } = await supabase.functions.invoke('verify-email-otp', {
-        body: {
-          email: cleanEmail,
-          code: cleanToken,
-          verification_token: vToken,
-          purpose: 'signup',
+      if (!cleanEmail || !cleanEmail.includes('@')) {
+        return { success: false, error: 'Please enter a valid email address.' };
+      }
+      if (formData.password.length < 6) {
+        return { success: false, error: 'Password must be at least 6 characters long.' };
+      }
+
+      // Register with Supabase native email confirmation
+      const { data, error } = await supabase.auth.signUp({
+        email: cleanEmail,
+        password: formData.password,
+        options: {
+          data: {
+            full_name: cleanName,
+            phone: cleanPhone,
+            gender: cleanGender,
+          },
+          emailRedirectTo: window.location.origin,
         },
       });
 
-      // If OTP was wrong or invalid, DO NOT PROCEED TO SIGN UP!
-      if (error || (!data?.success && !data?.verified)) {
-        return {
-          success: false,
-          error: data?.error || error?.message || 'Invalid or expired verification code. Please check your email and try again.'
-        };
+      if (error) {
+        return { success: false, error: error.message };
       }
 
-      // 2. User is verified! Set up Supabase auth session
-      let activeUser: any = null;
-      let activeSession: any = null;
+      const userId = data.user?.id || crypto.randomUUID();
 
-      // Check if user already exists by attempting sign in
-      const { data: signInData } = await supabase.auth.signInWithPassword({
-        email: cleanEmail,
-        password: formData.password,
-      });
-
-      if (signInData?.user) {
-        activeUser = signInData.user;
-        activeSession = signInData.session;
-      } else {
-        // Register in Supabase
-        const { data: signUpData } = await supabase.auth.signUp({
-          email: cleanEmail,
-          password: formData.password,
-          options: {
-            data: {
-              full_name: cleanName,
-              phone: cleanPhone,
-              gender: cleanGender,
-            },
-          },
-        });
-        activeUser = signUpData?.user;
-        activeSession = signUpData?.session;
-      }
-
-      const userId = activeUser?.id || crypto.randomUUID();
-
-      // 3. Upsert into Supabase profiles table
+      // Upsert into Supabase profiles table
       try {
         await supabase.from('profiles').upsert({
           id: userId,
@@ -393,7 +254,7 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
         console.warn('Profile upsert notice:', pErr);
       }
 
-      // 4. Save to userProfile storage so details immediately show in profile modal
+      // Save into local storage for ProfileModal
       saveUserProfileDetails({
         name: cleanName,
         phone: cleanPhone,
@@ -415,26 +276,67 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
         status: 'Active',
       };
 
-      const finalUser = activeUser || {
-        id: userId,
-        email: cleanEmail,
-        user_metadata: {
-          full_name: cleanName,
-          phone: cleanPhone,
-          gender: cleanGender,
-        }
+      const needsEmailVerification = !data.session;
+
+      if (data.session && data.user) {
+        setUser(data.user);
+        setSession(data.session);
+        setProfile(customerProfile);
+        localStorage.setItem('customer_profile_cache', JSON.stringify(customerProfile));
+        toast.success(`Welcome to Aanya Fashions, ${cleanName}!`);
+      } else {
+        toast.success('Registration successful! Please check your email for the confirmation link.');
+      }
+
+      return {
+        success: true,
+        needsEmailVerification,
       };
+    } catch (err: any) {
+      console.error('Sign up error:', err);
+      return { success: false, error: err.message || 'Registration failed.' };
+    }
+  };
 
-      setUser(finalUser as any);
-      if (activeSession) setSession(activeSession);
-      setProfile(customerProfile);
-      localStorage.setItem('customer_profile_cache', JSON.stringify(customerProfile));
+  // 3. Resend Verification Link
+  const resendVerificationEmail = async (email: string) => {
+    try {
+      const cleanEmail = email.trim().toLowerCase();
+      if (!cleanEmail || !cleanEmail.includes('@')) {
+        return { success: false, error: 'Please enter a valid email address.' };
+      }
 
-      toast.success(`Welcome to Aanya Fashions, ${cleanName}! Account created successfully.`);
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: cleanEmail,
+        options: {
+          emailRedirectTo: window.location.origin,
+        },
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      toast.success(`Verification link sent to ${cleanEmail}! Please check your inbox.`);
       return { success: true };
     } catch (err: any) {
-      console.error('Signup OTP Verification Error:', err);
-      return { success: false, error: err.message || 'Verification failed.' };
+      return { success: false, error: err.message || 'Failed to resend verification link.' };
+    }
+  };
+
+  // 4. Password Reset
+  const resetPasswordForEmail = async (email: string) => {
+    try {
+      const cleanEmail = email.trim().toLowerCase();
+      const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) return { success: false, error: error.message };
+      toast.success(`Password reset instructions sent to ${cleanEmail}!`);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Failed to send password reset email.' };
     }
   };
 
@@ -516,13 +418,10 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
         session,
         isAuthenticated: !!user,
         isLoading,
+        signUp,
         signInWithEmail,
-        sendEmailOtp,
-        verifyEmailOtp,
-        sendSignupOtp,
-        verifySignupOtp,
-        sendOtp: sendEmailOtp,
-        verifyOtp: verifyEmailOtp,
+        resendVerificationEmail,
+        resetPasswordForEmail,
         signOut,
         refreshProfile,
         updateProfile,
