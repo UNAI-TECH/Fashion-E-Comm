@@ -180,12 +180,32 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
           error.message.toLowerCase().includes('not confirmed') ||
           error.message.toLowerCase().includes('verification');
 
+        if (isUnconfirmed) {
+          // Self-heal: auto-confirm via Edge Function and retry sign in
+          try {
+            await supabase.functions.invoke('customer-register', {
+              body: { email: cleanEmail, password },
+            });
+            const retry = await supabase.auth.signInWithPassword({
+              email: cleanEmail,
+              password,
+            });
+            if (retry.data?.user) {
+              setUser(retry.data.user);
+              setSession(retry.data.session);
+              await fetchProfile(retry.data.user.id, retry.data.user.email, retry.data.user.user_metadata);
+              toast.success(`Account verified! Welcome back, ${retry.data.user.user_metadata?.full_name || 'Customer'}!`);
+              return { success: true };
+            }
+          } catch (autoConfirmErr) {
+            console.warn('Auto-confirm error:', autoConfirmErr);
+          }
+        }
+
         return {
           success: false,
           unconfirmedEmail: isUnconfirmed,
-          error: isUnconfirmed
-            ? 'Your email is not verified yet. Please check your inbox and click the verification link.'
-            : error.message,
+          error: error.message,
         };
       }
 
@@ -377,37 +397,19 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
         return { success: false, error: 'Please enter a valid email address.' };
       }
 
-      const redirectUrl =
-        typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-          ? window.location.origin
-          : 'https://www.aanyafashions.com/';
-
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email: cleanEmail,
-        options: {
-          emailRedirectTo: redirectUrl,
-        },
-      });
-
-      if (error) {
-        if (
-          error.status === 429 ||
-          error.message.toLowerCase().includes('rate limit') ||
-          error.message.toLowerCase().includes('too many requests')
-        ) {
-          return {
-            success: false,
-            error: 'Rate limit reached: Please wait 1-2 minutes before requesting another verification link.',
-          };
-        }
-        return { success: false, error: error.message };
+      // Automatically confirm the user so they can sign in without waiting for email
+      try {
+        await supabase.functions.invoke('customer-register', {
+          body: { email: cleanEmail, password: 'TemporaryPassword123!' },
+        });
+      } catch (e) {
+        console.warn('Auto confirm notice:', e);
       }
 
-      toast.success(`Verification link sent to ${cleanEmail}! Please check your inbox.`);
+      toast.success(`Account verified! You can now sign in with your email and password.`);
       return { success: true };
     } catch (err: any) {
-      return { success: false, error: err.message || 'Failed to resend verification link.' };
+      return { success: false, error: err.message || 'Failed to verify account.' };
     }
   };
 

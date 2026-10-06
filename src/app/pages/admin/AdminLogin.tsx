@@ -31,9 +31,8 @@ export function AdminLogin() {
 
     const success = await login(email, password);
     if (success) {
-      if (window.location.pathname === '/login' || window.location.pathname === '/admin/login') {
-        navigate('/admin', { replace: true });
-      }
+      // Force navigation to admin dashboard
+      window.location.href = '/admin';
     }
   };
 

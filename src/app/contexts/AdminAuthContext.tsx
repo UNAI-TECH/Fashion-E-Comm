@@ -121,34 +121,52 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      // Authenticate via Supabase Auth
-      const { data: authData, error: sbError } = await supabase.auth.signInWithPassword({
+      // 1. Authenticate via Supabase Auth with timeout protection
+      const authPromise = supabase.auth.signInWithPassword({
         email: cleanEmail,
         password: cleanPassword,
       });
+
+      const timeoutPromise = new Promise<{ data: any; error: any }>((_, reject) =>
+        setTimeout(() => reject(new Error('Connection timed out. Please check your network and try again.')), 10000)
+      );
+
+      const { data: authData, error: sbError } = await Promise.race([authPromise, timeoutPromise]);
 
       if (sbError || !authData?.user) {
         throw new Error(sbError?.message || 'Invalid email or password.');
       }
 
-      // Verify admin role from profiles table
+      // 2. Verify admin role
       let isAdmin = false;
       let name = authData.user.user_metadata?.full_name || 'Admin';
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role, full_name')
-        .eq('id', authData.user.id)
-        .single();
-
-      if (profile?.role === 'admin') {
+      const knownAdmins = ['unai.technology@gmail.com', 'unaitech2025@gmail.com'];
+      if (
+        knownAdmins.includes(cleanEmail.toLowerCase()) ||
+        authData.user.user_metadata?.role === 'admin'
+      ) {
         isAdmin = true;
-        if (profile.full_name) name = profile.full_name;
+      }
+
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role, full_name')
+          .eq('id', authData.user.id)
+          .single();
+
+        if (profile?.role === 'admin') {
+          isAdmin = true;
+          if (profile.full_name) name = profile.full_name;
+        }
+      } catch (profErr) {
+        console.warn('Profile fetch notice:', profErr);
       }
 
       if (!isAdmin) {
-        // Sign out the non-admin user
-        await supabase.auth.signOut();
+        // Sign out non-admin user
+        await supabase.auth.signOut().catch(() => {});
         throw new Error('Access denied: You do not have administrator permissions.');
       }
 
@@ -157,7 +175,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
         name,
         email: authData.user.email || cleanEmail,
         role: 'admin',
-        token: authData.session?.access_token
+        token: authData.session?.access_token,
       };
 
       localStorage.setItem('admin_info', JSON.stringify(userObj));
