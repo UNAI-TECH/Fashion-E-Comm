@@ -218,6 +218,11 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
         return { success: false, error: 'Password must be at least 6 characters long.' };
       }
 
+      const redirectUrl =
+        typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+          ? window.location.origin
+          : 'https://www.aanyafashions.com/';
+
       // Register with Supabase native email confirmation
       const { data, error } = await supabase.auth.signUp({
         email: cleanEmail,
@@ -228,11 +233,21 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
             phone: cleanPhone,
             gender: cleanGender,
           },
-          emailRedirectTo: window.location.origin,
+          emailRedirectTo: redirectUrl,
         },
       });
 
       if (error) {
+        if (
+          error.status === 429 ||
+          error.message.toLowerCase().includes('rate limit') ||
+          error.message.toLowerCase().includes('too many requests')
+        ) {
+          return {
+            success: false,
+            error: 'Security rate limit reached. Please wait 1 to 2 minutes before requesting another verification email.',
+          };
+        }
         return { success: false, error: error.message };
       }
 
@@ -306,15 +321,30 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
         return { success: false, error: 'Please enter a valid email address.' };
       }
 
+      const redirectUrl =
+        typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+          ? window.location.origin
+          : 'https://www.aanyafashions.com/';
+
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email: cleanEmail,
         options: {
-          emailRedirectTo: window.location.origin,
+          emailRedirectTo: redirectUrl,
         },
       });
 
       if (error) {
+        if (
+          error.status === 429 ||
+          error.message.toLowerCase().includes('rate limit') ||
+          error.message.toLowerCase().includes('too many requests')
+        ) {
+          return {
+            success: false,
+            error: 'Rate limit reached: Please wait 1-2 minutes before requesting another verification link.',
+          };
+        }
         return { success: false, error: error.message };
       }
 
@@ -329,8 +359,13 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
   const resetPasswordForEmail = async (email: string) => {
     try {
       const cleanEmail = email.trim().toLowerCase();
+      const redirectUrl =
+        typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+          ? `${window.location.origin}/reset-password`
+          : 'https://www.aanyafashions.com/reset-password';
+
       const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: redirectUrl,
       });
       if (error) return { success: false, error: error.message };
       toast.success(`Password reset instructions sent to ${cleanEmail}!`);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Mail, Phone, Lock, User, ArrowRight, Sparkles, CheckCircle2, RefreshCw } from 'lucide-react';
 import { useCustomerAuth, SignupFormData } from '../contexts/CustomerAuthContext';
@@ -43,6 +43,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', onSuccess }
 
   // General state
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
   const [resendCooldown, setResendCooldown] = useState(0);
 
   // Synchronize default mode when modal opens
@@ -81,6 +82,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', onSuccess }
     setVerificationSentEmail(null);
     setShowForgotPassword(false);
     setIsSubmitting(false);
+    isSubmittingRef.current = false;
     setResendCooldown(0);
   };
 
@@ -92,30 +94,35 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', onSuccess }
   // 1. Sign In with Password
   const handlePasswordSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting || isSubmittingRef.current) return;
     if (!signInEmail.trim() || !signInPassword.trim()) {
       toast.error('Please enter your email and password');
       return;
     }
 
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
-    const res = await signInWithEmail(signInEmail, signInPassword);
-    setIsSubmitting(false);
-
-    if (res.success) {
-      handleClose();
-      if (onSuccess) onSuccess();
-    } else {
-      if (res.unconfirmedEmail) {
-        setUnconfirmedEmail(signInEmail.trim().toLowerCase());
+    try {
+      const res = await signInWithEmail(signInEmail, signInPassword);
+      if (res.success) {
+        handleClose();
+        if (onSuccess) onSuccess();
+      } else {
+        if (res.unconfirmedEmail) {
+          setUnconfirmedEmail(signInEmail.trim().toLowerCase());
+        }
+        toast.error(res.error || 'Invalid email or password');
       }
-      toast.error(res.error || 'Invalid email or password');
+    } finally {
+      setIsSubmitting(false);
+      isSubmittingRef.current = false;
     }
   };
 
   // 2. Sign Up with Full Form (Name, Mobile, Gender, Email, Password, Confirm Password)
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isSubmitting) return;
+    if (isSubmitting || isSubmittingRef.current) return;
 
     if (!signupForm.fullName.trim()) {
       toast.error('Please enter your Full Name');
@@ -149,25 +156,30 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', onSuccess }
       return;
     }
 
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
-    const res = await signUp({
-      fullName: signupForm.fullName.trim(),
-      phone: cleanPhone,
-      gender: signupForm.gender,
-      email: cleanEmail,
-      password: signupForm.password,
-    });
-    setIsSubmitting(false);
+    try {
+      const res = await signUp({
+        fullName: signupForm.fullName.trim(),
+        phone: cleanPhone,
+        gender: signupForm.gender,
+        email: cleanEmail,
+        password: signupForm.password,
+      });
 
-    if (res.success) {
-      if (res.needsEmailVerification) {
-        setVerificationSentEmail(cleanEmail);
+      if (res.success) {
+        if (res.needsEmailVerification) {
+          setVerificationSentEmail(cleanEmail);
+        } else {
+          handleClose();
+          if (onSuccess) onSuccess();
+        }
       } else {
-        handleClose();
-        if (onSuccess) onSuccess();
+        toast.error(res.error || 'Failed to create account');
       }
-    } else {
-      toast.error(res.error || 'Failed to create account');
+    } finally {
+      setIsSubmitting(false);
+      isSubmittingRef.current = false;
     }
   };
 
