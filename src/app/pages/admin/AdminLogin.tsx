@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { useNavigate, Link } from 'react-router';
-import { Lock, Mail, ShieldAlert, Eye, EyeOff, ArrowLeft, CheckCircle2, ShieldCheck, Loader2 } from 'lucide-react';
+import { Lock, Mail, ShieldAlert, Eye, EyeOff, ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react';
 import { useAdminAuth } from '../../contexts/AdminAuthContext';
 
 export function AdminLogin() {
@@ -35,12 +35,6 @@ export function AdminLogin() {
         navigate('/admin', { replace: true });
       }
     }
-  };
-
-  const handleQuickFill = () => {
-    setEmail('unaitech2025@gmail.com');
-    setPassword('Unaitech@1234');
-    setLocalError('');
   };
 
   const displayError = localError || authError;
@@ -91,24 +85,6 @@ export function AdminLogin() {
           transition={{ duration: 0.35 }}
           className="bg-white/95 backdrop-blur-md py-8 px-6 sm:px-10 shadow-2xl rounded-3xl border border-gray-100/90 relative"
         >
-          {/* Quick-fill helper banner */}
-          <div className="mb-6 p-3.5 bg-gradient-to-r from-amber-50 to-rose-50 rounded-2xl border border-amber-200/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-amber-700 flex-shrink-0" />
-              <div>
-                <p className="text-xs font-bold text-gray-800">Admin Account</p>
-                <p className="text-[11px] text-gray-600 font-mono">unaitech2025@gmail.com</p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={handleQuickFill}
-              className="text-xs font-bold text-rose-700 hover:text-rose-900 bg-white px-3 py-1.5 rounded-lg border border-amber-300 shadow-xs hover:bg-rose-50 transition-colors cursor-pointer self-end sm:self-auto"
-            >
-              Fill Credentials
-            </button>
-          </div>
-
           <form className="space-y-5" onSubmit={handleLogin}>
             {displayError && (
               <motion.div
@@ -136,7 +112,7 @@ export function AdminLogin() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="block w-full pl-10 pr-3.5 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#698156] focus:border-[#698156] text-sm bg-gray-50/50 focus:bg-white transition-all outline-none"
-                  placeholder="unaitech2025@gmail.com"
+                  placeholder="admin@example.com"
                 />
               </div>
             </div>
