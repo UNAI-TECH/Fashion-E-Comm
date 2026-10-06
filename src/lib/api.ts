@@ -280,7 +280,7 @@ export const api = {
         OTP_BASE_URL
       ),
     verify: (channel: 'email' | 'sms', destination: string, code: string, purpose = 'auth') =>
-      request<{ success: boolean; message: string; verified?: boolean }>(
+      request<{ success: boolean; message: string }>(
         '/otp/verify',
         { method: 'POST', body: JSON.stringify({ channel, destination, code, purpose }) },
         OTP_BASE_URL

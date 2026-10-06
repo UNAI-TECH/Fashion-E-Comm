@@ -376,7 +376,7 @@ export function ProductPage() {
       const formatted = cleanPhone.length === 10 ? `+91${cleanPhone}` : `+${cleanPhone}`;
       
       // Use production Python OTP microservice on Render
-      const res = await api.otp.send('sms', formatted, 'checkout');
+      await api.otp.send('sms', formatted, 'checkout');
       toast.success(`Verification code dispatched to ${formatted}! (Valid for 30s)`);
       setBuyNowStep('otp');
     } catch (err: any) {

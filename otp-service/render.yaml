@@ -18,16 +18,12 @@ services:
       - key: SMTP_HOST
         value: smtp.gmail.com
       - key: SMTP_PORT
-        value: 587
+        value: 465
       - key: SMTP_USERNAME
         sync: false
       - key: SMTP_PASSWORD
         sync: false
       - key: SMTP_FROM
         value: Aanya Fashion <no-reply@aanyafashions.com>
-      - key: SMS_PROVIDER
-        value: mock
-      - key: SMS_API_KEY
+      - key: SMS_GATEWAY_WEBHOOK_URL
         sync: false
-      - key: SMS_SENDER_ID
-        value: AANYAF

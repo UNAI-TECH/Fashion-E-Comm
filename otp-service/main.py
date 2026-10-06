@@ -61,7 +61,6 @@ def readiness_check():
         "status": "ready",
         "redis_configured": settings.REDIS_URL is not None,
         "smtp_configured": bool(settings.SMTP_USERNAME),
-        "sms_provider": settings.SMS_PROVIDER,
     }
 
 @app.post("/otp/send", response_model=SendOTPResponse, status_code=status.HTTP_200_OK)
@@ -79,7 +78,7 @@ async def send_otp_endpoint(req: SendOTPRequest, background_tasks: BackgroundTas
     if error_msg:
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=error_msg)
 
-    # 4. Asynchronous dispatch (non-blocking)
+    # 4. Asynchronous direct dispatch (non-blocking)
     if req.channel == "email":
         background_tasks.add_task(send_email_otp, destination, raw_otp, req.purpose)
     else:

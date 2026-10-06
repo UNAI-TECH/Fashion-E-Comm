@@ -217,7 +217,7 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
 
       // Dispatch via Render OTP microservice
       await api.otp.send(channel, destination, 'login');
-      toast.success(`Verification code dispatched to ${destination}! (Valid for 30 seconds)`);
+      toast.success(`Verification code dispatched to ${destination}! (Valid for 30s)`);
       return { success: true };
     } catch (err: any) {
       console.error('OTP Send Error:', err);
