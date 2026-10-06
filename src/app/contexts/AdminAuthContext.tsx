@@ -61,43 +61,31 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  // Validate session with Supabase on mount (non-blocking — won't override localStorage auth)
+  // Background session validation on mount (non-blocking)
   useEffect(() => {
-    async function checkSession() {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          // Verify admin role from profiles table
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role, full_name')
-            .eq('id', session.user.id)
-            .maybeSingle();
-
-          if (profile?.role === 'admin') {
-            const name = profile.full_name || session.user.user_metadata?.full_name || 'Admin';
-            setIsAuthenticated(true);
-            setAdminName(name);
-            setAdminEmail(session.user.email || '');
-            localStorage.setItem('admin_info', JSON.stringify({
-              id: session.user.id,
-              name,
-              email: session.user.email,
-              role: 'admin'
-            }));
-          }
-          // NOTE: Do NOT clear admin_info here if profile role != admin.
-          // The localStorage value from login() is the source of truth.
-          // The profile table may not have role=admin if set via known admins list.
-        }
-        // NOTE: Do NOT clear admin_info if no session found.
-        // After login(), the page reloads and the session may not be
-        // restored instantly. localStorage is the trusted source.
-      } catch (err) {
-        console.warn('Supabase session check failed:', err);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        supabase
+          .from('profiles')
+          .select('role, full_name')
+          .eq('id', session.user.id)
+          .maybeSingle()
+          .then(({ data: profile }) => {
+            if (profile?.role === 'admin') {
+              const name = profile.full_name || session.user.user_metadata?.full_name || 'Admin';
+              setIsAuthenticated(true);
+              setAdminName(name);
+              setAdminEmail(session.user.email || '');
+              localStorage.setItem('admin_info', JSON.stringify({
+                id: session.user.id,
+                name,
+                email: session.user.email,
+                role: 'admin'
+              }));
+            }
+          });
       }
-    }
-    checkSession();
+    }).catch(() => {});
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -117,7 +105,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://cvhofhdwedszsqcngxbt.supabase.co';
       const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-      // Direct REST call to bypass browser WebLock deadlocks completely
+      // 1. Authenticate via direct REST (bypasses browser WebLock deadlocks)
       const res = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
         method: 'POST',
         headers: {
@@ -136,19 +124,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error(authData?.error_description || authData?.msg || authData?.message || 'Invalid email or password.');
       }
 
-      // Persist session into supabase client — AWAIT this so profile query works
-      if (authData.access_token && authData.refresh_token) {
-        try {
-          await supabase.auth.setSession({
-            access_token: authData.access_token,
-            refresh_token: authData.refresh_token,
-          });
-        } catch (sessionErr) {
-          console.warn('setSession notice:', sessionErr);
-        }
-      }
-
-      // 2. Verify admin role
+      // 2. Verify admin role — use direct REST to avoid depending on supabase client session
       let isAdmin = false;
       let name = authData.user.user_metadata?.full_name || 'Admin';
 
@@ -160,29 +136,36 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
         isAdmin = true;
       }
 
-      // Try fetching profile from DB to verify role
+      // Check profile via REST with the new token (doesn't require setSession)
       try {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role, full_name')
-          .eq('id', authData.user.id)
-          .maybeSingle();
-
-        if (profile?.role === 'admin') {
-          isAdmin = true;
-          if (profile.full_name) name = profile.full_name;
+        const profileRes = await fetch(
+          `${supabaseUrl}/rest/v1/profiles?select=role,full_name&id=eq.${authData.user.id}`,
+          {
+            headers: {
+              apikey: supabaseAnonKey,
+              Authorization: `Bearer ${authData.access_token}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+        const profiles = await profileRes.json();
+        if (Array.isArray(profiles) && profiles.length > 0) {
+          if (profiles[0].role === 'admin') {
+            isAdmin = true;
+          }
+          if (profiles[0].full_name) {
+            name = profiles[0].full_name;
+          }
         }
       } catch (profErr) {
         console.warn('Profile fetch notice:', profErr);
-        // If profile fetch fails, rely on knownAdmins list
       }
 
       if (!isAdmin) {
-        // Sign out non-admin user
-        await supabase.auth.signOut().catch(() => {});
         throw new Error('Access denied: You do not have administrator permissions.');
       }
 
+      // 3. Auth confirmed — set state and localStorage FIRST (immediate UI update)
       const userObj: AdminUser = {
         id: authData.user.id,
         name,
@@ -196,6 +179,16 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       setAdminName(name);
       setAdminEmail(userObj.email);
       setIsLoading(false);
+
+      // 4. Persist session into supabase client in BACKGROUND (non-blocking)
+      //    This is fire-and-forget — the UI is already authenticated via localStorage
+      if (authData.access_token && authData.refresh_token) {
+        supabase.auth.setSession({
+          access_token: authData.access_token,
+          refresh_token: authData.refresh_token,
+        }).catch(() => {});
+      }
+
       return true;
     } catch (err: any) {
       const msg = err.message || 'Login failed. Please try again.';
@@ -206,12 +199,15 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
-    supabase.auth.signOut().catch(() => {});
-    localStorage.removeItem('admin_info');
+    // 1. Clear state and localStorage immediately (instant UI update)
     setIsAuthenticated(false);
     setAdminName('Admin');
     setAdminEmail('');
     setError(null);
+    localStorage.removeItem('admin_info');
+
+    // 2. Sign out from Supabase in background (non-blocking)
+    supabase.auth.signOut().catch(() => {});
   };
 
   return (

@@ -150,13 +150,15 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
     initAuth();
 
     // Listen for auth state transitions (includes email confirmation callback)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+    // IMPORTANT: This callback must NOT await long operations — it blocks the auth state machine
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
       if (!mounted) return;
       setSession(newSession);
       setUser(newSession?.user || null);
 
       if (newSession?.user) {
-        await fetchProfile(newSession.user.id, newSession.user.email, newSession.user.user_metadata);
+        // Fire profile fetch in background — do NOT await
+        fetchProfile(newSession.user.id, newSession.user.email, newSession.user.user_metadata).catch(() => {});
       } else {
         setProfile(null);
         localStorage.removeItem('customer_profile_cache');
