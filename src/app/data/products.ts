@@ -179,15 +179,12 @@ export function ensureProductImages(prod: any): string[] {
     }
   }
 
-  // If already has 3 or more images, return deduplicated
-  if (list.length >= 3) {
+  // Return only actual uploaded images — no fake padding
+  if (list.length > 0) {
     return Array.from(new Set(list));
   }
 
-  const primary = list[0] || PLACEHOLDER_IMAGE;
-  const complement = buildComplementaryAngles(primary, prod.category, prod.name);
-  const combined = [primary, ...complement.filter(x => x !== primary)];
-  return Array.from(new Set(combined));
+  return [PLACEHOLDER_IMAGE];
 }
 
 /**

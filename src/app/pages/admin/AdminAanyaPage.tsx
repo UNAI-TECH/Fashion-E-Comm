@@ -413,7 +413,21 @@ export function AdminAanyaPage() {
     image_url: '', 
     images: [] as string[],
     description: '', 
-    status: 'Published' 
+    status: 'Published',
+    // Specifications
+    spec_brand: 'Aanya Fashions',
+    spec_color: '',
+    spec_material: '',
+    spec_design: '',
+    spec_pattern: '',
+    spec_wash_care: 'Dry Clean Only',
+    spec_occasion: '',
+    // Offer toggle
+    offer_enabled: false,
+    offer_price: '',
+    coupon_discount: '',
+    applicable_on: 'All Orders',
+    coupon_code: '',
   };
   const [form, setForm] = useState(emptyForm);
   const [urlInput, setUrlInput] = useState('');
@@ -753,6 +767,22 @@ export function AdminAanyaPage() {
         images: guaranteedImages,
         description: form.description.trim() || null,
         status: form.status,
+        specifications: {
+          brand: form.spec_brand.trim() || 'Aanya Fashions',
+          color: form.spec_color.trim() || '',
+          material: form.spec_material.trim() || '',
+          design: form.spec_design.trim() || '',
+          pattern: form.spec_pattern.trim() || '',
+          wash_care: form.spec_wash_care.trim() || 'Dry Clean Only',
+          occasion: form.spec_occasion.trim() || '',
+        },
+        offer_enabled: form.offer_enabled,
+        offer_details: form.offer_enabled ? {
+          offer_price: form.offer_price ? parseFloat(form.offer_price) : null,
+          coupon_discount: form.coupon_discount ? parseFloat(form.coupon_discount) : null,
+          applicable_on: form.applicable_on.trim() || 'All Orders',
+          coupon_code: form.coupon_code.trim().toUpperCase() || '',
+        } : {},
       };
 
       let createdProduct: any = null;
@@ -776,6 +806,23 @@ export function AdminAanyaPage() {
       setDbProducts(prev => [createdProduct, ...prev.filter(p => p.id !== createdProduct.id)]);
       window.dispatchEvent(new Event('products_updated'));
       window.dispatchEvent(new Event('storage'));
+
+      // If offer is enabled and coupon code provided, save to coupons table
+      if (form.offer_enabled && form.coupon_code.trim()) {
+        try {
+          await supabase.from('coupons').upsert({
+            code: form.coupon_code.trim().toUpperCase(),
+            discount_type: 'Percentage',
+            discount_value: form.coupon_discount ? parseFloat(form.coupon_discount) : 0,
+            status: 'Active',
+            product_id: createdProduct.id,
+            min_order_amount: 0,
+            applicable_on: form.applicable_on.trim() || 'All Orders',
+          }, { onConflict: 'code' });
+        } catch (couponErr) {
+          console.warn('Coupon save notice:', couponErr);
+        }
+      }
 
       // If requested, also feature this newly inserted product on the homepage hero model
       if (featureOnHero) {
@@ -1588,12 +1635,163 @@ export function AdminAanyaPage() {
                               Description
                             </label>
                             <textarea
-                              rows={4}
+                              rows={3}
                               placeholder="Fabric, embroidery, care instructions…"
                               value={form.description}
                               onChange={e => setForm({ ...form, description: e.target.value })}
                               className="w-full px-4 py-2.5 sm:py-3 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20 resize-none leading-relaxed"
                             />
+                          </div>
+
+                          {/* ═══ PRODUCT SPECIFICATIONS ═══ */}
+                          <div className="bg-[#F4F6F2] rounded-xl sm:rounded-2xl p-4 sm:p-5 border border-[#DCE4D7] space-y-3">
+                            <h4 className="text-[11px] sm:text-xs uppercase tracking-wider font-bold text-gray-700 flex items-center gap-1.5">
+                              <Shirt className="w-3.5 h-3.5 text-[#698156]" />
+                              Product Specifications
+                            </h4>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-[10px] sm:text-[11px] uppercase tracking-wider font-bold text-gray-500 mb-1">Brand</label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. Aanya Fashions"
+                                  value={form.spec_brand}
+                                  onChange={e => setForm({ ...form, spec_brand: e.target.value })}
+                                  className="w-full px-3 py-2 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] sm:text-[11px] uppercase tracking-wider font-bold text-gray-500 mb-1">Color</label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. Royal Maroon"
+                                  value={form.spec_color}
+                                  onChange={e => setForm({ ...form, spec_color: e.target.value })}
+                                  className="w-full px-3 py-2 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] sm:text-[11px] uppercase tracking-wider font-bold text-gray-500 mb-1">Material</label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. Pure Silk Blend"
+                                  value={form.spec_material}
+                                  onChange={e => setForm({ ...form, spec_material: e.target.value })}
+                                  className="w-full px-3 py-2 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] sm:text-[11px] uppercase tracking-wider font-bold text-gray-500 mb-1">Design</label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. Heavy Border & Pallu"
+                                  value={form.spec_design}
+                                  onChange={e => setForm({ ...form, spec_design: e.target.value })}
+                                  className="w-full px-3 py-2 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] sm:text-[11px] uppercase tracking-wider font-bold text-gray-500 mb-1">Pattern</label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. Zari Woven Motifs"
+                                  value={form.spec_pattern}
+                                  onChange={e => setForm({ ...form, spec_pattern: e.target.value })}
+                                  className="w-full px-3 py-2 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] sm:text-[11px] uppercase tracking-wider font-bold text-gray-500 mb-1">Wash Care</label>
+                                <select
+                                  value={form.spec_wash_care}
+                                  onChange={e => setForm({ ...form, spec_wash_care: e.target.value })}
+                                  className="w-full px-3 py-2 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20 cursor-pointer"
+                                >
+                                  {['Dry Clean Only', 'Hand Wash', 'Machine Wash', 'Gentle Wash', 'Spot Clean'].map(w => (
+                                    <option key={w} value={w}>{w}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div className="col-span-2">
+                                <label className="block text-[10px] sm:text-[11px] uppercase tracking-wider font-bold text-gray-500 mb-1">Occasion</label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. Weddings, Festive, Party Wear"
+                                  value={form.spec_occasion}
+                                  onChange={e => setForm({ ...form, spec_occasion: e.target.value })}
+                                  className="w-full px-3 py-2 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* ═══ OFFER / COUPON TOGGLE ═══ */}
+                          <div className={`border rounded-xl p-3 sm:p-4 transition-all space-y-3 ${
+                            form.offer_enabled ? 'bg-amber-50/60 border-amber-300 ring-1 ring-amber-200/50' : 'bg-gray-50/80 border-gray-200'
+                          }`}>
+                            <div
+                              className="flex items-center justify-between cursor-pointer select-none"
+                              onClick={() => setForm({ ...form, offer_enabled: !form.offer_enabled })}
+                            >
+                              <div className="flex items-center gap-2">
+                                <Tags className="w-4 h-4 text-[#698156]" />
+                                <span className="text-xs sm:text-sm font-bold text-gray-900">Enable Best Offer / Coupon</span>
+                              </div>
+                              <div className={`relative w-10 h-5 rounded-full transition-colors cursor-pointer ${form.offer_enabled ? 'bg-[#698156]' : 'bg-gray-300'}`}>
+                                <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.offer_enabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                              </div>
+                            </div>
+                            <p className="text-[11px] sm:text-xs text-gray-500 leading-snug">
+                              When enabled, a "Best Offers" section will appear on the product page below Buy Now.
+                            </p>
+
+                            {form.offer_enabled && (
+                              <div className="grid grid-cols-2 gap-3 pt-1">
+                                <div>
+                                  <label className="block text-[10px] sm:text-[11px] uppercase tracking-wider font-bold text-gray-500 mb-1">Best Offer Price (₹)</label>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    placeholder="e.g. 1624"
+                                    value={form.offer_price}
+                                    onChange={e => setForm({ ...form, offer_price: e.target.value })}
+                                    className="w-full px-3 py-2 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-amber-300/30 font-bold"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[10px] sm:text-[11px] uppercase tracking-wider font-bold text-gray-500 mb-1">Coupon Discount (%)</label>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    max="100"
+                                    placeholder="e.g. 35"
+                                    value={form.coupon_discount}
+                                    onChange={e => setForm({ ...form, coupon_discount: e.target.value })}
+                                    className="w-full px-3 py-2 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-amber-300/30 font-bold"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[10px] sm:text-[11px] uppercase tracking-wider font-bold text-gray-500 mb-1">Applicable On</label>
+                                  <input
+                                    type="text"
+                                    placeholder="e.g. Orders above Rs. 300"
+                                    value={form.applicable_on}
+                                    onChange={e => setForm({ ...form, applicable_on: e.target.value })}
+                                    className="w-full px-3 py-2 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-amber-300/30"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[10px] sm:text-[11px] uppercase tracking-wider font-bold text-gray-500 mb-1">Coupon Code</label>
+                                  <input
+                                    type="text"
+                                    placeholder="e.g. AANYAEXCLUSIVE1"
+                                    value={form.coupon_code}
+                                    onChange={e => setForm({ ...form, coupon_code: e.target.value.toUpperCase() })}
+                                    className="w-full px-3 py-2 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-amber-300/30 font-mono font-bold uppercase"
+                                  />
+                                </div>
+                              </div>
+                            )}
                           </div>
 
                           {/* Feature on Homepage Hero Model */}
