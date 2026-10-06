@@ -243,9 +243,36 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
           error.message.toLowerCase().includes('rate limit') ||
           error.message.toLowerCase().includes('too many requests')
         ) {
+          // Smart check: If user already created this account, log them in directly
+          try {
+            const { data: loginData, error: loginErr } = await supabase.auth.signInWithPassword({
+              email: cleanEmail,
+              password: formData.password,
+            });
+            if (!loginErr && loginData?.session && loginData?.user) {
+              const customerProfile: CustomerProfile = {
+                id: loginData.user.id,
+                email: cleanEmail,
+                full_name: cleanName || loginData.user.user_metadata?.full_name || 'Customer',
+                phone: cleanPhone || loginData.user.user_metadata?.phone,
+                gender: cleanGender || loginData.user.user_metadata?.gender,
+                role: 'customer',
+                status: 'Active',
+              };
+              setUser(loginData.user);
+              setSession(loginData.session);
+              setProfile(customerProfile);
+              localStorage.setItem('customer_profile_cache', JSON.stringify(customerProfile));
+              toast.success(`Account already registered. Signed in successfully!`);
+              return { success: true, needsEmailVerification: false };
+            }
+          } catch (autoLoginErr) {
+            // Fall through to error
+          }
+
           return {
             success: false,
-            error: 'Security rate limit reached. Please wait 1 to 2 minutes before requesting another verification email.',
+            error: 'Email rate limit reached (too many signup requests in a short time). Please wait 1-2 minutes before trying again, or Sign In with your password.',
           };
         }
         return { success: false, error: error.message };
