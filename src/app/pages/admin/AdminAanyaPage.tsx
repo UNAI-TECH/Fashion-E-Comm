@@ -428,10 +428,27 @@ export function AdminAanyaPage() {
     coupon_discount: '',
     applicable_on: 'All Orders',
     coupon_code: '',
+    // Color Variants toggle
+    variants_enabled: false,
+    material_type: '',
+    material_type_custom: '',
   };
   const [form, setForm] = useState(emptyForm);
   const [urlInput, setUrlInput] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+
+  // Color variant entries
+  interface VariantEntry {
+    id: string;
+    color: string;
+    name: string;
+    price: string;
+    compare_at_price: string;
+    images: string[];
+  }
+  const emptyVariant: VariantEntry = { id: crypto.randomUUID(), color: '', name: '', price: '', compare_at_price: '', images: [] };
+  const [variants, setVariants] = useState<VariantEntry[]>([{ ...emptyVariant, id: crypto.randomUUID() }]);
+  const [variantUploading, setVariantUploading] = useState<string | null>(null);
 
   /* ─── Load Supabase data using service-role client (bypasses RLS) ─── */
   const loadData = useCallback(async () => {
@@ -686,6 +703,48 @@ export function AdminAanyaPage() {
     }
   };
 
+  // Variant image upload handler
+  const handleVariantImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, variantId: string) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    setVariantUploading(variantId);
+    try {
+      const newUrls: string[] = [];
+      for (const file of files) {
+        let uploadedUrl = '';
+        try {
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${Date.now()}_${Math.random().toString(36).slice(2)}.${fileExt}`;
+          const filePath = `${form.category.toLowerCase()}/${fileName}`;
+          const { error: uploadError } = await supabase.storage.from('products').upload(filePath, file);
+          if (!uploadError) {
+            const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(filePath);
+            if (publicUrl) uploadedUrl = publicUrl;
+          }
+        } catch (err) {}
+        if (!uploadedUrl) {
+          uploadedUrl = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.readAsDataURL(file);
+          });
+        }
+        if (uploadedUrl) newUrls.push(uploadedUrl);
+      }
+      if (newUrls.length > 0) {
+        setVariants(prev => prev.map(v => 
+          v.id === variantId ? { ...v, images: [...v.images, ...newUrls] } : v
+        ));
+        toast.success(`Uploaded ${newUrls.length} image(s) for variant!`);
+      }
+    } catch (err) {
+      toast.error('Failed to upload variant images');
+    } finally {
+      setVariantUploading(null);
+      e.target.value = '';
+    }
+  };
+
   const handleRemoveImage = (index: number) => {
     setForm(prev => {
       const nextImages = prev.images.filter((_, i) => i !== index);
@@ -757,116 +816,183 @@ export function AdminAanyaPage() {
 
     setAdding(true);
     try {
-      const productPayload = {
-        name: form.name.trim(),
-        category: form.category,
-        price: parseFloat(form.price),
-        compare_at_price: form.compare_at_price ? parseFloat(form.compare_at_price) : null,
-        stock_quantity: Number(form.stock_quantity) || 25,
-        image_url: primaryImg,
-        images: guaranteedImages,
-        description: form.description.trim() || null,
-        status: form.status,
-        specifications: {
-          brand: form.spec_brand.trim() || 'Aanya Fashions',
-          color: form.spec_color.trim() || '',
-          material: form.spec_material.trim() || '',
-          design: form.spec_design.trim() || '',
-          pattern: form.spec_pattern.trim() || '',
-          wash_care: form.spec_wash_care.trim() || 'Dry Clean Only',
-          occasion: form.spec_occasion.trim() || '',
-        },
-        offer_enabled: form.offer_enabled,
-        offer_details: form.offer_enabled ? {
-          offer_price: form.offer_price ? parseFloat(form.offer_price) : null,
-          coupon_discount: form.coupon_discount ? parseFloat(form.coupon_discount) : null,
-          applicable_on: form.applicable_on.trim() || 'All Orders',
-          coupon_code: form.coupon_code.trim().toUpperCase() || '',
-        } : {},
+      const materialType = form.material_type === 'Other' ? form.material_type_custom.trim() : form.material_type;
+      const baseSpecs = {
+        brand: form.spec_brand.trim() || 'Aanya Fashions',
+        color: form.spec_color.trim() || '',
+        material: form.spec_material.trim() || materialType || '',
+        design: form.spec_design.trim() || '',
+        pattern: form.spec_pattern.trim() || '',
+        wash_care: form.spec_wash_care.trim() || 'Dry Clean Only',
+        occasion: form.spec_occasion.trim() || '',
       };
+      const baseOffer = form.offer_enabled ? {
+        offer_price: form.offer_price ? parseFloat(form.offer_price) : null,
+        coupon_discount: form.coupon_discount ? parseFloat(form.coupon_discount) : null,
+        applicable_on: form.applicable_on.trim() || 'All Orders',
+        coupon_code: form.coupon_code.trim().toUpperCase() || '',
+      } : {};
 
-      let createdProduct: any = null;
-      try {
-        const { data, error } = await supabase.from('products').insert(productPayload).select().single();
-        if (!error && data) {
-          createdProduct = data;
-        } else if (error) {
-          console.warn('Supabase DB product insert notice:', error);
-        }
-      } catch (dbErr) {
-        console.warn('Supabase product insert notice:', dbErr);
-      }
+      // ─── VARIANT MODE: create multiple products sharing a variant_group_id ───
+      if (form.variants_enabled && variants.length > 0 && variants.some(v => v.color.trim() && v.images.length > 0)) {
+        const variantGroupId = crypto.randomUUID();
+        const validVariants = variants.filter(v => v.color.trim() && v.images.length > 0);
+        const createdProducts: any[] = [];
 
-      if (!createdProduct) {
-        toast.error('Failed to save product in database.');
-        setAdding(false);
-        return;
-      }
+        for (const variant of validVariants) {
+          const vImages = variant.images.length > 0 ? variant.images : imagesList;
+          const vName = variant.name.trim() || `${form.name.trim()} - ${variant.color.trim()}`;
+          const vPrice = variant.price ? parseFloat(variant.price) : parseFloat(form.price);
+          const vCompare = variant.compare_at_price ? parseFloat(variant.compare_at_price) : (form.compare_at_price ? parseFloat(form.compare_at_price) : null);
 
-      setDbProducts(prev => [createdProduct, ...prev.filter(p => p.id !== createdProduct.id)]);
-      window.dispatchEvent(new Event('products_updated'));
-      window.dispatchEvent(new Event('storage'));
-
-      // If offer is enabled and coupon code provided, save to coupons table
-      if (form.offer_enabled && form.coupon_code.trim()) {
-        try {
-          const couponPayload = {
-            code: form.coupon_code.trim().toUpperCase(),
-            discount_type: 'Percentage',
-            discount_value: form.coupon_discount ? parseFloat(form.coupon_discount) : 0,
-            status: 'Active',
-            product_id: createdProduct.id,
-            min_order_amount: 0,
-            applicable_on: form.applicable_on.trim() || 'All Orders',
+          const variantPayload = {
+            name: vName,
+            category: form.category,
+            price: vPrice,
+            compare_at_price: vCompare,
+            stock_quantity: Number(form.stock_quantity) || 25,
+            image_url: vImages[0],
+            images: vImages,
+            description: form.description.trim() || null,
+            status: form.status,
+            specifications: { ...baseSpecs, color: variant.color.trim() },
+            offer_enabled: form.offer_enabled,
+            offer_details: baseOffer,
+            variant_group_id: variantGroupId,
+            variant_color: variant.color.trim(),
+            material_type: materialType,
           };
-          // Try insert first, if code exists update it
-          const { error: couponError } = await supabase.from('coupons').insert(couponPayload);
-          if (couponError) {
-            // If duplicate code, try update
-            if (couponError.code === '23505') {
-              await supabase.from('coupons')
-                .update({ ...couponPayload })
-                .eq('code', couponPayload.code);
-            } else {
-              console.error('Coupon save error:', couponError);
-              toast.error('Product saved but coupon failed to save: ' + couponError.message);
+
+          try {
+            const { data, error } = await supabase.from('products').insert(variantPayload).select().single();
+            if (!error && data) {
+              createdProducts.push(data);
+            } else if (error) {
+              console.warn('Variant insert notice:', error);
+              toast.error(`Failed to save variant "${variant.color}": ${error.message}`);
             }
-          } else {
-            toast.success(`Coupon ${couponPayload.code} saved!`);
+          } catch (dbErr) {
+            console.warn('Variant insert error:', dbErr);
           }
-        } catch (couponErr) {
-          console.error('Coupon save error:', couponErr);
-          toast.error('Product saved but coupon failed to save');
         }
-      }
 
-      // If requested, also feature this newly inserted product on the homepage hero model
-      if (featureOnHero) {
+        if (createdProducts.length === 0) {
+          toast.error('Failed to save any color variants.');
+          setAdding(false);
+          return;
+        }
+
+        setDbProducts(prev => [...createdProducts, ...prev]);
+        window.dispatchEvent(new Event('products_updated'));
+        window.dispatchEvent(new Event('storage'));
+
+        toast.success(`${createdProducts.length} color variants published! Group: ${form.name.trim()}`);
+        setIsAddOpen(false);
+        setImgPreview('');
+        setUrlInput('');
+        setForm(emptyForm);
+        setVariants([{ ...emptyVariant, id: crypto.randomUUID() }]);
+        setFeatureOnHero(false);
+
+      } else {
+        // ─── SINGLE PRODUCT MODE (original flow) ───
+        const productPayload = {
+          name: form.name.trim(),
+          category: form.category,
+          price: parseFloat(form.price),
+          compare_at_price: form.compare_at_price ? parseFloat(form.compare_at_price) : null,
+          stock_quantity: Number(form.stock_quantity) || 25,
+          image_url: primaryImg,
+          images: guaranteedImages,
+          description: form.description.trim() || null,
+          status: form.status,
+          specifications: baseSpecs,
+          offer_enabled: form.offer_enabled,
+          offer_details: baseOffer,
+          material_type: materialType,
+        };
+
+        let createdProduct: any = null;
         try {
-          await saveHeroModel({
-            label: createdProduct.name,
-            subtitle: `Discover Trending ${createdProduct.category}`,
-            color: CAT_COLORS[createdProduct.category] || '#698156',
-            src: createdProduct.image_url || primaryImg || '/model_1.png',
-            productId: createdProduct.id,
-            productName: createdProduct.name,
-            price: createdProduct.price,
-            link: `/product/${createdProduct.id}`,
-            status: 'Active',
-            display_order: 1,
-          });
-          toast.success(`'${createdProduct.name}' featured on homepage model!`);
-        } catch (heroErr) {
-          console.warn('Hero model auto-link notice:', heroErr);
+          const { data, error } = await supabase.from('products').insert(productPayload).select().single();
+          if (!error && data) {
+            createdProduct = data;
+          } else if (error) {
+            console.warn('Supabase DB product insert notice:', error);
+          }
+        } catch (dbErr) {
+          console.warn('Supabase product insert notice:', dbErr);
         }
-      }
 
-      toast.success(`'${createdProduct.name}' published to store with ${guaranteedImages.length} images!`);
-      setIsAddOpen(false); 
-      setImgPreview(''); 
-      setUrlInput('');
-      setForm(emptyForm); 
-      setFeatureOnHero(false);
+        if (!createdProduct) {
+          toast.error('Failed to save product in database.');
+          setAdding(false);
+          return;
+        }
+
+        setDbProducts(prev => [createdProduct, ...prev.filter(p => p.id !== createdProduct.id)]);
+        window.dispatchEvent(new Event('products_updated'));
+        window.dispatchEvent(new Event('storage'));
+
+        // If offer is enabled and coupon code provided, save to coupons table
+        if (form.offer_enabled && form.coupon_code.trim()) {
+          try {
+            const couponPayload = {
+              code: form.coupon_code.trim().toUpperCase(),
+              discount_type: 'Percentage',
+              discount_value: form.coupon_discount ? parseFloat(form.coupon_discount) : 0,
+              status: 'Active',
+              product_id: createdProduct.id,
+              min_order_amount: 0,
+              applicable_on: form.applicable_on.trim() || 'All Orders',
+            };
+            const { error: couponError } = await supabase.from('coupons').insert(couponPayload);
+            if (couponError) {
+              if (couponError.code === '23505') {
+                await supabase.from('coupons')
+                  .update({ ...couponPayload })
+                  .eq('code', couponPayload.code);
+              } else {
+                console.error('Coupon save error:', couponError);
+                toast.error('Product saved but coupon failed to save: ' + couponError.message);
+              }
+            } else {
+              toast.success(`Coupon ${couponPayload.code} saved!`);
+            }
+          } catch (couponErr) {
+            console.error('Coupon save error:', couponErr);
+            toast.error('Product saved but coupon failed to save');
+          }
+        }
+
+        // Feature on hero
+        if (featureOnHero) {
+          try {
+            await saveHeroModel({
+              label: createdProduct.name,
+              subtitle: `Discover Trending ${createdProduct.category}`,
+              color: CAT_COLORS[createdProduct.category] || '#698156',
+              src: createdProduct.image_url || primaryImg || '/model_1.png',
+              productId: createdProduct.id,
+              productName: createdProduct.name,
+              price: createdProduct.price,
+              link: `/product/${createdProduct.id}`,
+              status: 'Active',
+              display_order: 1,
+            });
+            toast.success(`'${createdProduct.name}' featured on homepage model!`);
+          } catch (heroErr) {
+            console.warn('Hero model auto-link notice:', heroErr);
+          }
+        }
+
+        toast.success(`'${createdProduct.name}' published to store with ${guaranteedImages.length} images!`);
+        setIsAddOpen(false);
+        setImgPreview('');
+        setUrlInput('');
+        setForm(emptyForm);
+        setFeatureOnHero(false);
+      }
     } catch (err: any) {
       toast.error('Failed: ' + (err.message || 'Unknown error'));
     } finally { setAdding(false); }
@@ -1805,6 +1931,173 @@ export function AdminAanyaPage() {
                                     onChange={e => setForm({ ...form, coupon_code: e.target.value.toUpperCase() })}
                                     className="w-full px-3 py-2 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-amber-300/30 font-mono font-bold uppercase"
                                   />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* ═══ COLOR VARIANTS TOGGLE ═══ */}
+                          <div className={`border rounded-xl p-3 sm:p-4 transition-all space-y-3 ${
+                            form.variants_enabled ? 'bg-purple-50/60 border-purple-300 ring-1 ring-purple-200/50' : 'bg-gray-50/80 border-gray-200'
+                          }`}>
+                            <div
+                              className="flex items-center justify-between cursor-pointer select-none"
+                              onClick={() => setForm({ ...form, variants_enabled: !form.variants_enabled })}
+                            >
+                              <div className="flex items-center gap-2">
+                                <Shirt className="w-4 h-4 text-purple-600" />
+                                <span className="text-xs sm:text-sm font-bold text-gray-900">Enable Color Variants</span>
+                              </div>
+                              <div className={`relative w-10 h-5 rounded-full transition-colors cursor-pointer ${form.variants_enabled ? 'bg-purple-600' : 'bg-gray-300'}`}>
+                                <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.variants_enabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                              </div>
+                            </div>
+                            <p className="text-[11px] sm:text-xs text-gray-500 leading-snug">
+                              Upload multiple color variants of this product. Each color gets its own images, title, and price — like Flipkart's color selector.
+                            </p>
+
+                            {form.variants_enabled && (
+                              <div className="space-y-4 pt-2">
+                                {/* Material Type */}
+                                <div>
+                                  <label className="block text-[10px] sm:text-[11px] uppercase tracking-wider font-bold text-gray-500 mb-1">Material Type</label>
+                                  <div className="flex flex-wrap gap-2">
+                                    {['Cotton', 'Polyester', 'Silk', 'Other'].map(mat => (
+                                      <button
+                                        key={mat}
+                                        type="button"
+                                        onClick={() => setForm({ ...form, material_type: mat })}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                                          form.material_type === mat
+                                            ? 'bg-purple-600 text-white border-purple-600'
+                                            : 'bg-white text-gray-700 border-gray-200 hover:border-purple-300'
+                                        }`}
+                                      >
+                                        {mat}
+                                      </button>
+                                    ))}
+                                  </div>
+                                  {form.material_type === 'Other' && (
+                                    <input
+                                      type="text"
+                                      placeholder="Enter custom material type..."
+                                      value={form.material_type_custom}
+                                      onChange={e => setForm({ ...form, material_type_custom: e.target.value })}
+                                      className="mt-2 w-full px-3 py-2 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-purple-300/30"
+                                    />
+                                  )}
+                                </div>
+
+                                {/* Variant Entries */}
+                                <div className="space-y-3">
+                                  <div className="flex items-center justify-between">
+                                    <label className="text-[10px] sm:text-[11px] uppercase tracking-wider font-bold text-gray-500">Color Variants ({variants.length})</label>
+                                    <button
+                                      type="button"
+                                      onClick={() => setVariants(prev => [...prev, { ...emptyVariant, id: crypto.randomUUID() }])}
+                                      className="text-[11px] font-bold text-purple-600 hover:text-purple-700 flex items-center gap-1 cursor-pointer"
+                                    >
+                                      <Plus className="w-3 h-3" /> Add Variant
+                                    </button>
+                                  </div>
+
+                                  {variants.map((variant, vIdx) => (
+                                    <div key={variant.id} className="bg-white rounded-xl border border-gray-200 p-3 space-y-2.5">
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-xs font-bold text-purple-600">Variant #{vIdx + 1}</span>
+                                        {variants.length > 1 && (
+                                          <button
+                                            type="button"
+                                            onClick={() => setVariants(prev => prev.filter(v => v.id !== variant.id))}
+                                            className="text-red-500 hover:text-red-700 p-1 cursor-pointer"
+                                          >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                          </button>
+                                        )}
+                                      </div>
+
+                                      <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                          <label className="block text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-0.5">Color Name *</label>
+                                          <input
+                                            type="text"
+                                            placeholder="e.g. Peach Coral"
+                                            value={variant.color}
+                                            onChange={e => setVariants(prev => prev.map(v => v.id === variant.id ? { ...v, color: e.target.value } : v))}
+                                            className="w-full px-2.5 py-1.5 bg-gray-50 rounded-lg text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-purple-200/40"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="block text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-0.5">Product Title</label>
+                                          <input
+                                            type="text"
+                                            placeholder={form.name ? `${form.name} - ${variant.color || 'Color'}` : 'Auto-generated'}
+                                            value={variant.name}
+                                            onChange={e => setVariants(prev => prev.map(v => v.id === variant.id ? { ...v, name: e.target.value } : v))}
+                                            className="w-full px-2.5 py-1.5 bg-gray-50 rounded-lg text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-purple-200/40"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="block text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-0.5">Price (₹)</label>
+                                          <input
+                                            type="number"
+                                            placeholder={form.price || 'Same as main'}
+                                            value={variant.price}
+                                            onChange={e => setVariants(prev => prev.map(v => v.id === variant.id ? { ...v, price: e.target.value } : v))}
+                                            className="w-full px-2.5 py-1.5 bg-gray-50 rounded-lg text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-purple-200/40"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="block text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-0.5">MRP (₹)</label>
+                                          <input
+                                            type="number"
+                                            placeholder={form.compare_at_price || 'Same as main'}
+                                            value={variant.compare_at_price}
+                                            onChange={e => setVariants(prev => prev.map(v => v.id === variant.id ? { ...v, compare_at_price: e.target.value } : v))}
+                                            className="w-full px-2.5 py-1.5 bg-gray-50 rounded-lg text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-purple-200/40"
+                                          />
+                                        </div>
+                                      </div>
+
+                                      {/* Variant Images */}
+                                      <div>
+                                        <label className="block text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-1">Images *</label>
+                                        <div className="flex gap-2 flex-wrap">
+                                          {variant.images.map((img, imgIdx) => (
+                                            <div key={imgIdx} className="relative w-14 h-18 rounded-lg overflow-hidden border border-gray-200">
+                                              <img src={img} alt="" className="w-full h-full object-cover" />
+                                              <button
+                                                type="button"
+                                                onClick={() => setVariants(prev => prev.map(v => v.id === variant.id ? { ...v, images: v.images.filter((_, i) => i !== imgIdx) } : v))}
+                                                className="absolute top-0 right-0 w-4 h-4 bg-red-500 text-white rounded-bl text-[8px] flex items-center justify-center cursor-pointer"
+                                              >
+                                                ✕
+                                              </button>
+                                            </div>
+                                          ))}
+                                          <label className={`w-14 h-18 rounded-lg border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all ${
+                                            variantUploading === variant.id ? 'border-purple-400 bg-purple-50' : 'border-gray-300 hover:border-purple-400 bg-gray-50'
+                                          }`}>
+                                            {variantUploading === variant.id ? (
+                                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-purple-400 border-t-transparent" />
+                                            ) : (
+                                              <>
+                                                <Plus className="w-4 h-4 text-gray-400" />
+                                                <span className="text-[8px] text-gray-400 font-bold mt-0.5">Add</span>
+                                              </>
+                                            )}
+                                            <input
+                                              type="file"
+                                              accept="image/*"
+                                              multiple
+                                              onChange={(e) => handleVariantImageUpload(e, variant.id)}
+                                              className="hidden"
+                                            />
+                                          </label>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
                                 </div>
                               </div>
                             )}

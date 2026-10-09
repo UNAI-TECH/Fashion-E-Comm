@@ -109,10 +109,6 @@ export function ProductCard({
                 <span className="text-xs text-gray-400 line-through">₹{originalPrice}</span>
               )}
             </div>
-            <div className="flex items-center gap-0.5 flex-shrink-0">
-              <Star className="w-3.5 h-3.5 fill-[#698156] text-[#698156]" />
-              <span className="text-xs text-gray-600 font-semibold">{rating}</span>
-            </div>
           </div>
 
           {/* Two Buttons Near the Price: ADD TO CART & BUY NOW */}

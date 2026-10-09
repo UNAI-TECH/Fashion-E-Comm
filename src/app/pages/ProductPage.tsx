@@ -49,6 +49,9 @@ export function ProductPage() {
   // Random related products
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
 
+  // Color variants (products sharing same variant_group_id)
+  const [colorVariants, setColorVariants] = useState<any[]>([]);
+
   const handleBuyNow = () => {
     if (!product) return;
     navigate(`/checkout?buyNow=${product.id}&qty=${quantity}`);
@@ -103,6 +106,29 @@ export function ProductPage() {
     }
     loadProduct();
   }, [id]);
+
+  // Load color variants when product has a variant_group_id
+  useEffect(() => {
+    async function loadVariants() {
+      if (!product) return;
+      const groupId = (product as any).variant_group_id;
+      if (!groupId) { setColorVariants([]); return; }
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select('id, name, variant_color, image_url, images, price, compare_at_price')
+          .eq('variant_group_id', groupId)
+          .eq('status', 'Published')
+          .order('variant_color');
+        if (!error && data) {
+          setColorVariants(data);
+        }
+      } catch (err) {
+        console.warn('Variants load notice:', err);
+      }
+    }
+    loadVariants();
+  }, [product]);
 
   // Load real reviews from Supabase
   useEffect(() => {
@@ -227,9 +253,10 @@ export function ProductPage() {
     ...(specs.occasion ? [{ label: 'Occasion', value: specs.occasion }] : []),
   ];
 
+  // Only show rating from real reviews — no mock/default fallback
   const avgRating = reviews.length > 0 
     ? Math.round((reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length) * 10) / 10 
-    : product.rating || 0;
+    : 0;
 
   const images = product.images || [product.image];
 
@@ -295,79 +322,29 @@ export function ProductPage() {
             {/* ═══ LEFT COLUMN (Desktop: Image + Related Products) ═══ */}
             <div className="lg:col-span-7 space-y-6">
               
-              {/* Main Image Carousel */}
-              <div 
-                className="relative aspect-[4/5] max-h-[520px] rounded-2xl overflow-hidden border border-gray-200/80 bg-[#FAF9F6] shadow-sm cursor-zoom-in group mx-auto w-full"
-                onClick={() => {
-                  setLightboxIndex(selectedImage);
-                  setIsLightboxOpen(true);
-                }}
-              >
-                <AnimatePresence mode="wait">
-                  <motion.img
-                    key={selectedImage}
-                    src={images[selectedImage]}
-                    alt={`${product.name} - View ${selectedImage + 1}`}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-                  />
-                </AnimatePresence>
-
-                {images.length > 1 && (
-                  <>
-                    {selectedImage > 0 && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setSelectedImage(prev => prev - 1); }}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 p-2.5 bg-white/90 hover:bg-white text-gray-800 rounded-full shadow-md transition-all cursor-pointer z-10"
-                      >
-                        <ChevronLeft className="w-5 h-5" />
-                      </button>
-                    )}
-                    {selectedImage < images.length - 1 && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setSelectedImage(prev => prev + 1); }}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 p-2.5 bg-white/90 hover:bg-white text-gray-800 rounded-full shadow-md transition-all cursor-pointer z-10"
-                      >
-                        <ChevronRight className="w-5 h-5" />
-                      </button>
-                    )}
-                  </>
-                )}
-
-                {images.length > 1 && (
-                  <div className="absolute bottom-3 right-3 px-3 py-1 bg-black/75 backdrop-blur-md text-white text-xs font-bold rounded-full shadow-md flex items-center gap-1.5 z-10">
-                    <Camera className="w-3.5 h-3.5 text-[#698156]" />
-                    <span>{selectedImage + 1} / {images.length}</span>
+              {/* 2-Column Image Grid */}
+              <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                {images.map((imgUrl, idx) => (
+                  <div
+                    key={idx}
+                    className="relative aspect-[3/4] rounded-xl overflow-hidden border border-gray-200/80 bg-[#FAF9F6] shadow-sm cursor-zoom-in group"
+                    onClick={() => {
+                      setLightboxIndex(idx);
+                      setIsLightboxOpen(true);
+                    }}
+                  >
+                    <img
+                      src={imgUrl}
+                      alt={`${product.name} - View ${idx + 1}`}
+                      className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+                    />
+                    <div className="absolute bottom-2 right-2 p-1.5 bg-white/90 text-gray-700 rounded-lg shadow-md opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center gap-1 text-[10px] font-bold z-10">
+                      <Maximize2 className="w-3 h-3 text-[#698156]" />
+                      Zoom
+                    </div>
                   </div>
-                )}
-
-                <div className="absolute bottom-3 left-3 z-10 pointer-events-none">
-                  <div className="p-2 bg-white/90 text-gray-900 rounded-xl shadow-md opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center gap-1.5 text-xs font-bold">
-                    <Maximize2 className="w-3.5 h-3.5 text-[#698156]" />
-                    <span>Zoom</span>
-                  </div>
-                </div>
+                ))}
               </div>
-
-              {/* Thumbnail Strip */}
-              {images.length > 1 && (
-                <div className="flex gap-2.5 overflow-x-auto pb-1 justify-center">
-                  {images.map((imgUrl, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setSelectedImage(idx)}
-                      className={`relative w-16 h-20 rounded-xl overflow-hidden border-2 transition-all shrink-0 cursor-pointer ${
-                        selectedImage === idx ? 'border-[#698156] scale-105 shadow-md ring-2 ring-[#698156]/20' : 'border-gray-200 opacity-70 hover:opacity-100'
-                      }`}
-                    >
-                      <img src={imgUrl} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
-                    </button>
-                  ))}
-                </div>
-              )}
 
               {/* ═══ RELATED PRODUCTS — Desktop only (below image, beside details) ═══ */}
               {relatedProducts.length > 0 && (
@@ -400,7 +377,44 @@ export function ProductPage() {
                 <h1 className="font-serif text-2xl sm:text-3xl text-gray-900 leading-snug font-bold">
                   {product.name}
                 </h1>
+                {/* Description — right below title */}
+                {product.description && (
+                  <p className="text-sm text-gray-600 leading-relaxed mt-1.5">{product.description}</p>
+                )}
               </div>
+
+              {/* ═══ COLOR VARIANT SWATCHES (Flipkart-style) ═══ */}
+              {colorVariants.length > 1 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs uppercase tracking-widest text-gray-600 font-bold">Selected Color:</span>
+                    <span className="text-xs font-black text-gray-900">{(product as any).variant_color || 'Default'}</span>
+                  </div>
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    {colorVariants.map((v) => {
+                      const isActive = v.id === product.id;
+                      const thumbImg = v.image_url || (v.images && v.images[0]) || '/placeholder.jpg';
+                      return (
+                        <Link
+                          key={v.id}
+                          to={`/product/${v.id}`}
+                          className={`relative w-16 h-20 rounded-xl overflow-hidden border-2 shrink-0 transition-all ${
+                            isActive
+                              ? 'border-[#698156] ring-2 ring-[#698156]/25 scale-105 shadow-md'
+                              : 'border-gray-200 opacity-75 hover:opacity-100 hover:border-gray-400'
+                          }`}
+                          title={v.variant_color}
+                        >
+                          <img src={thumbImg} alt={v.variant_color} className="w-full h-full object-cover" />
+                          <div className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[8px] font-bold text-center py-0.5 truncate px-0.5">
+                            {v.variant_color}
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Rating — only if reviews exist */}
               <div className="flex items-center gap-3">
@@ -545,12 +559,7 @@ export function ProductPage() {
                     ))}
                   </div>
                 </div>
-                {product.description && (
-                  <div className="pt-2">
-                    <h4 className="text-xs font-black uppercase tracking-wider text-gray-800 mb-2">DESCRIPTION</h4>
-                    <p className="text-xs text-gray-600 leading-relaxed">{product.description}</p>
-                  </div>
-                )}
+                {/* Description moved to below title */}
               </div>
             </div>
           </div>
