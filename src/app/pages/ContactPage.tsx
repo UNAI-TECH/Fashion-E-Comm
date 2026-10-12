@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Mail, Phone, MapPin, Send, CheckCircle2, X, Copy, ExternalLink } from 'lucide-react';
+import { Mail, Phone, MapPin, Send, CheckCircle2, X, Copy, ExternalLink, Instagram, Facebook } from 'lucide-react';
 import { Navigation } from '../components/Navigation';
 import { AnnouncementBar } from '../components/AnnouncementBar';
 import { Footer } from '../components/Footer';
@@ -169,6 +169,35 @@ export function ContactPage() {
                     className="inline-flex items-center gap-1 text-xs font-semibold text-gray-500 hover:text-[#698156] transition-colors"
                   >
                     Google Maps <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              </div>
+
+              {/* Social Media Channels Card */}
+              <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm hover:shadow-md hover:border-[#698156]/30 border border-gray-100 transition-all">
+                <div className="w-14 h-14 bg-[#F4F6F2] text-[#698156] rounded-full flex items-center justify-center mb-5 shadow-sm">
+                  <Instagram className="w-6 h-6 stroke-[2.2]" />
+                </div>
+                <h3 className="font-serif text-2xl text-[#1A1A1A] mb-2">Connect on Social</h3>
+                <p className="text-gray-600 mb-4">Follow us for latest drops, styling reels, and customer spotlights.</p>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <a
+                    href="https://www.instagram.com/aanya.style"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-purple-600 via-pink-600 to-rose-500 text-white font-bold text-xs shadow-sm hover:opacity-95 transition-opacity"
+                  >
+                    <Instagram className="w-4 h-4" />
+                    <span>Instagram @aanya.style</span>
+                  </a>
+                  <a
+                    href="https://www.facebook.com/profile.php?id=61574236752445"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-[#1877F2] text-white font-bold text-xs shadow-sm hover:opacity-95 transition-opacity"
+                  >
+                    <Facebook className="w-4 h-4" />
+                    <span>Facebook Page</span>
                   </a>
                 </div>
               </div>

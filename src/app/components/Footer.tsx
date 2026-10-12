@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Mail, MapPin, Phone, Instagram, Heart, ArrowUpRight } from 'lucide-react';
+import { Mail, MapPin, Phone, Instagram, Facebook, Heart, ArrowUpRight } from 'lucide-react';
 import { Link } from 'react-router';
 
 export function Footer() {
@@ -21,8 +21,13 @@ export function Footer() {
   const socialLinks = [
     {
       icon: Instagram,
-      href: 'https://www.instagram.com/aanya.style?utm_source=ig_web_button_share_sheet&stkn=ZDNlZDc0MzIxNw==',
+      href: 'https://www.instagram.com/aanya.style',
       label: 'Instagram'
+    },
+    {
+      icon: Facebook,
+      href: 'https://www.facebook.com/profile.php?id=61574236752445',
+      label: 'Facebook'
     }
   ];
 

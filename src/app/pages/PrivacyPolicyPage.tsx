@@ -247,7 +247,7 @@ export function PrivacyPolicyPage() {
             <div className="mt-6 p-4 rounded-xl bg-gray-50 border border-gray-200/60 flex items-center justify-between flex-wrap gap-2 text-xs text-gray-600">
               <span><strong>Brand:</strong> Aanya Fashions · Chennai, Tamil Nadu, India</span>
               <a
-                href="https://www.instagram.com/aanya.style?utm_source=ig_web_button_share_sheet&stkn=ZDNlZDc0MzIxNw=="
+                href="https://www.instagram.com/aanya.style"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 font-semibold text-[#698156] hover:underline"

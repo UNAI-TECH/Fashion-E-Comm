@@ -12,7 +12,7 @@ interface InstagramPost {
   likes?: number;
 }
 
-const INSTAGRAM_PROFILE_URL = 'https://www.instagram.com/aanya.style?utm_source=ig_web_button_share_sheet&stkn=ZDNlZDc0MzIxNw==';
+const INSTAGRAM_PROFILE_URL = 'https://www.instagram.com/aanya.style';
 
 const DEFAULT_POSTS: InstagramPost[] = [
   {

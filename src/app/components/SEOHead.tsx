@@ -151,12 +151,8 @@ export function getOrganizationSchema() {
       name: 'Aanya Fashions Team',
     },
     sameAs: [
-      // Add your actual social media URLs here
-      // 'https://www.instagram.com/aanyafashions',
-      // 'https://www.facebook.com/aanyafashions',
-      // 'https://www.youtube.com/@aanyafashions',
-      // 'https://twitter.com/aanyafashions',
-      // 'https://www.pinterest.com/aanyafashions',
+      'https://www.instagram.com/aanya.style',
+      'https://www.facebook.com/profile.php?id=61574236752445',
     ],
     contactPoint: {
       '@type': 'ContactPoint',
@@ -213,6 +209,10 @@ export function getOnlineStoreSchema() {
     priceRange: '₹₹',
     currenciesAccepted: 'INR',
     paymentAccepted: 'UPI, Credit Card, Debit Card, Net Banking, Cash on Delivery',
+    sameAs: [
+      'https://www.instagram.com/aanya.style',
+      'https://www.facebook.com/profile.php?id=61574236752445',
+    ],
     hasOfferCatalog: {
       '@type': 'OfferCatalog',
       name: 'Aanya Fashions Collections',
