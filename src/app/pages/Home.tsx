@@ -10,6 +10,7 @@ import { Testimonials } from '../components/Testimonials';
 import { InstagramGallery } from '../components/InstagramGallery';
 import { Footer } from '../components/Footer';
 import { fetchProducts, Product } from '../data/products';
+import { SEOHead, getOrganizationSchema, getWebsiteSchema, getOnlineStoreSchema, getFAQSchema } from '../components/SEOHead';
 
 export function Home() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -75,8 +76,43 @@ export function Home() {
     }
   }, [location, isLoading]);
 
+  // Structured data for the homepage
+  const homepageFAQs = getFAQSchema([
+    {
+      question: 'What is Aanya Fashions?',
+      answer: 'Aanya Fashions is a premium online fashion store specializing in women\'s ethnic and western wear. We offer an exclusive collection of sarees, kurtis, lehengas, salwar sets, maxi dresses, and trendy western outfits with free shipping across India.',
+    },
+    {
+      question: 'What types of clothing does Aanya Fashions offer?',
+      answer: 'Aanya Fashions offers a wide range of women\'s clothing including designer sarees, trendy kurtis, bridal and party wear lehengas, elegant salwar sets, stylish maxi dresses, and contemporary western wear. Our collections blend traditional Indian craftsmanship with modern fashion trends.',
+    },
+    {
+      question: 'Does Aanya Fashions offer free shipping?',
+      answer: 'Yes! Aanya Fashions offers free shipping on orders across India. We ensure your beautiful outfits reach you safely and promptly.',
+    },
+    {
+      question: 'What is the return policy at Aanya Fashions?',
+      answer: 'Aanya Fashions offers a hassle-free 7-day return policy. If you\'re not satisfied with your purchase, you can easily return it within 7 days of delivery.',
+    },
+    {
+      question: 'Where can I buy sarees online in India?',
+      answer: 'You can buy premium sarees online at Aanya Fashions (www.aanyafashions.com). We offer a curated collection of silk sarees, banarasi sarees, designer sarees, and more at the best prices with doorstep delivery.',
+    },
+  ]);
+
   return (
     <div className="min-h-screen">
+      <SEOHead
+        canonicalUrl="/"
+        description="Shop premium sarees, kurtis, lehengas, salwar sets, maxi dresses & western wear at Aanya Fashions. India's trusted online destination for elegant women's ethnic and contemporary fashion. Free shipping, easy returns & exclusive collections."
+        keywords="aanya fashions, aanya, aanya fashion, women fashion online india, ethnic wear, traditional clothes, womens wear, fashion world, buy sarees online, designer kurtis, bridal lehenga, salwar kameez, maxi dress online, western wear women india"
+        structuredData={[
+          getOrganizationSchema(),
+          getWebsiteSchema(),
+          getOnlineStoreSchema(),
+          homepageFAQs,
+        ]}
+      />
       <AnnouncementBar />
       <Navigation />
       <HeroSection />

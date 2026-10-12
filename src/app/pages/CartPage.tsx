@@ -6,6 +6,7 @@ import { AnnouncementBar } from '../components/AnnouncementBar';
 import { Footer } from '../components/Footer';
 import { useCart } from '../contexts/CartContext';
 import { useWishlist } from '../contexts/WishlistContext';
+import { SEOHead } from '../components/SEOHead';
 
 export function CartPage() {
   const { cartItems, updateQuantity, removeItem, isLoading } = useCart();
@@ -35,6 +36,12 @@ export function CartPage() {
 
   return (
     <div className="min-h-screen bg-[#F9FAF7]">
+      <SEOHead
+        title="Shopping Bag"
+        description="Review your shopping bag at Aanya Fashions. Premium sarees, kurtis, lehengas, and western wear with safe checkout."
+        canonicalUrl="/cart"
+        noIndex={true}
+      />
       <AnnouncementBar />
       <Navigation />
       

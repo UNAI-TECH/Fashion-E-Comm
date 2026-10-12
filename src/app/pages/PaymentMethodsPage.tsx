@@ -1,10 +1,21 @@
 import { Link } from 'react-router';
 import { CreditCard, Wallet, Smartphone, Banknote, ShieldCheck, X } from 'lucide-react';
 import { Footer } from '../components/Footer';
+import { SEOHead, getBreadcrumbSchema } from '../components/SEOHead';
 
 export function PaymentMethodsPage() {
   return (
     <div className="min-h-screen bg-white">
+      <SEOHead
+        title="Payment Methods & Safe Checkout"
+        description="Learn about the secure payment options accepted at Aanya Fashions, including UPI (GPay, PhonePe, Paytm), Credit/Debit Cards, Net Banking, and Cash on Delivery."
+        canonicalUrl="/payment-methods"
+        keywords="payment methods, upi, credit cards, cash on delivery, secure checkout, aanya fashions payments"
+        structuredData={getBreadcrumbSchema([
+          { name: 'Home', url: '/' },
+          { name: 'Payment Methods', url: '/payment-methods' }
+        ])}
+      />
       
       {/* Custom Header */}
       <header className="fixed top-0 left-0 right-0 z-[40] bg-white shadow-sm border-b border-gray-100 h-16 flex items-center px-4 sm:px-6">

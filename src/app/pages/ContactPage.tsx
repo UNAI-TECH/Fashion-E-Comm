@@ -4,6 +4,7 @@ import { Mail, Phone, MapPin, Send, CheckCircle2, X, Copy, ExternalLink } from '
 import { Navigation } from '../components/Navigation';
 import { AnnouncementBar } from '../components/AnnouncementBar';
 import { Footer } from '../components/Footer';
+import { SEOHead, getBreadcrumbSchema } from '../components/SEOHead';
 
 export function ContactPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -44,6 +45,18 @@ export function ContactPage() {
 
   return (
     <div className="min-h-screen bg-[#FDFBF7]">
+      <SEOHead
+        title="Contact Us - Get in Touch"
+        description="Contact Aanya Fashions for any queries about orders, products, shipping, or returns. We're here to help! Reach us via email, phone, or our contact form. Premium customer support."
+        canonicalUrl="/contact"
+        keywords="contact aanya fashions, aanya fashions customer support, aanya fashions email, aanya fashions phone, fashion help, order inquiry, returns help"
+        structuredData={[
+          getBreadcrumbSchema([
+            { name: 'Home', url: '/' },
+            { name: 'Contact Us', url: '/contact' },
+          ]),
+        ]}
+      />
       <AnnouncementBar />
       <Navigation />
       

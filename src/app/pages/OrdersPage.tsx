@@ -8,6 +8,7 @@ import { Link } from 'react-router';
 import { toast } from 'sonner';
 import { useCustomerAuth } from '../contexts/CustomerAuthContext';
 import { AuthModal } from '../components/AuthModal';
+import { SEOHead } from '../components/SEOHead';
 
 type OrderStatus = 'Order Placed' | 'Confirmed' | 'Packed' | 'Shipped' | 'Out for Delivery' | 'Delivered' | 'Cancelled' | 'Returned' | 'Refunded';
 import React from 'react';
@@ -155,6 +156,7 @@ export function OrdersPage() {
 
   return (
     <div className="min-h-screen bg-gray-50/50">
+      <SEOHead title="My Orders" canonicalUrl="/orders" noIndex={true} />
       <AnnouncementBar />
       
       {/* Custom Header */}

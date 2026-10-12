@@ -2,10 +2,24 @@ import { motion } from 'motion/react';
 import { Navigation } from '../components/Navigation';
 import { AnnouncementBar } from '../components/AnnouncementBar';
 import { Footer } from '../components/Footer';
+import { SEOHead, getOrganizationSchema, getBreadcrumbSchema } from '../components/SEOHead';
 
 export function AboutPage() {
   return (
     <div className="min-h-screen bg-[#FDFBF7]">
+      <SEOHead
+        title="About Aanya Fashions - Our Story & Mission"
+        description="Learn about Aanya Fashions - India's premium women's fashion brand. We blend traditional Indian craftsmanship with modern fashion, offering exquisite sarees, kurtis, lehengas, and more. Ethically sourced, handcrafted with love."
+        canonicalUrl="/about"
+        keywords="about aanya fashions, aanya fashion story, indian fashion brand, women ethnic wear brand, traditional clothing india, handcrafted fashion, ethical fashion india"
+        structuredData={[
+          getOrganizationSchema(),
+          getBreadcrumbSchema([
+            { name: 'Home', url: '/' },
+            { name: 'About Us', url: '/about' },
+          ]),
+        ]}
+      />
       <AnnouncementBar />
       <Navigation />
 

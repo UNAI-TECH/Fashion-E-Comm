@@ -220,7 +220,6 @@ export function AdminProducts() {
 
         if (error) {
           toast.error('Failed to update product in database: ' + error.message);
-          setIsSubmitting(false);
           return;
         }
 
@@ -232,7 +231,6 @@ export function AdminProducts() {
 
         if (error) {
           toast.error('Failed to publish product to database: ' + error.message);
-          setIsSubmitting(false);
           return;
         }
 

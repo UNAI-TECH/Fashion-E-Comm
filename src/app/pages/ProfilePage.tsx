@@ -40,6 +40,7 @@ import { Navigation } from '../components/Navigation';
 import { Footer } from '../components/Footer';
 import { AnnouncementBar } from '../components/AnnouncementBar';
 import { AuthModal } from '../components/AuthModal';
+import { SEOHead } from '../components/SEOHead';
 import {
   getUserProfileDetails,
   saveUserProfileDetails,
@@ -562,6 +563,7 @@ export function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] flex flex-col selection:bg-[#698156]/20">
+      <SEOHead title="My Account" canonicalUrl="/profile" noIndex={true} />
       <AnnouncementBar />
       <Navigation />
 
@@ -1397,7 +1399,7 @@ export function ProfilePage() {
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
                       {wishlistItems.map((item) => {
                         const img =
-                          (item.images && item.images[0]) || item.image || item.image_url || '/logo.png';
+                          (item.images && item.images[0]) || item.image || '/logo.png';
                         return (
                           <div
                             key={item.id}
@@ -1439,9 +1441,9 @@ export function ProfilePage() {
                                   <span className="text-sm font-bold text-gray-900">
                                     ₹{Number(item.price || 0).toLocaleString('en-IN')}
                                   </span>
-                                  {item.original_price && item.original_price > item.price && (
+                                  {item.compare_at_price && item.compare_at_price > item.price && (
                                     <span className="text-xs text-gray-400 line-through">
-                                      ₹{Number(item.original_price).toLocaleString('en-IN')}
+                                      ₹{Number(item.compare_at_price).toLocaleString('en-IN')}
                                     </span>
                                   )}
                                 </div>
@@ -1842,7 +1844,7 @@ export function ProfilePage() {
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
-        initialView="signin"
+        defaultMode="signin"
       />
 
       <Footer />

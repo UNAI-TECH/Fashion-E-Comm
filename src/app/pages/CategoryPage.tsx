@@ -1,12 +1,57 @@
 import { useParams, Link, useLocation } from 'react-router';
 import { motion } from 'motion/react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { fetchProducts, Product } from '../data/products';
 import { ProductCard } from '../components/ProductCard';
 import { ProductSkeleton } from '../components/Skeleton';
 import { Navigation } from '../components/Navigation';
 import { Footer } from '../components/Footer';
 import { AnnouncementBar } from '../components/AnnouncementBar';
+import { SEOHead, getCategorySchema, getBreadcrumbSchema } from '../components/SEOHead';
+
+// SEO-rich category descriptions for search engines
+const CATEGORY_SEO: Record<string, { title: string; description: string; keywords: string }> = {
+  sarees: {
+    title: 'Buy Premium Sarees Online',
+    description: 'Shop the finest collection of designer sarees at Aanya Fashions. Browse silk sarees, banarasi sarees, georgette sarees, cotton sarees & more. Free shipping across India. Premium quality, elegant designs, best prices.',
+    keywords: 'sarees online, buy sarees, designer sarees, silk sarees, banarasi sarees, wedding sarees, party wear sarees, cotton sarees, georgette sarees, saree price, aanya fashions sarees, best sarees online india',
+  },
+  kurtis: {
+    title: 'Buy Trendy Kurtis Online',
+    description: 'Discover elegant kurtis at Aanya Fashions. Shop latest designer kurtis, cotton kurtis, anarkali kurtis, and kurti sets online. Perfect for casual & festive wear. Free delivery & easy returns.',
+    keywords: 'kurtis online, buy kurtis, designer kurtis, cotton kurtis, anarkali kurti, kurti sets, women kurtis, latest kurtis design, aanya fashions kurtis, best kurtis online india',
+  },
+  lehengas: {
+    title: 'Buy Designer Lehengas Online',
+    description: 'Shop stunning lehengas at Aanya Fashions. Browse bridal lehengas, party wear lehengas, designer lehenga choli & more. Perfect for weddings & special occasions. Free shipping.',
+    keywords: 'lehengas online, buy lehengas, bridal lehenga, designer lehenga, lehenga choli, party wear lehenga, wedding lehenga, aanya fashions lehengas, best lehengas online india',
+  },
+  'salwar-sets': {
+    title: 'Buy Elegant Salwar Sets Online',
+    description: 'Shop premium salwar sets at Aanya Fashions. Browse designer salwar kameez, churidar sets, palazzo suits & more. Elegant ethnic wear for every occasion. Free shipping across India.',
+    keywords: 'salwar sets online, buy salwar kameez, designer salwar suits, churidar sets, palazzo suits, women salwar, aanya fashions salwar, best salwar sets online india',
+  },
+  western: {
+    title: 'Buy Trendy Western Wear for Women',
+    description: 'Shop stylish western wear for women at Aanya Fashions. Browse dresses, tops, co-ord sets & more. Contemporary fashion meets premium quality. Free delivery & easy returns.',
+    keywords: 'western wear women, buy western dress, women tops online, co-ord sets, women fashion, trendy western wear, aanya fashions western, best western wear online india',
+  },
+  tradition: {
+    title: 'Buy Traditional Indian Wear Online',
+    description: 'Shop authentic traditional Indian wear at Aanya Fashions. Browse festive collections, heritage wear, traditional outfits & more. Celebrate culture with premium craftsmanship.',
+    keywords: 'traditional clothes, indian traditional wear, festive wear, heritage fashion, traditional outfits women, aanya fashions traditional, ethnic traditional wear india',
+  },
+  maxi: {
+    title: 'Buy Stylish Maxi Dresses Online',
+    description: 'Shop elegant maxi dresses at Aanya Fashions. Browse printed maxis, solid maxis, floral maxi dresses & more. Perfect for casual, beach & party wear. Free shipping.',
+    keywords: 'maxi dresses online, buy maxi dress, women maxi dress, floral maxi, printed maxi, long dress women, aanya fashions maxi, best maxi dresses online india',
+  },
+  'new-arrivals': {
+    title: 'New Arrivals - Latest Fashion Collection',
+    description: 'Discover the latest new arrivals at Aanya Fashions. Shop freshly launched sarees, kurtis, lehengas, western wear & more. Be the first to own trending styles. Free shipping.',
+    keywords: 'new arrivals fashion, latest fashion, new collection, trending fashion, new sarees, new kurtis, latest lehengas, aanya fashions new arrivals',
+  },
+};
 
 export function CategoryPage() {
   const { category: rawCategoryParam } = useParams<{ category: string }>();
@@ -18,6 +63,13 @@ export function CategoryPage() {
   const categoryTitle = category 
     ? category.charAt(0).toUpperCase() + category.slice(1).replace('-', ' ') 
     : 'All Collections';
+
+  const categorySlug = (category || 'all').toLowerCase().replace(/\s+/g, '-');
+  const seo = CATEGORY_SEO[categorySlug] || {
+    title: `${categoryTitle} Collection`,
+    description: `Shop premium ${categoryTitle.toLowerCase()} at Aanya Fashions. Discover our curated collection of elegant women's fashion. Free shipping across India.`,
+    keywords: `${categoryTitle.toLowerCase()}, buy ${categoryTitle.toLowerCase()} online, aanya fashions ${categoryTitle.toLowerCase()}, women ${categoryTitle.toLowerCase()} india`,
+  };
 
   useEffect(() => {
     async function loadProducts() {
@@ -64,6 +116,23 @@ export function CategoryPage() {
 
   return (
     <div className="min-h-screen bg-white">
+      <SEOHead
+        title={seo.title}
+        description={seo.description}
+        canonicalUrl={`/${categorySlug}`}
+        keywords={seo.keywords}
+        structuredData={[
+          getCategorySchema({
+            name: categoryTitle,
+            description: seo.description,
+            url: `/${categorySlug}`,
+          }),
+          getBreadcrumbSchema([
+            { name: 'Home', url: '/' },
+            { name: categoryTitle, url: `/${categorySlug}` },
+          ]),
+        ]}
+      />
       <AnnouncementBar />
       <Navigation />
       

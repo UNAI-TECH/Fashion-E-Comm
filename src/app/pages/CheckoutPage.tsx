@@ -12,6 +12,7 @@ import { useCart } from '../contexts/CartContext';
 import { supabase } from '../../lib/supabase';
 import { toast } from 'sonner';
 import { Product, ensureProductImages } from '../data/products';
+import { SEOHead } from '../components/SEOHead';
 
 interface SavedAddress {
   id: string;
@@ -450,6 +451,7 @@ export function CheckoutPage() {
   if (orderPlaced) {
     return (
       <div className="min-h-screen bg-[#F9FAF7]">
+        <SEOHead title="Order Confirmed" canonicalUrl="/checkout" noIndex={true} />
         <AnnouncementBar /><Navigation />
         <div className="pt-24 sm:pt-28 lg:pt-14 pb-20 px-4">
           <div className="max-w-lg mx-auto text-center bg-white rounded-3xl p-8 sm:p-12 shadow-sm">
@@ -512,6 +514,7 @@ export function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-[#F9FAF7]">
+      <SEOHead title="Secure Checkout" canonicalUrl="/checkout" noIndex={true} />
       <AnnouncementBar /><Navigation />
 
       <div className="pt-24 sm:pt-28 lg:pt-14 pb-20 px-4">

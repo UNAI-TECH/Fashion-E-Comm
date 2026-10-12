@@ -1,10 +1,21 @@
 import { Link } from 'react-router';
 import { Eye, FileText, Lock, X, Phone, Mail, MapPin, ShieldCheck, CheckCircle2, Instagram } from 'lucide-react';
 import { Footer } from '../components/Footer';
+import { SEOHead, getBreadcrumbSchema } from '../components/SEOHead';
 
 export function PrivacyPolicyPage() {
   return (
     <div className="min-h-screen bg-white font-sans">
+      <SEOHead
+        title="Privacy Policy"
+        description="Read the Privacy Policy of Aanya Fashions. Learn how we protect your personal information, handle customer transactions securely, and respect user privacy."
+        canonicalUrl="/privacy"
+        keywords="privacy policy, data security, customer privacy, aanya fashions privacy policy"
+        structuredData={getBreadcrumbSchema([
+          { name: 'Home', url: '/' },
+          { name: 'Privacy Policy', url: '/privacy' }
+        ])}
+      />
       {/* Custom Header */}
       <header className="fixed top-0 left-0 right-0 z-[40] bg-white/95 backdrop-blur-md shadow-xs border-b border-gray-100 h-16 flex items-center px-4 sm:px-6">
         <div className="flex-1 flex justify-start">

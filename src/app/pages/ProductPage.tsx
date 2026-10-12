@@ -15,6 +15,7 @@ import { useWishlist } from '../contexts/WishlistContext';
 import { supabase } from '../../lib/supabase';
 import { fetchProducts, Product, ensureProductImages } from '../data/products';
 import { toast } from 'sonner';
+import { SEOHead, getProductSchema, getBreadcrumbSchema } from '../components/SEOHead';
 
 
 /* ─── Review type for real DB reviews ─── */
@@ -299,6 +300,34 @@ export function ProductPage() {
 
   return (
     <div className="min-h-screen bg-white">
+      <SEOHead
+        title={`${product.name} - ${product.category || 'Premium Fashion'}`}
+        description={product.description || `Buy ${product.name} online at Aanya Fashions. Premium quality ${product.category || 'ethnic wear'} at ₹${Number(product.price).toLocaleString('en-IN')}. Free shipping, easy returns & COD available.`}
+        canonicalUrl={`/product/${product.id}`}
+        ogImage={product.images?.[0]?.startsWith('http') ? product.images[0] : `https://www.aanyafashions.com${product.images?.[0] || product.image}`}
+        ogType="product"
+        keywords={`${product.name}, ${product.category || ''}, buy ${product.category || 'fashion'} online, aanya fashions ${product.category || ''}, ${product.name} price, women ${product.category || 'ethnic wear'}`}
+        structuredData={[
+          getProductSchema({
+            name: product.name,
+            description: product.description,
+            price: product.price,
+            originalPrice: product.compare_at_price || product.originalPrice,
+            image: product.image,
+            images: product.images,
+            category: product.category,
+            id: product.id,
+            rating: product.rating,
+            stock_quantity: product.stock_quantity,
+            status: product.status,
+          }),
+          getBreadcrumbSchema([
+            { name: 'Home', url: '/' },
+            { name: product.category || 'Products', url: `/category/${(product.category || 'all').toLowerCase()}` },
+            { name: product.name, url: `/product/${product.id}` },
+          ]),
+        ]}
+      />
       <AnnouncementBar />
       <Navigation />
 

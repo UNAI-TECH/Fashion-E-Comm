@@ -1,0 +1,81 @@
+# Aanya Fashions - robots.txt
+# Official Website: https://www.aanyafashions.com/
+# Contact: support@aanyafashions.com
+
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin/*
+Disallow: /login
+Disallow: /api/
+Disallow: /checkout
+Disallow: /orders
+Disallow: /profile
+
+# Search Engine Crawlers (Google, Bing, Brave, Yahoo, DuckDuckGo)
+User-agent: Googlebot
+Allow: /
+
+User-agent: Googlebot-Image
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: msnbot
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+User-agent: Slurp
+Allow: /
+
+User-agent: Baiduspider
+Allow: /
+
+User-agent: YandexBot
+Allow: /
+
+# AI Crawlers & LLM Agents (ChatGPT, OpenAI, Gemini, Claude, Perplexity, Apple Intelligence)
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: meta-externalagent
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: Cohere-ai
+Allow: /
+
+# Sitemaps & Machine Knowledge
+Sitemap: https://www.aanyafashions.com/sitemap.xml
+# LLM Brand Knowledge Standards
+# https://www.aanyafashions.com/llms.txt
+# https://www.aanyafashions.com/llms-full.txt

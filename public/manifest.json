@@ -1,0 +1,26 @@
+{
+  "name": "Aanya Fashions - Premium Women's Ethnic & Western Wear",
+  "short_name": "Aanya Fashions",
+  "description": "Shop premium sarees, kurtis, lehengas, salwar sets, and western wear at Aanya Fashions. India's trusted online destination for elegant women's ethnic and contemporary fashion.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FDFBF7",
+  "theme_color": "#698156",
+  "orientation": "portrait-primary",
+  "categories": ["shopping", "fashion", "lifestyle"],
+  "lang": "en-IN",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

@@ -8,6 +8,7 @@ import { Navigation } from '../components/Navigation';
 import { Footer } from '../components/Footer';
 import { AnnouncementBar } from '../components/AnnouncementBar';
 import { intelligentSearch, getRecommendedFallback } from '../../lib/aiSearchEngine';
+import { SEOHead, getBreadcrumbSchema } from '../components/SEOHead';
 
 export function SearchPage() {
   const [searchParams] = useSearchParams();
@@ -51,6 +52,16 @@ export function SearchPage() {
 
   return (
     <div className="min-h-screen bg-white">
+      <SEOHead
+        title={query ? `Search Results for "${query}"` : 'Search Fashion Collection'}
+        description={`Search premium sarees, kurtis, lehengas, salwar sets, and western wear at Aanya Fashions. Find your perfect outfit with fast delivery across India.`}
+        canonicalUrl={`/search${query ? `?q=${encodeURIComponent(query)}` : ''}`}
+        keywords={`search aanya fashions, ${query}, women fashion search, traditional wear search`}
+        structuredData={getBreadcrumbSchema([
+          { name: 'Home', url: '/' },
+          { name: query ? `Search: ${query}` : 'Search', url: `/search${query ? `?q=${encodeURIComponent(query)}` : ''}` }
+        ])}
+      />
       <AnnouncementBar />
       <Navigation />
       
