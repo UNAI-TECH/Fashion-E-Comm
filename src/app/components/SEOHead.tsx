@@ -220,39 +220,37 @@ export function getOnlineStoreSchema() {
         {
           '@type': 'OfferCatalog',
           name: 'Sarees',
-          itemListElement: [
-            { '@type': 'Offer', itemOffered: { '@type': 'Product', name: 'Designer Sarees' } },
-            { '@type': 'Offer', itemOffered: { '@type': 'Product', name: 'Silk Sarees' } },
-            { '@type': 'Offer', itemOffered: { '@type': 'Product', name: 'Banarasi Sarees' } },
-          ],
+          url: 'https://www.aanyafashions.com/sarees',
         },
         {
           '@type': 'OfferCatalog',
           name: 'Kurtis',
-          itemListElement: [
-            { '@type': 'Offer', itemOffered: { '@type': 'Product', name: 'Designer Kurtis' } },
-            { '@type': 'Offer', itemOffered: { '@type': 'Product', name: 'Cotton Kurtis' } },
-          ],
+          url: 'https://www.aanyafashions.com/kurtis',
         },
         {
           '@type': 'OfferCatalog',
           name: 'Lehengas',
-          itemListElement: [
-            { '@type': 'Offer', itemOffered: { '@type': 'Product', name: 'Bridal Lehengas' } },
-            { '@type': 'Offer', itemOffered: { '@type': 'Product', name: 'Party Wear Lehengas' } },
-          ],
+          url: 'https://www.aanyafashions.com/lehengas',
         },
         {
           '@type': 'OfferCatalog',
           name: 'Salwar Sets',
+          url: 'https://www.aanyafashions.com/salwar-sets',
         },
         {
           '@type': 'OfferCatalog',
           name: 'Western Wear',
+          url: 'https://www.aanyafashions.com/western',
         },
         {
           '@type': 'OfferCatalog',
           name: 'Maxi Dresses',
+          url: 'https://www.aanyafashions.com/maxi',
+        },
+        {
+          '@type': 'OfferCatalog',
+          name: 'Traditional Wear',
+          url: 'https://www.aanyafashions.com/tradition',
         },
       ],
     },
