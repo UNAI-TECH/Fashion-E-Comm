@@ -13,6 +13,8 @@ import { supabase } from '../../lib/supabase';
 import { toast } from 'sonner';
 import { Product, ensureProductImages } from '../data/products';
 import { SEOHead } from '../components/SEOHead';
+import { isGooglePayIndiaSupported, triggerGooglePayIndia } from '../../lib/googlePayIndia';
+import { GooglePayModal } from '../components/GooglePayModal';
 
 interface SavedAddress {
   id: string;
@@ -61,7 +63,23 @@ export function CheckoutPage() {
   });
 
   // Payment state
-  const [paymentMethod, setPaymentMethod] = useState<'COD' | 'Card' | 'UPI'>('COD');
+  const [paymentMethod, setPaymentMethod] = useState<'COD' | 'Card' | 'UPI'>('UPI');
+  const [isGpayModalOpen, setIsGpayModalOpen] = useState(false);
+  const [isNativeGpaySupported, setIsNativeGpaySupported] = useState(false);
+  const [pendingGpayOrderId, setPendingGpayOrderId] = useState<string>('');
+
+  // Detect Google Pay India (Tez) Web API support on user browser
+  useEffect(() => {
+    async function checkGpay() {
+      try {
+        const supported = await isGooglePayIndiaSupported();
+        setIsNativeGpaySupported(supported);
+      } catch {
+        setIsNativeGpaySupported(false);
+      }
+    }
+    checkGpay();
+  }, []);
 
   // Coupon state
   const [couponCode, setCouponCode] = useState('');
@@ -325,11 +343,17 @@ export function CheckoutPage() {
     window.scrollTo(0, 0);
   };
 
-  // Place Order
-  const handlePlaceOrder = async () => {
-    if (checkoutItems.length === 0) return;
+  // Core Order Finalizer (handles DB inserts, inventory update, and Supabase payment logging)
+  const finalizeOrderPlacement = async (
+    orderId: string,
+    trackingNumber: string,
+    method: 'Google Pay' | 'COD' | 'Card',
+    paymentStatus: 'Completed' | 'Pending',
+    txnId: string,
+    payerVpa?: string,
+    rawDetails?: any
+  ) => {
     setIsProcessing(true);
-
     try {
       let userId: string | null = null;
       try {
@@ -338,11 +362,6 @@ export function CheckoutPage() {
       } catch {}
 
       const addr = savedAddresses.find(a => a.id === selectedAddressId);
-      const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-      const randomSuffix = Math.floor(10000 + Math.random() * 90000);
-      const trackingNumber = `AANYA-${datePart}-${randomSuffix}`;
-      const orderId = 'ord_' + Math.random().toString(36).substring(2, 10);
-
       const shippingAddress = addr ? {
         full_name: addr.full_name,
         phone: addr.phone,
@@ -361,12 +380,12 @@ export function CheckoutPage() {
         tracking_number: trackingNumber,
       };
 
-      // Insert order
+      // 1. Insert order
       const orderPayload = {
         id: orderId,
-        status: 'Order Placed',
-        payment_method: paymentMethod === 'COD' ? 'COD' : paymentMethod === 'Card' ? 'Card' : 'UPI',
-        payment_status: paymentMethod === 'COD' ? 'Pending' : 'Success',
+        status: paymentStatus === 'Completed' ? 'Confirmed' : 'Order Placed',
+        payment_method: method,
+        payment_status: paymentStatus,
         subtotal: sellingTotal,
         discount_amount: discount,
         tax_amount: 0,
@@ -379,13 +398,12 @@ export function CheckoutPage() {
 
       const { error: orderError } = await supabase.from('orders').insert([orderPayload]);
       if (orderError) {
-        // Retry without user_id
         delete (orderPayload as any).user_id;
         const { error: retryErr } = await supabase.from('orders').insert([orderPayload]);
         if (retryErr) throw retryErr;
       }
 
-      // Insert order items
+      // 2. Insert order items
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
       const orderItems = checkoutItems.map(item => ({
         order_id: orderId,
@@ -397,7 +415,7 @@ export function CheckoutPage() {
       }));
       await supabase.from('order_items').insert(orderItems);
 
-      // Deduct stock
+      // 3. Deduct stock
       for (const item of checkoutItems) {
         if (uuidRegex.test(item.id)) {
           try {
@@ -415,13 +433,64 @@ export function CheckoutPage() {
         }
       }
 
-      // Clear cart if not buy-now mode
+      // 4. Log transaction into Supabase payments table
+      try {
+        const { error: edgeErr } = await supabase.functions.invoke('verify-google-pay', {
+          body: {
+            orderId,
+            amount: totalAmount,
+            txnId,
+            payerVpa: payerVpa || null,
+            paymentMethod: method,
+            userId,
+            customerName: shippingAddress.full_name,
+            customerPhone: shippingAddress.phone,
+            rawDetails: rawDetails || {},
+          },
+        });
+
+        if (edgeErr) {
+          // Direct fallback to payments table
+          await supabase.from('payments').insert({
+            order_id: orderId,
+            user_id: userId,
+            customer_name: shippingAddress.full_name,
+            customer_phone: shippingAddress.phone,
+            amount: totalAmount,
+            currency: 'INR',
+            payment_method: method,
+            gateway_txn_id: txnId,
+            payer_vpa: payerVpa || null,
+            status: paymentStatus === 'Completed' ? 'Completed' : 'Initiated',
+            metadata: rawDetails || {},
+          });
+        }
+      } catch (payLogErr) {
+        console.warn('Payment logging fallback triggered:', payLogErr);
+        try {
+          await supabase.from('payments').insert({
+            order_id: orderId,
+            user_id: userId,
+            customer_name: shippingAddress.full_name,
+            customer_phone: shippingAddress.phone,
+            amount: totalAmount,
+            currency: 'INR',
+            payment_method: method,
+            gateway_txn_id: txnId,
+            payer_vpa: payerVpa || null,
+            status: paymentStatus === 'Completed' ? 'Completed' : 'Initiated',
+          });
+        } catch {}
+      }
+
+      // 5. Clear cart
       if (!buyNowProductId) {
         clearCart();
       }
 
+      setIsGpayModalOpen(false);
       setOrderPlaced({ orderId, trackingNumber });
-      toast.success('Order placed successfully!');
+      toast.success(method === 'Google Pay' ? 'Google Pay payment successful!' : 'Order placed successfully!');
       window.dispatchEvent(new Event('orders_updated'));
     } catch (err: any) {
       console.error('Order placement failed:', err);
@@ -429,6 +498,91 @@ export function CheckoutPage() {
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  // Place Order / Initiate Payment
+  const handlePlaceOrder = async () => {
+    if (checkoutItems.length === 0) return;
+
+    if (isAddingNew || savedAddresses.length === 0) {
+      if (!handleSaveNewAddress()) return;
+    }
+    if (!selectedAddressId && savedAddresses.length > 0) {
+      toast.error('Please select a delivery address');
+      return;
+    }
+
+    const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const randomSuffix = Math.floor(10000 + Math.random() * 90000);
+    const trackingNumber = `AANYA-${datePart}-${randomSuffix}`;
+    const orderId = pendingGpayOrderId || ('ord_' + Math.random().toString(36).substring(2, 10));
+    setPendingGpayOrderId(orderId);
+
+    const addr = savedAddresses.find(a => a.id === selectedAddressId);
+    const custName = addr?.full_name || newAddress.full_name || 'Customer';
+    const custPhone = addr?.phone || newAddress.phone || '';
+
+    // Flow for Google Pay / UPI
+    if (paymentMethod === 'UPI') {
+      if (isNativeGpaySupported) {
+        setIsProcessing(true);
+        try {
+          const res = await triggerGooglePayIndia({
+            amount: totalAmount,
+            orderId,
+            customerName: custName,
+            customerPhone: custPhone,
+          });
+
+          if (res.success && res.transactionId) {
+            await finalizeOrderPlacement(
+              orderId,
+              trackingNumber,
+              'Google Pay',
+              'Completed',
+              res.transactionId,
+              res.payerVpa,
+              res.rawDetails
+            );
+            return;
+          } else {
+            // User dismissed native sheet, fallback to QR modal
+            setIsProcessing(false);
+            setIsGpayModalOpen(true);
+            return;
+          }
+        } catch (err) {
+          setIsProcessing(false);
+          setIsGpayModalOpen(true);
+          return;
+        }
+      } else {
+        // Desktop / Non-Android: Open Google Pay QR Modal
+        setIsGpayModalOpen(true);
+        return;
+      }
+    }
+
+    // Flow for Cash on Delivery
+    if (paymentMethod === 'COD') {
+      await finalizeOrderPlacement(
+        orderId,
+        trackingNumber,
+        'COD',
+        'Pending',
+        `COD-${Date.now()}`
+      );
+      return;
+    }
+
+    // Flow for Card
+    await finalizeOrderPlacement(
+      orderId,
+      trackingNumber,
+      'Card',
+      'Pending',
+      `CARD-${Date.now()}`
+    );
   };
 
   // Loading state
@@ -811,9 +965,9 @@ export function CheckoutPage() {
                     {/* Payment Options */}
                     <div className="space-y-3">
                       {[
+                        { id: 'UPI' as const, label: 'Google Pay (UPI)', desc: 'Instant 1-Tap GPay app & QR Code transfer', icon: Wallet, badge: 'Instant' },
                         { id: 'COD' as const, label: 'Cash on Delivery', desc: 'Pay when you receive your order', icon: Banknote, badge: 'Popular' },
-                        { id: 'Card' as const, label: 'Credit / Debit Card', desc: 'Visa, Mastercard, Rupay', icon: CreditCard, badge: null },
-                        { id: 'UPI' as const, label: 'UPI Payment', desc: 'Google Pay, PhonePe, Paytm', icon: Wallet, badge: null },
+                        { id: 'Card' as const, label: 'Credit / Debit Card', desc: 'Pay via Card or Net Banking', icon: CreditCard, badge: null },
                       ].map(option => (
                         <div
                           key={option.id}
@@ -833,7 +987,13 @@ export function CheckoutPage() {
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-bold text-gray-900">{option.label}</span>
                               {option.badge && (
-                                <span className="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">{option.badge}</span>
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                  option.badge === 'Instant'
+                                    ? 'bg-blue-100 text-blue-700'
+                                    : 'bg-emerald-100 text-emerald-700'
+                                }`}>
+                                  {option.badge}
+                                </span>
                               )}
                             </div>
                             <p className="text-xs text-gray-500">{option.desc}</p>
@@ -847,9 +1007,34 @@ export function CheckoutPage() {
                       ))}
                     </div>
 
-                    {paymentMethod !== 'COD' && (
+                    {/* Google Pay Active Info Box */}
+                    {paymentMethod === 'UPI' && (
+                      <div className="bg-[#F8FBF7] border border-[#698156]/20 rounded-2xl p-4.5 flex items-start gap-3.5 shadow-xs">
+                        <div className="w-9 h-9 rounded-xl bg-white border border-gray-200/80 flex items-center justify-center p-1.5 flex-shrink-0 shadow-xs">
+                          <img
+                            src="https://upload.wikimedia.org/wikipedia/commons/f/f2/Google_Pay_Logo.svg"
+                            alt="Google Pay"
+                            className="w-full h-auto object-contain"
+                          />
+                        </div>
+                        <div className="text-xs text-gray-600 leading-relaxed">
+                          <p className="font-bold text-gray-900 text-sm mb-0.5">Google Pay India (NPCI UPI)</p>
+                          {isNativeGpaySupported ? (
+                            <p className="text-[#698156] font-semibold">
+                              ✓ 1-Tap Google Pay available! Tap below to authorize directly in the Google Pay app.
+                            </p>
+                          ) : (
+                            <p>
+                              Clicking below will display a dynamic Google Pay QR Code and instant UPI payment window for your phone.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {paymentMethod === 'Card' && (
                       <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-700 font-medium">
-                        💡 Online payment integration coming soon. Please use Cash on Delivery for now.
+                        💡 For digital cards and instant bank payments, select <strong>Google Pay (UPI)</strong> or choose <strong>Cash on Delivery</strong>.
                       </div>
                     )}
 
@@ -866,10 +1051,14 @@ export function CheckoutPage() {
                         whileTap={{ scale: 0.99 }}
                         disabled={isProcessing}
                         onClick={handlePlaceOrder}
-                        className="flex-1 py-3.5 bg-[#698156] text-white rounded-xl font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-[#546944] transition-colors shadow-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        className={`flex-1 py-3.5 text-white rounded-xl font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-colors shadow-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                          paymentMethod === 'UPI' ? 'bg-[#1A73E8] hover:bg-[#1557b0]' : 'bg-[#698156] hover:bg-[#546944]'
+                        }`}
                       >
                         {isProcessing ? (
                           <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Processing...</>
+                        ) : paymentMethod === 'UPI' ? (
+                          <>Pay with Google Pay • ₹{totalAmount.toLocaleString('en-IN')}</>
                         ) : (
                           <>Place Order • ₹{totalAmount.toLocaleString('en-IN')}</>
                         )}
@@ -942,6 +1131,30 @@ export function CheckoutPage() {
           </div>
         </div>
       </div>
+
+      {/* Google Pay Verification Modal (QR code / UPI fallback) */}
+      <GooglePayModal
+        isOpen={isGpayModalOpen}
+        onClose={() => setIsGpayModalOpen(false)}
+        orderId={pendingGpayOrderId}
+        amount={totalAmount}
+        customerName={savedAddresses.find(a => a.id === selectedAddressId)?.full_name || newAddress.full_name}
+        customerPhone={savedAddresses.find(a => a.id === selectedAddressId)?.phone || newAddress.phone}
+        onPaymentSuccess={async (txnId, payerVpa, raw) => {
+          const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+          const randomSuffix = Math.floor(10000 + Math.random() * 90000);
+          const trackingNumber = `AANYA-${datePart}-${randomSuffix}`;
+          await finalizeOrderPlacement(
+            pendingGpayOrderId,
+            trackingNumber,
+            'Google Pay',
+            'Completed',
+            txnId,
+            payerVpa,
+            raw
+          );
+        }}
+      />
 
       <Footer />
     </div>
