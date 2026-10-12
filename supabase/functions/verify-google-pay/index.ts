@@ -1,6 +1,9 @@
 // @ts-nocheck
 // Supabase Edge Function: verify-google-pay
 // Authoritatively validates Google Pay India UPI transaction against order details and logs into public.payments
+// Adheres strictly to the Bank/PSP verification boundary: Orders remain "Pending Verification"
+// unless an authorized bank/PSP status verification confirms settlement.
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8";
 
@@ -9,6 +12,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-request-id",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
+
+const MERCHANT_VPA = Deno.env.get("GOOGLE_PAY_MERCHANT_VPA") || "aanya.fashions@okaxis";
+const MERCHANT_MCC = Deno.env.get("GOOGLE_PAY_MCC") || "5691";
+const PSP_STATUS_API_URL = Deno.env.get("PSP_STATUS_API_URL");
+const PSP_API_KEY = Deno.env.get("PSP_API_KEY");
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -20,6 +28,7 @@ serve(async (req: Request) => {
       orderId,
       amount,
       txnId,
+      transactionReference,
       payerVpa,
       paymentMethod = "Google Pay",
       userId,
@@ -50,20 +59,26 @@ serve(async (req: Request) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // 1. Authoritative check: verify order exists and validate total amount
+    // 1. Authoritative check: verify order exists and validate payable amount
     const { data: orderData, error: orderFetchErr } = await supabase
       .from("orders")
-      .select("id, total_amount, total_price, payment_status, status")
+      .select("id, total_amount, total_price, payment_status, status, user_id")
       .eq("id", String(orderId))
       .maybeSingle();
 
-    if (!orderFetchErr && orderData) {
+    if (orderFetchErr) {
+      console.warn("Order lookup warning:", orderFetchErr);
+    }
+
+    if (orderData) {
       const expectedAmount = Number(orderData.total_amount || orderData.total_price || 0);
       if (expectedAmount > 0 && Math.abs(expectedAmount - Number(amount)) > 1.0) {
         return new Response(
           JSON.stringify({
             success: false,
             error: `Authoritative verification failed: Amount mismatch. Expected ₹${expectedAmount}, received ₹${amount}.`,
+            status: "Failed",
+            requiresPspReconciliation: true,
           }),
           {
             status: 400,
@@ -73,7 +88,46 @@ serve(async (req: Request) => {
       }
     }
 
-    // 2. Record transaction in public.payments table
+    // 2. Bank/PSP authoritative status check boundary
+    let isBankVerified = false;
+    let bankVerificationNotes = "Awaiting Bank/PSP payment-status API integration.";
+
+    if (PSP_STATUS_API_URL && PSP_API_KEY) {
+      try {
+        const pspRes = await fetch(PSP_STATUS_API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${PSP_API_KEY}`,
+          },
+          body: JSON.stringify({
+            merchantVpa: MERCHANT_VPA,
+            mcc: MERCHANT_MCC,
+            transactionReference: transactionReference || txnId,
+            orderId: String(orderId),
+            amount: Number(amount),
+            currency: "INR",
+          }),
+        });
+
+        if (pspRes.ok) {
+          const pspData = await pspRes.json();
+          if (pspData.status === "SUCCESS" || pspData.status === "PAID") {
+            isBankVerified = true;
+            bankVerificationNotes = `Verified via bank/PSP: ${pspData.rrn || pspData.utr || "Confirmed"}`;
+          } else {
+            bankVerificationNotes = `Bank reported status: ${pspData.status || "Pending"}`;
+          }
+        }
+      } catch (pspErr) {
+        console.warn("PSP API inquiry warning:", pspErr);
+      }
+    }
+
+    const determinedPaymentStatus = isBankVerified ? "Completed" : "Pending Verification";
+    const determinedOrderStatus = isBankVerified ? "Confirmed" : "Pending";
+
+    // 3. Record transaction in public.payments table (idempotent on gateway_txn_id)
     const { data: paymentRecord, error: paymentError } = await supabase
       .from("payments")
       .insert({
@@ -86,31 +140,36 @@ serve(async (req: Request) => {
         payment_method: paymentMethod,
         gateway_txn_id: String(txnId),
         payer_vpa: payerVpa || null,
-        status: "Completed",
+        status: determinedPaymentStatus,
         metadata: {
           ...rawDetails,
-          verifiedBy: "Google Pay India Authoritative Edge Verifier",
-          verifiedAt: new Date().toISOString(),
+          transactionReference: transactionReference || null,
+          merchantVpa: MERCHANT_VPA,
+          mcc: MERCHANT_MCC,
+          bankVerificationNotes,
+          isBankVerified,
+          submittedAt: new Date().toISOString(),
         },
       })
       .select()
       .single();
 
     if (paymentError) {
-      console.error("Error inserting into payments table:", paymentError);
-      // If table has duplicate gateway_txn_id, fetch existing
+      // If already recorded (idempotent), fetch existing record
       if (paymentError.code === "23505") {
         const { data: existing } = await supabase
           .from("payments")
           .select()
-          .eq("gateway_txn_id", txnId)
+          .eq("gateway_txn_id", String(txnId))
           .single();
 
         return new Response(
           JSON.stringify({
             success: true,
-            alreadyRecorded: true,
+            status: existing?.status || determinedPaymentStatus,
+            message: "Payment transaction already recorded.",
             payment: existing,
+            requiresPspReconciliation: !isBankVerified,
           }),
           {
             status: 200,
@@ -118,41 +177,33 @@ serve(async (req: Request) => {
           }
         );
       }
+      console.error("Error inserting into payments table:", paymentError);
       throw paymentError;
     }
 
-    // 3. Authoritatively update orders table to PAID / Confirmed
+    // 4. Update orders table with exact payment status
     try {
       await supabase
         .from("orders")
         .update({
-          payment_status: "Completed",
-          status: "Confirmed",
+          payment_status: determinedPaymentStatus,
+          status: determinedOrderStatus,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", orderId);
+        .eq("id", String(orderId));
     } catch (orderUpdateErr) {
       console.warn("Could not update order record:", orderUpdateErr);
-    }
-
-    // 4. Log to order_status_history if available
-    try {
-      await supabase.from("order_status_history").insert({
-        order_id: String(orderId),
-        old_status: "Pending",
-        new_status: "Confirmed",
-        changed_by: userId || null,
-        reason: `Payment verified via ${paymentMethod} (Txn Ref: ${txnId})`,
-      });
-    } catch (_) {
-      // Non-fatal if history table does not exist
     }
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Payment successfully verified and logged.",
+        status: determinedPaymentStatus,
+        message: isBankVerified
+          ? "Payment verified by acquiring bank. Order confirmed."
+          : "Payment details received from Google Pay sheet. Order is Pending Verification awaiting merchant bank/PSP reconciliation.",
         payment: paymentRecord,
+        requiresPspReconciliation: !isBankVerified,
       }),
       {
         status: 200,
@@ -160,11 +211,11 @@ serve(async (req: Request) => {
       }
     );
   } catch (err: any) {
-    console.error("verify-google-pay edge function error:", err);
+    console.error("Verification function error:", err);
     return new Response(
       JSON.stringify({
         success: false,
-        error: err.message || "Internal payment verification error",
+        error: err.message || "Internal verification error",
       }),
       {
         status: 500,

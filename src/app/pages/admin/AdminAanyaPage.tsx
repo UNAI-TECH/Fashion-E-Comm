@@ -454,9 +454,10 @@ export function AdminAanyaPage() {
     name: string;
     price: string;
     compare_at_price: string;
+    description: string;
     images: string[];
   }
-  const emptyVariant: VariantEntry = { id: crypto.randomUUID(), color: '', name: '', price: '', compare_at_price: '', images: [] };
+  const emptyVariant: VariantEntry = { id: crypto.randomUUID(), color: '', name: '', price: '', compare_at_price: '', description: '', images: [] };
   const [variants, setVariants] = useState<VariantEntry[]>([{ ...emptyVariant, id: crypto.randomUUID() }]);
   const [variantUploading, setVariantUploading] = useState<string | null>(null);
 
@@ -863,7 +864,7 @@ export function AdminAanyaPage() {
             stock_quantity: Number(form.stock_quantity) || 25,
             image_url: vImages[0],
             images: vImages,
-            description: form.description.trim() || null,
+            description: variant.description?.trim() || form.description.trim() || null,
             status: form.status,
             specifications: { ...baseSpecs, color: variant.color.trim() },
             offer_enabled: form.offer_enabled,
@@ -2065,6 +2066,16 @@ export function AdminAanyaPage() {
                                             value={variant.compare_at_price}
                                             onChange={e => setVariants(prev => prev.map(v => v.id === variant.id ? { ...v, compare_at_price: e.target.value } : v))}
                                             className="w-full px-2.5 py-1.5 bg-gray-50 rounded-lg text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-purple-200/40"
+                                          />
+                                        </div>
+                                        <div className="col-span-2">
+                                          <label className="block text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-0.5">Description</label>
+                                          <textarea
+                                            rows={2}
+                                            placeholder="Separate description for this color variant (optional, defaults to main description)"
+                                            value={variant.description || ''}
+                                            onChange={e => setVariants(prev => prev.map(v => v.id === variant.id ? { ...v, description: e.target.value } : v))}
+                                            className="w-full px-2.5 py-1.5 bg-gray-50 rounded-lg text-xs border border-gray-200 outline-none focus:ring-2 focus:ring-purple-200/40 resize-none"
                                           />
                                         </div>
                                       </div>
