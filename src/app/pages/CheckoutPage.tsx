@@ -45,7 +45,7 @@ export function CheckoutPage() {
 
   const [step, setStep] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [orderPlaced, setOrderPlaced] = useState<{ orderId: string; trackingNumber: string } | null>(null);
+  const [orderPlaced, setOrderPlaced] = useState<{ orderId: string; trackingNumber: string; method?: string; status?: string; txnId?: string } | null>(null);
 
   // Buy Now mode
   const buyNowProductId = searchParams.get('buyNow');
@@ -384,7 +384,7 @@ export function CheckoutPage() {
       const orderPayload = {
         id: orderId,
         status: paymentStatus === 'Completed' ? 'Confirmed' : 'Order Placed',
-        payment_method: method,
+        payment_method: method === 'Google Pay' ? 'UPI' : method,
         payment_status: paymentStatus,
         subtotal: sellingTotal,
         discount_amount: discount,
@@ -489,7 +489,7 @@ export function CheckoutPage() {
       }
 
       setIsGpayModalOpen(false);
-      setOrderPlaced({ orderId, trackingNumber });
+      setOrderPlaced({ orderId, trackingNumber, method, status: paymentStatus, txnId });
       toast.success(method === 'Google Pay' ? 'Google Pay payment successful!' : 'Order placed successfully!');
       window.dispatchEvent(new Event('orders_updated'));
     } catch (err: any) {
@@ -628,10 +628,21 @@ export function CheckoutPage() {
                 <span className="text-gray-500">Amount</span>
                 <span className="font-bold text-gray-900">₹{totalAmount.toLocaleString('en-IN')}</span>
               </div>
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between text-sm items-center">
                 <span className="text-gray-500">Payment</span>
-                <span className="font-bold text-gray-900">{paymentMethod}</span>
+                <span className="font-bold text-gray-900 flex items-center gap-1.5">
+                  {orderPlaced.method || paymentMethod}
+                  {orderPlaced.status === 'Completed' && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full">PAID</span>
+                  )}
+                </span>
               </div>
+              {orderPlaced.txnId && (
+                <div className="flex justify-between text-sm items-center">
+                  <span className="text-gray-500">Txn / UTR</span>
+                  <span className="font-mono font-bold text-gray-800 text-xs bg-white px-2 py-0.5 rounded border border-gray-200">{orderPlaced.txnId}</span>
+                </div>
+              )}
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Est. Delivery</span>
                 <span className="font-bold text-emerald-600">{deliveryDateStr}</span>

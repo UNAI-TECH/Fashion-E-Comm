@@ -244,6 +244,44 @@ export const api = {
 
   // ─── PAYMENTS ───
   payments: {
+    createGooglePayOrder: (payload: { orderId: string; amount: number; customerName?: string; customerPhone?: string }) =>
+      request<{
+        success: boolean;
+        orderId: string;
+        transactionReference: string;
+        amount: number;
+        currency: string;
+        merchantVpa: string;
+        merchantName: string;
+        upiUri: string;
+        qrUrl: string;
+      }>('/payments/google-pay/create-order', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    verifyGooglePay: (payload: {
+      orderId: string;
+      amount: number;
+      txnId: string;
+      payerVpa?: string;
+      customerName?: string;
+      customerPhone?: string;
+      rawDetails?: any;
+    }) =>
+      request<{
+        success: boolean;
+        message: string;
+        orderId: string;
+        transactionId: string;
+        payment: any;
+      }>('/payments/google-pay/verify', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    getGooglePayStatus: (orderId: string) =>
+      request<{ success: boolean; orderId: string; paid: boolean; status: string; transactionId?: string; payment?: any }>(
+        `/payments/google-pay/status/${orderId}`
+      ),
     createRazorpayOrder: (amount: number, receipt?: string, notes?: any) =>
       request<{ success: boolean; id: string; amount: number; currency: string; keyId: string; isSimulated?: boolean }>(
         '/payments/create-order',

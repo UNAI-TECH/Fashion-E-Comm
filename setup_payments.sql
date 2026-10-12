@@ -32,7 +32,17 @@ ALTER TABLE public.payments ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'Initia
 ALTER TABLE public.payments ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'::jsonb;
 ALTER TABLE public.payments ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
 
--- 3. Create public.payouts table for settlement records
+-- 3. Relax check constraints on orders table to accept both 'UPI' and 'Google Pay'
+DO $$ 
+BEGIN
+    ALTER TABLE public.orders DROP CONSTRAINT IF EXISTS orders_payment_method_check;
+    ALTER TABLE public.orders ADD CONSTRAINT orders_payment_method_check 
+        CHECK (payment_method IN ('COD', 'Card', 'UPI', 'Net Banking', 'Cash on Delivery', 'Google Pay'));
+EXCEPTION WHEN OTHERS THEN
+    NULL;
+END $$;
+
+-- 4. Create public.payouts table for settlement records
 CREATE TABLE IF NOT EXISTS public.payouts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     payout_id TEXT UNIQUE NOT NULL,
@@ -48,7 +58,7 @@ CREATE TABLE IF NOT EXISTS public.payouts (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 4. Create Performance Indexes (Now guaranteed to succeed because columns exist)
+-- 5. Create Performance Indexes (Now guaranteed to succeed because columns exist)
 CREATE INDEX IF NOT EXISTS idx_payments_order_id ON public.payments(order_id);
 CREATE INDEX IF NOT EXISTS idx_payments_user_id ON public.payments(user_id);
 CREATE INDEX IF NOT EXISTS idx_payments_status ON public.payments(status);
@@ -58,11 +68,11 @@ CREATE INDEX IF NOT EXISTS idx_payments_created_at ON public.payments(created_at
 CREATE INDEX IF NOT EXISTS idx_payouts_status ON public.payouts(status);
 CREATE INDEX IF NOT EXISTS idx_payouts_settled_at ON public.payouts(settled_at DESC);
 
--- 5. Enable Row Level Security (RLS)
+-- 6. Enable Row Level Security (RLS)
 ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payouts ENABLE ROW LEVEL SECURITY;
 
--- 6. RLS Policies for Payments
+-- 7. RLS Policies for Payments
 DROP POLICY IF EXISTS "Anyone can insert payments" ON public.payments;
 CREATE POLICY "Anyone can insert payments" 
 ON public.payments FOR INSERT 
@@ -78,7 +88,7 @@ CREATE POLICY "Allow update payments"
 ON public.payments FOR UPDATE 
 USING (true);
 
--- 7. RLS Policies for Payouts
+-- 8. RLS Policies for Payouts
 DROP POLICY IF EXISTS "Admins view all payouts" ON public.payouts;
 CREATE POLICY "Admins view all payouts" 
 ON public.payouts FOR SELECT 
