@@ -13,6 +13,8 @@ import { AboutPage } from "./pages/AboutPage";
 import { PrivacyPolicyPage } from "./pages/PrivacyPolicyPage";
 import { TermsPage } from "./pages/TermsPage";
 import { PaymentMethodsPage } from "./pages/PaymentMethodsPage";
+import { ShippingPolicyPage } from "./pages/ShippingPolicyPage";
+import { RefundPolicyPage } from "./pages/RefundPolicyPage";
 import { SearchPage } from "./pages/SearchPage";
 import { AdminLogin } from "./pages/admin/AdminLogin";
 import { AdminRoute } from "./components/admin/AdminRoute";
@@ -60,6 +62,11 @@ export const router = createBrowserRouter([
       { path: "/about", Component: AboutPage },
       { path: "/privacy", Component: PrivacyPolicyPage },
       { path: "/terms", Component: TermsPage },
+      { path: "/shipping-policy", Component: ShippingPolicyPage },
+      { path: "/shipping", Component: ShippingPolicyPage },
+      { path: "/refund-policy", Component: RefundPolicyPage },
+      { path: "/cancellation-refund-policy", Component: RefundPolicyPage },
+      { path: "/returns", Component: RefundPolicyPage },
       { path: "/payment-methods", Component: PaymentMethodsPage },
       { path: "/login", Component: AdminLogin },
       { path: "/admin/login", Component: AdminLogin },

@@ -85,8 +85,8 @@ export function PrivacyPolicyPage() {
                 <span className="text-xs text-gray-600">Your full name, email address, contact telephone number, and delivery/billing address.</span>
               </li>
               <li className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                <strong className="text-gray-900 block text-sm mb-1 font-serif">Payment & Billing</strong>
-                <span className="text-xs text-gray-600">Encrypted payment verification data. All transactions are handled via RBI-authorized, PCI-DSS compliant Indian payment gateways (UPI, Cards, NetBanking, COD).</span>
+                <strong className="text-gray-900 block text-sm mb-1 font-serif">Payment & Billing Security</strong>
+                <span className="text-xs text-gray-600">Encrypted payment verification data. All online transactions are handled securely via <strong>Razorpay Payment Gateway</strong> (PCI-DSS Level 1 compliant, RBI-authorized). We support UPI, Cards, NetBanking, and COD. We never store card CVVs or bank passwords.</span>
               </li>
               <li className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
                 <strong className="text-gray-900 block text-sm mb-1 font-serif">Order Details</strong>
@@ -160,7 +160,7 @@ export function PrivacyPolicyPage() {
             </p>
             <ul className="list-disc pl-6 space-y-2 mt-3 text-gray-600">
               <li><strong>Logistics & Courier Partners:</strong> Leading logistics providers (e.g., Delhivery, Blue Dart, DTDC, India Post) to ensure safe doorstep delivery across India.</li>
-              <li><strong>Payment Processors:</strong> Certified payment gateways to authenticate transactions and prevent fraud.</li>
+              <li><strong>Payment Processors:</strong> <strong>Razorpay Payment Gateway</strong> (Razorpay Software Private Limited) to authenticate transactions, prevent fraud, and facilitate secure settlements. Transactions are processed via 256-bit bank-grade encryption.</li>
               <li><strong>Legal Authorities:</strong> When required by applicable Indian law, court order, or to protect the rights and safety of our customers and business.</li>
             </ul>
           </section>

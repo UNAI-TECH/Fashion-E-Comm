@@ -32,7 +32,7 @@ function assert(condition, testName) {
 
 // ─── 1. CONFIGURATION CHECKS ───
 console.log('--- 1. Google Pay India Configuration ---');
-const vpa = process.env.VITE_GOOGLE_PAY_VPA || 'aanya.fashions@okaxis';
+const vpa = process.env.VITE_GOOGLE_PAY_VPA || 'gpay-12204900082@okbizaxis';
 const merchantName = process.env.VITE_MERCHANT_NAME || 'Aanya Fashions';
 const mcc = process.env.VITE_MERCHANT_MCC || '5691';
 
@@ -76,7 +76,7 @@ const testUri = buildGooglePayUpiUri({
 });
 
 assert(testUri.startsWith('upi://pay?'), `URI uses official UPI scheme: ${testUri}`);
-assert(testUri.includes('pa=aanya.fashions%40okaxis') || testUri.includes('pa=aanya.fashions@okaxis'), 'URI contains correct Payee Address');
+assert(testUri.includes('pa=gpay-12204900082%40okbizaxis') || testUri.includes('pa=gpay-12204900082@okbizaxis'), 'URI contains correct Payee Address');
 assert(testUri.includes('am=2499.00'), 'Amount is formatted with 2 decimal places in INR');
 assert(testUri.includes('cu=INR'), 'Currency is strictly set to INR');
 assert(testUri.includes('mc=5691'), 'Merchant Category Code is included');

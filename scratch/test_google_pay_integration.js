@@ -41,7 +41,7 @@ function amountClean(amount) {
 }
 
 const sampleOrder = {
-  pa: 'aanya.fashions@okaxis',
+  pa: 'gpay-12204900082@okbizaxis',
   pn: 'Aanya Fashions',
   mc: '5691',
   tr: 'ORD-20261012-984210',
@@ -73,7 +73,7 @@ const tezMethodData = {
 };
 
 assert(tezMethodData.supportedMethods === 'https://tez.google.com/pay', 'Google Pay India Web protocol supportedMethod is https://tez.google.com/pay');
-assert(tezMethodData.data.pa === 'aanya.fashions@okaxis', 'Merchant VPA matches');
+assert(tezMethodData.data.pa === 'gpay-12204900082@okbizaxis', 'Merchant VPA matches');
 assert(tezMethodData.data.mc === '5691', 'Merchant Category Code matches');
 
 // 3. Supabase Edge Function Payload Validation

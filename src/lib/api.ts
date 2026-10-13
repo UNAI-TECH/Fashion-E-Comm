@@ -244,56 +244,47 @@ export const api = {
 
   // ─── PAYMENTS ───
   payments: {
-    createGooglePayOrder: (payload: { orderId: string; amount: number; customerName?: string; customerPhone?: string }) =>
-      request<{
-        success: boolean;
-        orderId: string;
-        transactionReference: string;
-        amount: number;
-        currency: string;
-        merchantVpa: string;
-        merchantName: string;
-        upiUri: string;
-        qrUrl: string;
-      }>('/payments/google-pay/create-order', {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      }),
-    verifyGooglePay: (payload: {
-      orderId: string;
+    getRazorpayKey: () =>
+      request<{ success: boolean; keyId: string; currency: string; merchantName: string }>('/payments/key'),
+    createRazorpayOrder: (payload: {
       amount: number;
-      txnId: string;
-      payerVpa?: string;
+      orderId?: string;
+      receipt?: string;
       customerName?: string;
+      customerEmail?: string;
       customerPhone?: string;
-      rawDetails?: any;
+      notes?: any;
     }) =>
       request<{
         success: boolean;
-        message: string;
-        orderId: string;
-        transactionId: string;
-        payment: any;
-      }>('/payments/google-pay/verify', {
+        id: string;
+        orderId?: string;
+        amount: number;
+        currency: string;
+        keyId: string;
+        isSimulated?: boolean;
+      }>('/payments/razorpay/create-order', {
         method: 'POST',
-        body: JSON.stringify(payload),
+        body: JSON.stringify(payload)
       }),
-    getGooglePayStatus: (orderId: string) =>
-      request<{ success: boolean; orderId: string; paid: boolean; status: string; transactionId?: string; payment?: any }>(
-        `/payments/google-pay/status/${orderId}`
-      ),
-    createRazorpayOrder: (amount: number, receipt?: string, notes?: any) =>
-      request<{ success: boolean; id: string; amount: number; currency: string; keyId: string; isSimulated?: boolean }>(
-        '/payments/create-order',
-        { method: 'POST', body: JSON.stringify({ amount, receipt, notes }) }
-      ),
     verifyPayment: (payload: {
       razorpay_order_id?: string;
       razorpay_payment_id?: string;
       razorpay_signature?: string;
-      order_id: string;
+      order_id?: string;
+      orderId?: string;
+      amount?: number;
       isSimulated?: boolean;
-    }) => request('/payments/verify', { method: 'POST', body: JSON.stringify(payload) })
+    }) =>
+      request<{
+        success: boolean;
+        message: string;
+        paymentId?: string;
+        orderId?: string;
+      }>('/payments/razorpay/verify', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      })
   },
 
   // ─── UPLOADS ───

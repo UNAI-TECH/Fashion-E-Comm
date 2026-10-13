@@ -44,7 +44,7 @@ export function PaymentMethodsPage() {
           <ShieldCheck className="w-12 h-12 text-emerald-500 mx-auto mb-4" />
           <h2 className="text-3xl font-serif font-black text-gray-900 mb-4">100% Secure & Trusted Payments</h2>
           <p className="text-gray-600 text-lg leading-relaxed">
-            At Aanya Fashions, we ensure a seamless and highly secure checkout experience. We have partnered with top payment gateways to support a wide variety of payment options.
+            At Aanya Fashions, we ensure a seamless, 100% secure checkout experience powered by <strong>Razorpay Payment Gateway</strong>, India's leading PCI-DSS Level 1 certified gateway. We support all major Indian and international payment options.
           </p>
         </div>
 

@@ -13,7 +13,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const MERCHANT_VPA = Deno.env.get("GOOGLE_PAY_MERCHANT_VPA") || "aanya.fashions@okaxis";
+const MERCHANT_VPA = Deno.env.get("GOOGLE_PAY_MERCHANT_VPA") || "gpay-12204900082@okbizaxis";
 const MERCHANT_MCC = Deno.env.get("GOOGLE_PAY_MCC") || "5691";
 const PSP_STATUS_API_URL = Deno.env.get("PSP_STATUS_API_URL");
 const PSP_API_KEY = Deno.env.get("PSP_API_KEY");

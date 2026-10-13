@@ -15,6 +15,9 @@ export function Footer() {
     helpSupport: [
       { name: 'Terms & Conditions', path: '/terms' },
       { name: 'Privacy Policy', path: '/privacy' },
+      { name: 'Shipping & Delivery', path: '/shipping-policy' },
+      { name: 'Cancellation & Refund', path: '/refund-policy' },
+      { name: 'Payment Methods', path: '/payment-methods' },
     ]
   };
 

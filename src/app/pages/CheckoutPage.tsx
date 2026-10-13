@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useNavigate, useSearchParams } from 'react-router';
+import { useNavigate, useSearchParams, Link } from 'react-router';
 import {
   MapPin, Package, CreditCard, Check, ChevronLeft, ChevronRight,
-  Plus, Truck, Shield, Tag, Wallet, Landmark, Banknote
+  Plus, Truck, Shield, Tag, Wallet, Landmark, Banknote, ShieldCheck, Lock, ExternalLink
 } from 'lucide-react';
 import { Navigation } from '../components/Navigation';
 import { AnnouncementBar } from '../components/AnnouncementBar';
@@ -13,15 +13,8 @@ import { supabase } from '../../lib/supabase';
 import { toast } from 'sonner';
 import { Product, ensureProductImages } from '../data/products';
 import { SEOHead } from '../components/SEOHead';
-import {
-  isGooglePayIndiaSupported,
-  triggerGooglePayIndia,
-  verifyGooglePayTransaction,
-  generateTransactionReference,
-  DEFAULT_GPAY_CONFIG
-} from '../../lib/googlePayIndia';
-import { GooglePayOfficialButton } from '../components/GooglePayOfficialButton';
-import { GooglePayModal } from '../components/GooglePayModal';
+import { openRazorpayCheckout } from '../../lib/razorpay';
+import api from '../../lib/api';
 
 interface SavedAddress {
   id: string;
@@ -69,24 +62,8 @@ export function CheckoutPage() {
     city: '', state: '', postal_code: ''
   });
 
-  // Payment state
-  const [paymentMethod, setPaymentMethod] = useState<'COD' | 'Card' | 'UPI'>('UPI');
-  const [isNativeGpaySupported, setIsNativeGpaySupported] = useState(false);
-  const [pendingGpayOrderId, setPendingGpayOrderId] = useState<string>('');
-  const [isGpayModalOpen, setIsGpayModalOpen] = useState(false);
-
-  // Detect Google Pay India (Tez) Web API support on user browser
-  useEffect(() => {
-    async function checkGpay() {
-      try {
-        const supported = await isGooglePayIndiaSupported();
-        setIsNativeGpaySupported(supported);
-      } catch {
-        setIsNativeGpaySupported(false);
-      }
-    }
-    checkGpay();
-  }, []);
+  // Payment state: Razorpay handles all online modes (UPI, Cards, NetBanking, Wallets)
+  const [paymentMethod, setPaymentMethod] = useState<'Razorpay' | 'COD'>('Razorpay');
 
   // Coupon state
   const [couponCode, setCouponCode] = useState('');
@@ -348,22 +325,14 @@ export function CheckoutPage() {
   const handleContinueToPayment = () => {
     setStep(3);
     window.scrollTo(0, 0);
-    console.log('💳 [Google Pay India] Checkout step 3 loaded with verified merchant credentials:', {
-      mcc: DEFAULT_GPAY_CONFIG.mcc,
-      mccCategory: "Uniforms & Commercial Clothing (MCC 5137)",
-      merchantVpa: DEFAULT_GPAY_CONFIG.merchantVpa,
-      merchantName: DEFAULT_GPAY_CONFIG.merchantName,
-      payableAmount: totalAmount,
-      nativeGpaySupported: isNativeGpaySupported
-    });
   };
 
-  // Core Order Creator: Creates order in Pending Verification state BEFORE payment
+  // Core Order Creator: Creates order in Pending state BEFORE online payment or on COD confirmation
   const createPendingOrderInDatabase = async (
     orderId: string,
     trackingNumber: string,
-    method: 'Google Pay' | 'COD' | 'Card',
-    initialPaymentStatus: 'Pending Verification' | 'Pending' = 'Pending Verification'
+    method: 'Razorpay' | 'COD',
+    initialPaymentStatus: 'Completed' | 'Pending' = 'Pending'
   ) => {
     let userId: string | null = null;
     try {
@@ -393,8 +362,8 @@ export function CheckoutPage() {
     // 1. Insert order in Pending state
     const orderPayload = {
       id: orderId,
-      status: 'Pending',
-      payment_method: method === 'Google Pay' ? 'UPI' : method,
+      status: initialPaymentStatus === 'Completed' ? 'Confirmed' : 'Pending',
+      payment_method: method,
       payment_status: initialPaymentStatus,
       subtotal: sellingTotal,
       discount_amount: discount,
@@ -446,7 +415,7 @@ export function CheckoutPage() {
     return { userId, shippingAddress };
   };
 
-  // Place Order / Initiate Payment
+  // Place Order / Initiate Payment via Razorpay or COD
   const handlePlaceOrder = async () => {
     if (checkoutItems.length === 0) return;
 
@@ -461,8 +430,7 @@ export function CheckoutPage() {
     const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const randomSuffix = Math.floor(10000 + Math.random() * 90000);
     const trackingNumber = `AANYA-${datePart}-${randomSuffix}`;
-    const orderId = pendingGpayOrderId || ('ord_' + Math.random().toString(36).substring(2, 10));
-    setPendingGpayOrderId(orderId);
+    const orderId = 'ord_' + Math.random().toString(36).substring(2, 10);
 
     const addr = savedAddresses.find(a => a.id === selectedAddressId);
     const custName = addr?.full_name || newAddress.full_name || 'Customer';
@@ -471,69 +439,6 @@ export function CheckoutPage() {
     setIsProcessing(true);
 
     try {
-      // ═══ GOOGLE PAY (UPI) FLOW ═══
-      if (paymentMethod === 'UPI') {
-        // Step 1: Create order in DB with 'Pending Verification' before launching payment
-        const { userId, shippingAddress } = await createPendingOrderInDatabase(
-          orderId,
-          trackingNumber,
-          'Google Pay',
-          'Pending Verification'
-        );
-
-        if (isNativeGpaySupported) {
-          // Mobile Android Chrome: Trigger native W3C Payment Request sheet
-          const res = await triggerGooglePayIndia({
-            amount: totalAmount,
-            orderId,
-            customerName: custName,
-            customerPhone: custPhone,
-          });
-
-          if (res.cancelled) {
-            setIsProcessing(false);
-            toast.info('Google Pay payment was cancelled');
-            return;
-          }
-
-          if (res.success && (res.transactionId || res.transactionReference)) {
-            // Verify via backend boundary
-            await verifyGooglePayTransaction({
-              orderId,
-              amount: totalAmount,
-              txnId: res.transactionId || res.transactionReference,
-              transactionReference: res.transactionReference,
-              payerVpa: res.payerVpa,
-              userId,
-              customerName: custName,
-              customerPhone: custPhone,
-              rawDetails: res.rawDetails,
-            });
-
-            if (!buyNowProductId) clearCart();
-            setOrderPlaced({
-              orderId,
-              trackingNumber,
-              method: 'Google Pay (UPI)',
-              status: 'Pending Verification',
-              txnId: res.transactionId || res.transactionReference,
-            });
-            toast.success('Order placed! Payment is Pending Verification awaiting bank reconciliation.');
-            window.dispatchEvent(new Event('orders_updated'));
-            return;
-          } else {
-            toast.error(res.error || 'Google Pay transaction was not completed');
-            setIsProcessing(false);
-            return;
-          }
-        } else {
-          // Desktop / Non-mobile: Open GooglePayModal with QR code for UPI payment
-          setIsProcessing(false);
-          setIsGpayModalOpen(true);
-          return;
-        }
-      }
-
       // ═══ CASH ON DELIVERY FLOW ═══
       if (paymentMethod === 'COD') {
         await createPendingOrderInDatabase(orderId, trackingNumber, 'COD', 'Pending');
@@ -547,25 +452,62 @@ export function CheckoutPage() {
         });
         toast.success('Order placed successfully!');
         window.dispatchEvent(new Event('orders_updated'));
+        setIsProcessing(false);
         return;
       }
 
-      // ═══ CREDIT / DEBIT CARD FLOW ═══
-      await createPendingOrderInDatabase(orderId, trackingNumber, 'Card', 'Pending');
-      if (!buyNowProductId) clearCart();
-      setOrderPlaced({
+      // ═══ RAZORPAY ONLINE PAYMENT FLOW ═══
+      await createPendingOrderInDatabase(orderId, trackingNumber, 'Razorpay', 'Pending');
+
+      await openRazorpayCheckout({
         orderId,
-        trackingNumber,
-        method: 'Credit / Debit Card',
-        status: 'Pending',
-        txnId: `CARD-${Date.now()}`,
+        amount: totalAmount,
+        customerName: custName,
+        customerPhone: custPhone,
+        notes: {
+          trackingNumber,
+          itemsCount: checkoutItems.length
+        },
+        onSuccess: async (rzpResponse) => {
+          try {
+            await api.payments.verifyPayment({
+              razorpay_order_id: rzpResponse.razorpay_order_id,
+              razorpay_payment_id: rzpResponse.razorpay_payment_id,
+              razorpay_signature: rzpResponse.razorpay_signature,
+              order_id: orderId,
+              amount: totalAmount,
+              isSimulated: rzpResponse.isSimulated
+            });
+
+            if (!buyNowProductId) clearCart();
+            setOrderPlaced({
+              orderId,
+              trackingNumber,
+              method: 'Online Payment (Razorpay)',
+              status: 'Completed',
+              txnId: rzpResponse.razorpay_payment_id
+            });
+            toast.success('Payment confirmed! Your order has been placed.');
+            window.dispatchEvent(new Event('orders_updated'));
+          } catch (verifyErr: any) {
+            console.error('Payment verification failed:', verifyErr);
+            toast.error('Payment verification warning: ' + (verifyErr.message || 'Please check order status'));
+          } finally {
+            setIsProcessing(false);
+          }
+        },
+        onError: (err: any) => {
+          setIsProcessing(false);
+          toast.error(err?.message || 'Payment was unsuccessful or cancelled');
+        },
+        onDismiss: () => {
+          setIsProcessing(false);
+          toast.info('Payment window closed');
+        }
       });
-      toast.success('Order placed successfully!');
-      window.dispatchEvent(new Event('orders_updated'));
     } catch (err: any) {
       console.error('Order placement failed:', err);
       toast.error('Order failed: ' + (err.message || 'Please try again'));
-    } finally {
       setIsProcessing(false);
     }
   };
@@ -973,9 +915,20 @@ export function CheckoutPage() {
                     {/* Payment Options */}
                     <div className="space-y-3">
                       {[
-                        { id: 'UPI' as const, label: 'Google Pay (UPI)', desc: 'Instant 1-Tap GPay app & QR Code transfer', icon: Wallet, badge: 'Instant' },
-                        { id: 'COD' as const, label: 'Cash on Delivery', desc: 'Pay when you receive your order', icon: Banknote, badge: 'Popular' },
-                        { id: 'Card' as const, label: 'Credit / Debit Card', desc: 'Pay via Card or Net Banking', icon: CreditCard, badge: null },
+                        {
+                          id: 'Razorpay' as const,
+                          label: 'Pay Online (Razorpay)',
+                          desc: 'UPI (GPay, PhonePe, Paytm), Cards & Net Banking',
+                          icon: CreditCard,
+                          badge: '100% Secure • Recommended'
+                        },
+                        {
+                          id: 'COD' as const,
+                          label: 'Cash on Delivery (COD)',
+                          desc: 'Pay in cash or UPI scanner upon delivery at doorstep',
+                          icon: Banknote,
+                          badge: null
+                        },
                       ].map(option => (
                         <div
                           key={option.id}
@@ -995,11 +948,7 @@ export function CheckoutPage() {
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-bold text-gray-900">{option.label}</span>
                               {option.badge && (
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                  option.badge === 'Instant'
-                                    ? 'bg-blue-100 text-blue-700'
-                                    : 'bg-emerald-100 text-emerald-700'
-                                }`}>
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
                                   {option.badge}
                                 </span>
                               )}
@@ -1015,41 +964,43 @@ export function CheckoutPage() {
                       ))}
                     </div>
 
-                    {/* Google Pay Active Info Box */}
-                    {paymentMethod === 'UPI' && (
-                      <div className="bg-[#F8FBF7] border border-[#698156]/20 rounded-2xl p-4.5 flex items-start gap-3.5 shadow-xs">
-                        <div className="w-9 h-9 rounded-xl bg-white border border-gray-200/80 flex items-center justify-center p-1.5 flex-shrink-0 shadow-xs">
-                          <img
-                            src="https://upload.wikimedia.org/wikipedia/commons/f/f2/Google_Pay_Logo.svg"
-                            alt="Google Pay"
-                            className="w-full h-auto object-contain"
-                          />
+                    {/* Razorpay Active Info Box */}
+                    {paymentMethod === 'Razorpay' && (
+                      <div className="bg-[#F8FBF7] border border-[#698156]/20 rounded-2xl p-4.5 space-y-3 shadow-xs">
+                        <div className="flex items-start gap-3.5">
+                          <div className="w-10 h-10 rounded-xl bg-white border border-gray-200/80 flex items-center justify-center p-2 flex-shrink-0 shadow-xs text-[#698156]">
+                            <ShieldCheck className="w-6 h-6" />
+                          </div>
+                          <div className="text-xs text-gray-600 leading-relaxed flex-grow">
+                            <div className="flex items-center justify-between">
+                              <p className="font-bold text-gray-900 text-sm mb-0.5">Instant & Secure Gateway</p>
+                              <span className="text-[10px] bg-white border border-[#698156]/30 px-2 py-0.5 rounded-full text-[#698156] font-bold">
+                                Razorpay Verified
+                              </span>
+                            </div>
+                            <p className="text-gray-600">
+                              Supports all UPI apps (Google Pay, PhonePe, Paytm, BHIM, Cred), Visa, MasterCard, RuPay, and 50+ Net Banking accounts.
+                            </p>
+                          </div>
                         </div>
-                        <div className="text-xs text-gray-600 leading-relaxed">
-                          <p className="font-bold text-gray-900 text-sm mb-0.5">Google Pay (UPI)</p>
-                          {isNativeGpaySupported ? (
-                            <p className="text-[#698156] font-semibold">
-                              ✓ Google Pay is available! Tap the button below to pay instantly.
-                            </p>
-                          ) : (
-                            <p className="text-gray-500">
-                              Google Pay instant checkout requires an Android device with Google Pay installed. On this device, you can scan the UPI QR code to complete your payment.
-                            </p>
-                          )}
+
+                        {/* Payment Partner Logos Strip */}
+                        <div className="pt-2 border-t border-[#698156]/15 flex flex-wrap items-center justify-between gap-2 text-[10px] text-gray-500 font-medium">
+                          <span className="flex items-center gap-1">
+                            <Lock className="w-3 h-3 text-emerald-600" /> 256-bit Bank-Grade Encryption
+                          </span>
+                          <span className="text-gray-400">PCI-DSS Level 1 Certified</span>
                         </div>
                       </div>
                     )}
 
-                    {paymentMethod === 'Card' && (
-                      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-800 space-y-2">
-                        <p className="font-bold flex items-center gap-1.5">
-                          <CreditCard className="w-3.5 h-3.5" /> Card Payments — Gateway Required
+                    {paymentMethod === 'COD' && (
+                      <div className="bg-emerald-50/60 border border-emerald-200/80 rounded-2xl p-4 text-xs text-emerald-900 space-y-1.5">
+                        <p className="font-bold flex items-center gap-1.5 text-emerald-950">
+                          <Banknote className="w-4 h-4 text-emerald-700" /> Cash on Delivery Available
                         </p>
                         <p className="leading-relaxed">
-                          Google Pay card payments require a PCI DSS certified payment gateway (per <a href="https://developers.google.com/pay/api/web/reference/request-objects#TokenizationSpecification" target="_blank" rel="noopener noreferrer" className="underline font-semibold">Google's official documentation</a>). This integration is not yet configured.
-                        </p>
-                        <p className="leading-relaxed">
-                          Please use <strong>Google Pay (UPI)</strong> for instant payment or <strong>Cash on Delivery</strong>.
+                          Pay directly to our delivery courier at your doorstep in cash or by scanning their UPI QR code upon arrival.
                         </p>
                       </div>
                     )}
@@ -1064,33 +1015,25 @@ export function CheckoutPage() {
                           <ChevronLeft className="w-4 h-4" /> Back
                         </button>
 
-                        {paymentMethod === 'UPI' ? (
-                          <div className="flex-1 w-full flex items-center justify-center min-h-[52px]">
-                            <GooglePayOfficialButton
-                              amount={totalAmount}
-                              orderId={pendingGpayOrderId || ('ord_' + Math.random().toString(36).substring(2, 10))}
-                              isProcessing={isProcessing}
-                              isSupported={isNativeGpaySupported}
-                              onClick={handlePlaceOrder}
-                            />
-                          </div>
-                        ) : (
-                          <motion.button
-                            whileHover={{ scale: 1.01 }}
-                            whileTap={{ scale: 0.99 }}
-                            disabled={isProcessing || paymentMethod === 'Card'}
-                            onClick={handlePlaceOrder}
-                            className="flex-1 py-3.5 bg-[#698156] hover:bg-[#546944] text-white rounded-xl font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-colors shadow-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {isProcessing ? (
-                              <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Processing...</>
-                            ) : paymentMethod === 'Card' ? (
-                              <>Card Payment Not Available — Select UPI or COD</>
-                            ) : (
-                              <>Place Order • ₹{totalAmount.toLocaleString('en-IN')}</>
-                            )}
-                          </motion.button>
-                        )}
+                        <motion.button
+                          whileHover={{ scale: 1.01 }}
+                          whileTap={{ scale: 0.99 }}
+                          disabled={isProcessing}
+                          onClick={handlePlaceOrder}
+                          className="flex-1 py-3.5 bg-[#698156] hover:bg-[#546944] text-white rounded-xl font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-colors shadow-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isProcessing ? (
+                            <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Processing...</>
+                          ) : paymentMethod === 'Razorpay' ? (
+                            <>
+                              <Lock className="w-4 h-4" /> Pay with Razorpay • ₹{totalAmount.toLocaleString('en-IN')}
+                            </>
+                          ) : (
+                            <>
+                              <Check className="w-4 h-4" /> Place COD Order • ₹{totalAmount.toLocaleString('en-IN')}
+                            </>
+                          )}
+                        </motion.button>
                       </div>
                     </div>
                   </motion.div>
@@ -1155,6 +1098,25 @@ export function CheckoutPage() {
                   <Shield className="w-3.5 h-3.5 text-green-500" />
                   Safe & Secure Payments • Easy Returns
                 </div>
+
+                {/* Razorpay Website Verification Compliance Notice & Policy Links */}
+                <div className="pt-3 border-t border-gray-100 text-[11px] text-gray-500 leading-relaxed space-y-1">
+                  <p>
+                    By placing this order, you agree to Aanya Fashions'{' '}
+                    <Link to="/terms" target="_blank" className="text-[#698156] underline font-semibold hover:text-[#546944]">
+                      Terms & Conditions
+                    </Link>,{' '}
+                    <Link to="/privacy" target="_blank" className="text-[#698156] underline font-semibold hover:text-[#546944]">
+                      Privacy Policy
+                    </Link>,{' '}
+                    <Link to="/shipping-policy" target="_blank" className="text-[#698156] underline font-semibold hover:text-[#546944]">
+                      Shipping Policy
+                    </Link>, and{' '}
+                    <Link to="/refund-policy" target="_blank" className="text-[#698156] underline font-semibold hover:text-[#546944]">
+                      Cancellation & Refund Policy
+                    </Link>.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -1162,55 +1124,6 @@ export function CheckoutPage() {
       </div>
 
       <Footer />
-
-      {/* Google Pay UPI Modal for Desktop (QR Code + VPA) */}
-      <GooglePayModal
-        isOpen={isGpayModalOpen}
-        onClose={() => setIsGpayModalOpen(false)}
-        orderId={pendingGpayOrderId}
-        amount={totalAmount}
-        customerName={selectedAddress?.full_name || newAddress.full_name}
-        customerPhone={selectedAddress?.phone || newAddress.phone}
-        onPaymentSuccess={async (txnId, payerVpa, raw) => {
-          // Desktop UPI payment confirmed via modal
-          const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-          const randomSuffix = Math.floor(10000 + Math.random() * 90000);
-          const trackingNumber = `AANYA-${datePart}-${randomSuffix}`;
-          const orderId = pendingGpayOrderId;
-
-          try {
-            const { userId } = await createPendingOrderInDatabase(
-              orderId, trackingNumber, 'Google Pay', 'Pending Verification'
-            );
-
-            await verifyGooglePayTransaction({
-              orderId,
-              amount: totalAmount,
-              txnId: txnId,
-              transactionReference: txnId,
-              payerVpa: payerVpa || undefined,
-              userId,
-              customerName: selectedAddress?.full_name || newAddress.full_name,
-              customerPhone: selectedAddress?.phone || newAddress.phone,
-              rawDetails: raw,
-            });
-
-            if (!buyNowProductId) clearCart();
-            setIsGpayModalOpen(false);
-            setOrderPlaced({
-              orderId,
-              trackingNumber,
-              method: 'Google Pay (UPI)',
-              status: 'Pending Verification',
-              txnId,
-            });
-            toast.success('Order placed! Payment is Pending Verification.');
-            window.dispatchEvent(new Event('orders_updated'));
-          } catch (err: any) {
-            toast.error('Order creation failed: ' + (err.message || 'Unknown error'));
-          }
-        }}
-      />
     </div>
   );
 }

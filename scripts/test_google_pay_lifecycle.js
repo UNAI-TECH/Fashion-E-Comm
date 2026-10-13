@@ -2,7 +2,7 @@
  * Automated Test Suite: Google Pay India Official Integration & Verification Boundary
  * 
  * Verifies:
- * 1. Merchant parameter compliance: VPA (aanya.fashions@okaxis), MCC (5691), Method (https://tez.google.com/pay)
+ * 1. Merchant parameter compliance: VPA (gpay-12204900082@okbizaxis), MCC (5691), Method (https://tez.google.com/pay)
  * 2. NPCI transaction reference generation format (AF...)
  * 3. Pre-payment pending order creation lifecycle
  * 4. Authoritative amount mismatch rejection
@@ -25,7 +25,7 @@ if (!SUPABASE_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const MERCHANT_VPA = 'aanya.fashions@okaxis';
+const MERCHANT_VPA = 'gpay-12204900082@okbizaxis';
 const MERCHANT_NAME = 'Aanya Fashions';
 const MERCHANT_MCC = '5691';
 
@@ -56,7 +56,7 @@ async function runTests() {
 
   // TEST 1: Merchant Configuration
   console.log('📌 Test Suite 1: Merchant Configuration & NPCI Parameters');
-  assert(MERCHANT_VPA === 'aanya.fashions@okaxis', 'Merchant VPA matches verified handle (aanya.fashions@okaxis)');
+  assert(MERCHANT_VPA === 'gpay-12204900082@okbizaxis', 'Merchant VPA matches verified handle (gpay-12204900082@okbizaxis)');
   assert(MERCHANT_MCC === '5691', "MCC matches Apparel Retail code 5691 (Women's Ready-to-Wear)");
   assert(MERCHANT_NAME === 'Aanya Fashions', 'Merchant Name matches legal entity name (Aanya Fashions)');
 
