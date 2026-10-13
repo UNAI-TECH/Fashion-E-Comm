@@ -2,12 +2,9 @@ import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router';
 import { Navigation } from '../components/Navigation';
 import { AnnouncementBar } from '../components/AnnouncementBar';
-import { HeroSection } from '../components/HeroSection';
-import { FeaturedCategories } from '../components/FeaturedCategories';
+import { HeroAdBanner } from '../components/HeroAdBanner';
 import { TrendingCollection } from '../components/TrendingCollection';
 import { MotionBanner } from '../components/MotionBanner';
-import { Testimonials } from '../components/Testimonials';
-import { InstagramGallery } from '../components/InstagramGallery';
 import { Footer } from '../components/Footer';
 import { fetchProducts, Product } from '../data/products';
 import { SEOHead, getOrganizationSchema, getWebsiteSchema, getOnlineStoreSchema, getFAQSchema } from '../components/SEOHead';
@@ -44,7 +41,6 @@ export function Home() {
       bc.onmessage = (event) => {
         if (event.data?.type === 'PRODUCT_DELETED') {
           const { id, name } = event.data;
-          // Instantly remove from main page view with zero delay
           setProducts(prev => prev.filter(p => 
             String(p.id).toLowerCase() !== String(id).toLowerCase() && 
             (!name || p.name.trim().toLowerCase() !== name.trim().toLowerCase())
@@ -80,32 +76,32 @@ export function Home() {
   const homepageFAQs = getFAQSchema([
     {
       question: 'What is Aanya Fashions?',
-      answer: 'Aanya Fashions is a premium online fashion store specializing in women\'s ethnic and western wear. We offer an exclusive collection of sarees, kurtis, lehengas, salwar sets, maxi dresses, and trendy western outfits with free shipping across India.',
+      answer: 'Aanya Fashions is a premium online fashion store specializing in authentic Indian sarees. We offer an exclusive collection of silk sarees, banarasi sarees, kanchipuram sarees, and designer festive sarees with free shipping across India.',
     },
     {
       question: 'What types of clothing does Aanya Fashions offer?',
-      answer: 'Aanya Fashions offers a wide range of women\'s clothing including designer sarees, trendy kurtis, bridal and party wear lehengas, elegant salwar sets, stylish maxi dresses, and contemporary western wear. Our collections blend traditional Indian craftsmanship with modern fashion trends.',
+      answer: 'Aanya Fashions specializes in handcrafted sarees including pure silk sarees, banarasi zari sarees, kanchipuram wedding sarees, festive organza sarees, and designer ethnic wear drapes.',
     },
     {
       question: 'Does Aanya Fashions offer free shipping?',
-      answer: 'Yes! Aanya Fashions offers free shipping on orders across India. We ensure your beautiful outfits reach you safely and promptly.',
+      answer: 'Yes! Aanya Fashions offers free shipping on all saree orders across India. We ensure your beautiful sarees reach you safely and promptly.',
     },
     {
       question: 'What is the return policy at Aanya Fashions?',
-      answer: 'Aanya Fashions offers a hassle-free 7-day return policy. If you\'re not satisfied with your purchase, you can easily return it within 7 days of delivery.',
+      answer: 'Aanya Fashions offers a hassle-free 7-day easy return policy. If you are not satisfied with your purchase, you can easily request a return within 7 days of delivery with doorstep pickup.',
     },
     {
-      question: 'Where can I buy sarees online in India?',
-      answer: 'You can buy premium sarees online at Aanya Fashions (www.aanyafashions.com). We offer a curated collection of silk sarees, banarasi sarees, designer sarees, and more at the best prices with doorstep delivery.',
+      question: 'Where can I buy authentic sarees online in India?',
+      answer: 'You can buy premium authentic sarees online at Aanya Fashions. We offer a curated collection of silk sarees, banarasi sarees, and designer weaves with cash on delivery and doorstep delivery.',
     },
   ]);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-white">
       <SEOHead
         canonicalUrl="/"
-        description="Shop premium sarees, kurtis, lehengas, salwar sets, maxi dresses & western wear at Aanya Fashions. India's trusted online destination for elegant women's ethnic and contemporary fashion. Free shipping, easy returns & exclusive collections."
-        keywords="aanya fashions, aanya, aanya fashion, women fashion online india, ethnic wear, traditional clothes, womens wear, fashion world, buy sarees online, designer kurtis, bridal lehenga, salwar kameez, maxi dress online, western wear women india"
+        description="Shop premium authentic sarees at Aanya Fashions. India's trusted online destination for pure silk, Banarasi, Kanchipuram and designer festive sarees. Free shipping across India, Cash on Delivery & 7-day easy returns."
+        keywords="aanya fashions, buy sarees online, pure silk sarees, banarasi sarees, kanchipuram sarees, designer sarees india, wedding sarees, festive saree sale"
         structuredData={[
           getOrganizationSchema(),
           getWebsiteSchema(),
@@ -115,12 +111,17 @@ export function Home() {
       />
       <AnnouncementBar />
       <Navigation />
-      <HeroSection />
-      <FeaturedCategories />
-      <MotionBanner />
+      
+      {/* 1. Hero Ad Banner Carousel (Meesho & Myntra style) */}
+      <HeroAdBanner />
+
+      {/* 2. Sale Sarees Collection Showroom */}
       <TrendingCollection products={products} isLoading={isLoading} />
-      <Testimonials />
-      <InstagramGallery />
+
+      {/* 3. Promotional Festive Ribbon Banner */}
+      <MotionBanner />
+
+      {/* 4. Footer (without Instagram Gallery) */}
       <Footer />
     </div>
   );

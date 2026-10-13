@@ -75,7 +75,7 @@ export function MotionBanner() {
             className="flex flex-wrap justify-center md:justify-start gap-3"
           >
             <motion.button
-              onClick={() => window.location.href = '/category/all'}
+              onClick={() => window.location.href = '/category/sarees'}
               whileHover={{ scale: 1.03, x: 5 }}
               whileTap={{ scale: 0.97 }}
               className="group px-6 py-3.5 bg-[#1A1A1A] text-white rounded-none flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-all hover:bg-[#698156]"

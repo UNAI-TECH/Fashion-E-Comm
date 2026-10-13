@@ -76,6 +76,7 @@ export const router = createBrowserRouter([
         children: [
           { index: true, Component: AdminAanyaPage },
           { path: "dashboard", Component: AdminAanyaPage },
+          { path: "banners", Component: AdminAanyaPage },
           { path: "hero-models", Component: AdminAanyaPage },
           { path: "inventory", Component: AdminAanyaPage },
           { path: "billing", Component: AdminAanyaPage },

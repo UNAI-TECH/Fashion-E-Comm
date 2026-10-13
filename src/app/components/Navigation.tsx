@@ -37,6 +37,7 @@ export function Navigation() {
   const [isScrolled, setIsScrolled] = useState(false);
 
   const { wishlistItems, wishlistCount, removeFromWishlist } = useWishlist();
+  const { cartCount } = useCart();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
@@ -210,10 +211,10 @@ export function Navigation() {
       {/* First Page: Welcome to Aanya Fashions Splash Screen */}
       <WelcomeSplashScreen />
 
-      {/* ══════════ DESKTOP HEADER (2-row, Meesho style) ══════════ */}
-      <header className="hidden lg:block fixed top-0 left-0 right-0 z-[40] bg-white shadow-sm border-b border-gray-100">
-        {/* Row 1: Logo | Search | Actions */}
-        <div className="max-w-[1400px] mx-auto px-6 py-1 flex items-center gap-6">
+      {/* ══════════ DESKTOP HEADER (Myntra & Meesho style) ══════════ */}
+      <header className="hidden lg:block fixed top-0 left-0 right-0 z-[40] bg-white shadow-xs border-b border-gray-100">
+        {/* Row: Logo | Centered Search Bar | Actions */}
+        <div className="max-w-[1440px] mx-auto px-6 py-2 flex items-center justify-between gap-6">
 
           {/* Logo — Sleek, bold & compact height */}
           <Link to="/" className="flex items-center flex-shrink-0 h-14 sm:h-16 py-1 overflow-visible">
@@ -225,19 +226,19 @@ export function Navigation() {
             />
           </Link>
 
-          {/* Search Bar — compact height */}
-          <div className="w-80 flex-shrink-0 relative">
+          {/* Search Bar Box in Center (Myntra & Meesho style) */}
+          <div className="flex-1 max-w-xl xl:max-w-2xl mx-auto relative px-2 sm:px-4">
             <div className="relative flex items-center">
-              <Search className="absolute left-3.5 w-4 h-4 text-gray-400 pointer-events-none" />
+              <Search className="absolute left-4 w-4 h-4 text-gray-400 pointer-events-none" />
               <input
                 type="text"
-                placeholder="Try Saree, Kurti or Search…"
+                placeholder="Try Saree, Silk, Banarasi or Search by Product..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 onFocus={() => setIsSearchDropdownOpen(true)}
                 onBlur={() => setTimeout(() => setIsSearchDropdownOpen(false), 200)}
                 onKeyDown={e => { if (e.key === 'Enter') handleSearchSubmit(searchQuery); }}
-                className="w-full pl-10 pr-3 py-2 text-xs border border-gray-300 rounded-lg bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#698156] focus:ring-1 focus:ring-[#698156]/20 transition-all"
+                className="w-full pl-11 pr-4 py-2.5 text-xs sm:text-sm border border-gray-300 rounded-full bg-[#F9FAF8] hover:bg-white focus:bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#698156] focus:ring-2 focus:ring-[#698156]/20 transition-all shadow-2xs"
               />
             </div>
 
@@ -311,15 +312,22 @@ export function Navigation() {
             </AnimatePresence>
           </div>
 
-          {/* Right Actions */}
-          <div className="flex items-center gap-4 flex-shrink-0 ml-auto">
+          {/* Right Actions: Wishlist | Orders | Profile | Cart */}
+          <div className="flex items-center gap-5 sm:gap-6 flex-shrink-0">
             <motion.button
               whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }}
               onClick={() => setIsWishlistOpen(true)}
-              className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-[#698156] transition-colors cursor-pointer"
+              className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-[#698156] transition-colors cursor-pointer relative"
               aria-label="Wishlist"
             >
-              <Heart className="w-5 h-5" />
+              <div className="relative">
+                <Heart className="w-5 h-5" />
+                {wishlistCount > 0 && (
+                  <span className="absolute -top-1.5 -right-2 bg-rose-500 text-white text-[9px] font-black rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center shadow-xs">
+                    {wishlistCount}
+                  </span>
+                )}
+              </div>
               <span className="text-[10px] font-semibold">Wishlist</span>
             </motion.button>
 
@@ -449,6 +457,29 @@ export function Navigation() {
                 )}
               </AnimatePresence>
             </div>
+
+            {/* Cart / Bag with Live Count Badge (Meesho & Myntra style) */}
+            <Link to="/cart">
+              <motion.div
+                whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }}
+                className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-[#698156] transition-colors cursor-pointer relative"
+                aria-label="Shopping Cart"
+              >
+                <div className="relative">
+                  <ShoppingBag className="w-5 h-5" />
+                  {cartCount > 0 && (
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute -top-1.5 -right-2 bg-[#698156] text-white text-[9px] font-black rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center shadow-xs"
+                    >
+                      {cartCount}
+                    </motion.span>
+                  )}
+                </div>
+                <span className="text-[10px] font-semibold">Cart</span>
+              </motion.div>
+            </Link>
           </div>
         </div>
       </header>
@@ -484,8 +515,22 @@ export function Navigation() {
             {/* Center: Spacer for clean mobile layout */}
             <div className="flex-1"></div>
 
-            {/* Right side: 3-Line Menu CTA Button */}
-            <div className="flex items-center flex-shrink-0 mr-1">
+            {/* Right side: Cart CTA + Menu CTA Button */}
+            <div className="flex items-center gap-2 flex-shrink-0 mr-1">
+              <Link
+                to="/cart"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="w-9 h-9 flex items-center justify-center bg-[#F4F6F2] border border-[#DCE4D7]/80 text-[#698156] rounded-full shadow-sm hover:bg-[#DCE4D7]/30 transition-all relative"
+                aria-label="Shopping Cart"
+              >
+                <ShoppingBag className="w-[18px] h-[18px]" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-[#698156] text-white text-[9px] font-black rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center shadow-xs">
+                    {cartCount}
+                  </span>
+                )}
+              </Link>
+
               <motion.button
                 whileHover={{ scale: 1.08 }}
                 whileTap={{ scale: 0.92 }}
@@ -502,41 +547,6 @@ export function Navigation() {
             </div>
         </div>
 
-        {/* Inline Mobile Collection Categories Dropdown Menu */}
-        <AnimatePresence>
-          {isMobileCollectionOpen && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.25 }}
-              className="px-3 py-3.5 bg-white rounded-b-[2rem] border-t border-gray-100 flex flex-wrap justify-center gap-2 shadow-lg"
-            >
-              {[
-                { name: 'Kurti', path: '/category/kurtis' },
-                { name: 'Saree', path: '/category/sarees' },
-                { name: 'Salwar Set', path: '/category/salwar-sets' },
-                { name: 'Maxi', path: '/category/maxi' },
-                { name: 'Lehengas', path: '/category/lehengas' },
-                { name: 'Western', path: '/category/western' },
-              ].map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.path}
-                  onClick={() => setIsMobileCollectionOpen(false)}
-                  className={`text-[10px] font-bold px-3 py-1.5 rounded-full border transition-all ${
-                    location.pathname === item.path
-                      ? 'bg-[#698156] text-white border-[#698156]'
-                      : 'bg-gray-50 hover:bg-[#F4F6F2] text-gray-800 hover:text-[#698156] border-gray-200/80 hover:border-[#698156]/30'
-                  }`}
-                >
-                  {item.name}
-                </Link>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         {/* Mobile Menu */}
         <AnimatePresence>
           {isMobileMenuOpen && (
@@ -549,7 +559,7 @@ export function Navigation() {
             >
               <div className="px-6 py-6 space-y-4">
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Quick Actions</p>
-                <div className="grid grid-cols-4 gap-3 justify-items-center">
+                <div className="grid grid-cols-5 gap-2 sm:gap-3 justify-items-center">
                   {/* Search Action */}
                   <div className="flex flex-col items-center gap-1.5 w-full">
                     <motion.button
@@ -567,6 +577,23 @@ export function Navigation() {
                     <span className="text-[9px] font-black text-amber-700 uppercase tracking-wider">Search</span>
                   </div>
 
+                  {/* Cart Action */}
+                  <div className="flex flex-col items-center gap-1.5 w-full">
+                    <Link
+                      to="/cart"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="w-11 h-11 bg-teal-100/90 border border-teal-300 text-teal-700 rounded-2xl flex items-center justify-center shadow-sm hover:bg-teal-200/90 transition-all relative"
+                      aria-label="Cart"
+                    >
+                      <ShoppingBag className="w-5 h-5 stroke-[2.5]" />
+                      {cartCount > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-[#698156] text-white text-[9px] font-black rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center shadow-xs">
+                          {cartCount}
+                        </span>
+                      )}
+                    </Link>
+                    <span className="text-[9px] font-black text-teal-800 uppercase tracking-wider">Cart</span>
+                  </div>
 
                   {/* My Orders Action */}
                   <div className="flex flex-col items-center gap-1.5 w-full">
@@ -609,10 +636,15 @@ export function Navigation() {
                     <Link
                       to="/profile?tab=wishlist"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className="w-11 h-11 bg-rose-100/90 border border-rose-300 text-rose-600 rounded-2xl flex items-center justify-center shadow-sm hover:bg-rose-200/90 transition-all cursor-pointer"
+                      className="w-11 h-11 bg-rose-100/90 border border-rose-300 text-rose-600 rounded-2xl flex items-center justify-center shadow-sm hover:bg-rose-200/90 transition-all cursor-pointer relative"
                       aria-label="Wishlist"
                     >
                       <Heart className="w-5 h-5 stroke-[2.5]" />
+                      {wishlistCount > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-black rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center shadow-xs">
+                          {wishlistCount}
+                        </span>
+                      )}
                     </Link>
                     <span className="text-[9px] font-black text-rose-700 uppercase tracking-wider">Wishlist</span>
                   </div>

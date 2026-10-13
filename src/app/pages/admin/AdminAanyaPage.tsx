@@ -8,11 +8,10 @@ import {
   Sparkles, Shirt, Upload, Star, Receipt,
   Minus, ShoppingCart, ArrowRight, Tags, Boxes, Compass
 } from 'lucide-react';
-import { AdminHeroModelsSection } from './AdminHeroModelsSection';
+import { AdminBannersSection } from './AdminBannersSection';
 import { AdminBillingSection } from './AdminBillingSection';
 import { AdminCategories } from './AdminCategories';
 import { AdminInventorySection } from './AdminInventorySection';
-import { saveHeroModel } from '../../data/heroModels';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar
@@ -113,15 +112,15 @@ const CAT_COLORS: Record<string, string> = {
 };
 
 /* ─── Nav items ─── */
-export type NavTab = 'overview' | 'hero-models' | 'products' | 'inventory' | 'categories' | 'billing' | 'orders' | 'customers' | 'payments';
+export type NavTab = 'overview' | 'banners' | 'hero-models' | 'products' | 'inventory' | 'categories' | 'billing' | 'orders' | 'customers' | 'payments';
 export const VALID_TABS: readonly NavTab[] = [
-  'overview', 'hero-models', 'products', 'inventory', 'categories', 'billing', 'orders', 'customers', 'payments'
+  'overview', 'banners', 'hero-models', 'products', 'inventory', 'categories', 'billing', 'orders', 'customers', 'payments'
 ] as const;
 export const isValidTab = (tab: any): tab is NavTab => VALID_TABS.includes(tab);
 
 const NAV_ITEMS: { id: NavTab; label: string; icon: React.ReactNode }[] = [
   { id: 'overview',    label: 'Dashboard',        icon: <LayoutDashboard className="w-5 h-5" /> },
-  { id: 'hero-models', label: 'Hero Models',      icon: <Sparkles className="w-5 h-5" /> },
+  { id: 'banners',     label: 'Hero Banners',     icon: <ImageIcon className="w-5 h-5" /> },
   { id: 'products',    label: 'Catalog Products', icon: <Package className="w-5 h-5" /> },
   { id: 'inventory',   label: 'Inventory Stock',  icon: <Boxes className="w-5 h-5" /> },
   { id: 'categories',  label: 'Categories',       icon: <Tags className="w-5 h-5" /> },
@@ -180,9 +179,9 @@ export function AdminAanyaPage() {
       return queryTab;
     }
 
-    // 2. URL path suffix (/admin/hero-models, /admin/billing, /admin/products, etc.)
+    // 2. URL path suffix (/admin/banners, /admin/hero-models, /admin/billing, /admin/products, etc.)
     const path = location.pathname.toLowerCase().replace(/\/+$/, '');
-    if (path.endsWith('/hero-models')) return 'hero-models';
+    if (path.endsWith('/banners') || path.endsWith('/hero-models')) return 'banners';
     if (path.endsWith('/products')) return 'products';
     if (path.endsWith('/inventory')) return 'inventory';
     if (path.endsWith('/categories')) return 'categories';
@@ -1185,7 +1184,7 @@ export function AdminAanyaPage() {
             <div className="hidden md:block min-w-0">
               <h1 className="font-serif text-lg md:text-xl font-bold text-gray-900 capitalize truncate">
                 {activeTab === 'overview' ? 'Dashboard Overview' :
-                 activeTab === 'hero-models' ? 'Hero Models & Outfits' :
+                 (activeTab === 'banners' || activeTab === 'hero-models') ? 'Homepage Hero Banners' :
                  activeTab === 'products' ? 'Catalog Products' :
                  activeTab === 'inventory' ? 'Inventory Stock Management' :
                  activeTab === 'categories' ? 'Categories Management' :
@@ -1417,7 +1416,7 @@ export function AdminAanyaPage() {
                     </div>
                   </motion.button>
 
-                  {/* BENTO CARD 4: Hero Models */}
+                  {/* BENTO CARD 4: Hero Banners */}
                   <motion.button
                     type="button"
                     variants={{
@@ -1426,20 +1425,20 @@ export function AdminAanyaPage() {
                     }}
                     whileHover={{ scale: 1.02, y: -2 }}
                     whileTap={{ scale: 0.97 }}
-                    onClick={() => setActiveTab('hero-models')}
+                    onClick={() => setActiveTab('banners')}
                     className="group relative overflow-hidden rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 bg-gradient-to-br from-purple-500/10 via-white to-white border border-purple-500/20 shadow-xs hover:shadow-md text-left transition-all cursor-pointer"
                   >
                     <div className="flex items-center justify-between">
                       <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
-                        <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        <ImageIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       </div>
                       <span className="text-[9.5px] sm:text-[10px] font-bold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded-full border border-purple-200">
-                        Visual
+                        Banners
                       </span>
                     </div>
                     <div className="mt-2">
-                      <h4 className="font-bold text-xs text-gray-900 group-hover:text-purple-700 transition-colors">Hero Models</h4>
-                      <p className="text-[9.5px] text-gray-400 mt-0.5">Showcase outfits</p>
+                      <h4 className="font-bold text-xs text-gray-900 group-hover:text-purple-700 transition-colors">Hero Banners</h4>
+                      <p className="text-[9.5px] text-gray-400 mt-0.5">Manage promo ads</p>
                     </div>
                   </motion.button>
 
@@ -2685,12 +2684,9 @@ export function AdminAanyaPage() {
             </div>
           )}
 
-          {/* ─── TAB: HERO MODELS ─── */}
-          {activeTab === 'hero-models' && (
-            <AdminHeroModelsSection
-              products={dbProducts}
-              onRefreshProducts={loadData}
-            />
+          {/* ─── TAB: HERO BANNERS ─── */}
+          {(activeTab === 'banners' || activeTab === 'hero-models') && (
+            <AdminBannersSection />
           )}
 
           {/* ─── TAB: MANUAL BILLING & POS ─── */}
