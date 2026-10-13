@@ -349,8 +349,8 @@ export function CheckoutPage() {
     setStep(3);
     window.scrollTo(0, 0);
     console.log('💳 [Google Pay India] Checkout step 3 loaded with verified merchant credentials:', {
-      mcc: DEFAULT_GPAY_CONFIG.mcc, // '5691'
-      mccCategory: "Women's Ready-to-Wear Apparel (MCC 5691)",
+      mcc: DEFAULT_GPAY_CONFIG.mcc,
+      mccCategory: "Uniforms & Commercial Clothing (MCC 5137)",
       merchantVpa: DEFAULT_GPAY_CONFIG.merchantVpa,
       merchantName: DEFAULT_GPAY_CONFIG.merchantName,
       payableAmount: totalAmount,
@@ -1026,17 +1026,14 @@ export function CheckoutPage() {
                           />
                         </div>
                         <div className="text-xs text-gray-600 leading-relaxed">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <p className="font-bold text-gray-900 text-sm">Google Pay India (W3C Payment Request API)</p>
-                            <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded font-mono">MCC {DEFAULT_GPAY_CONFIG.mcc}</span>
-                          </div>
+                          <p className="font-bold text-gray-900 text-sm mb-0.5">Google Pay (UPI)</p>
                           {isNativeGpaySupported ? (
                             <p className="text-[#698156] font-semibold">
-                              ✓ 1-Tap Google Pay available! Tap below to authorize directly in the Google Pay app on your device.
+                              ✓ Google Pay is available! Tap the button below to pay instantly.
                             </p>
                           ) : (
                             <p className="text-gray-500">
-                              Google Pay India 1-tap mobile UPI checkout requires an Android device with Google Pay installed (W3C Payment Request API). On desktop, UPI payments require an acquiring Bank UPI Collect integration. Clicking below places your order with Pending Verification awaiting merchant bank settlement ({DEFAULT_GPAY_CONFIG.merchantVpa}).
+                              Google Pay instant checkout requires an Android device with Google Pay installed. On this device, you can scan the UPI QR code to complete your payment.
                             </p>
                           )}
                         </div>

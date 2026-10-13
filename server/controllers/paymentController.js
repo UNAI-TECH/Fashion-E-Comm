@@ -3,7 +3,7 @@ import { supabase } from '../config/supabase.js';
 
 const MERCHANT_VPA = process.env.VITE_GOOGLE_PAY_VPA || process.env.GOOGLE_PAY_MERCHANT_VPA || 'aanya.fashions@okaxis';
 const MERCHANT_NAME = process.env.VITE_MERCHANT_NAME || process.env.GOOGLE_PAY_MERCHANT_NAME || 'Aanya Fashions';
-const MERCHANT_MCC = process.env.VITE_MERCHANT_MCC || process.env.GOOGLE_PAY_MCC || '5691';
+const MERCHANT_MCC = process.env.VITE_MERCHANT_MCC || process.env.GOOGLE_PAY_MCC || '5137';
 const PSP_STATUS_API_URL = process.env.PSP_STATUS_API_URL;
 const PSP_API_KEY = process.env.PSP_API_KEY;
 

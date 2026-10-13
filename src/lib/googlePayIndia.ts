@@ -4,14 +4,15 @@
  * Official Documentation:
  * - Google Pay India Web Intro: https://developers.google.com/pay/india/api/web/intro
  * - Create Payment Method: https://developers.google.com/pay/india/api/web/create-payment-method
- * - Video Tutorial: https://www.youtube.com/watch?v=kH0nafGhbww
- * - Google Pay & Wallet Developer MCP Server: https://paydeveloper.googleapis.com/mcp
+ * - Handle Response: https://developers.google.com/pay/india/api/web/handle-response
+ * - Brand Guidelines: https://developers.google.com/pay/api/web/guides/brand-guidelines
  * 
  * Compliance:
  * - W3C Payment Request API (`https://tez.google.com/pay`)
  * - NPCI UPI 2.0 Specifications
  * - Merchant VPA: aanya.fashions@okaxis
- * - Merchant Category Code (MCC): 5691 (Women's Ready-to-Wear Apparel)
+ * - Google Pay Merchant ID: BCR2DN6DRLE2N3BV
+ * - Merchant Category Code (MCC): 5137 (Uniforms & Commercial Clothing)
  */
 
 import { supabase } from './supabase';
@@ -19,22 +20,25 @@ import { supabase } from './supabase';
 export interface GooglePayIndiaConfig {
   merchantVpa: string;
   merchantName: string;
+  merchantId: string;
   mcc: string;
 }
 
 export const DEFAULT_GPAY_CONFIG: GooglePayIndiaConfig = {
   merchantVpa: (import.meta as any).env?.VITE_GOOGLE_PAY_VPA || 'aanya.fashions@okaxis',
   merchantName: (import.meta as any).env?.VITE_MERCHANT_NAME || 'Aanya Fashions',
-  mcc: (import.meta as any).env?.VITE_MERCHANT_MCC || '5691',
+  merchantId: (import.meta as any).env?.VITE_GPAY_MERCHANT_ID || 'BCR2DN6DRLE2N3BV',
+  mcc: (import.meta as any).env?.VITE_MERCHANT_MCC || '5137',
 };
 
 // Console audit log for verified merchant parameters
 if (typeof window !== 'undefined') {
-  console.log('🇮🇳 [Google Pay India Web API] Initialized with verified merchant parameters:', {
+  console.log('🇮🇳 [Google Pay India Web API] Initialized:', {
     supportedMethod: 'https://tez.google.com/pay',
     merchantVpa: DEFAULT_GPAY_CONFIG.merchantVpa,
     merchantName: DEFAULT_GPAY_CONFIG.merchantName,
-    mcc: DEFAULT_GPAY_CONFIG.mcc, // 5691
+    merchantId: DEFAULT_GPAY_CONFIG.merchantId,
+    mcc: DEFAULT_GPAY_CONFIG.mcc,
     standard: 'W3C Payment Request API & NPCI UPI'
   });
 }

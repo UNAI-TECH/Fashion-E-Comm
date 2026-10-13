@@ -1,4 +1,3 @@
-import React from 'react';
 import { DEFAULT_GPAY_CONFIG } from '../../lib/googlePayIndia';
 
 interface GooglePayOfficialButtonProps {
@@ -12,13 +11,16 @@ interface GooglePayOfficialButtonProps {
 /**
  * Official Google Pay Button Component
  * 
- * Complies with Google Pay Brand Guidelines:
+ * Follows Google Pay Brand Guidelines:
  * https://developers.google.com/pay/api/web/guides/brand-guidelines
  * 
- * - Official Google Pay mark with proper margins and aspect ratio
- * - Black rounded style (#000000)
+ * Requirements:
+ * - Black (#000000) button with white Google Pay mark
+ * - Minimum height 48px, full width
+ * - Rounded corners (pill or rounded-lg)
+ * - Uses the official "G Pay" mark SVG
+ * - Clear loading, disabled, and active states
  * - Accessible aria-label
- * - Clear hover, active, and loading states
  */
 export function GooglePayOfficialButton({
   amount,
@@ -27,57 +29,57 @@ export function GooglePayOfficialButton({
   onClick,
 }: GooglePayOfficialButtonProps) {
   return (
-    <div className="w-full flex flex-col items-center">
+    <div className="w-full flex flex-col items-center gap-1.5">
       <button
         type="button"
         id="google-pay-button"
-        aria-label="Pay with Google Pay"
+        aria-label={`Pay ₹${Number(amount).toLocaleString('en-IN')} with Google Pay`}
         disabled={isProcessing}
         onClick={onClick}
-        className="w-full h-[52px] bg-black hover:bg-neutral-900 active:bg-neutral-800 text-white rounded-xl flex items-center justify-center gap-2.5 px-6 shadow-md transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed select-none group"
+        className="w-full h-[52px] bg-black hover:bg-[#1a1a1a] active:bg-[#333] text-white rounded-[26px] flex items-center justify-center gap-3 px-8 shadow-lg hover:shadow-xl transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed select-none relative overflow-hidden group"
+        style={{ minWidth: '240px' }}
       >
+        {/* Subtle hover shimmer effect */}
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+
         {isProcessing ? (
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            <span>Connecting to Google Pay…</span>
+          <div className="flex items-center gap-2.5 text-sm font-medium relative z-10">
+            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            <span>Opening Google Pay…</span>
           </div>
         ) : (
-          <div className="flex items-center gap-2.5">
-            <span className="text-sm font-semibold tracking-wide">Pay with</span>
-            {/* Official Google Pay Multi-color mark */}
+          <div className="flex items-center gap-1 relative z-10">
+            {/* Official Google Pay mark — white version on dark background */}
+            {/* Based on: https://developers.google.com/pay/api/web/guides/brand-guidelines */}
             <svg
-              className="h-6 w-auto"
-              viewBox="0 0 148 48"
+              width="62"
+              height="28"
+              viewBox="0 0 62 28"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
               aria-hidden="true"
             >
-              {/* Google G */}
-              <path
-                d="M19.58 37.65c-9.87 0-18.17-8.04-18.17-17.91 0-9.87 8.3-17.91 18.17-17.91 5.46 0 9.35 2.14 12.27 4.94l-3.45 3.45c-2.1-1.97-4.93-3.49-8.82-3.49-7.21 0-12.84 5.81-12.84 13.02 0 7.21 5.64 13.02 12.84 13.02 4.67 0 7.34-1.88 9.04-3.58 1.4-1.4 2.32-3.41 2.66-6.16H19.58v-4.89h16.47c.18.87.26 1.92.26 3.06 0 3.67-1.01 8.21-4.24 11.44-3.14 3.25-7.16 5-12.49 5z"
-                fill="#ffffff"
-              />
-              {/* Pay text */}
-              <path
-                d="M48.24 37.07V10.93h8.34c3.21 0 5.75.96 7.63 2.87 1.87 1.91 2.81 4.39 2.81 7.44 0 3.09-.94 5.6-2.81 7.51-1.88 1.91-4.42 2.87-7.63 2.87h-3.69v5.45H48.24zm4.65-9.67h3.79c1.92 0 3.44-.55 4.54-1.66 1.1-1.11 1.66-2.58 1.66-4.4 0-1.86-.55-3.32-1.66-4.38-1.1-1.06-2.62-1.59-4.54-1.59h-3.79v12.03zM78.69 37.07l-1.44-3.69h-9.97l-1.44 3.69h-4.91l8.84-26.14h5.03l8.84 26.14h-4.95zm-6.42-16.7l-3.57 9.17h7.14l-3.57-9.17zM97.16 37.07v-10.7l-7.79-15.44h5.18l5.04 10.51 5.04-10.51h5.13l-7.74 15.39v10.75h-4.86z"
-                fill="#ffffff"
-              />
+              {/* Google "G" multicolor mark */}
+              <path d="M29.76 14.28c0-.72-.06-1.41-.18-2.08H16.12v3.93h7.64c-.33 1.76-1.33 3.25-2.84 4.25v3.53h4.6c2.69-2.48 4.24-6.12 4.24-9.63z" fill="#4285F4"/>
+              <path d="M16.12 24.5c3.84 0 7.07-1.27 9.43-3.45l-4.6-3.53c-1.28.86-2.92 1.37-4.83 1.37-3.71 0-6.86-2.51-7.98-5.88H3.4v3.65c2.35 4.65 7.15 7.84 12.72 7.84z" fill="#34A853"/>
+              <path d="M8.14 13.01a8.22 8.22 0 010-5.24V4.12H3.4a13.83 13.83 0 000 12.54l4.74-3.65z" fill="#FBBC04"/>
+              <path d="M16.12 3.89c2.09 0 3.97.72 5.45 2.13l4.08-4.08C23.18.76 19.96-.5 16.12-.5 10.55-.5 5.75 2.69 3.4 7.34l4.74 3.65c1.12-3.37 4.27-5.88 7.98-5.88v-1.22z" fill="#EA4335"/>
+              {/* "Pay" text */}
+              <path d="M40.15 14.12V7.64h3.43c.91 0 1.68.3 2.29.89.63.6.94 1.33.94 2.2 0 .86-.31 1.59-.94 2.18-.61.59-1.38.88-2.29.88h-2.01v.33h-1.42zm1.42-2.75h1.96c.51 0 .93-.16 1.24-.48.32-.32.47-.72.47-1.18 0-.47-.16-.86-.47-1.17-.31-.32-.73-.48-1.24-.48h-1.96v3.31z" fill="white"/>
+              <path d="M51.69 14.12l-.62-1.6h-4.33l-.62 1.6H44.7l3.84-6.48h.97l3.62 6.48h-1.44zm-2.79-5.04l-1.55 2.36h3.1l-1.55-2.36z" fill="white"/>
+              <path d="M56.71 14.34c-.78 0-1.39-.28-1.85-.85l.49-.39c.34.43.8.64 1.38.64.35 0 .63-.08.86-.25.22-.17.34-.39.34-.66 0-.27-.1-.47-.3-.61-.2-.14-.52-.27-.96-.4-.54-.15-.94-.35-1.2-.58-.27-.23-.4-.55-.4-.96 0-.45.17-.82.51-1.11.34-.29.76-.43 1.26-.43.74 0 1.3.26 1.68.77l-.48.38c-.28-.38-.68-.57-1.2-.57-.3 0-.55.08-.76.23-.2.15-.31.35-.31.59 0 .22.09.4.28.53.18.13.48.26.89.39.55.17.97.37 1.24.62.28.24.42.57.42.99 0 .48-.18.87-.54 1.17-.36.3-.81.45-1.35.45z" fill="white"/>
             </svg>
-            <span className="text-xs text-neutral-400 font-mono pl-1">
-              • ₹{Number(amount).toLocaleString('en-IN')}
+            <span className="text-white/60 text-sm font-medium ml-1">
+              ₹{Number(amount).toLocaleString('en-IN')}
             </span>
           </div>
         )}
       </button>
 
-      {/* Trust & compliance badge */}
-      <div className="flex items-center justify-center gap-2 mt-2 text-[11px] text-gray-500">
-        <span className="flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-          UPI 2.0 Direct (MCC {DEFAULT_GPAY_CONFIG.mcc})
-        </span>
-        <span>•</span>
-        <span>{DEFAULT_GPAY_CONFIG.merchantVpa}</span>
+      {/* Compact trust indicator */}
+      <div className="flex items-center gap-1.5 text-[10px] text-gray-400">
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+        <span>UPI Direct • {DEFAULT_GPAY_CONFIG.merchantVpa}</span>
       </div>
     </div>
   );

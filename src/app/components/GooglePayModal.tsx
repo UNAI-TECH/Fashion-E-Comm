@@ -64,12 +64,12 @@ export function GooglePayModal({
 
   const qrUrl = getUpiQrCodeUrl(upiUri, 320);
 
-  // Log details including MCC 5691 when modal opens
+  // Log merchant details when modal opens
   useEffect(() => {
     if (isOpen) {
       console.log('⚡ [Google Pay India] Modal opened with verified merchant config:', {
-        mcc: DEFAULT_GPAY_CONFIG.mcc, // '5691'
-        mccCategory: "Women's Ready-to-Wear Apparel",
+        mcc: DEFAULT_GPAY_CONFIG.mcc,
+        mccCategory: "Uniforms & Commercial Clothing",
         merchantVpa,
         merchantName,
         orderId,
@@ -257,7 +257,7 @@ export function GooglePayModal({
               <div className="truncate mr-2">
                 <div className="flex items-center gap-2 mb-0.5">
                   <span className="text-gray-400 block text-[10px] uppercase font-bold tracking-wider">Merchant UPI ID (VPA)</span>
-                  <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded font-mono">MCC 5691</span>
+                  <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded font-mono">MCC {DEFAULT_GPAY_CONFIG.mcc}</span>
                 </div>
                 <span className="font-mono font-bold text-gray-800 text-xs sm:text-sm">{merchantVpa}</span>
               </div>
