@@ -154,20 +154,14 @@ export function GooglePayModal({
   };
 
   const handleQuickConfirm = async () => {
-    setIsVerifying(true);
-    try {
-      const generatedTxn = `GPAY-${txnReference.slice(-10)}`;
-      await onPaymentSuccess(generatedTxn, 'gpay.user@upi', {
-        transactionReference: txnReference,
-        method: 'Google Pay (App Authorized)',
-        confirmedByCustomer: true,
-        verifiedAt: new Date().toISOString(),
-      });
-    } catch (err: any) {
-      toast.error(err.message || 'Verification error');
-    } finally {
-      setIsVerifying(false);
+    // Security: Do NOT create a fake txn ID. Require UTR for any claim.
+    if (!utrInput.trim() || utrInput.trim().length < 6) {
+      toast.error('Please enter your 12-digit UPI Reference / UTR Number from Google Pay to verify your payment.');
+      setActiveStep(2); // Switch to UTR entry step
+      return;
     }
+    // If UTR is already entered, use the UTR verification flow
+    await handleVerifyManualUtr();
   };
 
   return (
@@ -317,22 +311,26 @@ export function GooglePayModal({
 
             <button
               type="button"
-              disabled={isVerifying}
+              disabled={isVerifying || !utrInput.trim()}
               onClick={handleQuickConfirm}
               className="w-full py-3.5 bg-[#698156] hover:bg-[#546944] text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-md transition-all disabled:opacity-50 cursor-pointer"
             >
               {isVerifying ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Authorizing Payment...</span>
+                  <span>Recording Payment Details...</span>
                 </>
               ) : (
                 <>
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>I Have Paid in Google Pay • Confirm Order</span>
+                  <span>{utrInput.trim() ? 'Submit Payment Details • Pending Verification' : 'Enter UTR Above to Submit'}</span>
                 </>
               )}
             </button>
+
+            <div className="text-[10px] text-gray-400 text-center leading-relaxed mt-1">
+              Orders are verified through bank reconciliation. Payment status will be updated once your bank confirms the transaction.
+            </div>
           </div>
         </motion.div>
       </div>

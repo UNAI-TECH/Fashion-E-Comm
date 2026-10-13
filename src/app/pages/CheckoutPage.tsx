@@ -22,8 +22,6 @@ import {
 } from '../../lib/googlePayIndia';
 import { GooglePayOfficialButton } from '../components/GooglePayOfficialButton';
 import { GooglePayModal } from '../components/GooglePayModal';
-import { GooglePayWebButton } from '../components/GooglePayWebButton';
-import type { GooglePayWebResult } from '../../lib/googlePayWebApi';
 
 interface SavedAddress {
   id: string;
@@ -1046,13 +1044,15 @@ export function CheckoutPage() {
                     )}
 
                     {paymentMethod === 'Card' && (
-                      <div className="bg-[#F8FBF7] border border-[#698156]/20 rounded-2xl p-4 space-y-3">
-                        <div className="flex items-center gap-2 text-xs text-gray-600">
-                          <Shield className="w-3.5 h-3.5 text-green-500" />
-                          <span className="font-semibold">Google Pay Card Payments (Visa, Mastercard)</span>
-                        </div>
-                        <p className="text-[11px] text-gray-500 leading-relaxed">
-                          Pay using your Google-saved cards. Requires a configured payment gateway for production processing.
+                      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-800 space-y-2">
+                        <p className="font-bold flex items-center gap-1.5">
+                          <CreditCard className="w-3.5 h-3.5" /> Card Payments — Gateway Required
+                        </p>
+                        <p className="leading-relaxed">
+                          Google Pay card payments require a PCI DSS certified payment gateway (per <a href="https://developers.google.com/pay/api/web/reference/request-objects#TokenizationSpecification" target="_blank" rel="noopener noreferrer" className="underline font-semibold">Google's official documentation</a>). This integration is not yet configured.
+                        </p>
+                        <p className="leading-relaxed">
+                          Please use <strong>Google Pay (UPI)</strong> for instant payment or <strong>Cash on Delivery</strong>.
                         </p>
                       </div>
                     )}
@@ -1077,67 +1077,18 @@ export function CheckoutPage() {
                               onClick={handlePlaceOrder}
                             />
                           </div>
-                        ) : paymentMethod === 'Card' ? (
-                          <div className="flex-1 w-full min-h-[52px]">
-                            <GooglePayWebButton
-                              amount={totalAmount}
-                              orderId={pendingGpayOrderId || ('ord_' + Math.random().toString(36).substring(2, 10))}
-                              onPaymentSuccess={async (result: GooglePayWebResult) => {
-                                // Card payment token received — create order with Pending Verification
-                                const oid = pendingGpayOrderId || ('ord_' + Math.random().toString(36).substring(2, 10));
-                                const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-                                const randomSuffix = Math.floor(10000 + Math.random() * 90000);
-                                const tn = `AANYA-${datePart}-${randomSuffix}`;
-                                setPendingGpayOrderId(oid);
-
-                                try {
-                                  const { userId } = await createPendingOrderInDatabase(oid, tn, 'Card', 'Pending Verification');
-
-                                  // Record payment token in payments table
-                                  await supabase.from('payments').insert({
-                                    order_id: oid,
-                                    user_id: userId,
-                                    amount: totalAmount,
-                                    currency: 'INR',
-                                    payment_method: 'Google Pay (Card)',
-                                    gateway_txn_id: `GPAY-CARD-${Date.now()}`,
-                                    status: 'Pending Verification',
-                                    metadata: {
-                                      cardNetwork: result.cardNetwork,
-                                      cardDetails: result.cardDetails,
-                                      payerEmail: result.payerEmail,
-                                      note: 'Card payment token received via Google Pay Web API. Awaiting gateway processing.',
-                                    },
-                                  });
-
-                                  if (!buyNowProductId) clearCart();
-                                  setOrderPlaced({
-                                    orderId: oid,
-                                    trackingNumber: tn,
-                                    method: `Google Pay (${result.cardNetwork || 'Card'})`,
-                                    status: 'Pending Verification',
-                                    txnId: `GPAY-CARD-${Date.now()}`,
-                                  });
-                                  toast.success('Order placed! Card payment is pending gateway processing.');
-                                  window.dispatchEvent(new Event('orders_updated'));
-                                } catch (err: any) {
-                                  toast.error('Failed to create order: ' + (err.message || 'Unknown error'));
-                                }
-                              }}
-                              onPaymentError={(error) => toast.error(error)}
-                              onPaymentCancel={() => toast.info('Google Pay card payment was cancelled')}
-                            />
-                          </div>
                         ) : (
                           <motion.button
                             whileHover={{ scale: 1.01 }}
                             whileTap={{ scale: 0.99 }}
-                            disabled={isProcessing}
+                            disabled={isProcessing || paymentMethod === 'Card'}
                             onClick={handlePlaceOrder}
                             className="flex-1 py-3.5 bg-[#698156] hover:bg-[#546944] text-white rounded-xl font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-colors shadow-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {isProcessing ? (
                               <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Processing...</>
+                            ) : paymentMethod === 'Card' ? (
+                              <>Card Payment Not Available — Select UPI or COD</>
                             ) : (
                               <>Place Order • ₹{totalAmount.toLocaleString('en-IN')}</>
                             )}
