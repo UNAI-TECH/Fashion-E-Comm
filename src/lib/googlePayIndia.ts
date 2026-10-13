@@ -442,11 +442,55 @@ export async function verifyGooglePayTransaction(payload: {
 }
 
 /**
- * Checks the current payment verification status of an order
+ * Builds a UPI deep-link URI for Google Pay India / any UPI app.
+ * Follows NPCI UPI link specification:
+ * upi://pay?pa=<VPA>&pn=<Name>&tr=<TxnRef>&tn=<Note>&am=<Amount>&cu=INR&mc=<MCC>
+ */
+export function buildGooglePayUpiUri(params: {
+  amount: number;
+  orderId: string;
+  customerName?: string;
+  customerPhone?: string;
+  merchantVpa?: string;
+  merchantName?: string;
+}): string {
+  const vpa = params.merchantVpa || DEFAULT_GPAY_CONFIG.merchantVpa;
+  const name = params.merchantName || DEFAULT_GPAY_CONFIG.merchantName;
+  const txnRef = generateTransactionReference(params.orderId);
+  const note = `Aanya Fashions Order ${params.orderId}`;
+  const amount = Number(params.amount).toFixed(2);
+
+  const upiParams = new URLSearchParams({
+    pa: vpa,
+    pn: name,
+    tr: txnRef,
+    tn: note,
+    am: amount,
+    cu: 'INR',
+    mc: DEFAULT_GPAY_CONFIG.mcc,
+  });
+
+  return `upi://pay?${upiParams.toString()}`;
+}
+
+/**
+ * Generates a QR code image URL for a given UPI URI.
+ * Uses the public Google Charts API for QR code generation.
+ */
+export function getUpiQrCodeUrl(upiUri: string, size: number = 300): string {
+  const encodedUri = encodeURIComponent(upiUri);
+  return `https://chart.googleapis.com/chart?cht=qr&chs=${size}x${size}&chl=${encodedUri}&choe=UTF-8`;
+}
+
+/**
+ * Checks the current payment verification status of an order.
+ * Returns `completed` (true when status is Completed/Paid) for backward compatibility
+ * with GooglePayModal polling, plus `isPaid` and `status` for direct usage.
  */
 export async function checkPaymentStatus(orderId: string): Promise<{
   status: string;
   isPaid: boolean;
+  completed: boolean;
   payment?: any;
 }> {
   try {
@@ -459,13 +503,15 @@ export async function checkPaymentStatus(orderId: string): Promise<{
       .maybeSingle();
 
     if (!error && data) {
+      const isPaid = data.status === 'Completed' || data.status === 'Paid';
       return {
         status: data.status,
-        isPaid: data.status === 'Completed' || data.status === 'Paid',
+        isPaid,
+        completed: isPaid,
         payment: data,
       };
     }
   } catch {}
 
-  return { status: 'Pending', isPaid: false };
+  return { status: 'Pending', isPaid: false, completed: false };
 }
