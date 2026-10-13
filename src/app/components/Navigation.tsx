@@ -487,173 +487,294 @@ export function Navigation() {
       {/* Spacer so content sits below the fixed desktop header (~64px) */}
       <div className="hidden lg:block h-[64px]" aria-hidden="true" />
 
-      {/* 4. Mobile Unified Navigation Pill (Mobile only) */}
-      <motion.nav
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ duration: 0.6, ease: 'easeOut' }}
-        className={`lg:hidden fixed z-[40] transition-all duration-500 top-3.5 left-3 right-3 bg-white border border-gray-200/80 shadow-[0_6px_20px_rgba(0,0,0,0.08)] overflow-hidden ${
-          isMobileMenuOpen ? 'rounded-[2rem]' : 'rounded-full'
-        }`}
-      >
-        <div className="w-full pl-0.5 pr-2 py-0 bg-white flex items-center justify-between h-14 sm:h-16 rounded-full overflow-hidden">
-          
-          {/* Left side: Logo filling left side curve */}
-          <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center h-10 sm:h-12 flex-shrink-0 overflow-visible pl-1">
-            <motion.div
-              whileHover={{ scale: 1.04 }}
-              className="flex items-center h-full py-0.5"
+      {/* ══════════ MOBILE & TABLET HEADER (Edge-to-edge, Professional full-width bar) ══════════ */}
+      <header className="lg:hidden fixed top-0 left-0 right-0 w-full z-40 bg-white border-b border-gray-200/80 shadow-xs">
+        {/* Row 1: Menu Button | Logo | Search | Wishlist | Cart */}
+        <div className="flex items-center justify-between h-14 sm:h-16 px-3 sm:px-5 gap-2">
+          {/* Left: Hamburger menu + Brand Logo */}
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="w-10 h-10 flex items-center justify-center rounded-xl text-gray-700 hover:text-[#698156] hover:bg-gray-100 transition-colors cursor-pointer active:scale-95"
+              aria-label="Open Navigation Menu"
             >
+              <Menu className="w-5 h-5 stroke-[2.2]" />
+            </button>
+
+            <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center h-9 sm:h-11">
               <img
                 src="/logo.png"
                 alt="Aanya Fashions Logo"
                 className="h-full w-auto object-contain object-left"
               />
-            </motion.div>
-          </Link>
+            </Link>
+          </div>
 
-            {/* Center: Spacer for clean mobile layout */}
-            <div className="flex-1"></div>
+          {/* Right: Search | Wishlist | Cart */}
+          <div className="flex items-center gap-1 sm:gap-2">
+            <button
+              onClick={() => setIsSearchOpen(true)}
+              className="w-9 h-9 flex items-center justify-center text-gray-600 hover:text-[#698156] rounded-xl hover:bg-gray-100 transition-colors cursor-pointer"
+              aria-label="Search Sarees"
+            >
+              <Search className="w-5 h-5" />
+            </button>
 
-            {/* Right side: Cart CTA + Menu CTA Button */}
-            <div className="flex items-center gap-2 flex-shrink-0 mr-1">
-              <Link
-                to="/cart"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="w-9 h-9 flex items-center justify-center bg-[#F4F6F2] border border-[#DCE4D7]/80 text-[#698156] rounded-full shadow-sm hover:bg-[#DCE4D7]/30 transition-all relative"
-                aria-label="Shopping Cart"
-              >
-                <ShoppingBag className="w-[18px] h-[18px]" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-[#698156] text-white text-[9px] font-black rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center shadow-xs">
-                    {cartCount}
-                  </span>
-                )}
-              </Link>
+            <Link
+              to="/profile?tab=wishlist"
+              className="w-9 h-9 flex items-center justify-center text-gray-600 hover:text-[#698156] rounded-xl hover:bg-gray-100 transition-colors relative"
+              aria-label="Wishlist"
+            >
+              <Heart className="w-5 h-5" />
+              {wishlistCount > 0 && (
+                <span className="absolute top-1 right-1 bg-rose-500 text-white text-[9px] font-black rounded-full h-3.5 min-w-[14px] px-1 flex items-center justify-center shadow-xs">
+                  {wishlistCount}
+                </span>
+              )}
+            </Link>
 
-              <motion.button
-                whileHover={{ scale: 1.08 }}
-                whileTap={{ scale: 0.92 }}
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="w-9 h-9 flex items-center justify-center bg-[#F4F6F2] border border-[#DCE4D7]/80 text-[#698156] rounded-full shadow-sm hover:bg-[#DCE4D7]/30 transition-all"
-                aria-label="Toggle Menu Features"
-              >
-                {isMobileMenuOpen ? (
-                  <X className="w-[18px] h-[18px] text-[#698156]" />
-                ) : (
-                  <Menu className="w-[18px] h-[18px] text-[#698156]" />
-                )}
-              </motion.button>
-            </div>
+            <Link
+              to="/cart"
+              className="w-9 h-9 flex items-center justify-center text-gray-600 hover:text-[#698156] rounded-xl hover:bg-gray-100 transition-colors relative"
+              aria-label="Shopping Cart"
+            >
+              <ShoppingBag className="w-5 h-5" />
+              {cartCount > 0 && (
+                <span className="absolute top-1 right-1 bg-[#698156] text-white text-[9px] font-black rounded-full h-3.5 min-w-[14px] px-1 flex items-center justify-center shadow-xs">
+                  {cartCount}
+                </span>
+              )}
+            </Link>
+          </div>
         </div>
 
-        {/* Mobile Menu */}
-        <AnimatePresence>
-          {isMobileMenuOpen && (
+        {/* Row 2: Search Bar Input Box on Mobile (Myntra & Meesho style) */}
+        <div className="px-3 pb-2.5 pt-0">
+          <div
+            onClick={() => setIsSearchOpen(true)}
+            className="flex items-center gap-2.5 px-3.5 py-2 bg-[#F6F7F5] border border-gray-200/90 rounded-xl text-xs text-gray-400 cursor-pointer shadow-2xs hover:border-[#698156]/40 transition-colors"
+          >
+            <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            <span className="flex-1 truncate text-gray-500">Search saree, silk, banarasi, pure zari...</span>
+          </div>
+        </div>
+      </header>
+
+      {/* Spacer below mobile/tablet fixed header */}
+      <div className="lg:hidden h-[98px]" aria-hidden="true" />
+
+      {/* ══════════ PROPER MOBILE SLIDE-OVER NAVIGATION DRAWER ══════════ */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <div className="fixed inset-0 z-50 lg:hidden flex">
+            {/* Backdrop */}
             <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="overflow-hidden bg-white border-t border-gray-100 rounded-b-[2rem] shadow-xl"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-xs"
+            />
+
+            {/* Slide-out Drawer Panel */}
+            <motion.aside
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+              className="relative w-[84%] max-w-sm bg-white h-full shadow-2xl flex flex-col z-10 overflow-hidden"
             >
-              <div className="px-6 py-6 space-y-4">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Quick Actions</p>
-                <div className="grid grid-cols-5 gap-2 sm:gap-3 justify-items-center">
-                  {/* Search Action */}
-                  <div className="flex flex-col items-center gap-1.5 w-full">
-                    <motion.button
-                      whileHover={{ scale: 1.08 }}
-                      whileTap={{ scale: 0.92 }}
+              {/* Drawer Top: User Profile / Welcome Header */}
+              <div className="p-5 bg-gradient-to-br from-[#1C2417] via-[#2A3723] to-[#1C2417] text-white flex items-center justify-between">
+                <div
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    if (isAuthenticated) {
+                      navigate('/profile');
+                    } else {
+                      setIsAuthModalOpen(true);
+                    }
+                  }}
+                  className="flex items-center gap-3 cursor-pointer group"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-white text-base font-bold overflow-hidden shadow-xs">
+                    {isAuthenticated && profile?.full_name ? (
+                      profile.full_name.charAt(0).toUpperCase()
+                    ) : profileImage ? (
+                      <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="w-6 h-6 text-white/90" />
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white group-hover:text-amber-300 transition-colors">
+                      {isAuthenticated ? (profile?.full_name || 'My Account') : 'Welcome to Aanya'}
+                    </h3>
+                    <p className="text-[11px] text-white/70">
+                      {isAuthenticated ? 'View & Edit Profile →' : 'Sign In / Create Account →'}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
+                  aria-label="Close menu"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Drawer Scrollable Links */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                {/* Store Sections */}
+                <div>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider px-3 mb-2">
+                    Shop Collection
+                  </p>
+                  <div className="space-y-1">
+                    <Link
+                      to="/category/sarees"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center justify-between px-3.5 py-3 rounded-2xl bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-emerald-500/10 hover:bg-amber-50 text-gray-900 font-bold text-sm transition-all border border-amber-200/50"
+                    >
+                      <span className="flex items-center gap-3">
+                        <span className="text-lg">🥻</span>
+                        <span>Sale Sarees Collection</span>
+                      </span>
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-400 text-gray-900">
+                        HOT SALE
+                      </span>
+                    </Link>
+
+                    <button
                       onClick={() => {
                         setIsMobileMenuOpen(false);
                         setIsSearchOpen(true);
                       }}
-                      className="w-11 h-11 bg-amber-100/90 border border-amber-300 text-amber-600 rounded-2xl flex items-center justify-center shadow-sm hover:bg-amber-200/90 transition-all"
-                      aria-label="Search"
+                      className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-gray-700 hover:bg-gray-50 text-xs font-semibold transition-colors cursor-pointer"
                     >
-                      <Search className="w-5 h-5 stroke-[2.5]" />
-                    </motion.button>
-                    <span className="text-[9px] font-black text-amber-700 uppercase tracking-wider">Search</span>
+                      <span className="flex items-center gap-3">
+                        <Search className="w-4 h-4 text-gray-400" />
+                        <span>Search Sarees by Fabric / Color</span>
+                      </span>
+                      <ArrowRight className="w-3.5 h-3.5 text-gray-300" />
+                    </button>
                   </div>
+                </div>
 
-                  {/* Cart Action */}
-                  <div className="flex flex-col items-center gap-1.5 w-full">
+                {/* Customer Account & Orders */}
+                <div>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider px-3 mb-2">
+                    My Account & Activity
+                  </p>
+                  <div className="space-y-1">
                     <Link
                       to="/cart"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className="w-11 h-11 bg-teal-100/90 border border-teal-300 text-teal-700 rounded-2xl flex items-center justify-center shadow-sm hover:bg-teal-200/90 transition-all relative"
-                      aria-label="Cart"
+                      className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-gray-700 hover:bg-gray-50 text-xs font-semibold transition-colors"
                     >
-                      <ShoppingBag className="w-5 h-5 stroke-[2.5]" />
+                      <span className="flex items-center gap-3">
+                        <ShoppingBag className="w-4 h-4 text-[#698156]" />
+                        <span>My Shopping Cart</span>
+                      </span>
                       {cartCount > 0 && (
-                        <span className="absolute -top-1 -right-1 bg-[#698156] text-white text-[9px] font-black rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center shadow-xs">
-                          {cartCount}
+                        <span className="bg-[#698156] text-white text-[10px] font-black px-2 py-0.5 rounded-full">
+                          {cartCount} items
                         </span>
                       )}
                     </Link>
-                    <span className="text-[9px] font-black text-teal-800 uppercase tracking-wider">Cart</span>
-                  </div>
 
-                  {/* My Orders Action */}
-                  <div className="flex flex-col items-center gap-1.5 w-full">
                     <Link
-                      to="/profile?tab=orders"
+                      to="/orders"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className="w-11 h-11 bg-emerald-100/90 border border-emerald-300 text-emerald-600 rounded-2xl flex items-center justify-center shadow-sm hover:bg-emerald-200/90 transition-all relative"
-                      aria-label="My Orders"
+                      className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-gray-700 hover:bg-gray-50 text-xs font-semibold transition-colors"
                     >
-                      <Package className="w-5 h-5 stroke-[2.5]" />
+                      <span className="flex items-center gap-3">
+                        <Package className="w-4 h-4 text-emerald-600" />
+                        <span>My Orders</span>
+                      </span>
+                      <ArrowRight className="w-3.5 h-3.5 text-gray-300" />
                     </Link>
-                    <span className="text-[9px] font-black text-emerald-700 uppercase tracking-wider">Orders</span>
-                  </div>
 
-                  {/* Account Action */}
-                  <div className="flex flex-col items-center gap-1.5 w-full">
-                    <motion.button
-                      whileHover={{ scale: 1.08 }}
-                      whileTap={{ scale: 0.92 }}
-                      onClick={() => {
-                        setIsMobileMenuOpen(false);
-                        if (!isAuthenticated) {
-                          setIsAuthModalOpen(true);
-                        } else {
-                          navigate('/profile');
-                        }
-                      }}
-                      className="w-11 h-11 bg-indigo-100/90 border border-indigo-300 text-indigo-600 rounded-2xl flex items-center justify-center shadow-sm hover:bg-indigo-200/90 transition-all cursor-pointer"
-                      aria-label="Account"
+                    <Link
+                      to="/profile?tab=track"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-gray-700 hover:bg-gray-50 text-xs font-semibold transition-colors"
                     >
-                      <User className="w-5 h-5 stroke-[2.5]" />
-                    </motion.button>
-                    <span className="text-[9px] font-black text-indigo-700 uppercase tracking-wider">
-                      {isAuthenticated ? 'Profile' : 'Sign In'}
-                    </span>
-                  </div>
+                      <span className="flex items-center gap-3">
+                        <Truck className="w-4 h-4 text-amber-600" />
+                        <span>Track Order Shipment</span>
+                      </span>
+                      <ArrowRight className="w-3.5 h-3.5 text-gray-300" />
+                    </Link>
 
-                  {/* Wishlist Action */}
-                  <div className="flex flex-col items-center gap-1.5 w-full">
                     <Link
                       to="/profile?tab=wishlist"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className="w-11 h-11 bg-rose-100/90 border border-rose-300 text-rose-600 rounded-2xl flex items-center justify-center shadow-sm hover:bg-rose-200/90 transition-all cursor-pointer relative"
-                      aria-label="Wishlist"
+                      className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-gray-700 hover:bg-gray-50 text-xs font-semibold transition-colors"
                     >
-                      <Heart className="w-5 h-5 stroke-[2.5]" />
+                      <span className="flex items-center gap-3">
+                        <Heart className="w-4 h-4 text-rose-500" />
+                        <span>My Saved Wishlist</span>
+                      </span>
                       {wishlistCount > 0 && (
-                        <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-black rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center shadow-xs">
+                        <span className="bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full">
                           {wishlistCount}
                         </span>
                       )}
                     </Link>
-                    <span className="text-[9px] font-black text-rose-700 uppercase tracking-wider">Wishlist</span>
+
+                    <Link
+                      to="/profile?tab=addresses"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-gray-700 hover:bg-gray-50 text-xs font-semibold transition-colors"
+                    >
+                      <span className="flex items-center gap-3">
+                        <MapPin className="w-4 h-4 text-indigo-500" />
+                        <span>Delivery Addresses</span>
+                      </span>
+                      <ArrowRight className="w-3.5 h-3.5 text-gray-300" />
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Customer Service / Contact */}
+                <div className="pt-2 border-t border-gray-100">
+                  <div className="bg-amber-50/60 rounded-2xl p-3 border border-amber-200/50 space-y-1.5 text-xs">
+                    <p className="font-bold text-gray-900 flex items-center gap-1.5">
+                      <Phone className="w-3.5 h-3.5 text-amber-700" /> Need Help Ordering?
+                    </p>
+                    <p className="text-[11px] text-gray-600">
+                      Our customer team is available 10 AM – 7 PM to help you choose the right drape.
+                    </p>
                   </div>
                 </div>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.nav>
+
+              {/* Drawer Bottom: Sign Out or Brand Note */}
+              <div className="p-4 border-t border-gray-100 bg-gray-50/50">
+                {isAuthenticated ? (
+                  <button
+                    onClick={async () => {
+                      setIsMobileMenuOpen(false);
+                      await signOut();
+                    }}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 font-bold text-xs transition-colors cursor-pointer"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Sign Out</span>
+                  </button>
+                ) : (
+                  <div className="text-center text-[10px] text-gray-400 font-medium">
+                    Aanya Fashions • Authentic Handcrafted Saree Weaves
+                  </div>
+                )}
+              </div>
+            </motion.aside>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Full-Screen Search Overlay */}
       <AnimatePresence>

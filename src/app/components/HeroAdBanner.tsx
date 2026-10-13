@@ -166,26 +166,6 @@ export function HeroAdBanner() {
 
   return (
     <div className="w-full bg-[#FCFAF8] select-none">
-      {/* ─── Top Festive Promo Offer Strip (Myntra style) ─── */}
-      <div className="w-full bg-gradient-to-r from-[#831843] via-[#9F1239] to-[#831843] text-white py-2 px-3 overflow-hidden shadow-xs">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 text-[11px] sm:text-xs font-semibold tracking-wide">
-          <div className="flex items-center gap-2 mx-auto sm:mx-0">
-            <span className="bg-amber-400 text-gray-900 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse">
-              FESTIVE OFFER
-            </span>
-            <span>FLAT ₹300 OFF ON 1ST ORDER • USE CODE: <strong>FIRST300</strong></span>
-          </div>
-          <div className="hidden md:flex items-center gap-6 text-white/90">
-            <span className="flex items-center gap-1.5">
-              <Truck className="w-3.5 h-3.5 text-amber-300" /> Free Shipping Across India
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Tag className="w-3.5 h-3.5 text-amber-300" /> Authentic Saree Weaves
-            </span>
-          </div>
-        </div>
-      </div>
-
       {/* ─── Main Hero Ad Banner (Meesho & Myntra Style) ─── */}
       {activeBanners.length === 0 ? (
         /* Sleek fallback state when all banners are deleted / none active */
@@ -294,8 +274,8 @@ export function HeroAdBanner() {
         </section>
       )}
 
-      {/* ─── Meesho-Style Trust & Value Proposition Bar ─── */}
-      <div className="w-full bg-white border-b border-gray-100 shadow-xs">
+      {/* ─── Meesho-Style Trust & Value Proposition Bar (Desktop & Tablet only) ─── */}
+      <div className="hidden md:block w-full bg-white border-b border-gray-100 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 sm:py-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:divide-x md:divide-gray-100">
             {/* 1. Free Delivery */}
