@@ -14,7 +14,7 @@ export interface AdBanner {
 
 export const DEFAULT_AD_BANNERS: AdBanner[] = [
   {
-    id: 'banner_mega_saree_sale',
+    id: '7cc4b364-dfe6-484e-ad72-26f02d2abf59',
     title: "Mega Blockbuster Saree Sale — Up to 80% Off",
     subtitle: "Festive Maroon & Gold Pure Silk Sarees",
     badge: "MEGA BLOCKBUSTER SALE",
@@ -24,7 +24,7 @@ export const DEFAULT_AD_BANNERS: AdBanner[] = [
     display_order: 1,
   },
   {
-    id: 'banner_royal_banarasi',
+    id: 'd1f7e0ca-16c7-4c52-b078-dd85213e3dca',
     title: "Flat 50-70% Off Handcrafted Heritage Silk",
     subtitle: "Royal Emerald & Gold Zari Banarasi Weaves",
     badge: "ROYAL WEDDING COLLECTION",
@@ -34,7 +34,7 @@ export const DEFAULT_AD_BANNERS: AdBanner[] = [
     display_order: 2,
   },
   {
-    id: 'banner_organza_boutique',
+    id: '4a5a4295-2cb3-49ba-b7d4-21a6a362723f',
     title: "Festival Boutique Sale — Pure Silk & Organza Sarees",
     subtitle: "Artisanal Drapes & Handwoven Border Collections",
     badge: "LIMITED FESTIVAL OFFER",
@@ -46,18 +46,49 @@ export const DEFAULT_AD_BANNERS: AdBanner[] = [
 ];
 
 const LOCAL_STORAGE_KEY = 'aanya_ad_banners';
+const LOCAL_STORAGE_INITIALIZED = 'aanya_ad_banners_customized';
+
+// Persistent cross-tab BroadcastChannel singleton
+let globalBroadcastChannel: BroadcastChannel | null = null;
+export function getBannersChannel(): BroadcastChannel | null {
+  if (typeof window === 'undefined' || typeof BroadcastChannel === 'undefined') return null;
+  if (!globalBroadcastChannel) {
+    try {
+      globalBroadcastChannel = new BroadcastChannel('aanya_banners_realtime_bus');
+    } catch (e) {
+      console.warn('[Banners] BroadcastChannel not supported:', e);
+    }
+  }
+  return globalBroadcastChannel;
+}
+
+// Persistent Supabase Realtime channel singleton
+let realtimeChannel: any = null;
+export function getSupabaseBannersChannel() {
+  if (!realtimeChannel) {
+    try {
+      realtimeChannel = supabase.channel('aanya_banners_realtime_broadcast');
+      realtimeChannel.subscribe();
+    } catch (e) {
+      console.warn('[Banners] Realtime channel error:', e);
+    }
+  }
+  return realtimeChannel;
+}
 
 export function getLocalBanners(): AdBanner[] {
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+    const hasCustomized = localStorage.getItem(LOCAL_STORAGE_INITIALIZED) === 'true';
+
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        // Ensure not old cutout models
-        const hasOldCutout = parsed.some((b: any) => 
-          typeof b?.image_url === 'string' && (b.image_url.includes('_cutout.png') || b.image_url.includes('/model_'))
-        );
-        if (!hasOldCutout) {
+      if (Array.isArray(parsed)) {
+        // If user customized (or deleted all banners), respect the stored array
+        if (hasCustomized) {
+          return parsed;
+        }
+        if (parsed.length > 0) {
           return parsed;
         }
       }
@@ -71,27 +102,53 @@ export function getLocalBanners(): AdBanner[] {
 export function setLocalBanners(banners: AdBanner[]) {
   try {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(banners));
+    localStorage.setItem(LOCAL_STORAGE_INITIALIZED, 'true');
+
+    // 1. Dispatch window event for current window
     window.dispatchEvent(new CustomEvent('ad-banners-updated', { detail: banners }));
+
+    // 2. BroadcastChannel for instant cross-tab sync
+    const ch = getBannersChannel();
+    if (ch) {
+      ch.postMessage({ type: 'BANNERS_UPDATED', banners });
+    }
+
+    // 3. Supabase realtime channel broadcast
     try {
-      const bc = new BroadcastChannel('banners_broadcast_channel');
-      bc.postMessage({ type: 'BANNERS_UPDATED', banners });
-      bc.close();
+      const rt = getSupabaseBannersChannel();
+      if (rt) {
+        rt.send({
+          type: 'broadcast',
+          event: 'banners_updated',
+          payload: { banners },
+        });
+      }
     } catch {}
   } catch (e) {
     console.warn('[Banners] Local storage set error:', e);
   }
 }
 
-function isOldCutoutBanner(row: any): boolean {
-  if (!row) return false;
-  const img = row.image_url || row.image || '';
-  return img.includes('_cutout.png') || img.includes('/model_') || img.includes('model_1');
-}
-
 /**
- * Fetch all active banners for storefront
+ * Fetch all active banners for the storefront
  */
 export async function fetchActiveBanners(): Promise<AdBanner[]> {
+  // 1. First try backend API endpoint (bypasses RLS with service role)
+  try {
+    const res = await fetch('/api/banners?active=true', { cache: 'no-store' });
+    if (res.ok) {
+      const json = await res.json();
+      if (json.success && Array.isArray(json.data)) {
+        const list: AdBanner[] = json.data;
+        setLocalBanners(list);
+        return list;
+      }
+    }
+  } catch (apiErr) {
+    // API not responding
+  }
+
+  // 2. Fallback to Supabase direct select (public anon read)
   try {
     const { data, error } = await supabase
       .from('banners')
@@ -99,27 +156,20 @@ export async function fetchActiveBanners(): Promise<AdBanner[]> {
       .eq('status', 'Active')
       .order('display_order', { ascending: true });
 
-    if (!error && data && data.length > 0) {
-      const hasOldCutouts = data.some(isOldCutoutBanner);
-      if (!hasOldCutouts) {
-        const formatted: AdBanner[] = data.map((b: any, index: number) => ({
-          id: b.id,
-          title: b.title || 'Festive Saree Sale',
-          subtitle: b.subtitle || '',
-          badge: b.badge || '',
-          image_url: b.image_url || b.image || '',
-          link_url: b.link_url || b.link || '/category/sarees',
-          status: (b.status as 'Active' | 'Inactive') || 'Active',
-          display_order: typeof b.display_order === 'number' ? b.display_order : index + 1,
-          created_at: b.created_at,
-        }));
-        setLocalBanners(formatted);
-        return formatted;
-      } else {
-        // Migrate old cutouts in database to ad banners
-        await resetBannersToDefault();
-        return DEFAULT_AD_BANNERS;
-      }
+    if (!error && Array.isArray(data)) {
+      const formatted: AdBanner[] = data.map((b: any, index: number) => ({
+        id: b.id,
+        title: b.title || 'Festive Saree Sale',
+        subtitle: b.subtitle || '',
+        badge: b.badge || '',
+        image_url: b.image_url || b.image || '',
+        link_url: b.link_url || b.link || '/category/sarees',
+        status: (b.status as 'Active' | 'Inactive') || 'Active',
+        display_order: typeof b.display_order === 'number' ? b.display_order : index + 1,
+        created_at: b.created_at,
+      }));
+      setLocalBanners(formatted);
+      return formatted;
     }
   } catch (e) {
     console.warn('[Banners] Fetch active error:', e);
@@ -132,38 +182,40 @@ export async function fetchActiveBanners(): Promise<AdBanner[]> {
  * Fetch all banners for Admin dashboard
  */
 export async function fetchAllBannersAdmin(): Promise<AdBanner[]> {
+  // 1. Try backend API endpoint
+  try {
+    const res = await fetch('/api/banners', { cache: 'no-store' });
+    if (res.ok) {
+      const json = await res.json();
+      if (json.success && Array.isArray(json.data)) {
+        const list: AdBanner[] = json.data;
+        setLocalBanners(list);
+        return list;
+      }
+    }
+  } catch (apiErr) {}
+
+  // 2. Fallback to Supabase direct select
   try {
     const { data, error } = await supabase
       .from('banners')
       .select('*')
       .order('display_order', { ascending: true });
 
-    if (!error && data && data.length > 0) {
-      const hasOldCutouts = data.some(isOldCutoutBanner);
-      if (!hasOldCutouts) {
-        const formatted: AdBanner[] = data.map((b: any, index: number) => ({
-          id: b.id,
-          title: b.title || 'Untitled Banner',
-          subtitle: b.subtitle || '',
-          badge: b.badge || '',
-          image_url: b.image_url || b.image || '',
-          link_url: b.link_url || b.link || '/category/sarees',
-          status: (b.status as 'Active' | 'Inactive') || 'Active',
-          display_order: typeof b.display_order === 'number' ? b.display_order : index + 1,
-          created_at: b.created_at,
-        }));
-        setLocalBanners(formatted);
-        return formatted;
-      } else {
-        // Upgrade db to modern ad banners
-        await resetBannersToDefault();
-        return DEFAULT_AD_BANNERS;
-      }
-    }
-
-    if (!error && (!data || data.length === 0)) {
-      await resetBannersToDefault();
-      return DEFAULT_AD_BANNERS;
+    if (!error && Array.isArray(data)) {
+      const formatted: AdBanner[] = data.map((b: any, index: number) => ({
+        id: b.id,
+        title: b.title || 'Untitled Banner',
+        subtitle: b.subtitle || '',
+        badge: b.badge || '',
+        image_url: b.image_url || b.image || '',
+        link_url: b.link_url || b.link || '/category/sarees',
+        status: (b.status as 'Active' | 'Inactive') || 'Active',
+        display_order: typeof b.display_order === 'number' ? b.display_order : index + 1,
+        created_at: b.created_at,
+      }));
+      setLocalBanners(formatted);
+      return formatted;
     }
   } catch (e) {
     console.warn('[Banners Admin] Fetch error:', e);
@@ -177,9 +229,9 @@ export async function fetchAllBannersAdmin(): Promise<AdBanner[]> {
  */
 export async function saveBanner(banner: Partial<AdBanner>): Promise<AdBanner> {
   const current = getLocalBanners();
-  const isUuid = !!(banner.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(banner.id));
   const newOrder = banner.display_order ?? (current.length + 1);
 
+  // Optimistic update locally
   let updated: AdBanner;
   const existingIdx = current.findIndex(b => b.id === banner.id);
 
@@ -211,7 +263,28 @@ export async function saveBanner(banner: Partial<AdBanner>): Promise<AdBanner> {
 
   setLocalBanners(current);
 
-  // Persist to Supabase
+  // 1. Persist via backend API (bypasses RLS with service role)
+  try {
+    const res = await fetch('/api/banners', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updated),
+    });
+    if (res.ok) {
+      const json = await res.json();
+      if (json.success && json.data?.id) {
+        updated.id = json.data.id;
+        if (json.data.image_url) updated.image_url = json.data.image_url;
+        const freshList = current.map(b => b === updated ? { ...b, id: json.data.id, image_url: json.data.image_url || b.image_url } : b);
+        setLocalBanners(freshList);
+        return updated;
+      }
+    }
+  } catch (apiErr) {
+    console.warn('[Banners] API save failed, attempting direct Supabase:', apiErr);
+  }
+
+  // 2. Direct Supabase save fallback
   try {
     const payload: any = {
       title: updated.title,
@@ -220,8 +293,8 @@ export async function saveBanner(banner: Partial<AdBanner>): Promise<AdBanner> {
       status: updated.status,
       display_order: updated.display_order,
     };
-
-    if (isUuid && banner.id) {
+    const isUuid = !!(banner.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(banner.id));
+    if (isUuid) {
       await supabase.from('banners').update(payload).eq('id', banner.id);
     } else {
       const { data: inserted } = await supabase.from('banners').insert(payload).select().single();
@@ -232,83 +305,136 @@ export async function saveBanner(banner: Partial<AdBanner>): Promise<AdBanner> {
       }
     }
   } catch (err) {
-    console.warn('[Banners] Supabase persist error:', err);
+    console.warn('[Banners] Direct Supabase error:', err);
   }
 
   return updated;
 }
 
 /**
- * Delete a banner
+ * Delete a banner permanently (local and backend)
  */
-export async function deleteBanner(id: string): Promise<boolean> {
-  const current = getLocalBanners().filter(b => b.id !== id);
+export async function deleteBanner(id: string, extra?: { image_url?: string; title?: string }): Promise<boolean> {
+  // 1. Instant local removal and broadcast to storefront tab
+  const current = getLocalBanners().filter(b => b.id !== id && (!extra?.image_url || b.image_url !== extra.image_url));
   setLocalBanners(current);
 
+  // 2. Delete permanently from backend / Supabase
   try {
-    await supabase.from('banners').delete().eq('id', id);
-  } catch (e) {
-    console.warn('[Banners] Delete Supabase error:', e);
+    const params = new URLSearchParams({ id });
+    if (extra?.image_url) params.set('image_url', extra.image_url);
+    if (extra?.title) params.set('title', extra.title);
+
+    const res = await fetch(`/api/banners?${params.toString()}`, {
+      method: 'DELETE',
+    });
+    if (res.ok) {
+      const json = await res.json();
+      if (json.success) {
+        return true;
+      }
+    }
+  } catch (apiErr) {
+    console.warn('[Banners] API delete failed, attempting direct:', apiErr);
   }
+
+  // 3. Direct Supabase delete fallback (if valid UUID)
+  const isUuid = !!(id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id));
+  if (isUuid) {
+    try {
+      await supabase.from('banners').delete().eq('id', id);
+    } catch (e) {
+      console.warn('[Banners] Supabase delete error:', e);
+    }
+  } else if (extra?.image_url) {
+    try {
+      await supabase.from('banners').delete().eq('image_url', extra.image_url);
+    } catch (e) {}
+  }
+
   return true;
 }
 
 /**
- * Reset / Seed default ad banners into Supabase
+ * Reset / Seed default ad banners
  */
 export async function resetBannersToDefault(): Promise<AdBanner[]> {
   setLocalBanners(DEFAULT_AD_BANNERS);
 
   try {
-    // Delete existing rows
-    await supabase.from('banners').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    
-    // Insert new defaults
-    const rows = DEFAULT_AD_BANNERS.map((b) => ({
-      title: b.title,
-      image_url: b.image_url,
-      link_url: b.link_url,
-      status: b.status,
-      display_order: b.display_order,
-    }));
-    await supabase.from('banners').insert(rows);
-  } catch (e) {
-    console.warn('[Banners] Seed defaults error:', e);
-  }
+    const res = await fetch('/api/banners/reset', { method: 'POST' });
+    if (res.ok) {
+      const json = await res.json();
+      if (json.success && json.data) {
+        setLocalBanners(json.data);
+        return json.data;
+      }
+    }
+  } catch (e) {}
 
   return DEFAULT_AD_BANNERS;
 }
 
 /**
- * Upload banner image to Supabase Storage products bucket
+ * Upload banner image directly to Supabase Storage products bucket
+ * Returns permanent public URL, with optimized local canvas fallback.
  */
 export async function uploadBannerImage(file: File): Promise<string> {
-  const ext = file.name.split('.').pop() || 'jpg';
-  const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-  const path = `banners/${Date.now()}_${cleanName}`;
-
+  // 1. Upload to Supabase Storage products bucket
   try {
+    const fileExt = file.name.split('.').pop() || 'jpg';
+    const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const storagePath = `banners/${Date.now()}_${cleanName}`;
+
     const { data, error } = await supabase.storage
       .from('products')
-      .upload(path, file, {
+      .upload(storagePath, file, {
+        cacheControl: '3600',
         upsert: true,
-        contentType: file.type || `image/${ext}`,
       });
 
     if (!error && data?.path) {
-      const { data: pubData } = supabase.storage.from('products').getPublicUrl(data.path);
-      if (pubData?.publicUrl) {
-        return pubData.publicUrl;
-      }
+      const { data: { publicUrl } } = supabase.storage
+        .from('products')
+        .getPublicUrl(data.path);
+      if (publicUrl) return publicUrl;
     }
-  } catch (e) {
-    console.warn('[Banners] Storage upload error, using local Data URL fallback:', e);
+  } catch (err) {
+    console.warn('[Banners] Direct Supabase storage upload failed, falling back:', err);
   }
 
-  // Fallback: base64 Data URL
+  // 2. High-performance Canvas Compression fallback
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxWidth = 1920;
+        const maxHeight = 1080;
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+        if (height > maxHeight) {
+          width = Math.round((width * maxHeight) / height);
+          height = maxHeight;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.88));
+        } else {
+          resolve(e.target?.result as string);
+        }
+      };
+      img.onerror = () => resolve(e.target?.result as string);
+      img.src = e.target?.result as string;
+    };
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });

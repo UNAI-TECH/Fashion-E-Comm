@@ -1,41 +1,49 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router';
-import { ChevronLeft, ChevronRight, Truck, ShieldCheck, RotateCcw, Sparkles, Tag } from 'lucide-react';
-import { AdBanner, fetchActiveBanners, getLocalBanners, DEFAULT_AD_BANNERS } from '../data/banners';
+import { ChevronLeft, ChevronRight, Truck, ShieldCheck, RotateCcw, Sparkles, Tag, ArrowRight } from 'lucide-react';
+import {
+  AdBanner,
+  fetchActiveBanners,
+  getLocalBanners,
+  getBannersChannel,
+  getSupabaseBannersChannel,
+  DEFAULT_AD_BANNERS,
+} from '../data/banners';
 import { supabase } from '../../lib/supabase';
 
 export function HeroAdBanner() {
-  const [banners, setBanners] = useState<AdBanner[]>(() => getLocalBanners().filter(b => b.status === 'Active'));
+  const [banners, setBanners] = useState<AdBanner[]>(() => {
+    const local = getLocalBanners();
+    return local.filter(b => b.status === 'Active');
+  });
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const touchStartX = useRef<number | null>(null);
 
-  // Sync banners from Supabase / localStorage / BroadcastChannel
+  // Sync banners from Supabase / localStorage / BroadcastChannel in real-time
   useEffect(() => {
     let mounted = true;
 
     const applyBanners = (list: AdBanner[]) => {
       if (!mounted) return;
-      const active = list.filter(b => b.status === 'Active');
-      if (active.length > 0) {
-        setBanners(active);
-        setCurrentIndex(prev => (prev >= active.length ? 0 : prev));
-      }
+      const active = (list || []).filter(b => b.status === 'Active');
+      setBanners(active);
+      setCurrentIndex(prev => (active.length > 0 && prev >= active.length ? 0 : prev));
     };
 
-    // 1. Initial quick load
+    // 1. Initial quick load from local cache
     const cached = getLocalBanners();
     applyBanners(cached);
 
-    // 2. Fresh fetch from Supabase
+    // 2. Immediate fresh fetch from backend / Supabase
     fetchActiveBanners().then(data => {
-      if (mounted && data && data.length > 0) {
+      if (mounted && Array.isArray(data)) {
         applyBanners(data);
       }
     });
 
-    // 3. Listen for local events & storage
+    // 3. Listen for local window events (fired on same tab)
     const handleUpdate = (e: any) => {
       if (e.detail && Array.isArray(e.detail)) {
         applyBanners(e.detail);
@@ -44,47 +52,77 @@ export function HeroAdBanner() {
       }
     };
 
+    // 4. Listen for storage events (fired on other tabs in same browser)
     const handleStorage = (e: StorageEvent) => {
       if (e.key === 'aanya_ad_banners') {
         applyBanners(getLocalBanners());
       }
     };
 
-    // 4. Cross-tab sync via BroadcastChannel
-    let bc: BroadcastChannel | null = null;
+    // 5. Cross-tab instant sync via persistent BroadcastChannel (0ms latency)
+    const bc = getBannersChannel();
+    const handleChannelMsg = (event: MessageEvent) => {
+      if (event.data?.type === 'BANNERS_UPDATED' && Array.isArray(event.data?.banners)) {
+        applyBanners(event.data.banners);
+      }
+    };
+    bc?.addEventListener('message', handleChannelMsg);
+
+    // 6. Supabase Realtime broadcast listener (instant multi-device sync)
+    const rt = getSupabaseBannersChannel();
+    let rtSub: any = null;
     try {
-      bc = new BroadcastChannel('banners_broadcast_channel');
-      bc.onmessage = (event) => {
-        if (event.data?.banners) {
-          applyBanners(event.data.banners);
+      rtSub = rt?.on('broadcast', { event: 'banners_updated' }, (payload: any) => {
+        if (payload?.payload?.banners && Array.isArray(payload.payload.banners)) {
+          applyBanners(payload.payload.banners);
         }
-      };
+      });
     } catch {}
 
-    // 5. Supabase Realtime subscription
-    const channel = supabase
-      .channel('banners_storefront_sync')
+    // 7. Supabase table postgres_changes fallback
+    const dbChannel = supabase
+      .channel('banners_postgres_live_sync')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'banners' }, () => {
         fetchActiveBanners().then(data => {
-          if (mounted && data) applyBanners(data);
+          if (mounted && Array.isArray(data)) applyBanners(data);
         });
       })
       .subscribe();
 
+    // 8. Re-sync whenever user focuses or switches back to storefront tab
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        fetchActiveBanners().then(data => {
+          if (mounted && Array.isArray(data)) applyBanners(data);
+        });
+      }
+    };
+
+    // 9. Periodic background sync every 12 seconds
+    const intervalId = setInterval(() => {
+      fetchActiveBanners().then(data => {
+        if (mounted && Array.isArray(data)) applyBanners(data);
+      });
+    }, 12000);
+
     window.addEventListener('ad-banners-updated', handleUpdate);
     window.addEventListener('storage', handleStorage);
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', handleVisibility);
 
     return () => {
       mounted = false;
+      clearInterval(intervalId);
       window.removeEventListener('ad-banners-updated', handleUpdate);
       window.removeEventListener('storage', handleStorage);
-      if (bc) bc.close();
-      supabase.removeChannel(channel);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', handleVisibility);
+      bc?.removeEventListener('message', handleChannelMsg);
+      supabase.removeChannel(dbChannel);
     };
   }, []);
 
-  // Safe fallback if banners empty
-  const activeBanners = banners.length > 0 ? banners : DEFAULT_AD_BANNERS;
+  const activeBanners = banners;
 
   // Auto-slide every 5 seconds
   useEffect(() => {
@@ -149,86 +187,112 @@ export function HeroAdBanner() {
       </div>
 
       {/* ─── Main Hero Ad Banner (Meesho & Myntra Style) ─── */}
-      <section
-        className="relative w-full overflow-hidden bg-gray-950 group"
-        onMouseEnter={() => setIsPaused(true)}
-        onMouseLeave={() => setIsPaused(false)}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-      >
-        {/* Banner Aspect Ratio Container */}
-        <div className="relative w-full aspect-[16/9] sm:aspect-[21/9] md:aspect-[24/9] lg:aspect-[24/8] max-h-[580px] min-h-[220px] sm:min-h-[300px] md:min-h-[380px] lg:min-h-[440px] flex items-center justify-center">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentBanner.id || currentIndex}
-              initial={{ opacity: 0, scale: 1.02 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.98 }}
-              transition={{ duration: 0.6, ease: 'easeInOut' }}
-              className="absolute inset-0 w-full h-full cursor-pointer"
-            >
+      {activeBanners.length === 0 ? (
+        /* Sleek fallback state when all banners are deleted / none active */
+        <section className="relative w-full py-16 sm:py-24 bg-gradient-to-r from-[#2A0815] via-[#4A0E2E] to-[#1E0510] text-white flex items-center justify-center px-4">
+          <div className="max-w-3xl mx-auto text-center space-y-4">
+            <span className="inline-block px-3 py-1 rounded-full text-xs font-black bg-amber-400 text-gray-900 tracking-wider uppercase">
+              Exclusive Saree Collection
+            </span>
+            <h2 className="text-2xl sm:text-4xl md:text-5xl font-serif font-bold text-amber-100">
+              Handcrafted Heritage Sarees
+            </h2>
+            <p className="text-xs sm:text-sm text-pink-100/80 max-w-lg mx-auto">
+              Explore authentic Banarasi, Kanchipuram, and organza silk sarees woven with pure zari artistry.
+            </p>
+            <div className="pt-2">
               <Link
-                to={currentBanner.link_url || '/category/sarees'}
-                className="block w-full h-full relative"
+                to="/category/sarees"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-gray-950 font-bold text-xs sm:text-sm shadow-lg hover:shadow-xl transition-all"
               >
-                <img
-                  src={currentBanner.image_url}
-                  alt={currentBanner.title || 'Festive Saree Sale Banner'}
-                  className="w-full h-full object-cover object-center select-none"
-                  loading="eager"
-                  draggable={false}
-                />
-
-                {/* Subtle gradient vignette to blend into high-end theme */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-black/10 pointer-events-none" />
+                <span>Shop Sarees Collection</span>
+                <ArrowRight className="w-4 h-4" />
               </Link>
-            </motion.div>
-          </AnimatePresence>
-
-          {/* Left Arrow Navigation Button */}
-          {activeBanners.length > 1 && (
-            <button
-              onClick={handlePrev}
-              aria-label="Previous Banner"
-              className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-11 sm:h-11 rounded-full bg-white/80 hover:bg-white text-gray-800 shadow-lg backdrop-blur-sm flex items-center justify-center transition-all opacity-80 sm:opacity-0 group-hover:opacity-100 hover:scale-105 active:scale-95"
-            >
-              <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
-            </button>
-          )}
-
-          {/* Right Arrow Navigation Button */}
-          {activeBanners.length > 1 && (
-            <button
-              onClick={handleNext}
-              aria-label="Next Banner"
-              className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-11 sm:h-11 rounded-full bg-white/80 hover:bg-white text-gray-800 shadow-lg backdrop-blur-sm flex items-center justify-center transition-all opacity-80 sm:opacity-0 group-hover:opacity-100 hover:scale-105 active:scale-95"
-            >
-              <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
-            </button>
-          )}
-
-          {/* Carousel Pagination Dots (Myntra & Meesho style) */}
-          {activeBanners.length > 1 && (
-            <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-full bg-black/35 backdrop-blur-md">
-              {activeBanners.map((banner, idx) => (
-                <button
-                  key={banner.id || idx}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setCurrentIndex(idx);
-                  }}
-                  aria-label={`Go to slide ${idx + 1}`}
-                  className={`transition-all duration-300 rounded-full h-1.5 sm:h-2 ${
-                    currentIndex === idx
-                      ? 'w-6 sm:w-8 bg-white shadow-xs'
-                      : 'w-1.5 sm:w-2 bg-white/50 hover:bg-white/80'
-                  }`}
-                />
-              ))}
             </div>
-          )}
-        </div>
-      </section>
+          </div>
+        </section>
+      ) : (
+        <section
+          className="relative w-full overflow-hidden bg-gray-950 group"
+          onMouseEnter={() => setIsPaused(true)}
+          onMouseLeave={() => setIsPaused(false)}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        >
+          {/* Banner Aspect Ratio Container: 16:9 on mobile, adaptive on desktop to prevent cropping */}
+          <div className="relative w-full aspect-[16/9] sm:aspect-[16/8] md:aspect-[16/7] lg:aspect-[16/6.5] max-h-[580px] min-h-[230px] sm:min-h-[320px] md:min-h-[420px] lg:min-h-[480px] flex items-center justify-center">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentBanner.id || currentIndex}
+                initial={{ opacity: 0, scale: 1.01 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.99 }}
+                transition={{ duration: 0.5, ease: 'easeInOut' }}
+                className="absolute inset-0 w-full h-full cursor-pointer"
+              >
+                <Link
+                  to={currentBanner.link_url || '/category/sarees'}
+                  className="block w-full h-full relative"
+                >
+                  <img
+                    src={currentBanner.image_url}
+                    alt={currentBanner.title || 'Festive Saree Sale Banner'}
+                    className="w-full h-full object-cover object-top select-none"
+                    loading="eager"
+                    draggable={false}
+                  />
+
+                  {/* Subtle vignette gradient */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-black/10 pointer-events-none" />
+                </Link>
+              </motion.div>
+            </AnimatePresence>
+
+            {/* Left Arrow Navigation Button */}
+            {activeBanners.length > 1 && (
+              <button
+                onClick={handlePrev}
+                aria-label="Previous Banner"
+                className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-11 sm:h-11 rounded-full bg-white/85 hover:bg-white text-gray-800 shadow-lg backdrop-blur-sm flex items-center justify-center transition-all opacity-80 sm:opacity-0 group-hover:opacity-100 hover:scale-105 active:scale-95"
+              >
+                <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+            )}
+
+            {/* Right Arrow Navigation Button */}
+            {activeBanners.length > 1 && (
+              <button
+                onClick={handleNext}
+                aria-label="Next Banner"
+                className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-11 sm:h-11 rounded-full bg-white/85 hover:bg-white text-gray-800 shadow-lg backdrop-blur-sm flex items-center justify-center transition-all opacity-80 sm:opacity-0 group-hover:opacity-100 hover:scale-105 active:scale-95"
+              >
+                <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+            )}
+
+            {/* Carousel Pagination Dots */}
+            {activeBanners.length > 1 && (
+              <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md">
+                {activeBanners.map((banner, idx) => (
+                  <button
+                    key={banner.id || idx}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCurrentIndex(idx);
+                    }}
+                    aria-label={`Go to slide ${idx + 1}`}
+                    className={`transition-all duration-300 rounded-full h-1.5 sm:h-2 ${
+                      currentIndex === idx
+                        ? 'w-6 sm:w-8 bg-white shadow-xs'
+                        : 'w-1.5 sm:w-2 bg-white/50 hover:bg-white/80'
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* ─── Meesho-Style Trust & Value Proposition Bar ─── */}
       <div className="w-full bg-white border-b border-gray-100 shadow-xs">

@@ -154,16 +154,16 @@ export function AdminBannersSection() {
     }
   };
 
-  const handleDelete = async (id: string, title: string) => {
-    if (!window.confirm(`Are you sure you want to delete banner "${title}"?`)) return;
+  const handleDelete = async (banner: AdBanner) => {
+    if (!window.confirm(`Are you sure you want to delete banner "${banner.title}"?`)) return;
 
     try {
-      await deleteBanner(id);
-      setBanners(prev => prev.filter(b => b.id !== id));
+      await deleteBanner(banner.id, { image_url: banner.image_url, title: banner.title });
+      setBanners(prev => prev.filter(b => b.id !== banner.id && b.image_url !== banner.image_url));
       if (activePreviewIdx >= banners.length - 1) {
         setActivePreviewIdx(Math.max(0, banners.length - 2));
       }
-      toast.success('Banner removed');
+      toast.success('Banner removed from admin and storefront');
     } catch (err: any) {
       toast.error('Failed to delete banner');
     }
@@ -256,6 +256,37 @@ export function AdminBannersSection() {
         </div>
       </div>
 
+      {/* ─── Banner Size Specification Banner ─── */}
+      <div className="bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-[#698156]/10 border border-amber-200/70 rounded-3xl p-5 sm:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="flex items-start gap-3.5">
+          <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-800 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <Sparkles className="w-5 h-5 stroke-[2.2]" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+              <span>Actual Banner Sizing & Design Guide</span>
+              <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                Meesho & Myntra Standard
+              </span>
+            </h3>
+            <p className="text-xs text-gray-600 mt-1">
+              Follow these pixel dimensions so the model's head, jewellery, and discount texts never get cut off:
+            </p>
+            <div className="flex flex-wrap items-center gap-2.5 mt-2.5 text-xs">
+              <span className="px-3 py-1.5 rounded-xl bg-white border border-gray-200 font-semibold text-gray-800 shadow-2xs">
+                💻 <strong>Desktop Banner:</strong> 1920 × 600 px <span className="text-gray-400 font-normal">(16:5 ratio, or 1920 × 504 px)</span>
+              </span>
+              <span className="px-3 py-1.5 rounded-xl bg-white border border-gray-200 font-semibold text-gray-800 shadow-2xs">
+                📱 <strong>Mobile Banner:</strong> 1080 × 600 px <span className="text-gray-400 font-normal">(16:9 ratio, or 1080 × 540 px)</span>
+              </span>
+              <span className="px-3 py-1.5 rounded-xl bg-white border border-amber-200 font-semibold text-amber-900 shadow-2xs">
+                🛡️ <strong>Safe Zone:</strong> Leave ~40px margin at the top so heads & titles aren't clipped
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* ─── Live Simulator Preview (Storefront View) ─── */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-xs space-y-4">
         <div className="flex items-center justify-between">
@@ -287,11 +318,11 @@ export function AdminBannersSection() {
         </div>
 
         {/* The Live Banner Simulator Box */}
-        <div className="relative w-full rounded-2xl overflow-hidden shadow-md aspect-[16/9] sm:aspect-[21/8] md:aspect-[24/8] max-h-[420px] bg-gray-900 border border-gray-200/80">
+        <div className="relative w-full rounded-2xl overflow-hidden shadow-md aspect-[16/9] sm:aspect-[16/8] md:aspect-[16/7] lg:aspect-[16/6.5] max-h-[460px] bg-gray-900 border border-gray-200/80">
           <img
             src={currentPreviewBanner.image_url}
             alt={currentPreviewBanner.title}
-            className="w-full h-full object-cover object-center"
+            className="w-full h-full object-cover object-top"
           />
 
           {/* Banner Overlay Info */}
@@ -399,7 +430,7 @@ export function AdminBannersSection() {
                       <Edit3 className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => handleDelete(banner.id, banner.title)}
+                      onClick={() => handleDelete(banner)}
                       className="w-8 h-8 rounded-xl bg-white/90 text-red-500 hover:text-red-700 hover:bg-white shadow-sm flex items-center justify-center transition-all"
                       title="Delete banner"
                     >
@@ -549,8 +580,8 @@ export function AdminBannersSection() {
                       <p className="text-xs font-bold text-gray-800">
                         {isUploading ? 'Uploading image...' : 'Click to upload banner image'}
                       </p>
-                      <p className="text-[11px] text-gray-400 mt-1">
-                        High-res JPG, PNG, WEBP recommended (1920×800 or 16:9 ratio)
+                      <p className="text-[11px] text-gray-500 mt-1">
+                        Recommended: <strong>1920 × 600 px</strong> (Desktop) / <strong>1080 × 600 px</strong> (Mobile) • High-res JPG, PNG, WEBP
                       </p>
                     </div>
                   )}
