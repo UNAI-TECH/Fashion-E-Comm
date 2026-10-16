@@ -397,21 +397,29 @@ export function CheckoutPage() {
     }));
     await supabase.from('order_items').insert(orderItems);
 
-    // 3. Deduct stock
+    // 3. Deduct stock (best-effort, never blocks order)
     for (const item of checkoutItems) {
       if (uuidRegex.test(item.id)) {
         try {
+          // Try atomic RPC first
           const { error: rpcErr } = await supabase.rpc('decrement_stock', {
             p_product_id: item.id,
             p_qty: item.quantity,
           });
           if (rpcErr) {
+            // Fallback: direct UPDATE if RPC function doesn't exist or fails
+            console.warn('decrement_stock RPC unavailable, using direct update:', rpcErr.message);
             const { data: prod } = await supabase.from('products').select('stock_quantity').eq('id', item.id).single();
-            if (prod) {
-              await supabase.from('products').update({ stock_quantity: Math.max(0, prod.stock_quantity - item.quantity) }).eq('id', item.id);
+            if (prod && prod.stock_quantity != null) {
+              await supabase.from('products').update({
+                stock_quantity: Math.max(0, (prod.stock_quantity || 0) - item.quantity)
+              }).eq('id', item.id);
             }
           }
-        } catch {}
+        } catch (stockErr) {
+          // Non-fatal: stock deduction should never prevent order placement
+          console.warn('Stock deduction warning for', item.id, stockErr);
+        }
       }
     }
 

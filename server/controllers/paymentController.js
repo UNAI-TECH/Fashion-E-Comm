@@ -17,7 +17,7 @@ const getRazorpayInstance = () => {
  * @access  Public
  */
 export const getRazorpayKey = async (req, res) => {
-  const keyId = process.env.VITE_RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder';
+  const keyId = process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_placeholder';
   res.json({
     success: true,
     keyId,
@@ -48,7 +48,7 @@ export const createRazorpayOrder = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid payment amount' });
     }
 
-    const keyId = process.env.VITE_RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder';
+    const keyId = process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_placeholder';
     const keySecret = process.env.RAZORPAY_KEY_SECRET || 'rzp_test_secret_placeholder';
 
     // Amount in paise (1 INR = 100 paise)
@@ -85,8 +85,14 @@ export const createRazorpayOrder = async (req, res) => {
           isSimulated: false
         });
       } catch (rzpErr) {
-        console.error('Razorpay Orders API error:', rzpErr);
-        const errMsg = rzpErr.error?.description || rzpErr.description || rzpErr.message || 'Razorpay order creation failed';
+        console.error('Razorpay Orders API error:', JSON.stringify({
+          message: rzpErr?.message,
+          description: rzpErr?.error?.description,
+          code: rzpErr?.error?.code,
+          statusCode: rzpErr?.statusCode,
+          stack: rzpErr?.stack?.substring(0, 500)
+        }));
+        const errMsg = rzpErr?.error?.description || rzpErr?.description || rzpErr?.message || 'Razorpay order creation failed';
         return res.status(400).json({
           success: false,
           message: `Razorpay Error: ${errMsg}`
@@ -107,7 +113,11 @@ export const createRazorpayOrder = async (req, res) => {
       isSimulated: true
     });
   } catch (error) {
-    console.error('Razorpay Create Order Error:', error);
+    console.error('Razorpay Create Order Fatal Error:', JSON.stringify({
+      message: error?.message,
+      name: error?.name,
+      stack: error?.stack?.substring(0, 800)
+    }));
     res.status(500).json({ success: false, message: error.message || 'Internal payment error' });
   }
 };
