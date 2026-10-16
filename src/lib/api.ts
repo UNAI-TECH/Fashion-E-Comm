@@ -1,6 +1,21 @@
 import { supabase } from './supabase';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+export const getApiBaseUrl = () => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  // If running in browser on production domain or HTTPS (e.g. www.aanyafashions.com)
+  if (typeof window !== 'undefined' && window.location) {
+    if (window.location.protocol === 'https:' || window.location.hostname.includes('aanyafashions.com')) {
+      return `${window.location.origin}/api`;
+    }
+  }
+  // If envUrl is set and is a valid production URL (not localhost)
+  if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+    return envUrl;
+  }
+  return 'https://www.aanyafashions.com/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 export interface ApiResponse<T = any> {
   success?: boolean;
@@ -34,9 +49,10 @@ const generateRequestId = () => `req_${Date.now()}_${Math.random().toString(36).
 async function request<T>(
   endpoint: string,
   options: RequestInit = {},
-  baseUrl: string = API_BASE_URL,
+  baseUrl?: string,
   retries = 1
 ): Promise<T> {
+  const activeBaseUrl = baseUrl || getApiBaseUrl();
   const requestId = generateRequestId();
   const headers = new Headers(options.headers || {});
 
@@ -55,7 +71,9 @@ async function request<T>(
     // Continue unauthenticated if session check fails
   }
 
-  const url = `${baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  const cleanBase = activeBaseUrl.replace(/\/+$/, '');
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const url = `${cleanBase}${cleanEndpoint}`;
 
   // Abort controller for 15-second timeout
   const controller = new AbortController();
@@ -95,7 +113,7 @@ async function request<T>(
 
     // Retry once on network failure
     if (retries > 0 && (err.name === 'TypeError' || err.status >= 500)) {
-      return request<T>(endpoint, options, baseUrl, retries - 1);
+      return request<T>(endpoint, options, activeBaseUrl, retries - 1);
     }
 
     if (err instanceof ApiError) {
