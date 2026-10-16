@@ -26,7 +26,6 @@ import {
   Mail,
   Home as HomeIcon,
   Briefcase,
-  Sparkles,
   RefreshCw,
   X
 } from 'lucide-react';

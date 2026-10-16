@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Mail, Phone, Lock, User, ArrowRight, Sparkles, CheckCircle2, RefreshCw } from 'lucide-react';
+import { X, Mail, Phone, Lock, User, ArrowRight, Crown, CheckCircle2, RefreshCw } from 'lucide-react';
 import { useCustomerAuth, SignupFormData } from '../contexts/CustomerAuthContext';
 import { toast } from 'sonner';
 
@@ -252,7 +252,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', onSuccess }
               <X className="w-4 h-4" />
             </button>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-[11px] font-bold uppercase tracking-wider mb-2">
-              <Sparkles className="w-3 h-3" /> Aanya Club Member
+              <Crown className="w-3 h-3" /> Aanya Club Member
             </div>
             <h2 className="font-serif text-2xl font-bold">
               {mode === 'signin' ? 'Welcome to Aanya Fashions' : 'Create Customer Account'}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router';
-import { ChevronLeft, ChevronRight, Truck, ShieldCheck, RotateCcw, Sparkles, Tag, ArrowRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Truck, ShieldCheck, RotateCcw, BadgePercent, Tag, ArrowRight } from 'lucide-react';
 import {
   AdBanner,
   fetchActiveBanners,
@@ -314,7 +314,7 @@ export function HeroAdBanner() {
             {/* 4. Lowest Price & Authentic Saree */}
             <div className="flex items-center gap-3 px-2 sm:px-4 py-1">
               <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-indigo-50 text-indigo-700 flex items-center justify-center flex-shrink-0">
-                <Sparkles className="w-5 h-5 stroke-[2.2]" />
+                <BadgePercent className="w-5 h-5 stroke-[2.2]" />
               </div>
               <div className="leading-tight">
                 <p className="text-xs sm:text-sm font-bold text-gray-900">Lowest Prices</p>

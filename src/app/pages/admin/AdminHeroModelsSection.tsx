@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  Sparkles, Plus, Trash2, Edit3, MoveLeft, MoveRight,
+  Award, Plus, Trash2, Edit3, MoveLeft, MoveRight,
   UploadCloud, Check, X, RefreshCw, Eye, ArrowUpRight,
   Palette, Search, ShoppingBag, Shirt, CheckCircle2, RotateCcw
 } from 'lucide-react';
@@ -687,7 +687,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                       <h4 className="font-serif text-base font-bold text-gray-900 flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-[#698156]" />
+                        <Award className="w-4 h-4 text-[#698156]" />
                         <span>Change Model or Outfit on Slot #{activePreviewIdx + 1}</span>
                       </h4>
                       <p className="text-xs text-gray-400 mt-0.5">
@@ -716,7 +716,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
                             : 'text-gray-500 hover:text-gray-800'
                         }`}
                       >
-                        <Sparkles className="w-3.5 h-3.5 text-purple-500" />
+                        <Award className="w-3.5 h-3.5 text-purple-500" />
                         <span>Studio Models</span>
                       </button>
                       <button
@@ -941,7 +941,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
                       {form.id ? `Change Model Dress (Slot #${form.display_order})` : 'Dress New Homepage Model'}
                     </h3>
                     <p className="text-xs text-[#698156] font-medium flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5" />
+                      <Award className="w-3.5 h-3.5" />
                       Click any catalog dress below — model instantly wears it live
                     </p>
                   </div>
@@ -1048,7 +1048,7 @@ export function AdminHeroModelsSection({ products }: AdminHeroModelsSectionProps
                           imageSourceTab === 'product' ? 'bg-white text-[#698156] shadow-xs' : 'hover:text-gray-900'
                         }`}
                       >
-                        <Sparkles className="w-3 h-3 flex-shrink-0" />
+                        <Shirt className="w-3 h-3 flex-shrink-0" />
                         <span className="truncate">Catalog Dress</span>
                       </button>
                       <button

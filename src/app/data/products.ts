@@ -8,6 +8,7 @@ export interface Product {
   originalPrice?: number;
   compare_at_price?: number;
   category: string;
+  material?: string;
   images: string[];
   image: string;
   rating: number;
@@ -192,8 +193,26 @@ export function ensureProductImages(prod: any): string[] {
  * All products come exclusively from the database — no mock data, no localStorage fallbacks.
  * Admin uploads products via the admin dashboard → Supabase → they appear here.
  */
+const MATERIAL_KEYWORDS: Record<string, string[]> = {
+  kanchicotton: ['kanchi', 'cotton'],
+  'kanchi-cotton': ['kanchi', 'cotton'],
+  viscose: ['viscose'],
+  'viscose-sarees': ['viscose'],
+  'fancy-sarees': ['fancy', 'georgette', 'chiffon', 'net', 'designer', 'party'],
+  fancy: ['fancy', 'georgette', 'chiffon', 'net', 'designer', 'party'],
+  'checks-pedding': ['check', 'pedding', 'checks', 'jamdani'],
+  'checks-pedding-sarees': ['check', 'pedding', 'checks', 'jamdani'],
+  'check-pedding': ['check', 'pedding', 'checks', 'jamdani'],
+};
+
+/**
+ * Fetch products from Supabase database with material-level filtering support.
+ * All products come exclusively from the database — no mock data, no fallback fixtures.
+ */
 export async function fetchProducts(category?: string): Promise<Product[]> {
   let dbProducts: Product[] = [];
+  const cleanCat = (category || '').toLowerCase().trim();
+  const isMaterialQuery = !!MATERIAL_KEYWORDS[cleanCat];
 
   try {
     let query = supabase
@@ -202,8 +221,8 @@ export async function fetchProducts(category?: string): Promise<Product[]> {
       .eq('status', 'Published')
       .order('created_at', { ascending: false });
 
-    // Apply category filter at database level for efficiency
-    if (category && category !== 'all' && category !== 'trending') {
+    // Apply standard category filter if not a material-specific sub-route
+    if (category && category !== 'all' && category !== 'trending' && !isMaterialQuery) {
       const rawTarget = category.toLowerCase().replace(/-/g, ' ').trim();
       query = query.ilike('category', `%${rawTarget}%`);
     }
@@ -212,37 +231,41 @@ export async function fetchProducts(category?: string): Promise<Product[]> {
 
     if (error) {
       console.error('Error fetching products from Supabase:', error);
-      return [];
+    } else if (data && data.length > 0) {
+      dbProducts = data.map((p: any) => {
+        const imgs = ensureProductImages(p);
+
+        return {
+          id: String(p.id),
+          name: p.name,
+          description: p.description || '',
+          price: Number(p.price) || 0,
+          compare_at_price: p.compare_at_price ? Number(p.compare_at_price) : undefined,
+          originalPrice: p.compare_at_price ? Number(p.compare_at_price) : undefined,
+          category: p.category || 'Sarees',
+          material: p.material || undefined,
+          images: imgs,
+          image: imgs[0],
+          rating: p.rating ? Number(p.rating) : 4.5,
+          stock_quantity: p.stock_quantity != null ? Number(p.stock_quantity) : 0,
+          status: p.status || 'Published',
+          colors: Array.isArray(p.colors) && p.colors.length > 0 ? p.colors : ['#698156'],
+          created_at: p.created_at,
+          badge: undefined
+        };
+      });
     }
-
-    if (!data || data.length === 0) {
-      return [];
-    }
-
-    dbProducts = data.map((p: any) => {
-      const imgs = ensureProductImages(p);
-
-      return {
-        id: String(p.id),
-        name: p.name,
-        description: p.description || '',
-        price: Number(p.price) || 0,
-        compare_at_price: p.compare_at_price ? Number(p.compare_at_price) : undefined,
-        originalPrice: p.compare_at_price ? Number(p.compare_at_price) : undefined,
-        category: p.category || 'Sarees',
-        images: imgs,
-        image: imgs[0],
-        rating: p.rating ? Number(p.rating) : 4.5,
-        stock_quantity: p.stock_quantity != null ? Number(p.stock_quantity) : 0,
-        status: p.status || 'Published',
-        colors: Array.isArray(p.colors) && p.colors.length > 0 ? p.colors : ['#698156'],
-        created_at: p.created_at,
-        badge: undefined
-      };
-    });
   } catch (err) {
     console.error('Failed to fetch products:', err);
-    return [];
+  }
+
+  // Handle Material-specific filter exclusively from real database products
+  if (isMaterialQuery) {
+    const terms = MATERIAL_KEYWORDS[cleanCat] || [];
+    return dbProducts.filter(p => {
+      const text = `${p.name} ${p.category} ${p.material || ''} ${p.description || ''}`.toLowerCase();
+      return terms.some(t => text.includes(t));
+    });
   }
 
   // Sort by newest first, then by rating
@@ -289,6 +312,7 @@ export async function fetchProductById(id: string): Promise<Product | null> {
       compare_at_price: data.compare_at_price ? Number(data.compare_at_price) : undefined,
       originalPrice: data.compare_at_price ? Number(data.compare_at_price) : undefined,
       category: data.category || 'Sarees',
+      material: data.material || undefined,
       images: imgs,
       image: imgs[0],
       rating: data.rating ? Number(data.rating) : 4.5,

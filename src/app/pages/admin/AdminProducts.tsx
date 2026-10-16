@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, Plus, Filter, Edit, Trash2, X, Upload, RefreshCw, ImageIcon, Star, ChevronLeft, ChevronRight, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Search, Plus, Filter, Edit, Trash2, X, Upload, RefreshCw, ImageIcon, Star, ChevronLeft, ChevronRight, Camera, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { Product, fetchProducts as getStorefrontProducts, ensureProductImages, buildComplementaryAngles } from '../../data/products';
 import { toast } from 'sonner';
@@ -434,7 +434,7 @@ export function AdminProducts() {
                         className="text-xs font-bold text-[#698156] hover:text-black bg-white hover:bg-rose-50 border border-rose-200 px-3 py-1 rounded-full flex items-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95"
                         title="Auto-fill high-fashion editorial angle shots for this category"
                       >
-                        <Sparkles className="w-3.5 h-3.5 text-[#698156]" />
+                        <Camera className="w-3.5 h-3.5 text-[#698156]" />
                         Autofill Angles
                       </button>
                     </div>
@@ -540,7 +540,7 @@ export function AdminProducts() {
                           onClick={handleAutofillAngles}
                           className="mt-2 text-xs font-bold text-[#698156] bg-rose-50 hover:bg-rose-100 border border-rose-200 px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
                         >
-                          <Sparkles className="w-3.5 h-3.5 text-[#698156]" />
+                          <Camera className="w-3.5 h-3.5 text-[#698156]" />
                           Click here to Autofill Recommended Angles
                         </button>
                       </div>

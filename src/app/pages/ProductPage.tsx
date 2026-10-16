@@ -4,7 +4,7 @@ import { useParams, Link, useNavigate } from 'react-router';
 import { 
   Star, Heart, ShoppingBag, Share2, Truck, RotateCcw, Shield, 
   ChevronLeft, ChevronRight, ZoomIn, CreditCard, 
-  Sparkles, X, Tag, 
+  Award, X, Tag, 
   Copy, Check, FileText, Layers, Camera, Maximize2, MessageSquarePlus
 } from 'lucide-react';
 import { Navigation } from '../components/Navigation';
@@ -379,7 +379,7 @@ export function ProductPage() {
               {relatedProducts.length > 0 && (
                 <div className="hidden lg:block space-y-4 pt-2">
                   <h3 className="font-serif text-lg font-bold text-gray-900 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-[#698156]" />
+                    <Award className="w-4 h-4 text-[#698156]" />
                     You May Also Like
                   </h3>
                   <div className="grid grid-cols-3 xl:grid-cols-4 gap-3">
@@ -656,7 +656,7 @@ export function ProductPage() {
           {relatedProducts.length > 0 && (
             <div className="lg:hidden mt-10 space-y-4">
               <h3 className="font-serif text-lg font-bold text-gray-900 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-[#698156]" />
+                <Award className="w-4 h-4 text-[#698156]" />
                 You May Also Like
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">

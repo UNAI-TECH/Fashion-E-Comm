@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   Image as ImageIcon, Plus, Trash2, Edit3, MoveLeft, MoveRight,
   UploadCloud, Check, X, RotateCcw, Eye, ArrowUpRight,
-  Link as LinkIcon, Sparkles, ExternalLink, RefreshCw, AlertCircle
+  Link as LinkIcon, Award, ExternalLink, RefreshCw, AlertCircle
 } from 'lucide-react';
 import {
   AdBanner,
@@ -260,7 +260,7 @@ export function AdminBannersSection() {
       <div className="bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-[#698156]/10 border border-amber-200/70 rounded-3xl p-5 sm:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-start gap-3.5">
           <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-800 flex items-center justify-center flex-shrink-0 mt-0.5">
-            <Sparkles className="w-5 h-5 stroke-[2.2]" />
+            <Award className="w-5 h-5 stroke-[2.2]" />
           </div>
           <div>
             <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">

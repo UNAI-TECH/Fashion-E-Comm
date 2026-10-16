@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight, Crown } from 'lucide-react';
 import { useLocation } from 'react-router';
 
 // Module-level flag so it only shows on first page load / reload, not during in-app navigation
@@ -78,9 +78,9 @@ export function WelcomeSplashScreen() {
               transition={{ delay: 0.38, duration: 0.45, ease: 'easeOut' }}
               className="text-xs sm:text-sm font-medium text-gray-500 uppercase tracking-widest mt-3 flex items-center justify-center gap-1.5"
             >
-              <Sparkles className="w-3.5 h-3.5 text-[#698156]" />
+              <Crown className="w-3.5 h-3.5 text-[#698156]" />
               <span>Handcrafted Elegance & Designer Wear</span>
-              <Sparkles className="w-3.5 h-3.5 text-[#698156]" />
+              <Crown className="w-3.5 h-3.5 text-[#698156]" />
             </motion.p>
 
             {/* Enter Store CTA Button */}

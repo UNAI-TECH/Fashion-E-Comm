@@ -5,10 +5,11 @@ import {
   Plus, Trash2, Search, Store, X, RefreshCw, ChevronRight,
   Phone, Mail, MapPin, ImageIcon, LayoutDashboard,
   ClipboardList, Menu, ChevronLeft, CreditCard, LogOut,
-  Sparkles, Shirt, Upload, Star, Receipt,
-  Minus, ShoppingCart, ArrowRight, Tags, Boxes, Compass
+  Award, Camera, Shirt, Upload, Star, Receipt,
+  Minus, ShoppingCart, ArrowRight, Tags, Boxes, Compass, Bell
 } from 'lucide-react';
 import { AdminBannersSection } from './AdminBannersSection';
+import { AdminNotificationsSection } from './AdminNotificationsSection';
 import { AdminBillingSection } from './AdminBillingSection';
 import { AdminCategories } from './AdminCategories';
 import { AdminInventorySection } from './AdminInventorySection';
@@ -112,21 +113,22 @@ const CAT_COLORS: Record<string, string> = {
 };
 
 /* ─── Nav items ─── */
-export type NavTab = 'overview' | 'banners' | 'hero-models' | 'products' | 'inventory' | 'categories' | 'billing' | 'orders' | 'customers' | 'payments';
+export type NavTab = 'overview' | 'notifications' | 'banners' | 'hero-models' | 'products' | 'inventory' | 'categories' | 'billing' | 'orders' | 'customers' | 'payments';
 export const VALID_TABS: readonly NavTab[] = [
-  'overview', 'banners', 'hero-models', 'products', 'inventory', 'categories', 'billing', 'orders', 'customers', 'payments'
+  'overview', 'notifications', 'banners', 'hero-models', 'products', 'inventory', 'categories', 'billing', 'orders', 'customers', 'payments'
 ] as const;
 export const isValidTab = (tab: any): tab is NavTab => VALID_TABS.includes(tab);
 
 const NAV_ITEMS: { id: NavTab; label: string; icon: React.ReactNode }[] = [
-  { id: 'overview',    label: 'Dashboard',        icon: <LayoutDashboard className="w-5 h-5" /> },
-  { id: 'banners',     label: 'Hero Banners',     icon: <ImageIcon className="w-5 h-5" /> },
-  { id: 'products',    label: 'Catalog Products', icon: <Package className="w-5 h-5" /> },
-  { id: 'inventory',   label: 'Inventory Stock',  icon: <Boxes className="w-5 h-5" /> },
-  { id: 'categories',  label: 'Categories',       icon: <Tags className="w-5 h-5" /> },
-  { id: 'orders',      label: 'Orders',            icon: <ClipboardList className="w-5 h-5" /> },
-  { id: 'customers',   label: 'Customers',         icon: <Users className="w-5 h-5" /> },
-  { id: 'payments',    label: 'Payments',          icon: <CreditCard className="w-5 h-5" /> },
+  { id: 'overview',       label: 'Dashboard',             icon: <LayoutDashboard className="w-5 h-5" /> },
+  { id: 'notifications',  label: 'Offers & Alerts',       icon: <Bell className="w-5 h-5" /> },
+  { id: 'banners',        label: 'Hero Banners',          icon: <ImageIcon className="w-5 h-5" /> },
+  { id: 'products',       label: 'Catalog Products',      icon: <Package className="w-5 h-5" /> },
+  { id: 'inventory',      label: 'Inventory Stock',       icon: <Boxes className="w-5 h-5" /> },
+  { id: 'categories',     label: 'Categories',            icon: <Tags className="w-5 h-5" /> },
+  { id: 'orders',         label: 'Orders',                icon: <ClipboardList className="w-5 h-5" /> },
+  { id: 'customers',      label: 'Customers',             icon: <Users className="w-5 h-5" /> },
+  { id: 'payments',       label: 'Payments',              icon: <CreditCard className="w-5 h-5" /> },
 ];
 
 /* ─── Customer name extraction helper ─── */
@@ -181,6 +183,7 @@ export function AdminAanyaPage() {
 
     // 2. URL path suffix (/admin/banners, /admin/hero-models, /admin/billing, /admin/products, etc.)
     const path = location.pathname.toLowerCase().replace(/\/+$/, '');
+    if (path.endsWith('/notifications') || path.endsWith('/offers')) return 'notifications';
     if (path.endsWith('/banners') || path.endsWith('/hero-models')) return 'banners';
     if (path.endsWith('/products')) return 'products';
     if (path.endsWith('/inventory')) return 'inventory';
@@ -2138,7 +2141,7 @@ export function AdminAanyaPage() {
                             />
                             <div>
                               <span className="text-xs sm:text-sm font-bold text-gray-900 flex items-center gap-1.5 leading-tight">
-                                <Sparkles className="w-3.5 h-3.5 text-[#698156]" />
+                                <Award className="w-3.5 h-3.5 text-[#698156]" />
                                 Show on Homepage Hero Model (Model Dress)
                               </span>
                               <p className="text-[11px] sm:text-xs text-gray-500 mt-1 leading-snug">
@@ -2166,7 +2169,7 @@ export function AdminAanyaPage() {
                                 className="text-[11px] sm:text-xs font-bold text-[#698156] hover:text-[#546944] bg-white hover:bg-[#F4F6F2] border border-[#DCE4D7] px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs whitespace-nowrap"
                                 title="Automatically generate matching angle shots for this category"
                               >
-                                <Sparkles className="w-3.5 h-3.5 text-[#698156]" />
+                                <Camera className="w-3.5 h-3.5 text-[#698156]" />
                                 Autofill Angles
                               </button>
                             </div>
@@ -2682,6 +2685,11 @@ export function AdminAanyaPage() {
                 </div>
               )}
             </div>
+          )}
+
+          {/* ─── TAB: NOTIFICATIONS & OFFERS ─── */}
+          {activeTab === 'notifications' && (
+            <AdminNotificationsSection />
           )}
 
           {/* ─── TAB: HERO BANNERS ─── */}

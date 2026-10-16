@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   Boxes, Package, AlertTriangle, TrendingDown, CheckCircle2,
   Plus, Search, ArrowUpRight, RefreshCw, Filter, X,
-  ArrowRight, ShieldAlert, Sparkles, Upload, Check, ChevronDown,
+  ArrowRight, ShieldAlert, Upload, Check, ChevronDown,
   Layers, ShoppingBag, Eye, Store, Hash
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';

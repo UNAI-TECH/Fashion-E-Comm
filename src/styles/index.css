@@ -77,3 +77,24 @@ html {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Universal Button Tactile Click Animation (Mobile & Desktop Responsive) */
+button,
+[role="button"],
+.btn,
+a.button-link {
+  transition: transform 0.12s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.12s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.15s ease, opacity 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:active:not(:disabled),
+[role="button"]:active:not([aria-disabled="true"]),
+.btn:active,
+a.button-link:active {
+  transform: scale(0.95) !important;
+}
+
+button:not(:disabled):hover,
+[role="button"]:hover {
+  cursor: pointer;
+}

@@ -3,8 +3,10 @@ import { useLocation } from 'react-router';
 import { Navigation } from '../components/Navigation';
 import { AnnouncementBar } from '../components/AnnouncementBar';
 import { HeroAdBanner } from '../components/HeroAdBanner';
-import { TrendingCollection } from '../components/TrendingCollection';
 import { MotionBanner } from '../components/MotionBanner';
+import { ShopByCategory } from '../components/ShopByCategory';
+import { TrendingCollection } from '../components/TrendingCollection';
+import { NotificationOffersPopup } from '../components/NotificationOffersPopup';
 import { Footer } from '../components/Footer';
 import { fetchProducts, Product } from '../data/products';
 import { SEOHead, getOrganizationSchema, getWebsiteSchema, getOnlineStoreSchema, getFAQSchema } from '../components/SEOHead';
@@ -18,7 +20,6 @@ export function Home() {
     setIsLoading(true);
     try {
       const data = await fetchProducts();
-      console.log('Home Products Fetched:', data);
       setProducts(data);
     } catch (error) {
       console.error('Error fetching home products:', error);
@@ -112,17 +113,23 @@ export function Home() {
       <AnnouncementBar />
       <Navigation />
       
-      {/* 1. Hero Ad Banner Carousel (Meesho & Myntra style) */}
+      {/* 1. Hero Section Banner Slider (as before) */}
       <HeroAdBanner />
 
-      {/* 2. Sale Sarees Collection Showroom */}
+      {/* 2. Sale Sarees Collection (Grand Saree Showcase with Material Filters) */}
       <TrendingCollection products={products} isLoading={isLoading} />
 
-      {/* 3. Promotional Festive Ribbon Banner */}
+      {/* 3. New Season Collection Promotional Section in the bottom of Sale Sarees Collection */}
       <MotionBanner />
 
-      {/* 4. Footer (without Instagram Gallery) */}
+      {/* 4. Shop By Category Section (Kanchi Cotton, Viscose Sarees, Fancy Sarees, Checks Pedding) */}
+      <ShopByCategory />
+
+      {/* 5. Compact, Proportional Footer */}
       <Footer />
+
+      {/* 6. Floating Notification Bell & Latest Offers Popup (Image 3 & 4) */}
+      <NotificationOffersPopup />
     </div>
   );
 }

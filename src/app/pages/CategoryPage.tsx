@@ -51,6 +51,46 @@ const CATEGORY_SEO: Record<string, { title: string; description: string; keyword
     description: 'Discover the latest new arrivals at Aanya Fashions. Shop freshly launched sarees, kurtis, lehengas, western wear & more. Be the first to own trending styles. Free shipping.',
     keywords: 'new arrivals fashion, latest fashion, new collection, trending fashion, new sarees, new kurtis, latest lehengas, aanya fashions new arrivals',
   },
+  kanchicotton: {
+    title: 'Buy Authentic Kanchi Cotton Sarees Online',
+    description: 'Shop pure handloom Kanchi cotton sarees with traditional temple borders and rich pallu at Aanya Fashions. Breathable, elegant, and festive. Free shipping across India.',
+    keywords: 'kanchi cotton sarees, buy kanchi cotton saree, traditional south cotton saree, handloom kanchi cotton, aanya fashions kanchi cotton',
+  },
+  'kanchi-cotton': {
+    title: 'Buy Authentic Kanchi Cotton Sarees Online',
+    description: 'Shop pure handloom Kanchi cotton sarees with traditional temple borders and rich pallu at Aanya Fashions. Breathable, elegant, and festive. Free shipping across India.',
+    keywords: 'kanchi cotton sarees, buy kanchi cotton saree, traditional south cotton saree, handloom kanchi cotton, aanya fashions kanchi cotton',
+  },
+  viscose: {
+    title: 'Buy Elegant Viscose Sarees Online',
+    description: 'Discover lustrous, smooth Viscose silk sarees at Aanya Fashions. Lightweight drape, vibrant festive colors, and modern borders with free delivery across India.',
+    keywords: 'viscose sarees, buy viscose saree, viscose silk saree, festive viscose saree, aanya fashions viscose',
+  },
+  'viscose-sarees': {
+    title: 'Buy Elegant Viscose Sarees Online',
+    description: 'Discover lustrous, smooth Viscose silk sarees at Aanya Fashions. Lightweight drape, vibrant festive colors, and modern borders with free delivery across India.',
+    keywords: 'viscose sarees, buy viscose saree, viscose silk saree, festive viscose saree, aanya fashions viscose',
+  },
+  'fancy-sarees': {
+    title: 'Buy Designer Fancy Sarees Online',
+    description: 'Shop contemporary fancy sarees, party wear georgette, chiffon, and shimmer designer sarees at Aanya Fashions. Glamorous ethnic wear with free shipping.',
+    keywords: 'fancy sarees, buy fancy sarees, party wear fancy saree, designer fancy sarees online, aanya fashions fancy sarees',
+  },
+  fancy: {
+    title: 'Buy Designer Fancy Sarees Online',
+    description: 'Shop contemporary fancy sarees, party wear georgette, chiffon, and shimmer designer sarees at Aanya Fashions. Glamorous ethnic wear with free shipping.',
+    keywords: 'fancy sarees, buy fancy sarees, party wear fancy saree, designer fancy sarees online, aanya fashions fancy sarees',
+  },
+  'checks-pedding': {
+    title: 'Buy Checks Pedding Sarees Online',
+    description: 'Shop traditional Checks Pedding sarees featuring classic checkered patterns and rich zari borders at Aanya Fashions. Authentic handloom quality with free delivery.',
+    keywords: 'checks pedding sarees, check pedding saree, checks saree, handloom checks saree, aanya fashions checks pedding',
+  },
+  'checks-pedding-sarees': {
+    title: 'Buy Checks Pedding Sarees Online',
+    description: 'Shop traditional Checks Pedding sarees featuring classic checkered patterns and rich zari borders at Aanya Fashions. Authentic handloom quality with free delivery.',
+    keywords: 'checks pedding sarees, check pedding saree, checks saree, handloom checks saree, aanya fashions checks pedding',
+  },
 };
 
 export function CategoryPage() {
@@ -60,9 +100,17 @@ export function CategoryPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  const categoryTitle = category 
-    ? category.charAt(0).toUpperCase() + category.slice(1).replace('-', ' ') 
-    : 'All Collections';
+  const getCategoryTitle = (cat?: string) => {
+    if (!cat) return 'All Collections';
+    const c = cat.toLowerCase().replace(/-/g, ' ').trim();
+    if (c === 'kanchicotton' || c === 'kanchi cotton') return 'Kanchi Cotton Sarees';
+    if (c === 'viscose' || c === 'viscose sarees') return 'Viscose Sarees';
+    if (c === 'fancy' || c === 'fancy sarees') return 'Fancy Sarees';
+    if (c === 'checks pedding' || c === 'checks pedding sarees' || c === 'check pedding') return 'Checks Pedding Sarees';
+    return c.charAt(0).toUpperCase() + c.slice(1);
+  };
+
+  const categoryTitle = getCategoryTitle(category);
 
   const categorySlug = (category || 'all').toLowerCase().replace(/\s+/g, '-');
   const seo = CATEGORY_SEO[categorySlug] || {

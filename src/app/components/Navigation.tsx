@@ -96,11 +96,10 @@ export function Navigation() {
     navigate(`/search?q=${encodeURIComponent(query.trim())}`);
   };
 
-  // Load all catalog products when search opens
+  // Preload all catalog products immediately on mount for instant real-time search
   useEffect(() => {
-    if (!isSearchOpen) return;
     fetchProducts().then(products => setAllProducts(products));
-  }, [isSearchOpen]);
+  }, []);
 
   // Listen for 'open-search' event from HeroSection search button
   useEffect(() => {
@@ -150,59 +149,48 @@ export function Navigation() {
   }, []);
 
   useEffect(() => {
-    const searchProducts = async () => {
-      const queryTrimmed = searchQuery.trim();
-      if (queryTrimmed.length === 0) {
-        setSearchResults([]);
-        return;
+    const queryTrimmed = searchQuery.trim();
+    if (queryTrimmed.length === 0) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+
+    const runSearch = (items: Product[]) => {
+      let results = intelligentSearch(queryTrimmed, items);
+      if (results.length === 0) {
+        results = getRecommendedFallback(items);
+        setIsFallbackSearch(true);
+        setSearchSuggestions([]);
+      } else {
+        setIsFallbackSearch(false);
+        setSearchSuggestions(getSearchSuggestions(queryTrimmed, items));
       }
 
-      setIsSearching(true);
-      try {
-        // 1. Load mock catalog
-        const mockProducts = await fetchProducts();
-
-        // 2. Fetch from Supabase (broad search to allow client-side AI to filter)
-        // We fetch a larger pool so the AI can score them
-        const { data: dbData } = await supabase
-          .from('products')
-          .select('id, name, category, description, price, images, image_url, status')
-          .limit(200);
-
-        // 3. Combine and deduplicate
-        const allItems = [...mockProducts, ...(dbData || [])];
-        const uniqueItems = Array.from(new Map(allItems.map(item => [item.id, item])).values()) as Product[];
-
-        // 4. Run AI Semantic Search
-        let results = intelligentSearch(queryTrimmed, uniqueItems);
-
-        // 5. Fallback Recommendations if no results
-        if (results.length === 0) {
-          results = getRecommendedFallback(uniqueItems);
-          setIsFallbackSearch(true);
-          setSearchSuggestions([]);
-        } else {
-          setIsFallbackSearch(false);
-          setSearchSuggestions(getSearchSuggestions(queryTrimmed, uniqueItems));
-        }
-
-        setSearchResults(
-          results.map((p: any) => ({
-            ...p,
-            image: (p.images && p.images.length > 0) ? p.images[0] : (p.image_url || p.image || ''),
-          }))
-        );
-      } catch (err) {
-        console.error('Search error:', err);
-        setSearchResults([]);
-      } finally {
-        setIsSearching(false);
-      }
+      setSearchResults(
+        results.map((p: any) => ({
+          ...p,
+          image: (p.images && p.images.length > 0) ? p.images[0] : (p.image_url || p.image || ''),
+        }))
+      );
+      setIsSearching(false);
     };
 
-    const timer = setTimeout(searchProducts, 300);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
+    if (allProducts.length > 0) {
+      runSearch(allProducts);
+    } else {
+      setIsSearching(true);
+      fetchProducts()
+        .then((products) => {
+          setAllProducts(products);
+          runSearch(products);
+        })
+        .catch((err) => {
+          console.error('Search error:', err);
+          setIsSearching(false);
+        });
+    }
+  }, [searchQuery, allProducts]);
 
 
 
@@ -284,19 +272,40 @@ export function Navigation() {
                             No exact matches found. Showing recommendations:
                           </div>
                         )}
-                        <div className="space-y-0.5">
+                        <div className="space-y-1">
                           {searchResults.map((product) => (
                             <Link
                               key={product.id}
                               to={`/product/${product.id}`}
                               onClick={() => { addToHistory(product.name); setIsSearchDropdownOpen(false); setSearchQuery(''); }}
-                              className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-[#F4F6F2] transition-colors group"
+                              className="flex items-center gap-3 p-2 rounded-xl hover:bg-[#F4F6F2] transition-colors group cursor-pointer"
                             >
-                              <div>
-                                <p className="text-xs font-medium text-gray-800 group-hover:text-[#698156] transition-colors">
+                              <div className="w-10 h-12 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0 border border-gray-200/60 shadow-2xs">
+                                {product.image ? (
+                                  <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-gray-400 text-[10px] font-bold">AF</div>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 mb-0.5">
+                                  <span className="text-[9px] font-bold uppercase tracking-wider text-[#698156] bg-[#698156]/10 px-1.5 py-0.5 rounded">
+                                    {product.category || 'Saree'}
+                                  </span>
+                                  {product.material && (
+                                    <span className="text-[9px] font-medium text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded truncate max-w-[90px]">
+                                      {product.material}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs font-semibold text-gray-800 group-hover:text-[#698156] transition-colors truncate">
                                   <HighlightText text={product.name} highlight={searchQuery} />
                                 </p>
+                                <p className="text-xs font-bold text-gray-900 mt-0.5">
+                                  ₹{(product.price || 0).toLocaleString('en-IN')}
+                                </p>
                               </div>
+                              <ArrowRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-[#698156] transition-transform group-hover:translate-x-0.5 flex-shrink-0" />
                             </Link>
                           ))}
                         </div>
@@ -312,8 +321,9 @@ export function Navigation() {
             </AnimatePresence>
           </div>
 
-          {/* Right Actions: Wishlist | Orders | Profile | Cart */}
+          {/* Right Actions: Wishlist | Orders | Cart | Profile */}
           <div className="flex items-center gap-5 sm:gap-6 flex-shrink-0">
+            {/* 1. Wishlist */}
             <motion.button
               whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }}
               onClick={() => setIsWishlistOpen(true)}
@@ -331,9 +341,10 @@ export function Navigation() {
               <span className="text-[10px] font-semibold">Wishlist</span>
             </motion.button>
 
+            {/* 2. Orders */}
             <Link to="/orders">
               <motion.div
-                whileHover={{ scale: 1.08 }}
+                whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }}
                 className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-[#698156] transition-colors cursor-pointer"
               >
                 <Package className="w-5 h-5" />
@@ -341,8 +352,30 @@ export function Navigation() {
               </motion.div>
             </Link>
 
+            {/* 3. Cart / Bag */}
+            <Link to="/cart">
+              <motion.div
+                whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }}
+                className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-[#698156] transition-colors cursor-pointer relative"
+                aria-label="Shopping Cart"
+              >
+                <div className="relative">
+                  <ShoppingBag className="w-5 h-5" />
+                  {cartCount > 0 && (
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute -top-1.5 -right-2 bg-[#698156] text-white text-[9px] font-black rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center shadow-xs"
+                    >
+                      {cartCount}
+                    </motion.span>
+                  )}
+                </div>
+                <span className="text-[10px] font-semibold">Cart</span>
+              </motion.div>
+            </Link>
 
-            {/* Account / Profile with Myntra-style dropdown */}
+            {/* 4. Profile / Account with dropdown */}
             <div className="relative">
               <motion.button
                 whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }}
@@ -457,29 +490,6 @@ export function Navigation() {
                 )}
               </AnimatePresence>
             </div>
-
-            {/* Cart / Bag with Live Count Badge (Meesho & Myntra style) */}
-            <Link to="/cart">
-              <motion.div
-                whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }}
-                className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-[#698156] transition-colors cursor-pointer relative"
-                aria-label="Shopping Cart"
-              >
-                <div className="relative">
-                  <ShoppingBag className="w-5 h-5" />
-                  {cartCount > 0 && (
-                    <motion.span
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="absolute -top-1.5 -right-2 bg-[#698156] text-white text-[9px] font-black rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center shadow-xs"
-                    >
-                      {cartCount}
-                    </motion.span>
-                  )}
-                </div>
-                <span className="text-[10px] font-semibold">Cart</span>
-              </motion.div>
-            </Link>
           </div>
         </div>
       </header>
@@ -917,22 +927,42 @@ export function Navigation() {
                         No exact matches found. Showing recommendations:
                       </div>
                     )}
-                    <div className="space-y-0.5">
+                    <div className="space-y-1">
                       {searchResults.map((product) => (
-                    <Link
-                      key={product.id}
-                      to={`/product/${product.id}`}
-                      onClick={() => { addToHistory(product.name); setIsSearchOpen(false); setSearchQuery(''); }}
-                      className="flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-[#F4F6F2] transition-colors group"
-                    >
-                      <div>
-                        <p className="text-sm font-medium text-gray-800 group-hover:text-[#698156] transition-colors">
-                          <HighlightText text={product.name} highlight={searchQuery} />
-                        </p>
-                      </div>
-                      <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-[#698156] transition-colors flex-shrink-0 ml-2" />
-                    </Link>
-                  ))}
+                        <Link
+                          key={product.id}
+                          to={`/product/${product.id}`}
+                          onClick={() => { addToHistory(product.name); setIsSearchOpen(false); setSearchQuery(''); }}
+                          className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-[#F4F6F2] transition-colors group cursor-pointer"
+                        >
+                          <div className="w-12 h-14 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0 border border-gray-200/60 shadow-2xs">
+                            {product.image ? (
+                              <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs font-bold">AF</div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 mb-0.5">
+                              <span className="text-[9px] font-bold uppercase tracking-wider text-[#698156] bg-[#698156]/10 px-1.5 py-0.5 rounded">
+                                {product.category || 'Saree'}
+                              </span>
+                              {product.material && (
+                                <span className="text-[9px] font-medium text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded truncate max-w-[100px]">
+                                  {product.material}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm font-semibold text-gray-800 group-hover:text-[#698156] transition-colors truncate">
+                              <HighlightText text={product.name} highlight={searchQuery} />
+                            </p>
+                            <p className="text-xs font-bold text-gray-900 mt-0.5">
+                              ₹{(product.price || 0).toLocaleString('en-IN')}
+                            </p>
+                          </div>
+                          <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-[#698156] transition-transform group-hover:translate-x-0.5 flex-shrink-0" />
+                        </Link>
+                      ))}
                     </div>
                   </div>
                 </div>
