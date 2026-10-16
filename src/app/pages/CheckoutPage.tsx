@@ -487,6 +487,7 @@ export function CheckoutPage() {
               status: 'Completed',
               txnId: rzpResponse.razorpay_payment_id
             });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
             toast.success('Payment confirmed! Your order has been placed.');
             window.dispatchEvent(new Event('orders_updated'));
           } catch (verifyErr: any) {
@@ -576,9 +577,9 @@ export function CheckoutPage() {
               )}
               {orderPlaced.status === 'Pending Verification' && (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 text-left space-y-1">
-                  <p className="font-bold">Authoritative Bank Verification Notice</p>
+                  <p className="font-bold">Payment Verification Notice</p>
                   <p className="text-[11px] leading-relaxed text-amber-700">
-                    Your Google Pay transaction reference is recorded. Your order is in Pending Verification status and will be authoritatively confirmed once bank settlement is verified with Aanya Fashions ({DEFAULT_GPAY_CONFIG.merchantVpa}, MCC {DEFAULT_GPAY_CONFIG.mcc}).
+                    Your online transaction reference is recorded. Your order is in Pending Verification status and will be confirmed once bank settlement is verified.
                   </p>
                 </div>
               )}

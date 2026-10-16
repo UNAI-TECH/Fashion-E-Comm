@@ -93,9 +93,14 @@ export async function openRazorpayCheckout(options: RazorpayCheckoutOptions): Pr
     // 2. Load Razorpay client SDK
     const isScriptLoaded = await loadRazorpayScript();
 
-    // If script could not load or running in simulation fallback
+    // If real keys are present but SDK couldn't load (e.g., ad blocker blocking checkout.razorpay.com)
+    if (!isScriptLoaded && !orderData.isSimulated && !orderData.keyId?.includes('placeholder')) {
+      throw new Error('Could not load Razorpay Checkout SDK. Please check your network or disable ad blockers and try again.');
+    }
+
+    // Only use simulated fallback if placeholder keys are active
     if (!isScriptLoaded || orderData.isSimulated || orderData.keyId?.includes('placeholder')) {
-      console.info('Using simulated payment flow for development / test mode.');
+      console.info('Using simulated payment flow for development / test mode with placeholder keys.');
       
       // Auto-simulate successful checkout after brief confirmation
       setTimeout(async () => {
@@ -112,19 +117,22 @@ export async function openRazorpayCheckout(options: RazorpayCheckoutOptions): Pr
       return;
     }
 
-    // 3. Configure Razorpay Standard Modal
+    // 3. Configure Razorpay Standard Modal per official docs
+    const logoUrl = typeof window !== 'undefined' ? `${window.location.origin}/logo.png` : 'https://aanyafashions.com/logo.png';
+    const cleanPhone = customerPhone ? customerPhone.replace(/[^\d+]/g, '') : '';
+
     const rzpOptions = {
       key: orderData.keyId,
       amount: orderData.amount, // in paise
       currency: orderData.currency || 'INR',
       name: 'Aanya Fashions',
       description: `Payment for Order #${orderId}`,
-      image: '/logo.png',
+      image: logoUrl,
       order_id: orderData.id,
       prefill: {
         name: customerName,
         email: customerEmail || 'customer@aanyafashions.com',
-        contact: customerPhone || '+919043088697'
+        contact: cleanPhone
       },
       notes: {
         orderId,
@@ -138,10 +146,15 @@ export async function openRazorpayCheckout(options: RazorpayCheckoutOptions): Pr
           if (onDismiss) onDismiss();
         },
         backdropclose: false,
-        escape: true
+        escape: true,
+        handleback: true,
+        confirm_close: true
       },
       handler: async (response: any) => {
         try {
+          if (!response.razorpay_payment_id || !response.razorpay_order_id || !response.razorpay_signature) {
+            throw new Error('Razorpay returned incomplete payment response credentials.');
+          }
           await onSuccess({
             razorpay_payment_id: response.razorpay_payment_id,
             razorpay_order_id: response.razorpay_order_id,
@@ -158,8 +171,9 @@ export async function openRazorpayCheckout(options: RazorpayCheckoutOptions): Pr
 
     rzpInstance.on('payment.failed', function (resp: any) {
       console.error('Razorpay payment failed:', resp.error);
+      const desc = resp.error?.description || resp.error?.reason || 'Payment was unsuccessful or cancelled';
       if (onError) {
-        onError(new Error(resp.error?.description || 'Payment was unsuccessful'));
+        onError(new Error(desc));
       }
     });
 

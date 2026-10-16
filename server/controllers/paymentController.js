@@ -85,7 +85,12 @@ export const createRazorpayOrder = async (req, res) => {
           isSimulated: false
         });
       } catch (rzpErr) {
-        console.error('Razorpay API error, falling back to simulated order for development/testing:', rzpErr.message);
+        console.error('Razorpay Orders API error:', rzpErr);
+        const errMsg = rzpErr.error?.description || rzpErr.description || rzpErr.message || 'Razorpay order creation failed';
+        return res.status(400).json({
+          success: false,
+          message: `Razorpay Error: ${errMsg}`
+        });
       }
     }
 
