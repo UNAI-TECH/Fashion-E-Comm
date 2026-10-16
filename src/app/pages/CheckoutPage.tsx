@@ -359,11 +359,14 @@ export function CheckoutPage() {
       tracking_number: trackingNumber,
     };
 
+    // In Supabase DB, check constraint expects 'UPI', 'Card', or 'COD'
+    const dbPaymentMethod = method === 'Razorpay' ? 'UPI' : 'COD';
+
     // 1. Insert order in Pending state
     const orderPayload = {
       id: orderId,
       status: initialPaymentStatus === 'Completed' ? 'Confirmed' : 'Pending',
-      payment_method: method,
+      payment_method: dbPaymentMethod,
       payment_status: initialPaymentStatus,
       subtotal: sellingTotal,
       discount_amount: discount,
@@ -964,36 +967,6 @@ export function CheckoutPage() {
                         </div>
                       ))}
                     </div>
-
-                    {/* Razorpay Active Info Box */}
-                    {paymentMethod === 'Razorpay' && (
-                      <div className="bg-[#F8FBF7] border border-[#698156]/20 rounded-2xl p-4.5 space-y-3 shadow-xs">
-                        <div className="flex items-start gap-3.5">
-                          <div className="w-10 h-10 rounded-xl bg-white border border-gray-200/80 flex items-center justify-center p-2 flex-shrink-0 shadow-xs text-[#698156]">
-                            <ShieldCheck className="w-6 h-6" />
-                          </div>
-                          <div className="text-xs text-gray-600 leading-relaxed flex-grow">
-                            <div className="flex items-center justify-between">
-                              <p className="font-bold text-gray-900 text-sm mb-0.5">Instant & Secure Gateway</p>
-                              <span className="text-[10px] bg-white border border-[#698156]/30 px-2 py-0.5 rounded-full text-[#698156] font-bold">
-                                Razorpay Verified
-                              </span>
-                            </div>
-                            <p className="text-gray-600">
-                              Supports all UPI apps (Google Pay, PhonePe, Paytm, BHIM, Cred), Visa, MasterCard, RuPay, and 50+ Net Banking accounts.
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Payment Partner Logos Strip */}
-                        <div className="pt-2 border-t border-[#698156]/15 flex flex-wrap items-center justify-between gap-2 text-[10px] text-gray-500 font-medium">
-                          <span className="flex items-center gap-1">
-                            <Lock className="w-3 h-3 text-emerald-600" /> 256-bit Bank-Grade Encryption
-                          </span>
-                          <span className="text-gray-400">PCI-DSS Level 1 Certified</span>
-                        </div>
-                      </div>
-                    )}
 
                     {paymentMethod === 'COD' && (
                       <div className="bg-emerald-50/60 border border-emerald-200/80 rounded-2xl p-4 text-xs text-emerald-900 space-y-1.5">

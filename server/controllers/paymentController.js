@@ -169,7 +169,7 @@ export const verifyRazorpayPayment = async (req, res) => {
           .update({
             payment_status: 'Completed',
             status: 'Confirmed',
-            payment_method: 'Razorpay',
+            payment_method: 'UPI',
             updated_at: new Date().toISOString()
           })
           .eq('id', targetOrderId)
@@ -243,46 +243,55 @@ export const handleRazorpayWebhook = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Webhook signature missing' });
     }
 
-    const bodyString = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+    // Verify HMAC signature using raw request body
+    const rawPayload = req.rawBody ? req.rawBody.toString('utf8') : (typeof req.body === 'string' ? req.body : JSON.stringify(req.body));
     const expectedSignature = crypto
       .createHmac('sha256', webhookSecret)
-      .update(bodyString)
+      .update(rawPayload)
       .digest('hex');
 
     if (expectedSignature !== signature && !webhookSecret.includes('placeholder')) {
+      console.warn('Razorpay Webhook: Signature mismatch detected.');
       return res.status(400).json({ success: false, message: 'Invalid webhook signature' });
     }
 
     const event = req.body.event;
     const payload = req.body.payload;
 
-    if (event === 'payment.captured') {
-      const payment = payload?.payment?.entity;
-      const orderReceipt = payment?.notes?.orderId || payment?.description;
+    console.log(`Razorpay Webhook Verified: Event "${event}" received`);
 
-      if (orderReceipt) {
+    if (event === 'payment.captured' || event === 'order.paid') {
+      const payment = payload?.payment?.entity;
+      const order = payload?.order?.entity;
+      const targetOrderId = payment?.notes?.orderId || order?.notes?.orderId || payment?.description || order?.receipt;
+
+      if (targetOrderId) {
         await supabase
           .from('orders')
           .update({
             payment_status: 'Completed',
             status: 'Confirmed',
-            payment_method: 'Razorpay'
+            payment_method: 'UPI',
+            updated_at: new Date().toISOString()
           })
-          .eq('id', orderReceipt);
+          .eq('id', targetOrderId);
       }
     } else if (event === 'payment.failed') {
       const payment = payload?.payment?.entity;
-      const orderReceipt = payment?.notes?.orderId || payment?.description;
+      const targetOrderId = payment?.notes?.orderId || payment?.description;
 
-      if (orderReceipt) {
+      if (targetOrderId) {
         await supabase
           .from('orders')
-          .update({ payment_status: 'Failed' })
-          .eq('id', orderReceipt);
+          .update({
+            payment_status: 'Failed',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', targetOrderId);
       }
     }
 
-    res.json({ status: 'ok' });
+    return res.status(200).json({ status: 'ok' });
   } catch (error) {
     console.error('Razorpay Webhook Error:', error);
     res.status(500).json({ success: false, message: error.message });
