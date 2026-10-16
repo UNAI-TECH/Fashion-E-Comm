@@ -45,6 +45,7 @@ export function CheckoutPage() {
 
   const [step, setStep] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentState, setPaymentState] = useState<'IDLE' | 'CREATING_ORDER' | 'CHECKOUT_OPEN' | 'VERIFYING' | 'PAID' | 'FAILED' | 'PENDING_RECONCILIATION'>('IDLE');
   const [orderPlaced, setOrderPlaced] = useState<{ orderId: string; trackingNumber: string; method?: string; status?: string; txnId?: string } | null>(null);
 
   // Buy Now mode
@@ -327,6 +328,13 @@ export function CheckoutPage() {
     window.scrollTo(0, 0);
   };
 
+  // Empty cart navigation moved safely into useEffect to eliminate React render-time navigation warnings
+  useEffect(() => {
+    if (!loadingBuyNow && checkoutItems.length === 0 && !orderPlaced && paymentState !== 'PAID') {
+      navigate('/cart');
+    }
+  }, [loadingBuyNow, checkoutItems.length, orderPlaced, paymentState, navigate]);
+
   // Core Order Creator: Creates order in Pending state BEFORE online payment or on COD confirmation
   const createPendingOrderInDatabase = async (
     orderId: string,
@@ -359,7 +367,7 @@ export function CheckoutPage() {
       tracking_number: trackingNumber,
     };
 
-    // In Supabase DB, check constraint expects 'UPI', 'Card', or 'COD'
+    // In Supabase DB, check constraint accepts 'UPI', 'Razorpay', 'Card', or 'COD'
     const dbPaymentMethod = method === 'Razorpay' ? 'UPI' : 'COD';
 
     // 1. Insert order in Pending state
@@ -369,12 +377,14 @@ export function CheckoutPage() {
       payment_method: dbPaymentMethod,
       payment_status: initialPaymentStatus,
       subtotal: sellingTotal,
-      discount_amount: discount,
+      discount_amount: couponDiscount,
       tax_amount: 0,
       shipping_fee: deliveryFee,
       total_amount: totalAmount,
       total_price: totalAmount,
       shipping_address: shippingAddress,
+      tracking_number: trackingNumber,
+      stock_decremented: false,
       ...(userId ? { user_id: userId } : {}),
     };
 
@@ -397,29 +407,12 @@ export function CheckoutPage() {
     }));
     await supabase.from('order_items').insert(orderItems);
 
-    // 3. Deduct stock (best-effort, never blocks order)
-    for (const item of checkoutItems) {
-      if (uuidRegex.test(item.id)) {
-        try {
-          // Try atomic RPC first
-          const { error: rpcErr } = await supabase.rpc('decrement_stock', {
-            p_product_id: item.id,
-            p_qty: item.quantity,
-          });
-          if (rpcErr) {
-            // Fallback: direct UPDATE if RPC function doesn't exist or fails
-            console.warn('decrement_stock RPC unavailable, using direct update:', rpcErr.message);
-            const { data: prod } = await supabase.from('products').select('stock_quantity').eq('id', item.id).single();
-            if (prod && prod.stock_quantity != null) {
-              await supabase.from('products').update({
-                stock_quantity: Math.max(0, (prod.stock_quantity || 0) - item.quantity)
-              }).eq('id', item.id);
-            }
-          }
-        } catch (stockErr) {
-          // Non-fatal: stock deduction should never prevent order placement
-          console.warn('Stock deduction warning for', item.id, stockErr);
-        }
+    // 3. For Cash on Delivery only: deduct inventory immediately upon confirmed placement
+    if (method === 'COD') {
+      try {
+        await supabase.rpc('fulfill_order_stock', { p_order_id: orderId });
+      } catch (codStockErr) {
+        console.warn('COD stock fulfillment note:', codStockErr);
       }
     }
 
@@ -428,7 +421,7 @@ export function CheckoutPage() {
 
   // Place Order / Initiate Payment via Razorpay or COD
   const handlePlaceOrder = async () => {
-    if (checkoutItems.length === 0) return;
+    if (checkoutItems.length === 0 || isProcessing) return;
 
     if (isAddingNew || savedAddresses.length === 0) {
       if (!handleSaveNewAddress()) return;
@@ -436,6 +429,30 @@ export function CheckoutPage() {
     if (!selectedAddressId && savedAddresses.length > 0) {
       toast.error('Please select a delivery address');
       return;
+    }
+
+    // Step A: Pre-flight stock availability check
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const dbProductIds = checkoutItems.map(i => i.id).filter(id => uuidRegex.test(id));
+    if (dbProductIds.length > 0) {
+      try {
+        const { data: prods } = await supabase
+          .from('products')
+          .select('id, name, stock_quantity')
+          .in('id', dbProductIds);
+
+        if (prods && prods.length > 0) {
+          for (const item of checkoutItems) {
+            const p = prods.find(x => x.id === item.id);
+            if (p && p.stock_quantity != null && p.stock_quantity < item.quantity) {
+              toast.error(`Item "${item.name}" has only ${p.stock_quantity} left in stock.`);
+              return;
+            }
+          }
+        }
+      } catch (checkErr) {
+        console.warn('Pre-flight stock check notice:', checkErr);
+      }
     }
 
     const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
@@ -448,12 +465,13 @@ export function CheckoutPage() {
     const custPhone = addr?.phone || newAddress.phone || '';
 
     setIsProcessing(true);
+    setPaymentState('CREATING_ORDER');
 
     try {
       // ═══ CASH ON DELIVERY FLOW ═══
       if (paymentMethod === 'COD') {
         await createPendingOrderInDatabase(orderId, trackingNumber, 'COD', 'Pending');
-        if (!buyNowProductId) clearCart();
+        setPaymentState('PAID');
         setOrderPlaced({
           orderId,
           trackingNumber,
@@ -461,6 +479,7 @@ export function CheckoutPage() {
           status: 'Pending',
           txnId: `COD-${Date.now()}`,
         });
+        if (!buyNowProductId) clearCart();
         toast.success('Order placed successfully!');
         window.dispatchEvent(new Event('orders_updated'));
         setIsProcessing(false);
@@ -470,9 +489,12 @@ export function CheckoutPage() {
       // ═══ RAZORPAY ONLINE PAYMENT FLOW ═══
       await createPendingOrderInDatabase(orderId, trackingNumber, 'Razorpay', 'Pending');
 
+      setPaymentState('CHECKOUT_OPEN');
       await openRazorpayCheckout({
         orderId,
         amount: totalAmount,
+        items: checkoutItems.map(i => ({ id: i.id, quantity: i.quantity })),
+        couponCode: couponApplied?.code,
         customerName: custName,
         customerPhone: custPhone,
         notes: {
@@ -480,8 +502,9 @@ export function CheckoutPage() {
           itemsCount: checkoutItems.length
         },
         onSuccess: async (rzpResponse) => {
+          setPaymentState('VERIFYING');
           try {
-            await api.payments.verifyPayment({
+            const verifyRes = await api.payments.verifyPayment({
               razorpay_order_id: rzpResponse.razorpay_order_id,
               razorpay_payment_id: rzpResponse.razorpay_payment_id,
               razorpay_signature: rzpResponse.razorpay_signature,
@@ -490,7 +513,11 @@ export function CheckoutPage() {
               isSimulated: rzpResponse.isSimulated
             });
 
-            if (!buyNowProductId) clearCart();
+            if (!verifyRes || (!verifyRes.success && verifyRes.status !== 'PAID')) {
+              throw new Error(verifyRes?.message || 'Payment verification could not be confirmed.');
+            }
+
+            setPaymentState('PAID');
             setOrderPlaced({
               orderId,
               trackingNumber,
@@ -498,26 +525,39 @@ export function CheckoutPage() {
               status: 'Completed',
               txnId: rzpResponse.razorpay_payment_id
             });
+            if (!buyNowProductId) clearCart();
             window.scrollTo({ top: 0, behavior: 'smooth' });
             toast.success('Payment confirmed! Your order has been placed.');
             window.dispatchEvent(new Event('orders_updated'));
           } catch (verifyErr: any) {
-            console.error('Payment verification failed:', verifyErr);
-            toast.error('Payment verification warning: ' + (verifyErr.message || 'Please check order status'));
+            console.error('Payment verification warning:', verifyErr);
+            setPaymentState('PENDING_RECONCILIATION');
+            setOrderPlaced({
+              orderId,
+              trackingNumber,
+              method: 'Online Payment (Razorpay)',
+              status: 'Pending Verification',
+              txnId: rzpResponse.razorpay_payment_id
+            });
+            if (!buyNowProductId) clearCart();
+            toast.warning('Payment verification notice: ' + (verifyErr.message || 'Your order is recorded and awaiting final bank reconciliation.'));
           } finally {
             setIsProcessing(false);
           }
         },
         onError: (err: any) => {
+          setPaymentState('FAILED');
           setIsProcessing(false);
           toast.error(err?.message || 'Payment was unsuccessful or cancelled');
         },
         onDismiss: () => {
+          setPaymentState('IDLE');
           setIsProcessing(false);
           toast.info('Payment window closed');
         }
       });
     } catch (err: any) {
+      setPaymentState('FAILED');
       console.error('Order placement failed:', err);
       toast.error('Order failed: ' + (err.message || 'Please try again'));
       setIsProcessing(false);
@@ -534,10 +574,14 @@ export function CheckoutPage() {
     );
   }
 
-  // Empty cart
-  if (checkoutItems.length === 0 && !orderPlaced) {
-    navigate('/cart');
-    return null;
+  // Safe empty cart fallback (navigation handled by useEffect)
+  if (checkoutItems.length === 0 && !orderPlaced && paymentState !== 'PAID') {
+    return (
+      <div className="min-h-screen bg-[#F9FAF7]">
+        <AnnouncementBar /><Navigation />
+        <div className="pt-32 text-center text-gray-500">Redirecting to cart...</div>
+      </div>
+    );
   }
 
   // Order Success Screen
@@ -1005,7 +1049,11 @@ export function CheckoutPage() {
                           className="flex-1 py-3.5 bg-[#698156] hover:bg-[#546944] text-white rounded-xl font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-colors shadow-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {isProcessing ? (
-                            <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Processing...</>
+                            paymentState === 'VERIFYING' ? (
+                              <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Verifying Payment with Bank...</>
+                            ) : (
+                              <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Processing Order...</>
+                            )
                           ) : paymentMethod === 'Razorpay' ? (
                             <>
                               <Lock className="w-4 h-4" /> Pay with Razorpay • ₹{totalAmount.toLocaleString('en-IN')}

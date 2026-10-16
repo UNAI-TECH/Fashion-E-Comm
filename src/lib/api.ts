@@ -268,6 +268,8 @@ export const api = {
       amount: number;
       orderId?: string;
       receipt?: string;
+      items?: Array<{ id: string; quantity: number }>;
+      couponCode?: string;
       customerName?: string;
       customerEmail?: string;
       customerPhone?: string;
@@ -280,7 +282,10 @@ export const api = {
         amount: number;
         currency: string;
         keyId: string;
+        verifiedAmount?: number;
         isSimulated?: boolean;
+        message?: string;
+        code?: string;
       }>('/payments/razorpay/create-order', {
         method: 'POST',
         body: JSON.stringify(payload)
@@ -296,9 +301,11 @@ export const api = {
     }) =>
       request<{
         success: boolean;
+        status?: string;
         message: string;
         paymentId?: string;
         orderId?: string;
+        code?: string;
       }>('/payments/razorpay/verify', {
         method: 'POST',
         body: JSON.stringify(payload)

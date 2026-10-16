@@ -1,12 +1,6 @@
 // Supabase Edge Function: razorpay-webhook
 // Deploy with: supabase functions deploy razorpay-webhook
 // Set secrets: supabase secrets set RAZORPAY_WEBHOOK_SECRET=your_webhook_secret
-//
-// Webhook URL to configure in Razorpay Dashboard:
-//   https://<your-supabase-project-ref>.supabase.co/functions/v1/razorpay-webhook
-//
-// OR use your Vercel API route (already configured):
-//   https://aanyafashions.com/api/payments/webhook
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
@@ -17,7 +11,6 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -65,19 +58,17 @@ serve(async (req) => {
       })
     }
 
-    // 3. Parse the verified payload
+    // 3. Parse verified payload
     const body = JSON.parse(rawBody)
     const event = body.event
     const payload = body.payload
 
     console.log(`Razorpay Webhook: Event "${event}" received`)
 
-    // 4. Initialize Supabase client with service role
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // 5. Handle payment events
     if (event === 'payment.captured' || event === 'order.paid') {
       const payment = payload?.payment?.entity
       const order = payload?.order?.entity
@@ -87,38 +78,53 @@ serve(async (req) => {
         order?.receipt
 
       if (targetOrderId) {
+        // Fetch existing status for idempotency
+        const { data: currentOrder } = await supabase
+          .from('orders')
+          .select('id, payment_status, status, stock_decremented')
+          .eq('id', targetOrderId)
+          .maybeSingle()
+
+        // Atomic stock fulfillment
+        if (!currentOrder?.stock_decremented) {
+          try {
+            await supabase.rpc('fulfill_order_stock', { p_order_id: targetOrderId })
+          } catch (stkErr) {
+            console.warn('Webhook stock fulfillment notice:', stkErr)
+          }
+        }
+
         const { error } = await supabase
           .from('orders')
           .update({
             payment_status: 'Completed',
             status: 'Confirmed',
-            payment_method: 'UPI',
+            payment_method: payment?.method === 'upi' ? 'UPI' : 'Razorpay',
+            razorpay_payment_id: payment?.id,
+            razorpay_order_id: payment?.order_id || order?.id,
             updated_at: new Date().toISOString(),
           })
           .eq('id', targetOrderId)
 
         if (error) {
-          console.error('Failed to update order:', error)
+          console.error('Failed to update order in webhook:', error)
         } else {
-          console.log(`Order ${targetOrderId} marked as Confirmed/Completed`)
+          console.log(`Order ${targetOrderId} confirmed via webhook`)
         }
 
-        // Record in payments table
         try {
           await supabase.from('payments').insert([{
             order_id: targetOrderId,
             payment_id: payment?.id || `pay_${Date.now()}`,
-            payment_method: 'Razorpay',
+            payment_method: payment?.method || 'Razorpay',
             status: 'Success',
             amount: payment?.amount ? payment.amount / 100 : 0,
+            currency: payment?.currency || 'INR',
             gateway_txn_id: payment?.id,
             payer_vpa: payment?.vpa || payment?.email || '',
             created_at: new Date().toISOString(),
           }])
-        } catch (payErr) {
-          // Non-fatal if payments table doesn't exist
-          console.warn('Could not insert into payments table:', payErr)
-        }
+        } catch {}
       }
     } else if (event === 'payment.failed') {
       const payment = payload?.payment?.entity
@@ -127,15 +133,24 @@ serve(async (req) => {
         payment?.description
 
       if (targetOrderId) {
-        await supabase
+        const { data: currentOrder } = await supabase
           .from('orders')
-          .update({
-            payment_status: 'Failed',
-            updated_at: new Date().toISOString(),
-          })
+          .select('id, payment_status')
           .eq('id', targetOrderId)
+          .maybeSingle()
 
-        console.log(`Order ${targetOrderId} marked as payment Failed`)
+        // Do not downgrade already completed payments
+        if (currentOrder && currentOrder.payment_status !== 'Completed') {
+          await supabase
+            .from('orders')
+            .update({
+              payment_status: 'Failed',
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', targetOrderId)
+
+          console.log(`Order ${targetOrderId} marked as payment Failed`)
+        }
       }
     } else if (event === 'refund.created' || event === 'refund.processed') {
       const refund = payload?.refund?.entity
@@ -159,7 +174,7 @@ serve(async (req) => {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Webhook processing error:', error)
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
