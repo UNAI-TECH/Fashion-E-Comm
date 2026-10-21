@@ -426,17 +426,27 @@ export function CheckoutPage() {
     }
 
     if (!user) {
+      console.warn('[Checkout] User is not authenticated. Opening sign-in modal.');
       toast.info('Please sign in to complete your purchase');
       openAuthModal('signin');
       return;
     }
 
-    if (isAddingNew || savedAddresses.length === 0) {
-      if (!handleSaveNewAddress()) return;
+    // Auto-resolve delivery address if not explicitly selected
+    let activeAddressId = selectedAddressId;
+    if (!activeAddressId && savedAddresses.length > 0) {
+      activeAddressId = savedAddresses[0].id;
+      setSelectedAddressId(activeAddressId);
     }
-    if (!selectedAddressId && savedAddresses.length > 0) {
-      toast.error('Please select a delivery address');
-      return;
+
+    if (!activeAddressId) {
+      if (!handleSaveNewAddress()) {
+        console.warn('[Checkout] Address validation failed, switching to Step 1.');
+        setStep(1);
+        toast.error('Please fill in your delivery address to proceed.');
+        return;
+      }
+      activeAddressId = selectedAddressId;
     }
 
     // Step A: Pre-flight stock availability check — block if out of stock
@@ -444,20 +454,22 @@ export function CheckoutPage() {
     const dbProductIds = checkoutItems.map(i => i.id).filter(id => uuidRegex.test(id));
     if (dbProductIds.length > 0) {
       try {
-        const { data: prods } = await supabase
+        const { data: prods, error: prodErr } = await supabase
           .from('products')
           .select('id, name, stock_quantity')
           .in('id', dbProductIds);
 
-        if (prods && prods.length > 0) {
+        if (!prodErr && prods && prods.length > 0) {
           for (const item of checkoutItems) {
             const p = prods.find(x => x.id === item.id);
             if (p && p.stock_quantity != null) {
               if (p.stock_quantity <= 0) {
+                console.warn('[Checkout] Blocked: Product out of stock:', p.name);
                 toast.error(`"${item.name}" is currently out of stock.`);
                 return;
               }
               if (p.stock_quantity < item.quantity) {
+                console.warn('[Checkout] Blocked: Insufficient stock:', p.name, 'available:', p.stock_quantity, 'requested:', item.quantity);
                 toast.error(`"${item.name}" has only ${p.stock_quantity} left in stock.`);
                 return;
               }

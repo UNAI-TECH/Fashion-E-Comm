@@ -260,33 +260,78 @@ export const api = {
   payments: {
     getRazorpayKey: () =>
       request<{ success: boolean; keyId: string; currency: string; merchantName: string }>('/payments/key'),
-    createRazorpayOrder: (payload: {
+    createRazorpayOrder: async (payload: {
       amount: number;
       currency?: string;
       orderId?: string;
       receipt?: string;
-      items?: Array<{ id: string; quantity: number }>;
-      couponCode?: string;
       customerName?: string;
       customerEmail?: string;
       customerPhone?: string;
       notes?: any;
-    }) =>
-      request<{
-        success: boolean;
-        order_id: string;
-        id: string;
-        amount: number;
-        currency: string;
-        key_id?: string;
-        keyId?: string;
-        receipt?: string;
-        message?: string;
-        code?: string;
-      }>('/create-order', {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      }),
+      items?: any[];
+      couponCode?: string;
+    }) => {
+      // 1. Try Vercel Serverless /api/create-order
+      try {
+        const res = await request<{
+          success: boolean;
+          order_id: string;
+          id: string;
+          amount: number;
+          currency: string;
+          key_id?: string;
+          keyId?: string;
+          receipt?: string;
+          message?: string;
+          code?: string;
+        }>('/create-order', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        if (res && (res.success || res.order_id || res.id)) {
+          return res;
+        }
+      } catch (vercelErr: any) {
+        console.warn('[API] /create-order request failed, trying Supabase Edge Function fallback:', vercelErr?.message);
+      }
+
+      // 2. Resilient Fallback to deployed Supabase Edge Function 'razorpay-create-order'
+      try {
+        console.log('[API] Invoking Supabase Edge Function razorpay-create-order fallback...');
+        const { data: edgeData, error: edgeErr } = await supabase.functions.invoke('razorpay-create-order', {
+          body: {
+            amount: payload.amount > 500 ? payload.amount / 100 : payload.amount,
+            orderId: payload.orderId,
+            receipt: payload.receipt,
+            customerName: payload.customerName,
+            customerEmail: payload.customerEmail,
+            customerPhone: payload.customerPhone,
+            items: payload.items || [],
+            couponCode: payload.couponCode,
+            notes: payload.notes || {}
+          }
+        });
+
+        if (!edgeErr && edgeData && (edgeData.success || edgeData.id || edgeData.orderId)) {
+          console.log('[API] Order created successfully via Supabase Edge Function:', edgeData.id || edgeData.orderId);
+          return {
+            success: true,
+            order_id: edgeData.orderId || edgeData.id,
+            id: edgeData.id || edgeData.orderId,
+            amount: edgeData.amount,
+            currency: edgeData.currency || 'INR',
+            key_id: edgeData.keyId || edgeData.key_id || import.meta.env.VITE_RAZORPAY_KEY_ID,
+            keyId: edgeData.keyId || edgeData.key_id || import.meta.env.VITE_RAZORPAY_KEY_ID,
+            receipt: edgeData.receipt
+          };
+        }
+      } catch (edgeInvokeErr) {
+        console.error('[API] Edge function fallback also failed:', edgeInvokeErr);
+      }
+
+      throw new Error('Unable to create Razorpay payment order. Please try again.');
+    },
     verifyPayment: async (payload: {
       razorpay_order_id?: string;
       razorpay_payment_id?: string;
@@ -312,7 +357,8 @@ export const api = {
           body: JSON.stringify(payload)
         });
       } catch (err: any) {
-        if (err?.status === 404) {
+        // Fallback to /verify-payment endpoint
+        try {
           return await request<{
             success: boolean;
             status?: string;
@@ -327,6 +373,16 @@ export const api = {
             method: 'POST',
             body: JSON.stringify(payload)
           });
+        } catch {
+          // Fallback to Supabase Edge Function 'razorpay-verify'
+          try {
+            const { data: edgeData, error: edgeErr } = await supabase.functions.invoke('razorpay-verify', {
+              body: payload
+            });
+            if (!edgeErr && edgeData) {
+              return edgeData;
+            }
+          } catch {}
         }
         throw err;
       }
