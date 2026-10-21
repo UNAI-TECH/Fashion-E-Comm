@@ -301,7 +301,8 @@ export const api = {
         console.log('[API] Invoking Supabase Edge Function razorpay-create-order fallback...');
         const { data: edgeData, error: edgeErr } = await supabase.functions.invoke('razorpay-create-order', {
           body: {
-            amount: payload.amount > 500 ? payload.amount / 100 : payload.amount,
+            amount: payload.amount,
+            amountInPaise: payload.amount,
             orderId: payload.orderId,
             receipt: payload.receipt,
             customerName: payload.customerName,

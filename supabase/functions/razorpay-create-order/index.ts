@@ -25,6 +25,7 @@ serve(async (req) => {
 
     const {
       amount,
+      amountInPaise: explicitAmountInPaise,
       orderId,
       receipt,
       items = [],
@@ -96,14 +97,17 @@ serve(async (req) => {
       }
     }
 
-    if (!verifiedAmount || verifiedAmount <= 0) {
-      return new Response(JSON.stringify({ success: false, message: 'Invalid payable order amount' }), {
+    const amountInPaise = Array.isArray(items) && items.length > 0 && verifiedAmount > 0
+      ? Math.round(verifiedAmount * 100)
+      : (explicitAmountInPaise ? Math.round(Number(explicitAmountInPaise)) : Math.round(verifiedAmount))
+
+    if (!amountInPaise || amountInPaise < 100) {
+      return new Response(JSON.stringify({ success: false, message: 'Invalid payable order amount. Minimum is 100 paise (₹1.00).' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
-    const amountInPaise = Math.round(verifiedAmount * 100)
     const receiptId = targetOrderId.slice(0, 40)
 
     // Call Razorpay API
