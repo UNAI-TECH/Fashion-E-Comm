@@ -98,7 +98,7 @@ router.post('/', async (req, res) => {
 });
 
 // DELETE /api/banners/:id or /api/banners?id=...
-router.delete('/:id?', async (req, res) => {
+const handleDeleteBanner = async (req, res) => {
   try {
     const id = req.params.id || req.query.id;
     const imageUrl = req.query.image_url || '';
@@ -132,7 +132,9 @@ router.delete('/:id?', async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
-});
+};
+router.delete('/:id', handleDeleteBanner);
+router.delete('/', handleDeleteBanner);
 
 // POST /api/banners/reset
 router.post('/reset', async (req, res) => {

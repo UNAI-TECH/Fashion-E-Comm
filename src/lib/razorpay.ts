@@ -1,5 +1,5 @@
 /**
- * Razorpay Payment Gateway Web Integration
+ * Razorpay Standard Web Checkout Integration
  * Official Documentation: https://razorpay.com/docs/payments/payment-gateway/web-integration/standard/
  */
 
@@ -9,12 +9,12 @@ export interface RazorpayPaymentSuccessResponse {
   razorpay_payment_id: string;
   razorpay_order_id: string;
   razorpay_signature: string;
-  isSimulated?: boolean;
 }
 
 export interface RazorpayCheckoutOptions {
-  orderId: string;
-  amount: number;
+  orderId?: string;
+  amount: number; // in Rupees or Paise (if already converted)
+  amountInPaise?: number; // explicit amount in paise
   items?: Array<{ id: string; quantity: number }>;
   couponCode?: string;
   customerName?: string;
@@ -22,14 +22,14 @@ export interface RazorpayCheckoutOptions {
   customerPhone?: string;
   notes?: Record<string, any>;
   onSuccess: (response: RazorpayPaymentSuccessResponse) => void | Promise<void>;
-  onError?: (error: Error | { description: string }) => void;
+  onError?: (error: Error | { description?: string; message?: string }) => void;
   onDismiss?: () => void;
 }
 
 let isPaymentSessionActive = false;
 
 /**
- * Dynamically loads the official Razorpay Checkout SDK script over HTTPS
+ * Dynamically loads the official Razorpay Checkout SDK script over HTTPS if not already present in DOM
  */
 export function loadRazorpayScript(): Promise<boolean> {
   return new Promise((resolve) => {
@@ -61,10 +61,11 @@ export function loadRazorpayScript(): Promise<boolean> {
 }
 
 /**
- * Initiates Razorpay checkout workflow:
- * 1. Creates an order on backend via Razorpay Orders API with trusted server-side price & stock check
- * 2. Launches the Razorpay Standard Checkout modal with explicit UPI and card blocks
- * 3. Handles payment success, cancellation, or failure
+ * Initiates Razorpay Standard Checkout workflow:
+ * 1. Creates an order on backend via POST /api/create-order
+ * 2. Launches the Razorpay Standard Checkout modal with order_id
+ * 3. On success, receives razorpay_payment_id, razorpay_order_id, razorpay_signature and triggers onSuccess callback
+ * 4. Handles modal dismiss and payment.failed events with user feedback
  */
 export async function openRazorpayCheckout(options: RazorpayCheckoutOptions): Promise<void> {
   if (isPaymentSessionActive) {
@@ -73,10 +74,9 @@ export async function openRazorpayCheckout(options: RazorpayCheckoutOptions): Pr
   }
 
   const {
-    orderId,
+    orderId = `ord_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
     amount,
-    items = [],
-    couponCode,
+    amountInPaise,
     customerName = 'Customer',
     customerEmail = '',
     customerPhone = '',
@@ -89,13 +89,19 @@ export async function openRazorpayCheckout(options: RazorpayCheckoutOptions): Pr
   isPaymentSessionActive = true;
 
   try {
-    // 1. Create order on backend (Edge function / API verifies prices, stock & creates Razorpay order)
+    // 1. Calculate amount in paise (minimum 100 paise = ₹1.00)
+    const payablePaise = amountInPaise || Math.round(amount * 100);
+
+    if (payablePaise < 100) {
+      throw new Error('Payment amount must be at least 100 paise (₹1.00).');
+    }
+
+    // 2. Create order on backend (calls POST /api/create-order)
     const orderData = await api.payments.createRazorpayOrder({
-      amount,
+      amount: payablePaise,
+      currency: 'INR',
       orderId,
-      receipt: orderId,
-      items,
-      couponCode,
+      receipt: orderId.slice(0, 40),
       customerName,
       customerEmail,
       customerPhone,
@@ -103,91 +109,37 @@ export async function openRazorpayCheckout(options: RazorpayCheckoutOptions): Pr
     });
 
     if (!orderData || !orderData.success) {
-      throw new Error(orderData?.message || 'Unable to initialize payment session. Please try again.');
+      throw new Error(orderData?.message || 'Unable to initialize Razorpay payment session. Please try again.');
     }
 
-    // 2. Load Razorpay client SDK over HTTPS
-    const isScriptLoaded = await loadRazorpayScript();
+    const razorpayOrderId = orderData.order_id || orderData.id;
+    const keyId = orderData.key_id || orderData.keyId || import.meta.env.VITE_RAZORPAY_KEY_ID;
 
-    if (!isScriptLoaded && !orderData.isSimulated && !orderData.keyId?.includes('placeholder')) {
+    if (!keyId) {
+      throw new Error('Razorpay Key ID is not configured.');
+    }
+
+    // 3. Ensure Razorpay client SDK is loaded
+    const isScriptLoaded = await loadRazorpayScript();
+    if (!isScriptLoaded || !(window as any).Razorpay) {
       throw new Error('Could not load Razorpay Checkout SDK. Please check your internet connection or ad blocker and try again.');
     }
 
-    // Local / development placeholder simulation mode
-    if (!isScriptLoaded || orderData.isSimulated || orderData.keyId?.includes('placeholder')) {
-      console.info('Using simulated payment flow for sandbox development with test keys.');
-      setTimeout(async () => {
-        try {
-          const simPaymentId = `pay_sim_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-          const simOrderId = orderData.id || `order_sim_${Date.now()}`;
-          await onSuccess({
-            razorpay_payment_id: simPaymentId,
-            razorpay_order_id: simOrderId,
-            razorpay_signature: `sig_sim_${Date.now()}`,
-            isSimulated: true
-          });
-        } finally {
-          isPaymentSessionActive = false;
-        }
-      }, 700);
-      return;
-    }
-
-    // 3. Configure Razorpay Standard Modal per official documentation
-    // Logo strictly over HTTPS to avoid mixed-content warnings
-    const logoUrl = 'https://www.aanyafashions.com/logo.png';
+    // 4. Configure Razorpay Standard Modal per official documentation
     const cleanPhone = customerPhone ? customerPhone.replace(/[^\d+]/g, '') : '';
 
     const rzpOptions = {
-      key: orderData.keyId,
+      key: keyId,
       amount: orderData.amount, // in paise
       currency: orderData.currency || 'INR',
       name: 'Aanya Fashions',
       description: `Payment for Order #${orderId}`,
-      image: logoUrl,
-      order_id: orderData.id,
+      image: 'https://www.aanyafashions.com/logo.png',
+      order_id: razorpayOrderId,
       prefill: {
         name: customerName,
         email: customerEmail || 'customer@aanyafashions.com',
-        contact: cleanPhone,
-        method: 'upi' // Prefills and hints preferred UPI payment method
-      },
-      // Explicit configuration displaying UPI prominently
-      config: {
-        display: {
-          blocks: {
-            upi: {
-              name: 'Pay using UPI (Google Pay, PhonePe, Paytm, QR)',
-              instruments: [
-                {
-                  method: 'upi'
-                }
-              ]
-            },
-            other: {
-              name: 'Credit / Debit Cards & Net Banking',
-              instruments: [
-                {
-                  method: 'card'
-                },
-                {
-                  method: 'netbanking'
-                },
-                {
-                  method: 'wallet'
-                }
-              ]
-            }
-          },
-          sequence: ['block.upi', 'block.other'],
-          preferences: {
-            show_default_blocks: true
-          }
-        }
-      },
-      notes: {
-        orderId,
-        ...notes
+        contact: cleanPhone
       },
       theme: {
         color: '#698156' // Aanya Fashions Signature Heritage Green
@@ -211,8 +163,7 @@ export async function openRazorpayCheckout(options: RazorpayCheckoutOptions): Pr
           await onSuccess({
             razorpay_payment_id: response.razorpay_payment_id,
             razorpay_order_id: response.razorpay_order_id,
-            razorpay_signature: response.razorpay_signature,
-            isSimulated: false
+            razorpay_signature: response.razorpay_signature
           });
         } catch (err: any) {
           if (onError) onError(err);
@@ -225,7 +176,7 @@ export async function openRazorpayCheckout(options: RazorpayCheckoutOptions): Pr
     rzpInstance.on('payment.failed', function (resp: any) {
       isPaymentSessionActive = false;
       console.error('Razorpay payment failed:', resp.error);
-      const desc = resp.error?.description || resp.error?.reason || 'Payment was unsuccessful or declined';
+      const desc = resp.error?.description || resp.error?.reason || 'Payment was unsuccessful or declined by bank';
       if (onError) {
         onError(new Error(desc));
       }

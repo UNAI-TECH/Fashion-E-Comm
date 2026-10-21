@@ -8,11 +8,12 @@ import {
 
 const router = express.Router();
 
-// ── Razorpay Routes ──
+// ── Razorpay Standard Checkout Routes ──
+router.post('/create-order', createRazorpayOrder);
+router.post('/verify-payment', verifyRazorpayPayment);
+router.post('/verify', verifyRazorpayPayment);
 router.post('/razorpay/create-order', createRazorpayOrder);
 router.post('/razorpay/verify', verifyRazorpayPayment);
-router.post('/create-order', createRazorpayOrder);
-router.post('/verify', verifyRazorpayPayment);
 router.post('/webhook', handleRazorpayWebhook);
 router.get('/key', getRazorpayKey);
 

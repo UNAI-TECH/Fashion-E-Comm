@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/api/create-order",
+      "destination": "/api/create-order"
+    },
+    {
+      "source": "/api/verify-payment",
+      "destination": "/api/verify-payment"
+    },
+    {
       "source": "/api/payments/razorpay/create-order",
       "destination": "/api/payments/razorpay/create-order"
     },

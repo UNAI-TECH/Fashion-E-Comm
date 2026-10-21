@@ -509,8 +509,7 @@ export function CheckoutPage() {
               razorpay_payment_id: rzpResponse.razorpay_payment_id,
               razorpay_signature: rzpResponse.razorpay_signature,
               order_id: orderId,
-              amount: totalAmount,
-              isSimulated: rzpResponse.isSimulated
+              amount: totalAmount
             });
 
             if (!verifyRes || (!verifyRes.success && verifyRes.status !== 'PAID')) {

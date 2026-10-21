@@ -2,17 +2,17 @@ import { supabase } from './supabase';
 
 export const getApiBaseUrl = () => {
   const envUrl = import.meta.env.VITE_API_URL;
-  // If running in browser on production domain or HTTPS (e.g. www.aanyafashions.com)
   if (typeof window !== 'undefined' && window.location) {
-    if (window.location.protocol === 'https:' || window.location.hostname.includes('aanyafashions.com')) {
-      return `${window.location.origin}/api`;
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (isLocalhost) {
+      if (envUrl && (envUrl.includes('localhost') || envUrl.includes('127.0.0.1'))) {
+        return envUrl;
+      }
+      return '/api';
     }
+    return `${window.location.origin}/api`;
   }
-  // If envUrl is set and is a valid production URL (not localhost)
-  if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
-    return envUrl;
-  }
-  return 'https://www.aanyafashions.com/api';
+  return envUrl || '/api';
 };
 
 const API_BASE_URL = getApiBaseUrl();
@@ -266,6 +266,7 @@ export const api = {
       request<{ success: boolean; keyId: string; currency: string; merchantName: string }>('/payments/key'),
     createRazorpayOrder: (payload: {
       amount: number;
+      currency?: string;
       orderId?: string;
       receipt?: string;
       items?: Array<{ id: string; quantity: number }>;
@@ -277,16 +278,16 @@ export const api = {
     }) =>
       request<{
         success: boolean;
+        order_id: string;
         id: string;
-        orderId?: string;
         amount: number;
         currency: string;
-        keyId: string;
-        verifiedAmount?: number;
-        isSimulated?: boolean;
+        key_id?: string;
+        keyId?: string;
+        receipt?: string;
         message?: string;
         code?: string;
-      }>('/payments/razorpay/create-order', {
+      }>('/create-order', {
         method: 'POST',
         body: JSON.stringify(payload)
       }),
@@ -303,10 +304,13 @@ export const api = {
         success: boolean;
         status?: string;
         message: string;
+        order_id?: string;
+        payment_id?: string;
         paymentId?: string;
         orderId?: string;
+        signature_valid?: boolean;
         code?: string;
-      }>('/payments/razorpay/verify', {
+      }>('/verify-payment', {
         method: 'POST',
         body: JSON.stringify(payload)
       })
