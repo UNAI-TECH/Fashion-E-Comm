@@ -26,68 +26,65 @@ export interface RazorpayCheckoutOptions {
   onDismiss?: () => void;
 }
 
-let isPaymentSessionActive = false;
-
 /**
- * Dynamically loads the official Razorpay Checkout SDK script over HTTPS
- * Handles pre-loaded scripts in index.html safely without hanging event listeners
+ * Dynamically loads the official Razorpay Checkout SDK script over HTTPS.
+ * Returns true when window.Razorpay is available.
  */
 export function loadRazorpayScript(): Promise<boolean> {
   return new Promise((resolve) => {
     if (typeof window === 'undefined') return resolve(false);
 
-    // If script already loaded and window.Razorpay is available
+    // Already loaded
     if ((window as any).Razorpay) {
+      console.log('[Razorpay] SDK already available on window.Razorpay');
       return resolve(true);
     }
 
-    const existingScript = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
+    const SRC = 'https://checkout.razorpay.com/v1/checkout.js';
+    const existingScript = document.querySelector(`script[src="${SRC}"]`) as HTMLScriptElement | null;
+
     if (existingScript) {
-      // Script is already present in DOM (e.g. from index.html).
-      // Check repeatedly in case it already finished loading or is about to finish
+      console.log('[Razorpay] Script tag exists in DOM, polling for window.Razorpay...');
+      // Poll for window.Razorpay (the script may already have loaded)
       let attempts = 0;
-      const checkInterval = setInterval(() => {
+      const poll = setInterval(() => {
         attempts++;
         if ((window as any).Razorpay) {
-          clearInterval(checkInterval);
+          clearInterval(poll);
+          console.log('[Razorpay] SDK ready after', attempts * 100, 'ms polling');
           resolve(true);
-        } else if (attempts >= 25) { // 2.5 seconds timeout
-          clearInterval(checkInterval);
-          resolve(typeof (window as any).Razorpay !== 'undefined');
+        } else if (attempts >= 50) { // 5 seconds max
+          clearInterval(poll);
+          console.warn('[Razorpay] SDK did not become available after 5s polling');
+          resolve(false);
         }
       }, 100);
-
-      existingScript.addEventListener('load', () => {
-        clearInterval(checkInterval);
-        resolve(true);
-      });
-      existingScript.addEventListener('error', () => {
-        clearInterval(checkInterval);
-        resolve(false);
-      });
       return;
     }
 
+    // Inject script fresh
+    console.log('[Razorpay] Injecting checkout.js script into DOM...');
     const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.src = SRC;
     script.async = true;
     script.crossOrigin = 'anonymous';
 
-    // Timeout safety
     const timeout = setTimeout(() => {
+      console.warn('[Razorpay] Script load timed out after 8s');
       resolve(typeof (window as any).Razorpay !== 'undefined');
-    }, 6000);
+    }, 8000);
 
     script.onload = () => {
       clearTimeout(timeout);
+      console.log('[Razorpay] checkout.js loaded successfully');
       resolve(true);
     };
     script.onerror = () => {
       clearTimeout(timeout);
-      console.warn('Failed to load Razorpay checkout script from official CDN.');
+      console.error('[Razorpay] Failed to load checkout.js from CDN');
       resolve(false);
     };
-    document.body.appendChild(script);
+    document.head.appendChild(script);
   });
 }
 
@@ -95,15 +92,10 @@ export function loadRazorpayScript(): Promise<boolean> {
  * Initiates Razorpay Standard Checkout workflow:
  * 1. Creates an order on backend via POST /api/create-order
  * 2. Launches the Razorpay Standard Checkout modal with order_id
- * 3. On success, receives razorpay_payment_id, razorpay_order_id, razorpay_signature and triggers onSuccess callback
+ * 3. On success, receives razorpay_payment_id, razorpay_order_id, razorpay_signature
  * 4. Handles modal dismiss and payment.failed events with user feedback
  */
 export async function openRazorpayCheckout(options: RazorpayCheckoutOptions): Promise<void> {
-  if (isPaymentSessionActive) {
-    console.warn('A payment session is already active. Ignoring duplicate invocation.');
-    return;
-  }
-
   const {
     orderId = `ord_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
     amount,
@@ -117,52 +109,70 @@ export async function openRazorpayCheckout(options: RazorpayCheckoutOptions): Pr
     onDismiss
   } = options;
 
-  isPaymentSessionActive = true;
-  const sessionTimeout = setTimeout(() => {
-    isPaymentSessionActive = false;
-  }, 12000);
+  console.log('[Razorpay] openRazorpayCheckout called', { orderId, amount });
 
   try {
     // 1. Calculate amount in paise (minimum 100 paise = ₹1.00)
     const payablePaise = amountInPaise || Math.round(amount * 100);
+    console.log('[Razorpay] Amount in paise:', payablePaise);
 
     if (payablePaise < 100) {
       throw new Error('Payment amount must be at least 100 paise (₹1.00).');
     }
 
     // 2. Create order on backend (calls POST /api/create-order)
-    const orderData = await api.payments.createRazorpayOrder({
-      amount: payablePaise,
-      currency: 'INR',
-      orderId,
-      receipt: orderId.slice(0, 40),
-      customerName,
-      customerEmail,
-      customerPhone,
-      notes
-    });
+    console.log('[Razorpay] Calling backend /api/create-order...');
+    let orderData: any;
+    try {
+      orderData = await api.payments.createRazorpayOrder({
+        amount: payablePaise,
+        currency: 'INR',
+        orderId,
+        receipt: orderId.slice(0, 40),
+        customerName,
+        customerEmail,
+        customerPhone,
+        notes
+      });
+      console.log('[Razorpay] Backend create-order response:', orderData);
+    } catch (apiErr: any) {
+      console.error('[Razorpay] Backend /api/create-order FAILED:', apiErr);
+      throw new Error(
+        apiErr?.message || 'Payment gateway is temporarily unavailable. Please try again in a moment.'
+      );
+    }
 
     if (!orderData || !orderData.success) {
-      throw new Error(orderData?.message || 'Unable to initialize Razorpay payment session. Please try again.');
+      const errMsg = orderData?.message || orderData?.error?.message || 'Unable to initialize Razorpay payment session.';
+      console.error('[Razorpay] create-order returned non-success:', errMsg);
+      throw new Error(errMsg);
     }
 
     const razorpayOrderId = orderData.order_id || orderData.id;
     const keyId = orderData.key_id || orderData.keyId || import.meta.env.VITE_RAZORPAY_KEY_ID;
 
+    console.log('[Razorpay] Got Razorpay order_id:', razorpayOrderId, '| key_id:', keyId?.substring(0, 12) + '...');
+
     if (!keyId) {
-      throw new Error('Razorpay Key ID is not configured.');
+      throw new Error('Razorpay Key ID is not configured. Please contact support.');
+    }
+
+    if (!razorpayOrderId) {
+      throw new Error('Razorpay order ID was not returned by the server. Please try again.');
     }
 
     // 3. Ensure Razorpay client SDK is loaded
+    console.log('[Razorpay] Loading Razorpay SDK script...');
     const isScriptLoaded = await loadRazorpayScript();
     if (!isScriptLoaded || !(window as any).Razorpay) {
-      throw new Error('Could not load Razorpay Checkout SDK. Please check your internet connection or ad blocker and try again.');
+      throw new Error('Could not load Razorpay Checkout SDK. Please check your internet connection or disable any ad blocker and try again.');
     }
+    console.log('[Razorpay] SDK loaded, preparing modal options...');
 
     // 4. Configure Razorpay Standard Modal per official documentation
     const cleanPhone = customerPhone ? customerPhone.replace(/[^\d+]/g, '') : '';
 
-    const rzpOptions = {
+    const rzpOptions: any = {
       key: keyId,
       amount: orderData.amount, // in paise
       currency: orderData.currency || 'INR',
@@ -180,8 +190,7 @@ export async function openRazorpayCheckout(options: RazorpayCheckoutOptions): Pr
       },
       modal: {
         ondismiss: () => {
-          clearTimeout(sessionTimeout);
-          isPaymentSessionActive = false;
+          console.log('[Razorpay] Modal dismissed by user');
           if (onDismiss) onDismiss();
         },
         backdropclose: false,
@@ -190,8 +199,11 @@ export async function openRazorpayCheckout(options: RazorpayCheckoutOptions): Pr
         confirm_close: true
       },
       handler: async (response: any) => {
-        clearTimeout(sessionTimeout);
-        isPaymentSessionActive = false;
+        console.log('[Razorpay] Payment handler fired:', {
+          payment_id: response.razorpay_payment_id,
+          order_id: response.razorpay_order_id,
+          has_signature: !!response.razorpay_signature
+        });
         try {
           if (!response.razorpay_payment_id || !response.razorpay_order_id || !response.razorpay_signature) {
             throw new Error('Razorpay returned incomplete payment response credentials.');
@@ -202,29 +214,29 @@ export async function openRazorpayCheckout(options: RazorpayCheckoutOptions): Pr
             razorpay_signature: response.razorpay_signature
           });
         } catch (err: any) {
+          console.error('[Razorpay] onSuccess callback error:', err);
           if (onError) onError(err);
         }
       }
     };
 
+    console.log('[Razorpay] Creating Razorpay instance...');
     const rzpInstance = new (window as any).Razorpay(rzpOptions);
 
     rzpInstance.on('payment.failed', function (resp: any) {
-      clearTimeout(sessionTimeout);
-      isPaymentSessionActive = false;
-      console.error('Razorpay payment failed:', resp.error);
+      console.error('[Razorpay] payment.failed event:', resp.error);
       const desc = resp.error?.description || resp.error?.reason || 'Payment was unsuccessful or declined by bank';
       if (onError) {
         onError(new Error(desc));
       }
     });
 
-    clearTimeout(sessionTimeout);
+    console.log('[Razorpay] Opening checkout modal NOW...');
     rzpInstance.open();
+    console.log('[Razorpay] rzpInstance.open() called successfully');
+
   } catch (error: any) {
-    clearTimeout(sessionTimeout);
-    isPaymentSessionActive = false;
-    console.error('Razorpay checkout initialization failed:', error);
+    console.error('[Razorpay] checkout initialization FAILED:', error);
     if (onError) onError(error);
     else throw error;
   }

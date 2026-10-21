@@ -97,12 +97,6 @@ export default defineConfig({
     bannersPlugin(),
   ],
   server: {
-    proxy: {
-      '/api': {
-        target: 'http://localhost:5000',
-        changeOrigin: true,
-      },
-    },
     watch: {
       ignored: ['**/public/instagram/**', '**/scripts/**'],
     },

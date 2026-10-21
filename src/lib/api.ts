@@ -1,19 +1,15 @@
 import { supabase } from './supabase';
 
 export const getApiBaseUrl = () => {
+  // Always use the configured production API URL
   const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl) return envUrl.replace(/\/+$/, '');
   if (typeof window !== 'undefined' && window.location) {
-    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    if (isLocalhost) {
-      if (envUrl && (envUrl.includes('localhost') || envUrl.includes('127.0.0.1'))) {
-        return envUrl;
-      }
-      return '/api';
-    }
     return `${window.location.origin}/api`;
   }
-  return envUrl || '/api';
+  return '/api';
 };
+
 
 const API_BASE_URL = getApiBaseUrl();
 

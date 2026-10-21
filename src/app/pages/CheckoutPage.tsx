@@ -413,7 +413,17 @@ export function CheckoutPage() {
 
   // Place Order / Initiate Payment exclusively via Razorpay Standard Checkout
   const handlePlaceOrder = async () => {
-    if (checkoutItems.length === 0 || isProcessing) return;
+    console.log('[Checkout] handlePlaceOrder triggered', { itemCount: checkoutItems.length, isProcessing, paymentState });
+
+    if (checkoutItems.length === 0) {
+      console.warn('[Checkout] No items in checkout, aborting');
+      return;
+    }
+    if (isProcessing) {
+      console.warn('[Checkout] Already processing, aborting duplicate click');
+      toast.info('Payment is being processed, please wait...');
+      return;
+    }
 
     if (!user) {
       toast.info('Please sign in to complete your purchase');
@@ -455,7 +465,7 @@ export function CheckoutPage() {
           }
         }
       } catch (checkErr) {
-        console.warn('Pre-flight stock check notice:', checkErr);
+        console.warn('[Checkout] Pre-flight stock check notice:', checkErr);
       }
     }
 
@@ -467,36 +477,54 @@ export function CheckoutPage() {
     const addr = savedAddresses.find(a => a.id === selectedAddressId);
     const custName = addr?.full_name || newAddress.full_name || user.user_metadata?.full_name || 'Customer';
     const custPhone = addr?.phone || newAddress.phone || user.user_metadata?.phone || '';
+    const custEmail = user.email || '';
+
+    console.log('[Checkout] Order details prepared:', { orderId, trackingNumber, totalAmount, custName });
 
     setIsProcessing(true);
     setPaymentState('CREATING_ORDER');
 
     try {
-      // ═══ RAZORPAY ONLINE PAYMENT FLOW ═══
-      await createPendingOrderInDatabase(orderId, trackingNumber, 'Pending');
+      // ═══ STEP 1: Save pending order to DB (non-blocking — failures are tolerated) ═══
+      console.log('[Checkout] Creating pending order in database...');
+      try {
+        await createPendingOrderInDatabase(orderId, trackingNumber, 'Pending');
+        console.log('[Checkout] Pending order created in database');
+      } catch (dbErr: any) {
+        console.warn('[Checkout] DB order creation failed (non-blocking):', dbErr?.message);
+        // Non-blocking: continue to payment even if DB insert fails
+      }
 
+      // ═══ STEP 2: Launch Razorpay Checkout Modal ═══
+      console.log('[Checkout] Launching Razorpay checkout with amount ₹' + totalAmount);
       setPaymentState('CHECKOUT_OPEN');
+
       await openRazorpayCheckout({
         orderId,
         amount: totalAmount,
         items: checkoutItems.map(i => ({ id: i.id, quantity: i.quantity })),
         couponCode: couponApplied?.code,
         customerName: custName,
+        customerEmail: custEmail,
         customerPhone: custPhone,
         notes: {
           trackingNumber,
           itemsCount: checkoutItems.length
         },
         onSuccess: async (rzpResponse) => {
+          console.log('[Checkout] Razorpay onSuccess fired:', rzpResponse.razorpay_payment_id);
           setPaymentState('VERIFYING');
           try {
             const verifyRes = await api.payments.verifyPayment({
               razorpay_order_id: rzpResponse.razorpay_order_id,
               razorpay_payment_id: rzpResponse.razorpay_payment_id,
               razorpay_signature: rzpResponse.razorpay_signature,
+              orderId,
               order_id: orderId,
               amount: totalAmount
             });
+
+            console.log('[Checkout] Payment verification response:', verifyRes);
 
             if (!verifyRes || (!verifyRes.success && verifyRes.status !== 'PAID')) {
               throw new Error(verifyRes?.message || 'Payment verification could not be confirmed.');
@@ -506,7 +534,7 @@ export function CheckoutPage() {
             try {
               await supabase.rpc('fulfill_order_stock', { p_order_id: orderId });
             } catch (stockErr) {
-              console.warn('Stock fulfillment RPC warning:', stockErr);
+              console.warn('[Checkout] Stock fulfillment RPC warning:', stockErr);
             }
 
             setPaymentState('PAID');
@@ -522,7 +550,7 @@ export function CheckoutPage() {
             toast.success('Payment confirmed! Your order has been placed.');
             window.dispatchEvent(new Event('orders_updated'));
           } catch (verifyErr: any) {
-            console.error('Payment verification warning:', verifyErr);
+            console.error('[Checkout] Payment verification warning:', verifyErr);
             setPaymentState('PENDING_RECONCILIATION');
             setOrderPlaced({
               orderId,
@@ -538,21 +566,25 @@ export function CheckoutPage() {
           }
         },
         onError: (err: any) => {
+          console.error('[Checkout] Razorpay onError fired:', err?.message || err);
           setPaymentState('FAILED');
           setIsProcessing(false);
           toast.error(err?.message || 'Payment was unsuccessful or cancelled');
         },
         onDismiss: () => {
+          console.log('[Checkout] Razorpay modal dismissed');
           setPaymentState('IDLE');
           setIsProcessing(false);
           toast.info('Payment window closed');
         }
       });
+
+      console.log('[Checkout] openRazorpayCheckout returned (modal should be open now)');
     } catch (err: any) {
+      console.error('[Checkout] FATAL: Order placement failed:', err);
       setPaymentState('FAILED');
-      console.error('Order placement failed:', err);
-      toast.error('Order initialization failed: ' + (err.message || 'Please check your connection and try again'));
       setIsProcessing(false);
+      toast.error(err?.message || 'Order initialization failed. Please check your connection and try again.');
     }
   };
 
