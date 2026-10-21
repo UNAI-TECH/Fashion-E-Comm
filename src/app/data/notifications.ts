@@ -88,12 +88,25 @@ export function saveLocalNotifications(list: OfferNotification[]) {
   } catch (e) {}
 }
 
-let notificationsTableChecked = false;
-let notificationsTableExists = true;
+const SUPABASE_TABLE_KEY = 'aanya_notifications_missing';
+
+function isSupabaseTableMissing(): boolean {
+  try {
+    return localStorage.getItem(SUPABASE_TABLE_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export function resetNotificationsTableCache() {
+  try {
+    localStorage.removeItem(SUPABASE_TABLE_KEY);
+  } catch {}
+}
 
 export async function fetchOfferNotifications(): Promise<OfferNotification[]> {
-  // If we already detected the table is absent in Supabase, use local notifications immediately
-  if (notificationsTableChecked && !notificationsTableExists) {
+  // If we already detected the table is absent in Supabase, use local notifications immediately without sending network requests
+  if (isSupabaseTableMissing()) {
     return getLocalNotifications();
   }
 
@@ -103,33 +116,39 @@ export async function fetchOfferNotifications(): Promise<OfferNotification[]> {
       .select('*')
       .order('created_at', { ascending: false });
 
-    notificationsTableChecked = true;
-
     if (error) {
-      if (status === 404 || (error as any)?.code === 'PGRST205') {
-        notificationsTableExists = false;
+      if (status === 404 || (error as any)?.code === 'PGRST205' || String(error.message).includes('relation "public.notifications" does not exist')) {
+        try {
+          localStorage.setItem(SUPABASE_TABLE_KEY, 'true');
+        } catch {}
       }
       return getLocalNotifications();
     }
 
-    if (Array.isArray(data) && data.length > 0) {
-      notificationsTableExists = true;
-      const formatted: OfferNotification[] = data.map((item: any) => ({
-        id: String(item.id),
-        title: item.title,
-        image_url: item.image_url || '/cat_kanchi_cotton.jpg',
-        link_url: item.link_url || '/kanchicotton',
-        material_category: item.material_category,
-        time_ago: item.time_ago || 'Recently',
-        status: item.status || 'Active',
-        created_at: item.created_at,
-      }));
-      saveLocalNotifications(formatted);
-      return formatted;
+    if (Array.isArray(data)) {
+      try {
+        localStorage.removeItem(SUPABASE_TABLE_KEY);
+      } catch {}
+
+      if (data.length > 0) {
+        const formatted: OfferNotification[] = data.map((item: any) => ({
+          id: String(item.id),
+          title: item.title,
+          image_url: item.image_url || '/cat_kanchi_cotton.jpg',
+          link_url: item.link_url || '/kanchicotton',
+          material_category: item.material_category,
+          time_ago: item.time_ago || 'Recently',
+          status: item.status || 'Active',
+          created_at: item.created_at,
+        }));
+        saveLocalNotifications(formatted);
+        return formatted;
+      }
     }
   } catch {
-    notificationsTableChecked = true;
-    notificationsTableExists = false;
+    try {
+      localStorage.setItem(SUPABASE_TABLE_KEY, 'true');
+    } catch {}
   }
 
   return getLocalNotifications();
@@ -162,10 +181,12 @@ export async function saveOfferNotification(notif: Partial<OfferNotification>): 
 
   saveLocalNotifications(updatedList);
 
-  // Try saving to Supabase if table exists
-  try {
-    await supabase.from('notifications').upsert([fullNotif]);
-  } catch (e) {}
+  // Try saving to Supabase if table is not marked missing
+  if (!isSupabaseTableMissing()) {
+    try {
+      await supabase.from('notifications').upsert([fullNotif]);
+    } catch (e) {}
+  }
 
   return fullNotif;
 }
@@ -175,9 +196,11 @@ export async function deleteOfferNotification(id: string): Promise<boolean> {
   const updated = current.filter(n => n.id !== id);
   saveLocalNotifications(updated);
 
-  try {
-    await supabase.from('notifications').delete().eq('id', id);
-  } catch (e) {}
+  if (!isSupabaseTableMissing()) {
+    try {
+      await supabase.from('notifications').delete().eq('id', id);
+    } catch (e) {}
+  }
 
   return true;
 }
