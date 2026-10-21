@@ -88,15 +88,32 @@ export function saveLocalNotifications(list: OfferNotification[]) {
   } catch (e) {}
 }
 
+let notificationsTableChecked = false;
+let notificationsTableExists = true;
+
 export async function fetchOfferNotifications(): Promise<OfferNotification[]> {
+  // If we already detected the table is absent in Supabase, use local notifications immediately
+  if (notificationsTableChecked && !notificationsTableExists) {
+    return getLocalNotifications();
+  }
+
   try {
-    // Attempt Supabase fetch
-    const { data, error } = await supabase
+    const { data, error, status } = await supabase
       .from('notifications')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (!error && Array.isArray(data) && data.length > 0) {
+    notificationsTableChecked = true;
+
+    if (error) {
+      if (status === 404 || (error as any)?.code === 'PGRST205') {
+        notificationsTableExists = false;
+      }
+      return getLocalNotifications();
+    }
+
+    if (Array.isArray(data) && data.length > 0) {
+      notificationsTableExists = true;
       const formatted: OfferNotification[] = data.map((item: any) => ({
         id: String(item.id),
         title: item.title,
@@ -110,7 +127,10 @@ export async function fetchOfferNotifications(): Promise<OfferNotification[]> {
       saveLocalNotifications(formatted);
       return formatted;
     }
-  } catch (e) {}
+  } catch {
+    notificationsTableChecked = true;
+    notificationsTableExists = false;
+  }
 
   return getLocalNotifications();
 }

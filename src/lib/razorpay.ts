@@ -4,6 +4,7 @@
  */
 
 import api from './api';
+import { getCanonicalUrl } from './urls';
 
 export interface RazorpayPaymentSuccessResponse {
   razorpay_payment_id: string;
@@ -178,7 +179,7 @@ export async function openRazorpayCheckout(options: RazorpayCheckoutOptions): Pr
       currency: orderData.currency || 'INR',
       name: 'Aanya Fashions',
       description: `Payment for Order #${orderId}`,
-      image: 'https://www.aanyafashions.com/logo.png',
+      image: getCanonicalUrl('/logo.png'),
       order_id: razorpayOrderId,
       prefill: {
         name: customerName,

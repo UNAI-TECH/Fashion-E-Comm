@@ -4,6 +4,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { saveUserProfileDetails, getUserProfileDetails } from '../../lib/userProfile';
 import { AuthModal } from '../components/AuthModal';
+import { getCanonicalUrl } from '../../lib/urls';
 
 export interface CustomerProfile {
   id: string;
@@ -289,11 +290,8 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
         state: '',
       });
 
-      // Determine redirect URL based on environment
-      const redirectUrl =
-        typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-          ? window.location.origin
-          : 'https://www.aanyafashions.com/';
+      // Determine canonical redirect URL based on environment policy
+      const redirectUrl = getCanonicalUrl('/');
 
       // ── Strategy 1: Native Supabase signUp (sends confirmation email if SMTP configured) ──
       let nativeSuccess = false;
@@ -427,10 +425,7 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
         type: 'signup',
         email: cleanEmail,
         options: {
-          emailRedirectTo:
-            typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-              ? window.location.origin
-              : 'https://www.aanyafashions.com/',
+          emailRedirectTo: getCanonicalUrl('/'),
         },
       });
 
@@ -456,10 +451,7 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
   const resetPasswordForEmail = async (email: string) => {
     try {
       const cleanEmail = email.trim().toLowerCase();
-      const redirectUrl =
-        typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-          ? `${window.location.origin}/reset-password`
-          : 'https://www.aanyafashions.com/reset-password';
+      const redirectUrl = getCanonicalUrl('/reset-password');
 
       const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
         redirectTo: redirectUrl,

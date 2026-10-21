@@ -9,6 +9,10 @@
       "destination": "/api/verify-payment"
     },
     {
+      "source": "/api/payments/verify",
+      "destination": "/api/payments/verify"
+    },
+    {
       "source": "/api/payments/razorpay/create-order",
       "destination": "/api/payments/razorpay/create-order"
     },

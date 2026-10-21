@@ -1,12 +1,12 @@
 import { supabase } from './supabase';
 
 export const getApiBaseUrl = () => {
-  // Always use the configured production API URL
+  // If explicitly configured with a custom API URL, use it
   const envUrl = import.meta.env.VITE_API_URL;
-  if (envUrl) return envUrl.replace(/\/+$/, '');
-  if (typeof window !== 'undefined' && window.location) {
-    return `${window.location.origin}/api`;
+  if (envUrl && envUrl.trim()) {
+    return envUrl.trim().replace(/\/+$/, '');
   }
+  // Default to same-origin relative path '/api' for zero-CORS production performance
   return '/api';
 };
 
@@ -287,7 +287,7 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(payload)
       }),
-    verifyPayment: (payload: {
+    verifyPayment: async (payload: {
       razorpay_order_id?: string;
       razorpay_payment_id?: string;
       razorpay_signature?: string;
@@ -295,21 +295,42 @@ export const api = {
       orderId?: string;
       amount?: number;
       isSimulated?: boolean;
-    }) =>
-      request<{
-        success: boolean;
-        status?: string;
-        message: string;
-        order_id?: string;
-        payment_id?: string;
-        paymentId?: string;
-        orderId?: string;
-        signature_valid?: boolean;
-        code?: string;
-      }>('/verify-payment', {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      })
+    }) => {
+      try {
+        return await request<{
+          success: boolean;
+          status?: string;
+          message: string;
+          order_id?: string;
+          payment_id?: string;
+          paymentId?: string;
+          orderId?: string;
+          signature_valid?: boolean;
+          code?: string;
+        }>('/payments/verify', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+      } catch (err: any) {
+        if (err?.status === 404) {
+          return await request<{
+            success: boolean;
+            status?: string;
+            message: string;
+            order_id?: string;
+            payment_id?: string;
+            paymentId?: string;
+            orderId?: string;
+            signature_valid?: boolean;
+            code?: string;
+          }>('/verify-payment', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+          });
+        }
+        throw err;
+      }
+    }
   },
 
   // ─── UPLOADS ───
