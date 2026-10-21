@@ -92,7 +92,7 @@ export function TermsPage() {
               We provide safe, encrypted online payment processing through <strong>Razorpay Payment Gateway</strong> (Razorpay Software Private Limited), an RBI-authorized and PCI-DSS Level 1 compliant gateway provider.
             </p>
             <ul className="list-disc pl-6 space-y-2 mt-4 text-gray-600">
-              <li><strong>Accepted Payment Modes:</strong> Unified Payments Interface (UPI - Google Pay, PhonePe, Paytm, BHIM, Cred), Credit and Debit Cards (Visa, MasterCard, RuPay, Maestro), Net Banking (50+ Indian banks), and Cash on Delivery (COD).</li>
+              <li><strong>Accepted Payment Modes:</strong> Unified Payments Interface (UPI - Google Pay, PhonePe, Paytm, BHIM, Cred), Credit and Debit Cards (Visa, MasterCard, RuPay, Maestro), and Net Banking (50+ Indian banks) via Razorpay.</li>
               <li><strong>Data Security:</strong> Aanya Fashions does not capture or store card details, CVVs, or online banking passwords on our servers. All sensitive financial transactions are directly processed via Razorpay's 256-bit encrypted secure servers.</li>
               <li><strong>Transaction Failures:</strong> In case an amount is debited from your bank account but an order confirmation is not generated due to network disruption, Razorpay's auto-reversal system refunds the sum within 24 to 48 banking hours.</li>
             </ul>

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Product } from '../data/products';
 import { toast } from 'sonner';
+import { useCustomerAuth } from './CustomerAuthContext';
 
 export interface CartItem extends Product {
   quantity: number;
@@ -54,6 +55,7 @@ async function getOrCreateCart(userId: string): Promise<string | null> {
 }
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
+  const { user, openAuthModal } = useCustomerAuth();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -118,6 +120,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const addToCart = async (product: Product, quantity: number = 1, selectedSize?: string, selectedColor?: string) => {
     if (!product || !product.id) return;
+
+    // Check stock availability
+    const isOutOfStock = product.stock_quantity !== undefined && product.stock_quantity !== null && Number(product.stock_quantity) <= 0;
+    if (isOutOfStock) {
+      toast.error('This product is currently out of stock.');
+      return;
+    }
+
+    // Require authentication
+    if (!user) {
+      toast.info('Please sign in or create an account to add items to your cart');
+      openAuthModal('signin');
+      return;
+    }
 
     // 1. Instantly update local state
     setCartItems(prev => {

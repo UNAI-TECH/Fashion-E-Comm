@@ -29,6 +29,10 @@ export function AdminDashboard() {
 
   useEffect(() => {
     loadDashboardData();
+    const interval = setInterval(() => {
+      loadDashboardData();
+    }, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const loadDashboardData = async () => {
@@ -46,12 +50,13 @@ export function AdminDashboard() {
         supabase.from('orders').select('*', { count: 'exact', head: true }),
         supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'customer'),
         supabase.from('products').select('*', { count: 'exact', head: true }).eq('status', 'Published'),
-        supabase.from('orders').select('total_amount, created_at, status'),
+        supabase.from('orders').select('total_amount, created_at, status, payment_status'),
         supabase.from('orders')
           .select(`
             id,
             total_amount,
             status,
+            payment_status,
             created_at,
             shipping_address,
             order_items (
@@ -63,10 +68,11 @@ export function AdminDashboard() {
         supabase.from('products').select('category').eq('status', 'Published')
       ]);
 
-      // Calculate total revenue
-      const totalRevenue = orders
-        ? orders.reduce((acc, item) => acc + Number(item.total_amount || 0), 0)
-        : 0;
+      // Calculate total revenue strictly from verified paid orders (no mock or pending revenue)
+      const paidOrders = (orders || []).filter(
+        (o: any) => o.payment_status === 'Completed' || o.payment_status === 'Success'
+      );
+      const totalRevenue = paidOrders.reduce((acc, item) => acc + Number(item.total_amount || 0), 0);
 
       setStats({
         totalRevenue,
@@ -75,14 +81,12 @@ export function AdminDashboard() {
         totalProducts: totalProducts || 0,
       });
 
-      // Calculate monthly revenue
+      // Calculate monthly revenue from paid orders
       const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       const monthlyData = Array(12).fill(0);
-      if (orders) {
-        for (const order of orders) {
-          const m = new Date(order.created_at).getMonth();
-          monthlyData[m] += Number(order.total_amount || 0);
-        }
+      for (const order of paidOrders) {
+        const m = new Date(order.created_at).getMonth();
+        monthlyData[m] += Number(order.total_amount || 0);
       }
       setMonthlyRevenue(monthlyData.map((rev, i) => ({ name: months[i], sales: rev })));
 

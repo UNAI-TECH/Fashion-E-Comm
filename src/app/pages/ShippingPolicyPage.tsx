@@ -189,7 +189,7 @@ export function ShippingPolicyPage() {
                 <strong>Free Shipping:</strong> We provide <strong>100% Free Standard Delivery</strong> on all prepaid online orders (UPI, Credit/Debit Cards, Net Banking via Razorpay) across India.
               </li>
               <li>
-                <strong>Cash on Delivery (COD):</strong> For Cash on Delivery orders, standard shipping is free. A nominal convenience handling fee may be applied during checkout where applicable.
+                <strong>Instant Dispatch:</strong> All verified prepaid orders via Razorpay receive prioritized processing and expedited warehouse dispatch within 24 hours.
               </li>
               <li>
                 <strong>No Hidden Charges:</strong> The price displayed at the final checkout screen is completely all-inclusive (inclusive of applicable GST and freight).

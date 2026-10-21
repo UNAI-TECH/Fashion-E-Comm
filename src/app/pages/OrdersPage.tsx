@@ -17,14 +17,15 @@ export function OrdersPage() {
   const { user, profile, isAuthenticated } = useCustomerAuth();
   const [orders, setOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('All Orders');
   const [sortBy, setSortBy] = useState('Newest First');
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
 
-  const fetchOrders = async () => {
-    setIsLoading(true);
+  const fetchOrders = async (manual = false) => {
+    if (manual) setIsRefreshing(true);
     try {
       let activeUser = user;
       if (!activeUser) {
@@ -35,6 +36,7 @@ export function OrdersPage() {
       if (!activeUser?.id) {
         setOrders([]);
         setIsLoading(false);
+        if (manual) setIsRefreshing(false);
         return;
       }
 
@@ -53,20 +55,22 @@ export function OrdersPage() {
 
       if (error) {
         console.error('Error fetching orders from Supabase:', error);
-        toast.error('Could not sync latest orders.');
+        if (manual) toast.error('Could not sync latest orders.');
         setOrders([]);
       } else {
         setOrders(dbData || []);
+        if (manual) toast.success('Orders refreshed');
       }
     } catch (error: any) {
       console.error('Error fetching orders:', error);
-      toast.error('Could not sync latest orders.');
+      if (manual) toast.error('Could not sync latest orders.');
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   };
 
-  // Subscribe to real-time order updates for this user
+  // Subscribe to real-time order updates for this user + auto-refresh every 30s
   useEffect(() => {
     fetchOrders();
 
@@ -84,7 +88,13 @@ export function OrdersPage() {
     const handleLocalUpdate = () => fetchOrders();
     window.addEventListener('orders_updated', handleLocalUpdate);
 
+    // Auto refresh every 30 seconds
+    const interval = setInterval(() => {
+      fetchOrders();
+    }, 30000);
+
     return () => {
+      clearInterval(interval);
       supabase.removeChannel(channel);
       window.removeEventListener('orders_updated', handleLocalUpdate);
     };
@@ -133,9 +143,31 @@ export function OrdersPage() {
     return result;
   }, [orders, searchQuery, activeFilter, sortBy]);
 
-  useEffect(() => {
-    fetchOrders();
-  }, []);
+  const getPaymentStatusBadge = (paymentStatus?: string) => {
+    const s = (paymentStatus || 'Pending').toLowerCase();
+    if (s === 'completed' || s === 'success' || s === 'paid') {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs font-bold shadow-xs">
+          <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+          Payment: Success
+        </span>
+      );
+    }
+    if (s === 'failed' || s === 'cancelled') {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-rose-50 text-rose-700 border border-rose-200 rounded-full text-xs font-bold shadow-xs">
+          <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+          Payment: Failed
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-xs font-bold shadow-xs">
+        <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+        Payment: Pending
+      </span>
+    );
+  };
 
   const getStatusBadge = (status: string) => {
     const s = status || 'Order Placed';
@@ -187,10 +219,13 @@ export function OrdersPage() {
             <p className="text-gray-500">Track, return, or buy your favorite styles again.</p>
           </div>
           <button 
-            onClick={fetchOrders}
-            className="px-6 py-2 bg-white border border-gray-200 rounded-full text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm whitespace-nowrap"
+            onClick={() => fetchOrders(true)}
+            disabled={isRefreshing}
+            className="px-5 py-2.5 bg-white border border-gray-200 rounded-full text-xs font-bold hover:bg-gray-50 transition-colors shadow-sm whitespace-nowrap flex items-center gap-2 text-gray-700 disabled:opacity-60 cursor-pointer"
           >
-            Refresh List
+            <RefreshCcw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-[#698156]' : 'text-gray-500'}`} />
+            <span>{isRefreshing ? 'Refreshing...' : 'Refresh Orders'}</span>
+            <span className="text-[10px] text-gray-400 font-medium hidden sm:inline border-l border-gray-200 pl-2">Auto 30s</span>
           </button>
         </div>
 
@@ -433,11 +468,10 @@ export function OrdersPage() {
                               )}
                             </div>
                             
-                            <div className="text-sm text-gray-500 flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
-                              <span className="font-medium text-gray-900">{order.payment_method || 'Card'}</span>
-                              <span>•</span>
-                              <span className={order.payment_status === 'Success' ? 'text-emerald-600 font-medium' : 'text-amber-600 font-medium'}>
-                                {order.payment_status || 'Pending'}
+                            <div className="flex flex-wrap items-center gap-2">
+                              {getPaymentStatusBadge(order.payment_status)}
+                              <span className="text-xs text-gray-500 bg-gray-50 px-2.5 py-1 rounded-full border border-gray-200 font-medium">
+                                {order.payment_method || 'Razorpay Online'}
                               </span>
                             </div>
                           </div>

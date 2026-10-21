@@ -6,11 +6,13 @@ import { AnnouncementBar } from '../components/AnnouncementBar';
 import { Footer } from '../components/Footer';
 import { useCart } from '../contexts/CartContext';
 import { useWishlist } from '../contexts/WishlistContext';
+import { useCustomerAuth } from '../contexts/CustomerAuthContext';
 import { SEOHead } from '../components/SEOHead';
 
 export function CartPage() {
   const { cartItems, updateQuantity, removeItem, isLoading } = useCart();
   const { addToWishlist } = useWishlist();
+  const { isAuthenticated, requireAuth, openAuthModal } = useCustomerAuth();
   const navigate = useNavigate();
 
   // Price calculations
@@ -26,12 +28,22 @@ export function CartPage() {
   const youSave = discount + (deliveryFee === 0 ? 99 : 0);
 
   const handleMoveToWishlist = async (item: any) => {
-    await addToWishlist(item);
-    removeItem(item.id);
+    requireAuth(async () => {
+      await addToWishlist(item);
+      removeItem(item.id);
+    }, 'Please sign in or create an account to move items to your wishlist');
   };
 
   const handleBuyNow = (item: any) => {
-    navigate(`/checkout?buyNow=${item.id}&qty=${item.quantity}`);
+    requireAuth(() => {
+      navigate(`/checkout?buyNow=${item.id}&qty=${item.quantity}`);
+    }, 'Please sign in or create an account to proceed to checkout');
+  };
+
+  const handleProceedToCheckout = () => {
+    requireAuth(() => {
+      navigate('/checkout');
+    }, 'Please sign in or create an account to place an order');
   };
 
   return (
@@ -233,16 +245,17 @@ export function CartPage() {
                     </div>
                   )}
 
-                  <Link to="/checkout" className="block w-full mt-5">
+                  <div className="w-full mt-5">
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      className="w-full py-4 bg-[#698156] text-white rounded-xl flex items-center justify-center gap-2 font-bold text-sm uppercase tracking-wider hover:bg-[#546944] transition-colors shadow-lg hover:shadow-xl"
+                      onClick={handleProceedToCheckout}
+                      className="w-full py-4 bg-[#698156] text-white rounded-xl flex items-center justify-center gap-2 font-bold text-sm uppercase tracking-wider hover:bg-[#546944] transition-colors shadow-lg hover:shadow-xl cursor-pointer"
                     >
                       Place Order
                       <ArrowRight className="w-4 h-4" />
                     </motion.button>
-                  </Link>
+                  </div>
 
                   <div className="mt-4 text-center">
                     <p className="text-xs text-gray-400 flex items-center justify-center gap-1.5">

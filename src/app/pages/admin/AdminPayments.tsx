@@ -97,7 +97,7 @@ export function AdminPayments() {
         .select('*')
         .order('settled_at', { ascending: false });
 
-      // Build consolidated transactions
+      // Build consolidated transactions strictly from real data
       let formattedTxns: PaymentTransaction[] = [];
 
       if (paymentsData && paymentsData.length > 0) {
@@ -106,32 +106,34 @@ export function AdminPayments() {
           order_id: p.order_id || 'N/A',
           customer_name: p.customer_name || 'Customer',
           customer_phone: p.customer_phone || '',
-          method: p.payment_method || 'Google Pay',
-          gateway_txn_id: p.gateway_txn_id || (p.metadata?.utr || '—'),
-          payer_vpa: p.payer_vpa || '—',
+          method: p.payment_method || 'Razorpay',
+          gateway_txn_id: p.gateway_txn_id || p.payment_id || (p.metadata?.utr || '—'),
+          payer_vpa: p.payer_vpa || 'Razorpay Online',
           amount: Number(p.amount || 0),
-          status: p.status || 'Completed',
+          status: p.status || 'Success',
           raw_date: p.created_at,
           date: new Date(p.created_at).toLocaleString('en-IN', {
             day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
           }),
         }));
       } else if (ordersData && ordersData.length > 0) {
-        formattedTxns = ordersData.map((o: any) => ({
-          id: `TXN-${o.id.substring(4, 14)}`,
-          order_id: o.id,
-          customer_name: o.customer_name || 'Customer',
-          customer_phone: o.customer_phone || '',
-          method: o.payment_method || 'Google Pay',
-          gateway_txn_id: `GPAY-${o.id.substring(0, 8)}`,
-          payer_vpa: 'Google Pay UPI',
-          amount: Number(o.total_amount || 0),
-          status: o.payment_status || 'Pending',
-          raw_date: o.created_at,
-          date: new Date(o.created_at).toLocaleString('en-IN', {
-            day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
-          }),
-        }));
+        formattedTxns = ordersData
+          .filter((o: any) => o.payment_status === 'Completed' || o.payment_status === 'Success' || o.payment_status === 'Failed')
+          .map((o: any) => ({
+            id: o.razorpay_payment_id || `RZP-${o.id.substring(0, 10)}`,
+            order_id: o.id,
+            customer_name: o.customer_name || 'Customer',
+            customer_phone: o.customer_phone || '',
+            method: 'Razorpay (UPI, Cards, NetBanking)',
+            gateway_txn_id: o.razorpay_payment_id || o.razorpay_order_id || '—',
+            payer_vpa: 'Razorpay Checkout',
+            amount: Number(o.total_amount || 0),
+            status: o.payment_status === 'Completed' ? 'Success' : o.payment_status,
+            raw_date: o.created_at,
+            date: new Date(o.created_at).toLocaleString('en-IN', {
+              day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+            }),
+          }));
       }
 
       setTransactions(formattedTxns);
@@ -154,13 +156,13 @@ export function AdminPayments() {
         })));
       }
 
-      // Calculate aggregated stats
+      // Calculate aggregated stats strictly from real data
       const totalRev = formattedTxns
         .filter(t => t.status === 'Completed' || t.status === 'Success')
         .reduce((sum, t) => sum + t.amount, 0);
 
-      const gpayRev = formattedTxns
-        .filter(t => (t.status === 'Completed' || t.status === 'Success') && t.method.toLowerCase().includes('google pay'))
+      const razorpayRev = formattedTxns
+        .filter(t => (t.status === 'Completed' || t.status === 'Success'))
         .reduce((sum, t) => sum + t.amount, 0);
 
       const pendingSet = formattedTxns
@@ -171,7 +173,7 @@ export function AdminPayments() {
 
       setStats({
         totalRevenue: totalRev,
-        gpayRevenue: gpayRev,
+        gpayRevenue: razorpayRev,
         totalPayouts: totalPay,
         pendingSettlements: pendingSet
       });

@@ -29,7 +29,8 @@ export interface RazorpayCheckoutOptions {
 let isPaymentSessionActive = false;
 
 /**
- * Dynamically loads the official Razorpay Checkout SDK script over HTTPS if not already present in DOM
+ * Dynamically loads the official Razorpay Checkout SDK script over HTTPS
+ * Handles pre-loaded scripts in index.html safely without hanging event listeners
  */
 export function loadRazorpayScript(): Promise<boolean> {
   return new Promise((resolve) => {
@@ -42,8 +43,28 @@ export function loadRazorpayScript(): Promise<boolean> {
 
     const existingScript = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
     if (existingScript) {
-      existingScript.addEventListener('load', () => resolve(true));
-      existingScript.addEventListener('error', () => resolve(false));
+      // Script is already present in DOM (e.g. from index.html).
+      // Check repeatedly in case it already finished loading or is about to finish
+      let attempts = 0;
+      const checkInterval = setInterval(() => {
+        attempts++;
+        if ((window as any).Razorpay) {
+          clearInterval(checkInterval);
+          resolve(true);
+        } else if (attempts >= 25) { // 2.5 seconds timeout
+          clearInterval(checkInterval);
+          resolve(typeof (window as any).Razorpay !== 'undefined');
+        }
+      }, 100);
+
+      existingScript.addEventListener('load', () => {
+        clearInterval(checkInterval);
+        resolve(true);
+      });
+      existingScript.addEventListener('error', () => {
+        clearInterval(checkInterval);
+        resolve(false);
+      });
       return;
     }
 
@@ -51,8 +72,18 @@ export function loadRazorpayScript(): Promise<boolean> {
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
     script.async = true;
     script.crossOrigin = 'anonymous';
-    script.onload = () => resolve(true);
+
+    // Timeout safety
+    const timeout = setTimeout(() => {
+      resolve(typeof (window as any).Razorpay !== 'undefined');
+    }, 6000);
+
+    script.onload = () => {
+      clearTimeout(timeout);
+      resolve(true);
+    };
     script.onerror = () => {
+      clearTimeout(timeout);
       console.warn('Failed to load Razorpay checkout script from official CDN.');
       resolve(false);
     };
@@ -87,6 +118,9 @@ export async function openRazorpayCheckout(options: RazorpayCheckoutOptions): Pr
   } = options;
 
   isPaymentSessionActive = true;
+  const sessionTimeout = setTimeout(() => {
+    isPaymentSessionActive = false;
+  }, 12000);
 
   try {
     // 1. Calculate amount in paise (minimum 100 paise = ₹1.00)
@@ -146,6 +180,7 @@ export async function openRazorpayCheckout(options: RazorpayCheckoutOptions): Pr
       },
       modal: {
         ondismiss: () => {
+          clearTimeout(sessionTimeout);
           isPaymentSessionActive = false;
           if (onDismiss) onDismiss();
         },
@@ -155,6 +190,7 @@ export async function openRazorpayCheckout(options: RazorpayCheckoutOptions): Pr
         confirm_close: true
       },
       handler: async (response: any) => {
+        clearTimeout(sessionTimeout);
         isPaymentSessionActive = false;
         try {
           if (!response.razorpay_payment_id || !response.razorpay_order_id || !response.razorpay_signature) {
@@ -174,6 +210,7 @@ export async function openRazorpayCheckout(options: RazorpayCheckoutOptions): Pr
     const rzpInstance = new (window as any).Razorpay(rzpOptions);
 
     rzpInstance.on('payment.failed', function (resp: any) {
+      clearTimeout(sessionTimeout);
       isPaymentSessionActive = false;
       console.error('Razorpay payment failed:', resp.error);
       const desc = resp.error?.description || resp.error?.reason || 'Payment was unsuccessful or declined by bank';
@@ -182,8 +219,10 @@ export async function openRazorpayCheckout(options: RazorpayCheckoutOptions): Pr
       }
     });
 
+    clearTimeout(sessionTimeout);
     rzpInstance.open();
   } catch (error: any) {
+    clearTimeout(sessionTimeout);
     isPaymentSessionActive = false;
     console.error('Razorpay checkout initialization failed:', error);
     if (onError) onError(error);

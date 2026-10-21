@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, Filter, Eye, X, PackageOpen, Truck, CheckCircle, Package, Loader2 } from 'lucide-react';
+import { Search, Filter, Eye, X, PackageOpen, Truck, CheckCircle, Package, Loader2, RefreshCw, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { toast } from 'sonner';
 
@@ -28,6 +28,11 @@ export function AdminOrders() {
   useEffect(() => {
     loadOrders();
 
+    // Auto-refresh orders every 30 seconds
+    const interval = setInterval(() => {
+      loadOrders();
+    }, 30000);
+
     // Real-time subscription for order updates
     const channel = supabase
       .channel('admin-orders')
@@ -36,7 +41,10 @@ export function AdminOrders() {
       })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const loadOrders = async () => {
@@ -138,8 +146,18 @@ export function AdminOrders() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-gray-900">Orders Management</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Orders Management</h1>
+          <p className="text-xs text-gray-500 mt-0.5">Real-time sync • Auto-refreshes every 30 seconds</p>
+        </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => { loadOrders(); toast.info('Orders refreshed'); }}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold rounded-lg transition-all cursor-pointer shadow-xs active:scale-95"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Refresh
+          </button>
           <select 
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
@@ -178,7 +196,8 @@ export function AdminOrders() {
                 <th className="px-6 py-4 font-medium">Customer</th>
                 <th className="px-6 py-4 font-medium">Date</th>
                 <th className="px-6 py-4 font-medium">Total Amount</th>
-                <th className="px-6 py-4 font-medium">Status</th>
+                <th className="px-6 py-4 font-medium">Payment Status</th>
+                <th className="px-6 py-4 font-medium">Order Status</th>
                 <th className="px-6 py-4 font-medium text-right">Actions</th>
               </tr>
             </thead>
@@ -192,6 +211,21 @@ export function AdminOrders() {
                   </td>
                   <td className="px-6 py-4 text-gray-500">{order.date}</td>
                   <td className="px-6 py-4 font-medium">{formatCurrency(order.amount)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {order.payment_status === 'Completed' || order.payment_status === 'Success' ? (
+                      <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 inline-flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Success
+                      </span>
+                    ) : order.payment_status === 'Failed' ? (
+                      <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-200 inline-flex items-center gap-1">
+                        <XCircle className="w-3.5 h-3.5 text-rose-600" /> Failed
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 inline-flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-amber-600" /> Pending
+                      </span>
+                    )}
+                  </td>
                   <td className="px-6 py-4">
                     <span className={`px-3 py-1 rounded-full text-xs font-medium inline-block ${getStatusColor(order.status)}`}>
                       {order.status}
@@ -209,7 +243,7 @@ export function AdminOrders() {
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={6} className="px-6 py-16 text-center text-gray-400">
+                  <td colSpan={7} className="px-6 py-16 text-center text-gray-400">
                     {searchQuery || statusFilter !== 'All' ? 'No orders match your filter.' : 'No orders yet.'}
                   </td>
                 </tr>

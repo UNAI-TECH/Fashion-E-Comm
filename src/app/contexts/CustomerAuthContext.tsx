@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { User, Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { saveUserProfileDetails, getUserProfileDetails } from '../../lib/userProfile';
+import { AuthModal } from '../components/AuthModal';
 
 export interface CustomerProfile {
   id: string;
@@ -30,6 +31,10 @@ interface CustomerAuthContextType {
   session: Session | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isAuthModalOpen: boolean;
+  openAuthModal: (mode?: 'signin' | 'signup') => void;
+  closeAuthModal: () => void;
+  requireAuth: (callback: () => void, message?: string) => boolean;
   signUp: (formData: SignupFormData) => Promise<{ success: boolean; needsEmailVerification?: boolean; error?: string }>;
   signInWithEmail: (email: string, password: string) => Promise<{ success: boolean; unconfirmedEmail?: boolean; error?: string }>;
   resendVerificationEmail: (email: string) => Promise<{ success: boolean; error?: string }>;
@@ -53,6 +58,27 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
     }
   });
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<'signin' | 'signup'>('signin');
+
+  const openAuthModal = (mode: 'signin' | 'signup' = 'signin') => {
+    setAuthModalMode(mode);
+    setIsAuthModalOpen(true);
+  };
+
+  const closeAuthModal = () => {
+    setIsAuthModalOpen(false);
+  };
+
+  const requireAuth = (callback: () => void, message?: string): boolean => {
+    if (!user) {
+      toast.info(message || 'Please sign in or create an account to continue');
+      openAuthModal('signin');
+      return false;
+    }
+    callback();
+    return true;
+  };
 
   // ─── Fetch user profile from 'profiles' table & sync to localStorage ───
   const fetchProfile = async (userId: string, userEmail?: string, userMeta?: any) => {
@@ -543,6 +569,10 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
         session,
         isAuthenticated: !!user,
         isLoading,
+        isAuthModalOpen,
+        openAuthModal,
+        closeAuthModal,
+        requireAuth,
         signUp,
         signInWithEmail,
         resendVerificationEmail,
@@ -553,6 +583,11 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
       }}
     >
       {children}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={closeAuthModal}
+        defaultMode={authModalMode}
+      />
     </CustomerAuthContext.Provider>
   );
 }

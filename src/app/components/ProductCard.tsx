@@ -3,6 +3,8 @@ import { Heart, ShoppingBag, Star } from 'lucide-react';
 import { Link, useNavigate } from 'react-router';
 import { useCart } from '../contexts/CartContext';
 import { useWishlist } from '../contexts/WishlistContext';
+import { useCustomerAuth } from '../contexts/CustomerAuthContext';
+import { toast } from 'sonner';
 
 interface ProductCardProps {
   id: string;
@@ -13,6 +15,7 @@ interface ProductCardProps {
   rating: number;
   colors: string[];
   badge?: string;
+  stock_quantity?: number;
 }
 
 export function ProductCard({
@@ -24,16 +27,25 @@ export function ProductCard({
   rating,
   colors,
   badge,
+  stock_quantity,
 }: ProductCardProps) {
   const navigate = useNavigate();
   const { addToCart } = useCart();
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
+  const { isAuthenticated, openAuthModal } = useCustomerAuth();
 
-  const product = { id, name, price, originalPrice, image, rating, colors, badge } as any;
+  const isOutOfStock = stock_quantity !== undefined && stock_quantity !== null && Number(stock_quantity) <= 0;
+
+  const product = { id, name, price, originalPrice, image, rating, colors, badge, stock_quantity } as any;
 
   const handleWishlistToggle = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!isAuthenticated) {
+      toast.info('Please sign in or create an account to save to Wishlist');
+      openAuthModal('signin');
+      return;
+    }
     if (isInWishlist(id)) {
       await removeFromWishlist(id);
     } else {
@@ -44,12 +56,30 @@ export function ProductCard({
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (isOutOfStock) {
+      toast.error('This product is currently out of stock.');
+      return;
+    }
+    if (!isAuthenticated) {
+      toast.info('Please sign in or create an account to add items to your cart');
+      openAuthModal('signin');
+      return;
+    }
     await addToCart(product, 1);
   };
 
   const handleBuyNow = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (isOutOfStock) {
+      toast.error('This product is currently out of stock.');
+      return;
+    }
+    if (!isAuthenticated) {
+      toast.info('Please sign in or create an account to buy now');
+      openAuthModal('signin');
+      return;
+    }
     await addToCart(product, 1);
     navigate('/checkout');
   };
@@ -64,7 +94,11 @@ export function ProductCard({
     >
       {/* Top Floating Controls: Badge & Wishlist Button */}
       <div className="absolute top-3 inset-x-3 z-10 flex items-center justify-between pointer-events-none">
-        {badge ? (
+        {isOutOfStock ? (
+          <span className="px-3 py-1 bg-rose-600 text-white text-[10px] sm:text-[11px] font-black tracking-wider rounded-full shadow-sm pointer-events-auto uppercase">
+            Out of Stock
+          </span>
+        ) : badge ? (
           <span className="px-3 py-1 bg-[#698156] text-white text-[11px] font-bold tracking-wider rounded-full shadow-sm pointer-events-auto">
             {badge}
           </span>
@@ -116,24 +150,34 @@ export function ProductCard({
             {/* Add to Cart */}
             <motion.button
               onClick={handleAddToCart}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.96 }}
-              className="w-full py-2 px-1.5 bg-white border border-[#698156] text-[#698156] hover:bg-[#F4F6F2] rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition-all shadow-xs cursor-pointer"
-              title="Add to Cart"
+              disabled={isOutOfStock}
+              whileHover={isOutOfStock ? {} : { scale: 1.02 }}
+              whileTap={isOutOfStock ? {} : { scale: 0.96 }}
+              className={`w-full py-2 px-1.5 rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition-all ${
+                isOutOfStock
+                  ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
+                  : 'bg-white border border-[#698156] text-[#698156] hover:bg-[#F4F6F2] shadow-xs cursor-pointer'
+              }`}
+              title={isOutOfStock ? 'Sold Out' : 'Add to Cart'}
             >
               <ShoppingBag className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
-              <span className="truncate">Add to Cart</span>
+              <span className="truncate">{isOutOfStock ? 'Sold Out' : 'Add to Cart'}</span>
             </motion.button>
 
             {/* Buy Now */}
             <motion.button
               onClick={handleBuyNow}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.96 }}
-              className="w-full py-2 px-1.5 bg-[#698156] hover:bg-[#546944] text-white rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition-all shadow-sm shadow-[#698156]/20 cursor-pointer"
-              title="Buy Now"
+              disabled={isOutOfStock}
+              whileHover={isOutOfStock ? {} : { scale: 1.02 }}
+              whileTap={isOutOfStock ? {} : { scale: 0.96 }}
+              className={`w-full py-2 px-1.5 rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition-all ${
+                isOutOfStock
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  : 'bg-[#698156] hover:bg-[#546944] text-white shadow-sm shadow-[#698156]/20 cursor-pointer'
+              }`}
+              title={isOutOfStock ? 'Sold Out' : 'Buy Now'}
             >
-              <span className="truncate">Buy Now</span>
+              <span className="truncate">{isOutOfStock ? 'Sold Out' : 'Buy Now'}</span>
             </motion.button>
           </div>
         </div>

@@ -289,14 +289,14 @@ export function HeroAdBanner() {
               </div>
             </div>
 
-            {/* 2. Cash on Delivery */}
+            {/* 2. 100% Secure Razorpay Payments */}
             <div className="flex items-center gap-3 px-2 sm:px-4 py-1">
               <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0">
                 <ShieldCheck className="w-5 h-5 stroke-[2.2]" />
               </div>
               <div className="leading-tight">
-                <p className="text-xs sm:text-sm font-bold text-gray-900">Cash on Delivery</p>
-                <p className="text-[10px] sm:text-xs text-gray-500">Pay securely at your doorstep</p>
+                <p className="text-xs sm:text-sm font-bold text-gray-900">100% Secure Pay</p>
+                <p className="text-[10px] sm:text-xs text-gray-500">Razorpay UPI, Cards & NetBanking</p>
               </div>
             </div>
 

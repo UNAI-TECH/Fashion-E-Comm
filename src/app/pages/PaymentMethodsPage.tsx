@@ -8,9 +8,9 @@ export function PaymentMethodsPage() {
     <div className="min-h-screen bg-white">
       <SEOHead
         title="Payment Methods & Safe Checkout"
-        description="Learn about the secure payment options accepted at Aanya Fashions, including UPI (GPay, PhonePe, Paytm), Credit/Debit Cards, Net Banking, and Cash on Delivery."
+        description="Learn about the secure payment options accepted at Aanya Fashions, powered by Razorpay including UPI (GPay, PhonePe, Paytm), Credit/Debit Cards, and Net Banking."
         canonicalUrl="/payment-methods"
-        keywords="payment methods, upi, credit cards, cash on delivery, secure checkout, aanya fashions payments"
+        keywords="payment methods, razorpay, upi, credit cards, netbanking, secure checkout, aanya fashions payments"
         structuredData={getBreadcrumbSchema([
           { name: 'Home', url: '/' },
           { name: 'Payment Methods', url: '/payment-methods' }
@@ -124,21 +124,21 @@ export function PaymentMethodsPage() {
             </ul>
           </div>
 
-          {/* Cash on Delivery */}
+          {/* Razorpay 100% Secure Gateway */}
           <div className="bg-emerald-50/50 border border-emerald-100 p-8 rounded-3xl">
             <div className="flex items-center gap-3 mb-6">
               <div className="p-3 bg-emerald-100 text-emerald-600 rounded-xl">
-                <Banknote className="w-6 h-6" />
+                <ShieldCheck className="w-6 h-6" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 m-0">Cash on Delivery (COD)</h3>
+              <h3 className="text-xl font-bold text-gray-900 m-0">100% Secure Razorpay Checkout</h3>
             </div>
-            <p className="text-gray-600 mb-4">Prefer to pay when your package arrives? We offer Cash on Delivery across 25,000+ pin codes in India.</p>
+            <p className="text-gray-600 mb-4">All orders are safely processed through Razorpay's RBI-compliant, 256-bit encrypted payment infrastructure.</p>
             <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-              <h4 className="font-bold text-gray-900 text-sm mb-2">COD Guidelines:</h4>
+              <h4 className="font-bold text-gray-900 text-sm mb-2">Checkout Assurance:</h4>
               <ul className="text-sm text-gray-600 space-y-2">
-                <li>• Please keep exact change ready for the delivery agent.</li>
-                <li>• UPI payments via scanner are accepted by agents upon delivery.</li>
-                <li>• COD is available on all standard orders (Excluding heavy custom pieces).</li>
+                <li>• Instant order confirmation & payment receipt.</li>
+                <li>• Multi-factor 3D Secure verification for card transactions.</li>
+                <li>• Zero convenience fee on all UPI & online payment modes.</li>
               </ul>
             </div>
           </div>

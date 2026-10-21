@@ -93,7 +93,7 @@ export function Home() {
     },
     {
       question: 'Where can I buy authentic sarees online in India?',
-      answer: 'You can buy premium authentic sarees online at Aanya Fashions. We offer a curated collection of silk sarees, banarasi sarees, and designer weaves with cash on delivery and doorstep delivery.',
+      answer: 'You can buy premium authentic sarees online at Aanya Fashions. We offer a curated collection of silk sarees, banarasi sarees, and designer weaves with 100% secure Razorpay online payments and doorstep delivery.',
     },
   ]);
 
@@ -101,7 +101,7 @@ export function Home() {
     <div className="min-h-screen bg-white">
       <SEOHead
         canonicalUrl="/"
-        description="Shop premium authentic sarees at Aanya Fashions. India's trusted online destination for pure silk, Banarasi, Kanchipuram and designer festive sarees. Free shipping across India, Cash on Delivery & 7-day easy returns."
+        description="Shop premium authentic sarees at Aanya Fashions. India's trusted online destination for pure silk, Banarasi, Kanchipuram and designer festive sarees. Free shipping across India, secure online payments & 7-day easy returns."
         keywords="aanya fashions, buy sarees online, pure silk sarees, banarasi sarees, kanchipuram sarees, designer sarees india, wedding sarees, festive saree sale"
         structuredData={[
           getOrganizationSchema(),

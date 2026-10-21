@@ -234,11 +234,6 @@ export function RefundPolicyPage() {
                       <td className="p-3 sm:p-4">Originating Bank Account via Razorpay</td>
                       <td className="p-3 sm:p-4 font-bold text-[#698156]">3 to 5 Business Days</td>
                     </tr>
-                    <tr>
-                      <td className="p-3 sm:p-4 font-semibold text-gray-900">Cash on Delivery (COD)</td>
-                      <td className="p-3 sm:p-4">Customer's Verified Bank Account (NEFT / IMPS) or UPI</td>
-                      <td className="p-3 sm:p-4 font-bold text-[#698156]">2 to 4 Business Days</td>
-                    </tr>
                   </tbody>
                 </table>
               </div>

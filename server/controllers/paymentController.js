@@ -364,28 +364,85 @@ export const handleRazorpayWebhook = async (req, res) => {
       const targetOrderId = payment?.notes?.orderId || order?.notes?.orderId || payment?.description || order?.receipt;
 
       if (targetOrderId && supabase) {
+        // Fetch current order status to avoid duplicate fulfillment
+        const { data: currentOrder } = await supabase
+          .from('orders')
+          .select('id, payment_status, status, stock_decremented')
+          .eq('id', targetOrderId)
+          .maybeSingle();
+
+        // Atomic Stock fulfillment if not already decremented
+        if (!currentOrder?.stock_decremented) {
+          try {
+            await supabase.rpc('fulfill_order_stock', { p_order_id: targetOrderId });
+          } catch (stkErr) {
+            console.warn('Webhook stock fulfillment notice:', stkErr?.message);
+          }
+        }
+
         await supabase
           .from('orders')
           .update({
             payment_status: 'Completed',
             status: 'Confirmed',
-            payment_method: 'UPI',
+            payment_method: payment?.method === 'upi' ? 'UPI' : 'Razorpay',
+            razorpay_payment_id: payment?.id,
+            razorpay_order_id: payment?.order_id || order?.id,
             updated_at: new Date().toISOString()
           })
           .eq('id', targetOrderId);
+
+        // Record into payments table
+        try {
+          await supabase.from('payments').insert([{
+            order_id: targetOrderId,
+            payment_id: payment?.id || `pay_${Date.now()}`,
+            gateway_txn_id: payment?.id,
+            payment_method: payment?.method || 'Razorpay',
+            status: 'Success',
+            amount: payment?.amount ? payment.amount / 100 : 0,
+            currency: payment?.currency || 'INR',
+            payer_vpa: payment?.vpa || payment?.email || '',
+            created_at: new Date().toISOString()
+          }]);
+        } catch (payInsertErr) {
+          console.warn('Payment insert notice:', payInsertErr?.message);
+        }
       }
     } else if (event === 'payment.failed') {
       const payment = payload?.payment?.entity;
       const targetOrderId = payment?.notes?.orderId || payment?.description;
 
       if (targetOrderId && supabase) {
-        await supabase
+        const { data: currentOrder } = await supabase
           .from('orders')
-          .update({
-            payment_status: 'Failed',
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', targetOrderId);
+          .select('id, payment_status')
+          .eq('id', targetOrderId)
+          .maybeSingle();
+
+        if (currentOrder && currentOrder.payment_status !== 'Completed') {
+          await supabase
+            .from('orders')
+            .update({
+              payment_status: 'Failed',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', targetOrderId);
+
+          try {
+            await supabase.from('payments').insert([{
+              order_id: targetOrderId,
+              payment_id: payment?.id || `fail_${Date.now()}`,
+              gateway_txn_id: payment?.id,
+              payment_method: payment?.method || 'Razorpay',
+              status: 'Failed',
+              amount: payment?.amount ? payment.amount / 100 : 0,
+              currency: payment?.currency || 'INR',
+              payer_vpa: payment?.vpa || payment?.email || '',
+              created_at: new Date().toISOString()
+            }]);
+          } catch {}
+        }
       }
     }
 

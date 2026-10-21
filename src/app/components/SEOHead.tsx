@@ -208,7 +208,7 @@ export function getOnlineStoreSchema() {
     description: 'Shop the finest collection of women\'s ethnic and western wear online at Aanya Fashions. Premium sarees, kurtis, lehengas, salwar sets, maxi dresses, and trendy western outfits.',
     priceRange: '₹₹',
     currenciesAccepted: 'INR',
-    paymentAccepted: 'UPI, Credit Card, Debit Card, Net Banking, Cash on Delivery',
+    paymentAccepted: 'UPI, Credit Card, Debit Card, Net Banking via Razorpay',
     sameAs: [
       'https://www.instagram.com/aanya.style',
       'https://www.facebook.com/profile.php?id=61574236752445',

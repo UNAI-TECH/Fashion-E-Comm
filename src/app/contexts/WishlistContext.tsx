@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Product } from '../data/products';
 import { toast } from 'sonner';
+import { useCustomerAuth } from './CustomerAuthContext';
 
 interface WishlistContextType {
   wishlistItems: Product[];
@@ -15,6 +16,7 @@ interface WishlistContextType {
 const WishlistContext = createContext<WishlistContextType | undefined>(undefined);
 
 export function WishlistProvider({ children }: { children: React.ReactNode }) {
+  const { user, openAuthModal } = useCustomerAuth();
   const [wishlistItems, setWishlistItems] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -68,6 +70,12 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
 
   const addToWishlist = async (product: Product) => {
     if (!product || !product.id) return;
+
+    if (!user) {
+      toast.info('Please sign in or create an account to save to Wishlist');
+      openAuthModal('signin');
+      return;
+    }
 
     // 1. Instantly update local state & localStorage
     setWishlistItems(prev => {

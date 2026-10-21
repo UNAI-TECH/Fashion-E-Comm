@@ -12,6 +12,7 @@ import { AnnouncementBar } from '../components/AnnouncementBar';
 import { Footer } from '../components/Footer';
 import { useCart } from '../contexts/CartContext';
 import { useWishlist } from '../contexts/WishlistContext';
+import { useCustomerAuth } from '../contexts/CustomerAuthContext';
 import { supabase } from '../../lib/supabase';
 import { fetchProducts, Product, ensureProductImages } from '../data/products';
 import { toast } from 'sonner';
@@ -33,10 +34,14 @@ export function ProductPage() {
   const navigate = useNavigate();
   const { addToCart } = useCart();
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
+  const { isAuthenticated, requireAuth, openAuthModal } = useCustomerAuth();
   const [product, setProduct] = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
+
+  // Check if stock is depleted
+  const isOutOfStock = product?.stock_quantity !== undefined && product?.stock_quantity !== null && Number(product.stock_quantity) <= 0;
 
   // Lightbox & coupon states
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
@@ -55,7 +60,35 @@ export function ProductPage() {
 
   const handleBuyNow = () => {
     if (!product) return;
-    navigate(`/checkout?buyNow=${product.id}&qty=${quantity}`);
+    if (isOutOfStock) {
+      toast.error('This product is currently out of stock.');
+      return;
+    }
+    requireAuth(() => {
+      navigate(`/checkout?buyNow=${product.id}&qty=${quantity}`);
+    }, 'Please sign in or create an account to buy now');
+  };
+
+  const handleAddToCart = () => {
+    if (!product) return;
+    if (isOutOfStock) {
+      toast.error('This product is currently out of stock.');
+      return;
+    }
+    requireAuth(() => {
+      addToCart(product, quantity);
+    }, 'Please sign in or create an account to add items to your bag');
+  };
+
+  const handleWishlistToggle = () => {
+    if (!product) return;
+    requireAuth(() => {
+      if (isInWishlist(product.id)) {
+        removeFromWishlist(product.id);
+      } else {
+        addToWishlist(product);
+      }
+    }, 'Please sign in or create an account to save to your wishlist');
   };
 
   useEffect(() => {
@@ -180,32 +213,6 @@ export function ProductPage() {
     }
     loadRelated();
   }, [id]);
-
-  const handleAddToCart = () => {
-    if (product) {
-      addToCart({
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        originalPrice: product.originalPrice || product.compare_at_price,
-        image: product.image,
-        rating: product.rating,
-        colors: product.colors
-      } as any);
-      toast.success(`${product.name} added to your Cart!`);
-      window.dispatchEvent(new CustomEvent('open-cart'));
-    }
-  };
-
-  const handleWishlistToggle = async () => {
-    if (product) {
-      if (isInWishlist(product.id)) {
-        await removeFromWishlist(product.id);
-      } else {
-        await addToWishlist(product);
-      }
-    }
-  };
 
   if (isLoading) {
     return (
@@ -456,9 +463,15 @@ export function ProductPage() {
                     <span className="text-gray-500 font-medium">{reviews.length} {reviews.length === 1 ? 'Rating' : 'Ratings'}</span>
                   </div>
                 )}
-                <span className="text-xs text-emerald-600 font-bold bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                  In Stock & Ready to Ship
-                </span>
+                {isOutOfStock ? (
+                  <span className="text-xs text-rose-700 font-black bg-rose-50 px-3 py-1 rounded-full border border-rose-200 uppercase tracking-wider">
+                    Out of Stock
+                  </span>
+                ) : (
+                  <span className="text-xs text-emerald-700 font-bold bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 uppercase tracking-wider">
+                    In Stock
+                  </span>
+                )}
               </div>
 
               <div className="w-full h-px bg-gray-100"></div>
@@ -496,25 +509,53 @@ export function ProductPage() {
               <div className="flex items-center gap-4">
                 <span className="text-xs uppercase tracking-widest text-gray-600 font-bold">Quantity</span>
                 <div className="flex items-center border border-gray-300 rounded-xl overflow-hidden h-10 bg-white">
-                  <button type="button" onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-10 h-full hover:bg-gray-100 flex items-center justify-center text-gray-600 font-bold cursor-pointer transition-colors"> - </button>
-                  <span className="w-10 text-center font-bold text-sm text-gray-900">{quantity}</span>
-                  <button type="button" onClick={() => setQuantity(quantity + 1)} className="w-10 h-full hover:bg-gray-100 flex items-center justify-center text-gray-600 font-bold cursor-pointer transition-colors"> + </button>
+                  <button type="button" disabled={isOutOfStock} onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-10 h-full hover:bg-gray-100 flex items-center justify-center text-gray-600 font-bold cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"> - </button>
+                  <span className="w-10 text-center font-bold text-sm text-gray-900">{isOutOfStock ? 0 : quantity}</span>
+                  <button type="button" disabled={isOutOfStock} onClick={() => setQuantity(quantity + 1)} className="w-10 h-full hover:bg-gray-100 flex items-center justify-center text-gray-600 font-bold cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"> + </button>
                 </div>
               </div>
 
               {/* Action Buttons */}
               <div className="space-y-2.5 pt-1">
                 <div className="flex gap-3">
-                  <motion.button type="button" onClick={handleAddToCart} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1 h-14 bg-[#ff3e6c] hover:bg-[#e0355d] text-white font-black text-xs uppercase tracking-[0.15em] rounded-2xl shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer">
-                    <ShoppingBag className="w-4 h-4 text-white" /> ADD TO BAG
+                  <motion.button
+                    type="button"
+                    onClick={handleAddToCart}
+                    disabled={isOutOfStock}
+                    whileHover={isOutOfStock ? {} : { scale: 1.02 }}
+                    whileTap={isOutOfStock ? {} : { scale: 0.98 }}
+                    className={`flex-1 h-14 font-black text-xs uppercase tracking-[0.15em] rounded-2xl shadow-md flex items-center justify-center gap-2 transition-all ${
+                      isOutOfStock
+                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
+                        : 'bg-[#ff3e6c] hover:bg-[#e0355d] text-white cursor-pointer'
+                    }`}
+                  >
+                    <ShoppingBag className="w-4 h-4" /> {isOutOfStock ? 'OUT OF STOCK' : 'ADD TO BAG'}
                   </motion.button>
-                  <motion.button type="button" onClick={handleWishlistToggle} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="px-6 h-14 bg-white hover:bg-gray-50 text-gray-800 border-2 border-gray-300 hover:border-gray-800 rounded-2xl font-black text-xs uppercase tracking-[0.15em] shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer">
+                  <motion.button
+                    type="button"
+                    onClick={handleWishlistToggle}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="px-6 h-14 bg-white hover:bg-gray-50 text-gray-800 border-2 border-gray-300 hover:border-gray-800 rounded-2xl font-black text-xs uppercase tracking-[0.15em] shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  >
                     <Heart className={`w-4 h-4 ${product && isInWishlist(product.id) ? 'fill-[#ff3e6c] text-[#ff3e6c]' : 'text-gray-700'}`} />
                     {product && isInWishlist(product.id) ? 'WISHLISTED' : 'WISHLIST'}
                   </motion.button>
                 </div>
-                <motion.button type="button" onClick={handleBuyNow} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} className="w-full h-13 rounded-2xl font-black text-xs tracking-[0.15em] uppercase shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer bg-[#698156] hover:bg-[#546944] text-white border-2 border-[#698156]">
-                  <CreditCard className="w-4 h-4" /> Buy Now
+                <motion.button
+                  type="button"
+                  onClick={handleBuyNow}
+                  disabled={isOutOfStock}
+                  whileHover={isOutOfStock ? {} : { scale: 1.01 }}
+                  whileTap={isOutOfStock ? {} : { scale: 0.99 }}
+                  className={`w-full h-13 rounded-2xl font-black text-xs tracking-[0.15em] uppercase shadow-md flex items-center justify-center gap-2 transition-all ${
+                    isOutOfStock
+                      ? 'bg-gray-200 text-gray-400 border-2 border-gray-200 cursor-not-allowed shadow-none'
+                      : 'bg-[#698156] hover:bg-[#546944] text-white border-2 border-[#698156] cursor-pointer'
+                  }`}
+                >
+                  <CreditCard className="w-4 h-4" /> {isOutOfStock ? 'OUT OF STOCK' : 'Buy Now'}
                 </motion.button>
               </div>
 
