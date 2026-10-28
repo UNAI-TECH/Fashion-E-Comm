@@ -1,4 +1,21 @@
 import { supabase } from '../config/supabase.js';
+import {
+  getProducts as fetchFilteredProducts,
+  getProductById as fetchProductById,
+  getAllProducts,
+  bulkUpsertProducts
+} from '../services/productDataService.js';
+import {
+  runImageOptimization,
+  getOptimizationJob
+} from '../services/imageConversionService.js';
+import {
+  generateProductsExcelWorkbook
+} from '../services/excelExportService.js';
+import {
+  processExcelImport,
+  getImportJob
+} from '../services/excelImportService.js';
 
 // @desc    Fetch all products with pagination, search, and filters
 // @route   GET /api/products
@@ -6,96 +23,43 @@ import { supabase } from '../config/supabase.js';
 export const getProducts = async (req, res) => {
   try {
     const pageSize = Number(req.query.pageSize) || 12;
-    const page = Number(req.query.pageNumber) || 1;
+    const pageNumber = Number(req.query.pageNumber) || 1;
     const keyword = req.query.keyword ? req.query.keyword.trim() : '';
-    const categoryFilter = req.query.category || '';
+    const category = req.query.category || '';
     const sort = req.query.sort || 'newest';
     const minPrice = req.query.minPrice ? Number(req.query.minPrice) : null;
     const maxPrice = req.query.maxPrice ? Number(req.query.maxPrice) : null;
     const inStock = req.query.inStock === 'true';
+    const status = req.user?.role === 'admin' ? (req.query.status || null) : 'Published';
 
-    // Calculate ranges for pagination in Supabase
-    const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
-
-    let query = supabase
-      .from('products')
-      .select('*, product_variants(*)', { count: 'exact' });
-
-    // Status filter - only published products for public
-    if (req.user?.role !== 'admin') {
-      query = query.or('status.eq.Published,status.is.null');
-    }
-
-    // Keyword search: Try Full-Text search vector first, or fallback to ILIKE
-    if (keyword) {
-      query = query.or(`name.ilike.%${keyword}%,description.ilike.%${keyword}%,category.ilike.%${keyword}%`);
-    }
-
-    // Category filter
-    if (categoryFilter && categoryFilter !== 'All') {
-      query = query.ilike('category', `%${categoryFilter}%`);
-    }
-
-    // Price range filters
-    if (minPrice !== null && !isNaN(minPrice)) {
-      query = query.gte('price', minPrice);
-    }
-    if (maxPrice !== null && !isNaN(maxPrice)) {
-      query = query.lte('price', maxPrice);
-    }
-
-    // Stock availability
-    if (inStock) {
-      query = query.gt('stock_quantity', 0);
-    }
-
-    // Sorting
-    if (sort === 'price-asc') {
-      query = query.order('price', { ascending: true });
-    } else if (sort === 'price-desc') {
-      query = query.order('price', { ascending: false });
-    } else if (sort === 'rating') {
-      query = query.order('rating', { ascending: false });
-    } else {
-      // Default: newest
-      query = query.order('created_at', { ascending: false });
-    }
-
-    const { data: products, count, error } = await query.range(from, to);
-
-    if (error) throw error;
-
-    res.json({
-      products: products || [],
-      page,
-      pages: Math.ceil((count || 0) / pageSize),
-      count: count || 0
+    const result = await fetchFilteredProducts({
+      pageNumber,
+      pageSize,
+      keyword,
+      category,
+      sort,
+      minPrice,
+      maxPrice,
+      inStock,
+      status
     });
+
+    res.json(result);
   } catch (error) {
+    console.error('[productController:getProducts error]:', error.message);
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// @desc    Fetch single product by ID or Slug with variants and images
+// @desc    Fetch single product by ID
 // @route   GET /api/products/:id
 // @access  Public
 export const getProductById = async (req, res) => {
   try {
     const { id } = req.params;
+    const product = await fetchProductById(id);
 
-    // Check if ID is UUID or slug/other
-    const { data: product, error } = await supabase
-      .from('products')
-      .select(`
-        *,
-        product_variants (*),
-        product_images (image_url, sort_order, alt_text)
-      `)
-      .eq('id', id)
-      .single();
-
-    if (error || !product) {
+    if (!product) {
       return res.status(404).json({ success: false, message: 'Product not found' });
     }
 
@@ -105,7 +69,7 @@ export const getProductById = async (req, res) => {
   }
 };
 
-// @desc    Create a product with variants & images (Admin)
+// @desc    Create a product (Admin)
 // @route   POST /api/products
 // @access  Private/Admin
 export const createProduct = async (req, res) => {
@@ -115,120 +79,80 @@ export const createProduct = async (req, res) => {
       price,
       description,
       images = [],
+      image_url,
       category,
-      stock = 10,
+      stock = 25,
+      stock_quantity,
       discount = 0,
-      sizes = ['S', 'M', 'L', 'XL'],
+      compare_at_price,
       colors = [],
-      variants = []
+      specifications = {},
+      offer_enabled = false,
+      offer_details = {},
+      material_type,
+      variant_color
     } = req.body;
 
-    if (!name || !price || !category) {
+    if (!name || price === undefined || !category) {
       return res.status(400).json({
         success: false,
         message: 'Product name, price, and category are required.'
       });
     }
 
-    const comparePrice = discount > 0 ? Math.round(Number(price) / (1 - Number(discount) / 100)) : null;
+    const calculatedStock = stock_quantity !== undefined ? Number(stock_quantity) : Number(stock);
+    const calculatedComparePrice = compare_at_price !== undefined
+      ? Number(compare_at_price)
+      : (discount > 0 ? Math.round(Number(price) / (1 - Number(discount) / 100)) : null);
 
-    // 1. Insert product
-    const { data: createdProduct, error } = await supabase
-      .from('products')
-      .insert({
-        name: name.trim(),
-        price: Number(price),
-        compare_at_price: comparePrice,
-        description: description || '',
-        images: Array.isArray(images) ? images : [images],
-        category: category.trim(),
-        stock_quantity: Number(stock),
-        status: 'Published'
-      })
-      .select()
-      .single();
+    const imgList = Array.isArray(images) ? images : (images ? [images] : []);
+    const primaryImg = image_url || imgList[0] || '';
 
-    if (error) {
-      return res.status(400).json({ success: false, message: error.message });
+    const newProduct = {
+      name: name.trim(),
+      price: Number(price),
+      compare_at_price: calculatedComparePrice,
+      description: description || '',
+      image_url: primaryImg,
+      images: imgList.length > 0 ? imgList : [primaryImg],
+      category: category.trim(),
+      stock_quantity: calculatedStock,
+      status: 'Published',
+      colors: Array.isArray(colors) ? colors : [],
+      specifications: typeof specifications === 'object' ? specifications : {},
+      offer_enabled: !!offer_enabled,
+      offer_details: typeof offer_details === 'object' ? offer_details : {},
+      material_type: material_type || '',
+      variant_color: variant_color || ''
+    };
+
+    const result = await bulkUpsertProducts([newProduct]);
+
+    if (!result.success || result.errorsCount > 0) {
+      return res.status(400).json({ success: false, message: result.errors[0]?.error || 'Failed to create product' });
     }
 
-    // 2. Insert variants if provided or generate default size variants
-    const variantRecords = [];
-    if (Array.isArray(variants) && variants.length > 0) {
-      for (const v of variants) {
-        variantRecords.push({
-          product_id: createdProduct.id,
-          sku: v.sku || `${createdProduct.id.slice(0, 6)}-${v.size}`,
-          size: v.size,
-          color: v.color || null,
-          stock_quantity: Number(v.stock_quantity || Math.floor(stock / variants.length)),
-          price_override: v.price_override ? Number(v.price_override) : null
-        });
-      }
-    } else if (Array.isArray(sizes) && sizes.length > 0) {
-      const perSizeStock = Math.max(1, Math.floor(Number(stock) / sizes.length));
-      for (const s of sizes) {
-        variantRecords.push({
-          product_id: createdProduct.id,
-          sku: `${createdProduct.id.slice(0, 8)}-${s}`,
-          size: s,
-          stock_quantity: perSizeStock
-        });
-      }
-    }
-
-    if (variantRecords.length > 0) {
-      await supabase.from('product_variants').insert(variantRecords).catch(console.error);
-    }
-
-    // 3. Insert product_images records if provided
-    if (Array.isArray(images) && images.length > 0) {
-      const imgRecords = images.map((url, index) => ({
-        product_id: createdProduct.id,
-        image_url: url,
-        sort_order: index
-      }));
-      await supabase.from('product_images').insert(imgRecords).catch(console.error);
-    }
-
-    res.status(201).json(createdProduct);
+    res.status(201).json(result.inserted[0] || result.updated[0]);
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// @desc    Update a product with variants (Admin)
+// @desc    Update a product (Admin)
 // @route   PUT /api/products/:id
 // @access  Private/Admin
 export const updateProduct = async (req, res) => {
   try {
-    const { name, price, description, images, category, stock, discount, status } = req.body;
     const { id } = req.params;
+    const updates = { ...req.body, id };
 
-    const updates = { updated_at: new Date() };
-    if (name) updates.name = name.trim();
-    if (price !== undefined) updates.price = Number(price);
-    if (description !== undefined) updates.description = description;
-    if (images) updates.images = Array.isArray(images) ? images : [images];
-    if (category) updates.category = category.trim();
-    if (stock !== undefined) updates.stock_quantity = Number(stock);
-    if (status) updates.status = status;
-    if (discount !== undefined && price !== undefined) {
-      updates.compare_at_price = discount > 0 ? Math.round(Number(price) / (1 - Number(discount) / 100)) : null;
+    const result = await bulkUpsertProducts([updates]);
+
+    if (!result.success || result.errorsCount > 0) {
+      return res.status(400).json({ success: false, message: result.errors[0]?.error || 'Failed to update product' });
     }
 
-    const { data: updatedProduct, error } = await supabase
-      .from('products')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) {
-      return res.status(400).json({ success: false, message: error.message });
-    }
-
-    res.json(updatedProduct);
+    res.json(result.updated[0] || result.inserted[0]);
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -240,17 +164,163 @@ export const updateProduct = async (req, res) => {
 export const deleteProduct = async (req, res) => {
   try {
     const { id } = req.params;
+    // Attempt Supabase delete
+    try {
+      await supabase.from('products').delete().eq('id', id);
+    } catch (e) {}
 
-    const { error } = await supabase
-      .from('products')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      return res.status(400).json({ success: false, message: error.message });
-    }
+    // Also remove from local store
+    const all = await getAllProducts();
+    const filtered = all.filter(p => p.id !== id);
+    const { bulkUpsertProducts: _, ...dataService } = await import('../services/productDataService.js');
+    const fs = await import('fs');
+    const path = await import('path');
+    const { fileURLToPath } = await import('url');
+    const __dir = path.dirname(fileURLToPath(import.meta.url));
+    fs.writeFileSync(path.join(__dir, '../data/products_store.json'), JSON.stringify(filtered, null, 2));
 
     res.json({ success: true, message: 'Product removed successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Trigger WebP Image Optimization (Dry-Run or Real Conversion)
+// @route   POST /api/admin/products/images/optimize
+// @access  Private/Admin
+export const optimizeProductImages = async (req, res) => {
+  try {
+    const dryRun = req.body?.dryRun !== false && req.query?.dryRun !== 'false';
+    const quality = Number(req.body?.quality || req.query?.quality) || 82;
+
+    const result = await runImageOptimization({ dryRun, quality });
+
+    res.json({
+      success: result.status === 'completed',
+      data: result
+    });
+  } catch (error) {
+    console.error('[optimizeProductImages error]:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Get WebP Image Optimization Job Status
+// @route   GET /api/admin/products/images/optimize/:jobId
+// @access  Private/Admin
+export const getOptimizeJobStatus = async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const job = getOptimizationJob(jobId);
+    if (!job) {
+      return res.status(404).json({ success: false, message: 'Optimization job not found' });
+    }
+    res.json({ success: true, data: job });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Export all products to downloadable Excel workbook (.xlsx)
+// @route   GET /api/admin/products/export (and GET /api/products/export)
+// @access  Public or Admin
+export const exportProductsExcel = async (req, res) => {
+  try {
+    const workbook = await generateProductsExcelWorkbook();
+    const dateStr = new Date().toISOString().split('T')[0];
+    const filename = `products_export_${dateStr}.xlsx`;
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${filename}"`
+    );
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error('[exportProductsExcel error]:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Preview Excel bulk import without committing changes
+// @route   POST /api/admin/products/import/preview
+// @access  Private/Admin
+export const previewProductsImport = async (req, res) => {
+  try {
+    if (!req.file || !req.file.buffer) {
+      return res.status(400).json({
+        success: false,
+        message: 'No Excel file provided. Upload a .xlsx file.'
+      });
+    }
+
+    const report = await processExcelImport(req.file.buffer, {
+      dryRun: true,
+      user: req.user
+    });
+
+    res.json({
+      success: report.errorsCount === 0,
+      data: report
+    });
+  } catch (error) {
+    console.error('[previewProductsImport error]:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Commit Excel bulk import to database
+// @route   POST /api/admin/products/import
+// @access  Private/Admin
+export const commitProductsImport = async (req, res) => {
+  try {
+    if (!req.file || !req.file.buffer) {
+      return res.status(400).json({
+        success: false,
+        message: 'No Excel file provided. Upload a .xlsx file.'
+      });
+    }
+
+    const report = await processExcelImport(req.file.buffer, {
+      dryRun: false,
+      user: req.user
+    });
+
+    if (report.errorsCount > 0) {
+      return res.status(422).json({
+        success: false,
+        message: report.summary,
+        data: report
+      });
+    }
+
+    res.json({
+      success: true,
+      message: report.summary,
+      data: report
+    });
+  } catch (error) {
+    console.error('[commitProductsImport error]:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Get bulk import job status
+// @route   GET /api/admin/products/import/:jobId
+// @access  Private/Admin
+export const getImportJobStatus = async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const job = getImportJob(jobId);
+    if (!job) {
+      return res.status(404).json({ success: false, message: 'Import job not found' });
+    }
+    res.json({ success: true, data: job });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

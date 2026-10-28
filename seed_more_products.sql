@@ -18,6 +18,7 @@ values
 on conflict (name) do nothing;
 
 -- 2. Insert more products for 'Sarees'
+
 insert into public.products (name, description, price, compare_at_price, category, images, stock_quantity, status)
 values 
 ('Golden Tissue Saree', 'Exquisite gold tissue with scalloped borders.', 12500, 18000, 'Sarees', array['https://images.unsplash.com/photo-1714023249113-d4bf352c23c2?q=80&w=1080'], 10, 'Published'),

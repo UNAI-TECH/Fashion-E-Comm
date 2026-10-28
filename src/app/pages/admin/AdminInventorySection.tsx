@@ -4,7 +4,9 @@ import {
   Boxes, Package, AlertTriangle, TrendingDown, CheckCircle2,
   Plus, Search, ArrowUpRight, RefreshCw, Filter, X,
   ArrowRight, ShieldAlert, Upload, Check, ChevronDown,
-  Layers, ShoppingBag, Eye, Store, Hash
+  Layers, ShoppingBag, Eye, Store, Hash, Download,
+  FileSpreadsheet, Sparkles, Zap, CheckCircle, FileUp,
+  FileText, AlertCircle, ArrowDown
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { ensureProductImages } from '../../data/products';
@@ -69,6 +71,148 @@ export function AdminInventorySection({
   });
   const [newUrlInput, setNewUrlInput] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+
+  // ─── WebP Image Optimization State ───
+  const [isOptimizeModalOpen, setIsOptimizeModalOpen] = useState(false);
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [optReport, setOptReport] = useState<any>(null);
+  const [optQuality, setOptQuality] = useState<number>(82);
+
+  // ─── Excel Export State ───
+  const [isExporting, setIsExporting] = useState(false);
+
+  // ─── Bulk Excel Import State ───
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [isPreviewing, setIsPreviewing] = useState(false);
+  const [isCommitting, setIsCommitting] = useState(false);
+  const [importReport, setImportReport] = useState<any>(null);
+
+  const getAuthHeaders = async () => {
+    const headers: Record<string, string> = {};
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+    } catch (e) {}
+    headers['x-admin-role'] = 'admin';
+    return headers;
+  };
+
+  // Export Excel Handler
+  const handleExportExcel = async () => {
+    setIsExporting(true);
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch('/api/admin/products/export', { headers });
+      if (!res.ok) throw new Error(`Export failed with HTTP ${res.status}`);
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const dateStr = new Date().toISOString().split('T')[0];
+      a.download = `products_export_${dateStr}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success(`Successfully exported ${items.length} products to Excel (.xlsx)`);
+    } catch (err: any) {
+      toast.error('Failed to export Excel file: ' + err.message);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Image Optimization Handler
+  const handleRunOptimize = async (dryRun: boolean) => {
+    setIsOptimizing(true);
+    try {
+      const headers = await getAuthHeaders();
+      headers['Content-Type'] = 'application/json';
+      const res = await fetch('/api/admin/products/images/optimize', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ dryRun, quality: optQuality })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Image optimization failed');
+      }
+      setOptReport(data.data);
+      if (!dryRun) {
+        toast.success(`WebP Optimization Complete! Converted ${data.data.convertedCount} images, saved ${(data.data.totalBytesSaved / (1024 * 1024)).toFixed(2)} MB (${data.data.percentageReduction}% reduction)`);
+        await onRefreshProducts();
+      } else {
+        toast.info(`Dry-run analysis complete: ${data.data.pngImagesFound} PNG images found. Potential savings: ${(data.data.totalBytesSaved / (1024 * 1024)).toFixed(2)} MB (${data.data.percentageReduction}%)`);
+      }
+    } catch (err: any) {
+      toast.error('Optimization error: ' + err.message);
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
+
+  // Bulk Import Preview Handler
+  const handlePreviewImport = async () => {
+    if (!importFile) {
+      toast.error('Please select an Excel (.xlsx) file first');
+      return;
+    }
+    setIsPreviewing(true);
+    try {
+      const headers = await getAuthHeaders();
+      const formData = new FormData();
+      formData.append('file', importFile);
+      const res = await fetch('/api/admin/products/import/preview', {
+        method: 'POST',
+        headers,
+        body: formData
+      });
+      const data = await res.json();
+      setImportReport(data.data);
+      if (data.success) {
+        toast.success(`Workbook validated: ${data.data.validRows} valid rows ready to import (${data.data.plannedInserts} new, ${data.data.plannedUpdates} updates)`);
+      } else {
+        toast.error(`Validation found ${data.data?.errorsCount || 0} issues. Review below.`);
+      }
+    } catch (err: any) {
+      toast.error('Import preview failed: ' + err.message);
+    } finally {
+      setIsPreviewing(false);
+    }
+  };
+
+  // Bulk Import Commit Handler
+  const handleCommitImport = async () => {
+    if (!importFile) {
+      toast.error('Please select an Excel file');
+      return;
+    }
+    setIsCommitting(true);
+    try {
+      const headers = await getAuthHeaders();
+      const formData = new FormData();
+      formData.append('file', importFile);
+      const res = await fetch('/api/admin/products/import', {
+        method: 'POST',
+        headers,
+        body: formData
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Import commit failed');
+      }
+      setImportReport(data.data);
+      toast.success(data.message || 'Import completed successfully!');
+      await onRefreshProducts();
+    } catch (err: any) {
+      toast.error('Import failed: ' + err.message);
+    } finally {
+      setIsCommitting(false);
+    }
+  };
 
   // Normalized product items with stock & sku guaranteed
   const items = useMemo(() => {
@@ -441,8 +585,49 @@ export function AdminInventorySection({
           </select>
         </div>
 
-        {/* Right: Primary Add Stock button & Sync */}
-        <div className="flex items-center gap-2.5">
+        {/* Right: Action Buttons & Tools */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* ⚡ Optimize Images (WebP) Button */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsOptimizeModalOpen(true);
+              if (!optReport) handleRunOptimize(true);
+            }}
+            className="flex items-center gap-1.5 px-3.5 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200/80 rounded-xl text-xs font-bold transition active:scale-95 cursor-pointer shadow-xs"
+            title="Scan & convert PNG product images to optimized WebP"
+          >
+            <Sparkles className="w-4 h-4 text-amber-600" />
+            <span>Optimize Images (WebP)</span>
+          </button>
+
+          {/* 📥 Export to Excel Button */}
+          <button
+            type="button"
+            onClick={handleExportExcel}
+            disabled={isExporting}
+            className="flex items-center gap-1.5 px-3.5 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 rounded-xl text-xs font-bold transition active:scale-95 cursor-pointer shadow-xs disabled:opacity-60"
+            title="Export all database products into a downloadable .xlsx workbook"
+          >
+            <Download className={`w-4 h-4 text-emerald-600 ${isExporting ? 'animate-bounce' : ''}`} />
+            <span>{isExporting ? 'Exporting…' : 'Export Excel'}</span>
+          </button>
+
+          {/* 📤 Bulk Import from Excel Button */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsImportModalOpen(true);
+              setImportReport(null);
+              setImportFile(null);
+            }}
+            className="flex items-center gap-1.5 px-3.5 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200/80 rounded-xl text-xs font-bold transition active:scale-95 cursor-pointer shadow-xs"
+            title="Bulk import or update products via Excel (.xlsx)"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-blue-600" />
+            <span>Bulk Import</span>
+          </button>
+
           <button
             type="button"
             onClick={handleManualRefresh}
@@ -459,10 +644,10 @@ export function AdminInventorySection({
               setAddMode('new_product');
               setIsAddStockOpen(true);
             }}
-            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#698156] to-[#546944] hover:from-[#546944] hover:to-[#435436] text-white rounded-xl text-xs font-bold tracking-wide uppercase shadow-md shadow-[#698156]/20 hover:shadow-lg transition-all active:scale-95 cursor-pointer whitespace-nowrap"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#698156] to-[#546944] hover:from-[#546944] hover:to-[#435436] text-white rounded-xl text-xs font-bold tracking-wide uppercase shadow-md shadow-[#698156]/20 hover:shadow-lg transition-all active:scale-95 cursor-pointer whitespace-nowrap"
           >
             <Plus className="w-4 h-4" />
-            <span>+ Add Stock / Product</span>
+            <span>+ Add Product</span>
           </button>
         </div>
       </div>
@@ -985,6 +1170,405 @@ export function AdminInventorySection({
                     </div>
                   </form>
                 )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ═══════════════════════════════════════════════════════════════════════════ */}
+      {/* ⚡ MODAL 2: WEBP IMAGE OPTIMIZATION (DRY-RUN & CONVERSION)                */}
+      {/* ═══════════════════════════════════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {isOptimizeModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col border border-gray-100"
+            >
+              {/* Modal Header */}
+              <div className="p-6 bg-gradient-to-r from-[#1E3A2F] to-[#2D5A46] text-white flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-amber-400">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-serif font-bold text-lg">Product Image WebP Optimization</h3>
+                    <p className="text-xs text-emerald-200">Convert PNG images to WebP to reduce egress bandwidth and storage costs</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsOptimizeModalOpen(false)}
+                  className="p-2 text-white/70 hover:text-white rounded-full hover:bg-white/10 transition cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-6 overflow-y-auto space-y-6 flex-1 text-sm text-gray-700">
+                {/* Metrics Cards */}
+                {optReport && (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="p-3.5 bg-gray-50 border border-gray-200/80 rounded-2xl">
+                      <div className="text-[11px] font-bold text-gray-500 uppercase">Images Scanned</div>
+                      <div className="text-xl font-serif font-black text-gray-900 mt-1">{optReport.totalImagesScanned}</div>
+                      <div className="text-[11px] text-gray-400">{optReport.alreadyWebpCount} already WebP</div>
+                    </div>
+
+                    <div className="p-3.5 bg-amber-50 border border-amber-200/80 rounded-2xl">
+                      <div className="text-[11px] font-bold text-amber-700 uppercase">PNG Candidates</div>
+                      <div className="text-xl font-serif font-black text-amber-900 mt-1">{optReport.pngImagesFound}</div>
+                      <div className="text-[11px] text-amber-700/80">Require WebP conversion</div>
+                    </div>
+
+                    <div className="p-3.5 bg-emerald-50 border border-emerald-200/80 rounded-2xl">
+                      <div className="text-[11px] font-bold text-emerald-700 uppercase">Payload Reduction</div>
+                      <div className="text-xl font-serif font-black text-emerald-900 mt-1">
+                        {optReport.percentageReduction}%
+                      </div>
+                      <div className="text-[11px] text-emerald-700 font-semibold">
+                        -{(optReport.totalBytesSaved / (1024 * 1024)).toFixed(2)} MB saved
+                      </div>
+                    </div>
+
+                    <div className="p-3.5 bg-blue-50 border border-blue-200/80 rounded-2xl">
+                      <div className="text-[11px] font-bold text-blue-700 uppercase">Optimized Size</div>
+                      <div className="text-xl font-serif font-black text-blue-900 mt-1">
+                        {(optReport.totalOptimizedBytes / (1024 * 1024)).toFixed(2)} MB
+                      </div>
+                      <div className="text-[11px] text-blue-600 line-through">
+                        From {(optReport.totalOriginalBytes / (1024 * 1024)).toFixed(2)} MB
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Quality Slider & Options */}
+                <div className="p-4 bg-gray-50 border border-gray-200/70 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="space-y-0.5">
+                    <label className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+                      <span>Compression Quality:</span>
+                      <span className="text-[#698156] font-black">{optQuality}%</span>
+                    </label>
+                    <p className="text-[11px] text-gray-500">Quality 82 delivers premium clarity for saree weaves while reducing file sizes by 65-70%.</p>
+                  </div>
+                  <input
+                    type="range"
+                    min="60"
+                    max="95"
+                    value={optQuality}
+                    onChange={(e) => setOptQuality(Number(e.target.value))}
+                    disabled={isOptimizing}
+                    className="w-48 accent-[#698156] cursor-pointer"
+                  />
+                </div>
+
+                {/* Candidate Images Preview Table */}
+                {optReport && optReport.items && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold uppercase text-gray-500">
+                        Image Preview ({optReport.items.filter((i: any) => i.bytesSaved > 0).length} images optimized)
+                      </span>
+                      <span className="text-xs text-emerald-700 font-semibold">
+                        Mode: {optReport.dryRun ? 'Dry-Run Analysis (Safe)' : 'Committed to Storage & Database'}
+                      </span>
+                    </div>
+
+                    <div className="border border-gray-200 rounded-2xl overflow-hidden max-h-60 overflow-y-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-gray-50 border-b border-gray-200 text-gray-500 uppercase font-semibold">
+                          <tr>
+                            <th className="p-2.5">Source Image</th>
+                            <th className="p-2.5">Original</th>
+                            <th className="p-2.5">WebP Size</th>
+                            <th className="p-2.5">Savings</th>
+                            <th className="p-2.5 text-right">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 font-mono">
+                          {optReport.items.slice(0, 20).map((item: any, idx: number) => (
+                            <tr key={idx} className="hover:bg-gray-50/50">
+                              <td className="p-2.5 truncate max-w-xs font-sans text-gray-800 font-medium">
+                                {item.url}
+                              </td>
+                              <td className="p-2.5 text-gray-600">
+                                {(item.originalSize / 1024).toFixed(1)} KB
+                              </td>
+                              <td className="p-2.5 text-emerald-700 font-bold">
+                                {(item.optimizedSize / 1024).toFixed(1)} KB
+                              </td>
+                              <td className="p-2.5 text-emerald-600">
+                                {item.percentageReduction}%
+                              </td>
+                              <td className="p-2.5 text-right">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-sans font-bold uppercase ${
+                                  item.status === 'converted' ? 'bg-emerald-100 text-emerald-800' :
+                                  item.status === 'already_webp' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'
+                                }`}>
+                                  {item.status.replace(/_/g, ' ')}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer Controls */}
+              <div className="p-5 bg-gray-50 border-t border-gray-100 flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleRunOptimize(true)}
+                  disabled={isOptimizing}
+                  className="px-4 py-2.5 bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 rounded-xl text-xs font-bold transition cursor-pointer disabled:opacity-50"
+                >
+                  {isOptimizing ? 'Analyzing…' : 'Run Dry-Run Scan'}
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsOptimizeModalOpen(false)}
+                    className="px-4 py-2.5 text-gray-500 hover:text-gray-700 rounded-xl text-xs font-bold transition cursor-pointer"
+                  >
+                    Close
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleRunOptimize(false)}
+                    disabled={isOptimizing}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-xl text-xs font-bold shadow-md transition active:scale-95 cursor-pointer disabled:opacity-50"
+                  >
+                    <Zap className="w-4 h-4 text-amber-300" />
+                    <span>{isOptimizing ? 'Optimizing Images…' : 'Execute WebP Conversion'}</span>
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ═══════════════════════════════════════════════════════════════════════════ */}
+      {/* 📤 MODAL 3: BULK EXCEL INVENTORY IMPORT & PREVIEW VALIDATION              */}
+      {/* ═══════════════════════════════════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {isImportModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col border border-gray-100"
+            >
+              {/* Modal Header */}
+              <div className="p-6 bg-gradient-to-r from-[#1E3A2F] to-[#2D5A46] text-white flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-blue-300">
+                    <FileSpreadsheet className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-serif font-bold text-lg">Bulk Inventory Excel Import</h3>
+                    <p className="text-xs text-emerald-200">Upload exported .xlsx file to preview, validate, and bulk-update products</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsImportModalOpen(false)}
+                  className="p-2 text-white/70 hover:text-white rounded-full hover:bg-white/10 transition cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 overflow-y-auto space-y-6 flex-1 text-sm text-gray-700">
+                {/* File Dropzone */}
+                <div className="border-2 border-dashed border-gray-300 hover:border-[#698156] rounded-2xl p-6 text-center transition bg-gray-50/50">
+                  <FileUp className="w-10 h-10 text-gray-400 mx-auto mb-2" />
+                  <div className="text-xs font-bold text-gray-700">Choose your Excel (.xlsx) file</div>
+                  <p className="text-[11px] text-gray-500 mt-0.5">Accepts workbook exported from Aanya Fashion with Products sheet</p>
+                  
+                  <input
+                    type="file"
+                    id="excel-file-input"
+                    accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setImportFile(e.target.files[0]);
+                        setImportReport(null);
+                      }
+                    }}
+                    className="hidden"
+                  />
+
+                  <div className="mt-4 flex items-center justify-center gap-3">
+                    <label
+                      htmlFor="excel-file-input"
+                      className="px-4 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-xl text-xs font-bold transition cursor-pointer shadow-xs"
+                    >
+                      Browse File
+                    </label>
+                    {importFile && (
+                      <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">
+                        {importFile.name} ({(importFile.size / 1024).toFixed(1)} KB)
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Validation Report Cards */}
+                {importReport && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="p-3.5 bg-gray-50 border border-gray-200/80 rounded-2xl">
+                        <div className="text-[11px] font-bold text-gray-500 uppercase">Total Rows</div>
+                        <div className="text-xl font-serif font-black text-gray-900 mt-1">{importReport.totalRows}</div>
+                        <div className="text-[11px] text-gray-400">{importReport.validRows} valid</div>
+                      </div>
+
+                      <div className="p-3.5 bg-emerald-50 border border-emerald-200/80 rounded-2xl">
+                        <div className="text-[11px] font-bold text-emerald-700 uppercase">Updates Planned</div>
+                        <div className="text-xl font-serif font-black text-emerald-900 mt-1">{importReport.plannedUpdates}</div>
+                        <div className="text-[11px] text-emerald-700/80">Existing UUIDs / products</div>
+                      </div>
+
+                      <div className="p-3.5 bg-blue-50 border border-blue-200/80 rounded-2xl">
+                        <div className="text-[11px] font-bold text-blue-700 uppercase">New Inserts</div>
+                        <div className="text-xl font-serif font-black text-blue-900 mt-1">{importReport.plannedInserts}</div>
+                        <div className="text-[11px] text-blue-700/80">New unique catalog items</div>
+                      </div>
+
+                      <div className={`p-3.5 border rounded-2xl ${
+                        importReport.errorsCount > 0
+                          ? 'bg-rose-50 border-rose-200/80 text-rose-900'
+                          : 'bg-emerald-50 border-emerald-200/80 text-emerald-900'
+                      }`}>
+                        <div className="text-[11px] font-bold uppercase">
+                          {importReport.errorsCount > 0 ? 'Errors / Conflicts' : 'Integrity Check'}
+                        </div>
+                        <div className="text-xl font-serif font-black mt-1">
+                          {importReport.errorsCount > 0 ? importReport.errorsCount : '100% Pass'}
+                        </div>
+                        <div className="text-[11px]">
+                          {importReport.errorsCount > 0 ? 'Fix before committing' : 'Zero validation conflicts'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Summary Message */}
+                    <div className={`p-3.5 rounded-2xl border text-xs font-medium flex items-center gap-2.5 ${
+                      importReport.errorsCount > 0
+                        ? 'bg-rose-50 border-rose-200 text-rose-800'
+                        : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                    }`}>
+                      {importReport.errorsCount > 0 ? (
+                        <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                      ) : (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                      )}
+                      <span>{importReport.summary}</span>
+                    </div>
+
+                    {/* Preview Table of Rows */}
+                    {importReport.previewRows && importReport.previewRows.length > 0 && (
+                      <div className="border border-gray-200 rounded-2xl overflow-hidden max-h-48 overflow-y-auto">
+                        <table className="w-full text-left text-xs">
+                          <thead className="bg-gray-50 border-b border-gray-200 text-gray-500 uppercase font-semibold">
+                            <tr>
+                              <th className="p-2.5">Row</th>
+                              <th className="p-2.5">Action</th>
+                              <th className="p-2.5">Name</th>
+                              <th className="p-2.5">Category</th>
+                              <th className="p-2.5">Price</th>
+                              <th className="p-2.5">Stock</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            {importReport.previewRows.map((r: any, idx: number) => (
+                              <tr key={idx} className="hover:bg-gray-50/50">
+                                <td className="p-2.5 text-gray-400 font-mono">#{r.row}</td>
+                                <td className="p-2.5">
+                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                    r.action === 'insert' ? 'bg-blue-100 text-blue-800' : 'bg-emerald-100 text-emerald-800'
+                                  }`}>
+                                    {r.action}
+                                  </span>
+                                </td>
+                                <td className="p-2.5 font-bold text-gray-900 truncate max-w-xs">{r.name}</td>
+                                <td className="p-2.5 text-gray-600">{r.category}</td>
+                                <td className="p-2.5 font-bold text-gray-800">₹{r.price}</td>
+                                <td className="p-2.5 text-gray-700">{r.stock} units</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    {/* Error breakdown if any */}
+                    {importReport.errors && importReport.errors.length > 0 && (
+                      <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl space-y-2">
+                        <div className="text-xs font-bold text-rose-900 uppercase">Validation Issues:</div>
+                        <ul className="text-xs text-rose-700 space-y-1 max-h-36 overflow-y-auto list-disc pl-4">
+                          {importReport.errors.map((err: any, i: number) => (
+                            <li key={i}>
+                              Row {err.row}: <span className="font-bold">{err.field}</span> — {err.message}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer Controls */}
+              <div className="p-5 bg-gray-50 border-t border-gray-100 flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={handlePreviewImport}
+                  disabled={!importFile || isPreviewing}
+                  className="flex items-center gap-1.5 px-4 py-2.5 bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 rounded-xl text-xs font-bold transition cursor-pointer disabled:opacity-50"
+                >
+                  <Eye className="w-4 h-4 text-blue-600" />
+                  <span>{isPreviewing ? 'Validating Workbook…' : 'Preview & Validate'}</span>
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsImportModalOpen(false)}
+                    className="px-4 py-2.5 text-gray-500 hover:text-gray-700 rounded-xl text-xs font-bold transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCommitImport}
+                    disabled={!importReport || importReport.errorsCount > 0 || isCommitting}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#698156] to-[#546944] hover:from-[#546944] hover:to-[#435436] text-white rounded-xl text-xs font-bold shadow-md transition active:scale-95 cursor-pointer disabled:opacity-50"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>{isCommitting ? 'Importing Products…' : 'Commit Import to Catalog'}</span>
+                  </button>
+                </div>
               </div>
             </motion.div>
           </motion.div>

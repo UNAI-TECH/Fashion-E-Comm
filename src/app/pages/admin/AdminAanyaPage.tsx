@@ -510,8 +510,8 @@ export function AdminAanyaPage() {
         status: p.status || 'Published',
         created_at: null,
       }));
-      // Products come directly from Supabase — no mock merging needed
-      setDbProducts(dbProdsRaw);
+      const finalProds = dbProdsRaw.length > 0 ? dbProdsRaw : normalizedMock;
+      setDbProducts(finalProds);
 
       // --- Orders ---
       const ordersData: Order[] = ordersRes.data || [];
