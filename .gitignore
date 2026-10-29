@@ -37,3 +37,6 @@ pnpm-debug.log*
 
 # Supabase CLI temp files
 supabase/.temp/
+
+# Large generated zip files
+Bulk-upload/output/*.zip

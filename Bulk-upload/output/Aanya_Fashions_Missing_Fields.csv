@@ -1,0 +1,130 @@
+﻿product_name,sku,missing_field,reason,action_needed
+ALL PRODUCTS,ALL,"Manufacturer Name, Address, Pincode",Not published on website,"Please provide manufacturer details (Name, Full Address, Pincode)"
+ALL PRODUCTS,ALL,"Packer Name, Address, Pincode",Not published on website,"Please provide packer details (Name, Full Address, Pincode)"
+ALL PRODUCTS,ALL,Brand (dropdown),"""Aanya Fashions"" not found in Meesho brand list",Register brand on Meesho Supplier Panel or select appropriate existing brand
+Teal Green & Maroon Gold Zari Fancy Saree,AF-SAR-TEALGREE-001,GST %,"Auto-set to 5% based on price ₹949.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Teal Green & Maroon Gold Zari Fancy Saree,AF-SAR-TEALGREE-001,HSN ID,Auto-set to 5007 based on material (Fancy woven fabric),Please verify correct HSN code with your CA/tax advisor
+Teal Green & Maroon Gold Zari Fancy Saree,AF-SAR-TEALGREE-001,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Royal Purple & Blue Gold Zari Fancy Saree,AF-SAR-ROYALPUR-002,GST %,"Auto-set to 5% based on price ₹949.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Royal Purple & Blue Gold Zari Fancy Saree,AF-SAR-ROYALPUR-002,HSN ID,Auto-set to 5007 based on material (Fancy Woven Fabric),Please verify correct HSN code with your CA/tax advisor
+Royal Purple & Blue Gold Zari Fancy Saree,AF-SAR-ROYALPUR-002,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Plum Purple & Teal Gold Zari Fancy Saree,AF-SAR-PLUMPURP-003,GST %,"Auto-set to 5% based on price ₹949.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Plum Purple & Teal Gold Zari Fancy Saree,AF-SAR-PLUMPURP-003,HSN ID,Auto-set to 5007 based on material (Fancy Woven Fabric),Please verify correct HSN code with your CA/tax advisor
+Plum Purple & Teal Gold Zari Fancy Saree,AF-SAR-PLUMPURP-003,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Magenta & Teal Blue Gold Zari Fancy Saree,AF-SAR-MAGENTAT-004,GST %,"Auto-set to 5% based on price ₹949.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Magenta & Teal Blue Gold Zari Fancy Saree,AF-SAR-MAGENTAT-004,HSN ID,Auto-set to 5007 based on material (Fancy Woven Fabric),Please verify correct HSN code with your CA/tax advisor
+Magenta & Teal Blue Gold Zari Fancy Saree,AF-SAR-MAGENTAT-004,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Golden Yellow & Red Gold Brocade Fancy Saree,AF-SAR-GOLDENYE-005,GST %,"Auto-set to 5% based on price ₹949.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Golden Yellow & Red Gold Brocade Fancy Saree,AF-SAR-GOLDENYE-005,HSN ID,Auto-set to 5007 based on material (Fancy Woven Fabric),Please verify correct HSN code with your CA/tax advisor
+Golden Yellow & Red Gold Brocade Fancy Saree,AF-SAR-GOLDENYE-005,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Green & Red Gold Zari Fancy Saree,AF-SAR-GREENRED-006,GST %,"Auto-set to 5% based on price ₹949.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Green & Red Gold Zari Fancy Saree,AF-SAR-GREENRED-006,HSN ID,Auto-set to 5007 based on material (Fancy Woven Fabric),Please verify correct HSN code with your CA/tax advisor
+Green & Red Gold Zari Fancy Saree,AF-SAR-GREENRED-006,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Rust Orange Gold Checks Fancy Saree,AF-SAR-RUSTORAN-007,GST %,"Auto-set to 5% based on price ₹849.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Rust Orange Gold Checks Fancy Saree,AF-SAR-RUSTORAN-007,HSN ID,Auto-set to 5007 based on material (Fancy Woven Fabric),Please verify correct HSN code with your CA/tax advisor
+Rust Orange Gold Checks Fancy Saree,AF-SAR-RUSTORAN-007,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Raspberry Pink Gold Checks Fancy Saree,AF-SAR-RASPBERR-008,GST %,"Auto-set to 5% based on price ₹849.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Raspberry Pink Gold Checks Fancy Saree,AF-SAR-RASPBERR-008,HSN ID,Auto-set to 5007 based on material (Fancy Woven Fabric),Please verify correct HSN code with your CA/tax advisor
+Raspberry Pink Gold Checks Fancy Saree,AF-SAR-RASPBERR-008,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Plum Purple Gold Checks Fancy Saree,AF-SAR-PLUMPURP-009,GST %,"Auto-set to 5% based on price ₹849.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Plum Purple Gold Checks Fancy Saree,AF-SAR-PLUMPURP-009,HSN ID,Auto-set to 5007 based on material (Fancy Woven Fabric),Please verify correct HSN code with your CA/tax advisor
+Plum Purple Gold Checks Fancy Saree,AF-SAR-PLUMPURP-009,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Rose Pink Gold Checks Fancy Saree,AF-SAR-ROSEPINK-010,GST %,"Auto-set to 5% based on price ₹849.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Rose Pink Gold Checks Fancy Saree,AF-SAR-ROSEPINK-010,HSN ID,Auto-set to 5007 based on material (Fancy Woven Fabric),Please verify correct HSN code with your CA/tax advisor
+Rose Pink Gold Checks Fancy Saree,AF-SAR-ROSEPINK-010,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Mauve Gold Checks Fancy Saree,AF-SAR-MAUVEGOL-011,GST %,"Auto-set to 5% based on price ₹849.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Mauve Gold Checks Fancy Saree,AF-SAR-MAUVEGOL-011,HSN ID,Auto-set to 5007 based on material (Fancy Woven Fabric),Please verify correct HSN code with your CA/tax advisor
+Mauve Gold Checks Fancy Saree,AF-SAR-MAUVEGOL-011,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Teal Blue Gold Checks Fancy Saree,AF-SAR-TEALBLUE-012,GST %,"Auto-set to 5% based on price ₹849.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Teal Blue Gold Checks Fancy Saree,AF-SAR-TEALBLUE-012,HSN ID,Auto-set to 5007 based on material (Fancy Woven Fabric),Please verify correct HSN code with your CA/tax advisor
+Teal Blue Gold Checks Fancy Saree,AF-SAR-TEALBLUE-012,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Navy Blue Gold Checks Fancy Saree,AF-SAR-NAVYBLUE-013,GST %,"Auto-set to 5% based on price ₹849.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Navy Blue Gold Checks Fancy Saree,AF-SAR-NAVYBLUE-013,HSN ID,Auto-set to 5007 based on material (Fancy Woven Fabric),Please verify correct HSN code with your CA/tax advisor
+Navy Blue Gold Checks Fancy Saree,AF-SAR-NAVYBLUE-013,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Emerald Green Gold Checks Fancy Saree,AF-SAR-EMERALDG-014,GST %,"Auto-set to 5% based on price ₹849.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Emerald Green Gold Checks Fancy Saree,AF-SAR-EMERALDG-014,HSN ID,Auto-set to 5007 based on material (Fancy Woven Fabric),Please verify correct HSN code with your CA/tax advisor
+Emerald Green Gold Checks Fancy Saree,AF-SAR-EMERALDG-014,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Royal Plum Gold Checks Fancy Saree,AF-SAR-ROYALPLU-015,GST %,"Auto-set to 5% based on price ₹849.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Royal Plum Gold Checks Fancy Saree,AF-SAR-ROYALPLU-015,HSN ID,Auto-set to 5007 based on material (Fancy Woven Fabric),Please verify correct HSN code with your CA/tax advisor
+Royal Plum Gold Checks Fancy Saree,AF-SAR-ROYALPLU-015,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Parrot Green Black Contrast Viscose Saree,AF-SAR-PARROTGR-016,GST %,"Auto-set to 5% based on price ₹999.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Parrot Green Black Contrast Viscose Saree,AF-SAR-PARROTGR-016,HSN ID,Auto-set to 5007 based on material (Viscose),Please verify correct HSN code with your CA/tax advisor
+Parrot Green Black Contrast Viscose Saree,AF-SAR-PARROTGR-016,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Magenta Pink Black Contrast Viscose Saree,AF-SAR-MAGENTAP-017,GST %,"Auto-set to 5% based on price ₹999.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Magenta Pink Black Contrast Viscose Saree,AF-SAR-MAGENTAP-017,HSN ID,Auto-set to 5007 based on material (Viscose),Please verify correct HSN code with your CA/tax advisor
+Magenta Pink Black Contrast Viscose Saree,AF-SAR-MAGENTAP-017,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Coral Pink Purple Contrast Viscose Saree,AF-SAR-CORALPIN-018,GST %,"Auto-set to 5% based on price ₹999.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Coral Pink Purple Contrast Viscose Saree,AF-SAR-CORALPIN-018,HSN ID,Auto-set to 5007 based on material (Viscose),Please verify correct HSN code with your CA/tax advisor
+Coral Pink Purple Contrast Viscose Saree,AF-SAR-CORALPIN-018,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Ivory Gold Maroon Contrast Viscose Saree,AF-SAR-IVORYGOL-019,GST %,"Auto-set to 5% based on price ₹999.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Ivory Gold Maroon Contrast Viscose Saree,AF-SAR-IVORYGOL-019,HSN ID,Auto-set to 5007 based on material (Viscose),Please verify correct HSN code with your CA/tax advisor
+Ivory Gold Maroon Contrast Viscose Saree,AF-SAR-IVORYGOL-019,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Champagne Gold Maroon Contrast Viscose Saree,AF-SAR-CHAMPAGN-020,GST %,"Auto-set to 5% based on price ₹999.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Champagne Gold Maroon Contrast Viscose Saree,AF-SAR-CHAMPAGN-020,HSN ID,Auto-set to 5007 based on material (Viscose),Please verify correct HSN code with your CA/tax advisor
+Champagne Gold Maroon Contrast Viscose Saree,AF-SAR-CHAMPAGN-020,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Aqua Blue Gold Stripe Viscose Saree,AF-SAR-AQUABLUE-021,GST %,"Auto-set to 5% based on price ₹999.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Aqua Blue Gold Stripe Viscose Saree,AF-SAR-AQUABLUE-021,HSN ID,Auto-set to 5007 based on material (Viscose),Please verify correct HSN code with your CA/tax advisor
+Aqua Blue Gold Stripe Viscose Saree,AF-SAR-AQUABLUE-021,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Royal Blue Gold Brocade Fancy Saree,AF-SAR-ROYALBLU-022,GST %,"Auto-set to 5% based on price ₹649.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Royal Blue Gold Brocade Fancy Saree,AF-SAR-ROYALBLU-022,HSN ID,Auto-set to 5007 based on material (Fancy Woven Fabric),Please verify correct HSN code with your CA/tax advisor
+Royal Blue Gold Brocade Fancy Saree,AF-SAR-ROYALBLU-022,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Peacock Teal Blue Gold Zari Fancy Saree,AF-SAR-PEACOCKT-023,GST %,"Auto-set to 5% based on price ₹649.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Peacock Teal Blue Gold Zari Fancy Saree,AF-SAR-PEACOCKT-023,HSN ID,Auto-set to 5007 based on material (Fancy Woven Fabric),Please verify correct HSN code with your CA/tax advisor
+Peacock Teal Blue Gold Zari Fancy Saree,AF-SAR-PEACOCKT-023,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Royal Plum Gold Zari Fancy Saree,AF-SAR-ROYALPLU-024,GST %,"Auto-set to 5% based on price ₹649.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Royal Plum Gold Zari Fancy Saree,AF-SAR-ROYALPLU-024,HSN ID,Auto-set to 5007 based on material (Fancy Woven Fabric),Please verify correct HSN code with your CA/tax advisor
+Royal Plum Gold Zari Fancy Saree,AF-SAR-ROYALPLU-024,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Navy Blue Gold Zari Fancy Saree,AF-SAR-NAVYBLUE-025,GST %,"Auto-set to 5% based on price ₹649.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Navy Blue Gold Zari Fancy Saree,AF-SAR-NAVYBLUE-025,HSN ID,Auto-set to 5007 based on material (Fancy Woven Fabric),Please verify correct HSN code with your CA/tax advisor
+Navy Blue Gold Zari Fancy Saree,AF-SAR-NAVYBLUE-025,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Maroon Red Gold Zari Fancy Saree,AF-SAR-MAROONRE-026,GST %,"Auto-set to 5% based on price ₹649.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Maroon Red Gold Zari Fancy Saree,AF-SAR-MAROONRE-026,HSN ID,Auto-set to 5007 based on material (Fancy Woven Fabric),Please verify correct HSN code with your CA/tax advisor
+Maroon Red Gold Zari Fancy Saree,AF-SAR-MAROONRE-026,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Mustard Yellow Gold Zari Fancy Saree,AF-SAR-MUSTARDY-027,GST %,"Auto-set to 5% based on price ₹649.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Mustard Yellow Gold Zari Fancy Saree,AF-SAR-MUSTARDY-027,HSN ID,Auto-set to 5007 based on material (Fancy Woven Fabric),Please verify correct HSN code with your CA/tax advisor
+Mustard Yellow Gold Zari Fancy Saree,AF-SAR-MUSTARDY-027,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Fuchsia Pink Gold Zari Fancy Saree,AF-SAR-FUCHSIAP-028,GST %,"Auto-set to 5% based on price ₹649.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Fuchsia Pink Gold Zari Fancy Saree,AF-SAR-FUCHSIAP-028,HSN ID,Auto-set to 5007 based on material (Fancy Woven Fabric),Please verify correct HSN code with your CA/tax advisor
+Fuchsia Pink Gold Zari Fancy Saree,AF-SAR-FUCHSIAP-028,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Emerald Green Gold Checked Fancy Saree,AF-SAR-EMERALDG-029,GST %,"Auto-set to 5% based on price ₹649.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Emerald Green Gold Checked Fancy Saree,AF-SAR-EMERALDG-029,HSN ID,Auto-set to 5007 based on material (Fancy Woven Fabric),Please verify correct HSN code with your CA/tax advisor
+Emerald Green Gold Checked Fancy Saree,AF-SAR-EMERALDG-029,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Dark Emerald Green Gold Zari Fancy Saree,AF-SAR-DARKEMER-030,GST %,"Auto-set to 5% based on price ₹649.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Dark Emerald Green Gold Zari Fancy Saree,AF-SAR-DARKEMER-030,HSN ID,Auto-set to 5007 based on material (Fancy Woven Fabric),Please verify correct HSN code with your CA/tax advisor
+Dark Emerald Green Gold Zari Fancy Saree,AF-SAR-DARKEMER-030,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Royal Blue Gold Zari Checked Fancy Saree,AF-SAR-ROYALBLU-031,GST %,"Auto-set to 5% based on price ₹649.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Royal Blue Gold Zari Checked Fancy Saree,AF-SAR-ROYALBLU-031,HSN ID,Auto-set to 5007 based on material (Fancy Woven Fabric),Please verify correct HSN code with your CA/tax advisor
+Royal Blue Gold Zari Checked Fancy Saree,AF-SAR-ROYALBLU-031,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Teal Blue Gold Checked Fancy Saree,AF-SAR-TEALBLUE-032,GST %,"Auto-set to 5% based on price ₹649.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Teal Blue Gold Checked Fancy Saree,AF-SAR-TEALBLUE-032,HSN ID,Auto-set to 5007 based on material (Fancy Woven Fabric),Please verify correct HSN code with your CA/tax advisor
+Teal Blue Gold Checked Fancy Saree,AF-SAR-TEALBLUE-032,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Dark Blackish Purple Kanchi Cotton Peacock Zari Border Saree,AF-SAR-DARKBLAC-033,GST %,"Auto-set to 12% based on price ₹1999.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Dark Blackish Purple Kanchi Cotton Peacock Zari Border Saree,AF-SAR-DARKBLAC-033,HSN ID,Auto-set to 5208 based on material (Kanchi Cotton),Please verify correct HSN code with your CA/tax advisor
+Dark Blackish Purple Kanchi Cotton Peacock Zari Border Saree,AF-SAR-DARKBLAC-033,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Royal Purple Kanchi Cotton Elephant Zari Border Saree,AF-SAR-ROYALPUR-034,GST %,"Auto-set to 12% based on price ₹1999.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Royal Purple Kanchi Cotton Elephant Zari Border Saree,AF-SAR-ROYALPUR-034,HSN ID,Auto-set to 5208 based on material (Kanchi Cotton),Please verify correct HSN code with your CA/tax advisor
+Royal Purple Kanchi Cotton Elephant Zari Border Saree,AF-SAR-ROYALPUR-034,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Royal Blueberry Blue Kanchi Cotton Elephant Zari Border Saree,AF-SAR-ROYALBLU-035,GST %,"Auto-set to 12% based on price ₹1999.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Royal Blueberry Blue Kanchi Cotton Elephant Zari Border Saree,AF-SAR-ROYALBLU-035,HSN ID,Auto-set to 5208 based on material (Kanchi Cotton),Please verify correct HSN code with your CA/tax advisor
+Royal Blueberry Blue Kanchi Cotton Elephant Zari Border Saree,AF-SAR-ROYALBLU-035,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Royal Blue Kanchi Cotton Gold Zari Border Saree,AF-SAR-ROYALBLU-036,GST %,"Auto-set to 12% based on price ₹1999.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Royal Blue Kanchi Cotton Gold Zari Border Saree,AF-SAR-ROYALBLU-036,HSN ID,Auto-set to 5208 based on material (Kanchi Cotton),Please verify correct HSN code with your CA/tax advisor
+Royal Blue Kanchi Cotton Gold Zari Border Saree,AF-SAR-ROYALBLU-036,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Dark Teal Green Kanchi Cotton Elephant Zari Border Saree,AF-SAR-DARKTEAL-037,GST %,"Auto-set to 12% based on price ₹1999.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Dark Teal Green Kanchi Cotton Elephant Zari Border Saree,AF-SAR-DARKTEAL-037,HSN ID,Auto-set to 5208 based on material (Kanchi Cotton),Please verify correct HSN code with your CA/tax advisor
+Dark Teal Green Kanchi Cotton Elephant Zari Border Saree,AF-SAR-DARKTEAL-037,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Emerald Green Kanchi Cotton Gold Zari Border Saree,AF-SAR-EMERALDG-038,GST %,"Auto-set to 12% based on price ₹1999.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Emerald Green Kanchi Cotton Gold Zari Border Saree,AF-SAR-EMERALDG-038,HSN ID,Auto-set to 5208 based on material (Kanchi Cotton),Please verify correct HSN code with your CA/tax advisor
+Emerald Green Kanchi Cotton Gold Zari Border Saree,AF-SAR-EMERALDG-038,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Kanchi Cotton Saree – Mustard Yellow with Antique Gold Zari Border,AF-SAR-KANCHICO-039,GST %,"Auto-set to 12% based on price ₹1999.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Kanchi Cotton Saree – Mustard Yellow with Antique Gold Zari Border,AF-SAR-KANCHICO-039,HSN ID,Auto-set to 5208 based on material (Kanchi Cotton),Please verify correct HSN code with your CA/tax advisor
+Kanchi Cotton Saree – Mustard Yellow with Antique Gold Zari Border,AF-SAR-KANCHICO-039,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Kanchi Cotton Saree – Grey with Black & Gold Zari Border,AF-SAR-KANCHICO-040,GST %,"Auto-set to 12% based on price ₹1999.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Kanchi Cotton Saree – Grey with Black & Gold Zari Border,AF-SAR-KANCHICO-040,HSN ID,Auto-set to 5208 based on material (Kanchi Cotton),Please verify correct HSN code with your CA/tax advisor
+Kanchi Cotton Saree – Grey with Black & Gold Zari Border,AF-SAR-KANCHICO-040,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Kanchi Cotton Saree – Fuchsia Pink with Maroon Gold Zari Border,AF-SAR-KANCHICO-041,GST %,"Auto-set to 12% based on price ₹1999.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Kanchi Cotton Saree – Fuchsia Pink with Maroon Gold Zari Border,AF-SAR-KANCHICO-041,HSN ID,Auto-set to 5208 based on material (Kanchi Cotton),Please verify correct HSN code with your CA/tax advisor
+Kanchi Cotton Saree – Fuchsia Pink with Maroon Gold Zari Border,AF-SAR-KANCHICO-041,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
+Kanchi Cotton Saree – Peach Coral with Maroon Zari Border,AF-SAR-KANCHICO-042,GST %,"Auto-set to 12% based on price ₹1999.0 (textiles rule: ≤₹1000=5%, >₹1000=12%)",Please verify with your CA/tax advisor
+Kanchi Cotton Saree – Peach Coral with Maroon Zari Border,AF-SAR-KANCHICO-042,HSN ID,Auto-set to 5208 based on material (Kanchi Cotton),Please verify correct HSN code with your CA/tax advisor
+Kanchi Cotton Saree – Peach Coral with Maroon Zari Border,AF-SAR-KANCHICO-042,Product Weight,Set default 500g (typical saree weight). Actual weight not on website.,Please measure and update actual weight in grams
