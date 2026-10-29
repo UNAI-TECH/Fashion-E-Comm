@@ -23,6 +23,7 @@ import { supabase } from '../../../lib/supabase';
 import { useAdminAuth } from '../../contexts/AdminAuthContext';
 import { fetchProducts, ensureProductImages, buildComplementaryAngles } from '../../data/products';
 import { toast } from 'sonner';
+import { saveHeroModel } from '@/app/data/heroModels';
 
 /* ─── Types ─── */
 interface OrderItem {
@@ -70,17 +71,17 @@ interface Order {
 }
 
 interface Payment {
-  id: string; 
-  order_id: string; 
+  id: string;
+  order_id: string;
   user_id?: string;
   customer_name?: string;
   customer_phone?: string;
-  method?: string; 
+  method?: string;
   payment_method?: string;
   gateway_txn_id?: string;
   payer_vpa?: string;
-  status: string; 
-  amount: number; 
+  status: string;
+  amount: number;
   created_at: string;
 }
 
@@ -121,15 +122,15 @@ export const VALID_TABS: readonly NavTab[] = [
 export const isValidTab = (tab: any): tab is NavTab => VALID_TABS.includes(tab);
 
 const NAV_ITEMS: { id: NavTab; label: string; icon: React.ReactNode }[] = [
-  { id: 'overview',       label: 'Dashboard',             icon: <LayoutDashboard className="w-5 h-5" /> },
-  { id: 'notifications',  label: 'Offers & Alerts',       icon: <Bell className="w-5 h-5" /> },
-  { id: 'banners',        label: 'Hero Banners',          icon: <ImageIcon className="w-5 h-5" /> },
-  { id: 'products',       label: 'Catalog Products',      icon: <Package className="w-5 h-5" /> },
-  { id: 'inventory',      label: 'Inventory Stock',       icon: <Boxes className="w-5 h-5" /> },
-  { id: 'categories',     label: 'Categories',            icon: <Tags className="w-5 h-5" /> },
-  { id: 'orders',         label: 'Orders',                icon: <ClipboardList className="w-5 h-5" /> },
-  { id: 'customers',      label: 'Customers',             icon: <Users className="w-5 h-5" /> },
-  { id: 'payments',       label: 'Payments',              icon: <CreditCard className="w-5 h-5" /> },
+  { id: 'overview', label: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
+  { id: 'notifications', label: 'Offers & Alerts', icon: <Bell className="w-5 h-5" /> },
+  { id: 'banners', label: 'Hero Banners', icon: <ImageIcon className="w-5 h-5" /> },
+  { id: 'products', label: 'Catalog Products', icon: <Package className="w-5 h-5" /> },
+  { id: 'inventory', label: 'Inventory Stock', icon: <Boxes className="w-5 h-5" /> },
+  { id: 'categories', label: 'Categories', icon: <Tags className="w-5 h-5" /> },
+  { id: 'orders', label: 'Orders', icon: <ClipboardList className="w-5 h-5" /> },
+  { id: 'customers', label: 'Customers', icon: <Users className="w-5 h-5" /> },
+  { id: 'payments', label: 'Payments', icon: <CreditCard className="w-5 h-5" /> },
 ];
 
 /* ─── Customer name extraction helper ─── */
@@ -147,7 +148,7 @@ function getFormattedCustomerName(addr: ShippingAddress = {}, order: Partial<Ord
         const prof = JSON.parse(saved);
         if (prof.name) name = prof.name;
       }
-    } catch (e) {}
+    } catch (e) { }
   }
 
   if (!name || name.toLowerCase() === 'customer') {
@@ -201,7 +202,7 @@ export function AdminAanyaPage() {
       if (savedTab && isValidTab(savedTab)) {
         return savedTab;
       }
-    } catch (e) {}
+    } catch (e) { }
 
     return 'overview';
   };
@@ -216,7 +217,7 @@ export function AdminAanyaPage() {
     setActiveTabState(newTab);
     try {
       localStorage.setItem('admin_active_tab', newTab);
-    } catch (e) {}
+    } catch (e) { }
     setSearchParams(prev => {
       const next = new URLSearchParams(prev);
       next.set('tab', newTab);
@@ -243,22 +244,22 @@ export function AdminAanyaPage() {
       setActiveTabState(queryTab);
       try {
         localStorage.setItem('admin_active_tab', queryTab);
-      } catch (e) {}
+      } catch (e) { }
     }
   }, [searchParams, activeTab]);
 
   /* ── Data state ── */
   const [dbProducts, setDbProducts] = useState<DbProduct[]>([]);
-  const [orders, setOrders]         = useState<Order[]>([]);
-  const [payments, setPayments]     = useState<Payment[]>([]);
-  const [customers, setCustomers]   = useState<DerivedUser[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [customers, setCustomers] = useState<DerivedUser[]>([]);
 
   /* ── UI ── */
-  const [isLoading, setIsLoading]       = useState(true);
-  const [searchQuery, setSearchQuery]   = useState('');
-  const [isAddOpen, setIsAddOpen]       = useState(false);
-  const [adding, setAdding]             = useState(false);
-  const [imgPreview, setImgPreview]     = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [imgPreview, setImgPreview] = useState('');
   const [selectedCust, setSelectedCust] = useState<DerivedUser | null>(null);
   const [productToDelete, setProductToDelete] = useState<DbProduct | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -286,7 +287,7 @@ export function AdminAanyaPage() {
   useEffect(() => {
     try {
       localStorage.setItem('admin_pos_cart', JSON.stringify(adminCart));
-    } catch (e) {}
+    } catch (e) { }
   }, [adminCart]);
 
   /* ── Admin Catalog Multi-Buy Cart & Checkout Helpers ── */
@@ -364,7 +365,7 @@ export function AdminAanyaPage() {
       }
       localStorage.setItem('admin_billing_items', JSON.stringify(currentItems));
       window.dispatchEvent(new CustomEvent('admin_billing_load_items', { detail: [billItem] }));
-    } catch (e) {}
+    } catch (e) { }
 
     setBillingInitialProduct(product);
     setActiveTab('billing');
@@ -382,7 +383,7 @@ export function AdminAanyaPage() {
             sourceCart = parsed;
           }
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     if (sourceCart.length === 0) {
@@ -402,7 +403,7 @@ export function AdminAanyaPage() {
     try {
       localStorage.setItem('admin_billing_items', JSON.stringify(itemsForBilling));
       sessionStorage.setItem('admin_billing_initial_products', JSON.stringify(itemsForBilling));
-    } catch (e) {}
+    } catch (e) { }
 
     // Dispatch event immediately so if AdminBillingSection is already mounted, it updates instantly
     window.dispatchEvent(new CustomEvent('admin_billing_load_items', { detail: itemsForBilling }));
@@ -417,15 +418,15 @@ export function AdminAanyaPage() {
   const cartTotalPrice = adminCart.reduce((sum, item) => sum + (Number(item.product.price) || 0) * item.quantity, 0);
 
   /* ── Form ── */
-  const emptyForm = { 
-    name: '', 
-    category: 'Sarees', 
-    price: '', 
-    compare_at_price: '', 
+  const emptyForm = {
+    name: '',
+    category: 'Sarees',
+    price: '',
+    compare_at_price: '',
     stock_quantity: 25,
-    image_url: '', 
+    image_url: '',
     images: [] as string[],
-    description: '', 
+    description: '',
     status: 'Published',
     // Specifications
     spec_brand: 'Aanya Fashions',
@@ -610,13 +611,13 @@ export function AdminAanyaPage() {
       bc.onmessage = (event) => {
         if (event.data?.type === 'PRODUCT_DELETED') {
           const { id, name } = event.data;
-          setDbProducts(prev => prev.filter(p => 
-            String(p.id).toLowerCase() !== String(id).toLowerCase() && 
+          setDbProducts(prev => prev.filter(p =>
+            String(p.id).toLowerCase() !== String(id).toLowerCase() &&
             (!name || p.name.trim().toLowerCase() !== name.trim().toLowerCase())
           ));
         }
       };
-    } catch (e) {}
+    } catch (e) { }
 
     return () => {
       if (bc) bc.close();
@@ -645,8 +646,8 @@ export function AdminAanyaPage() {
     // Product deleted from Supabase — no localStorage hack needed
 
     // Update in-page state
-    setDbProducts(prev => prev.filter(p => 
-      String(p.id).toLowerCase() !== String(id).toLowerCase() && 
+    setDbProducts(prev => prev.filter(p =>
+      String(p.id).toLowerCase() !== String(id).toLowerCase() &&
       (!prodName || p.name.trim().toLowerCase() !== prodName.trim().toLowerCase())
     ));
     toast.success(`"${prodName}" removed from store`);
@@ -691,7 +692,7 @@ export function AdminAanyaPage() {
             const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(filePath);
             if (publicUrl) uploadedUrl = publicUrl;
           }
-        } catch (err) {}
+        } catch (err) { }
 
         if (!uploadedUrl) {
           uploadedUrl = await new Promise<string>((resolve) => {
@@ -741,7 +742,7 @@ export function AdminAanyaPage() {
             const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(filePath);
             if (publicUrl) uploadedUrl = publicUrl;
           }
-        } catch (err) {}
+        } catch (err) { }
         if (!uploadedUrl) {
           uploadedUrl = await new Promise<string>((resolve) => {
             const reader = new FileReader();
@@ -752,7 +753,7 @@ export function AdminAanyaPage() {
         if (uploadedUrl) newUrls.push(uploadedUrl);
       }
       if (newUrls.length > 0) {
-        setVariants(prev => prev.map(v => 
+        setVariants(prev => prev.map(v =>
           v.id === variantId ? { ...v, images: [...v.images, ...newUrls] } : v
         ));
         toast.success(`Uploaded ${newUrls.length} image(s) for variant!`);
@@ -1046,7 +1047,7 @@ export function AdminAanyaPage() {
 
   /* Monthly revenue (last 6 months) from verified paid orders */
   const monthlyData = (() => {
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const map: Record<string, number> = {};
     paidOrders.forEach(o => {
       const m = months[new Date(o.created_at).getMonth()];
@@ -1058,11 +1059,11 @@ export function AdminAanyaPage() {
   /* Status badge */
   const badge = (status: string) => {
     switch ((status || '').toLowerCase()) {
-      case 'delivered':  return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
-      case 'shipped':    return 'bg-blue-50 text-blue-700 border border-blue-200';
-      case 'cancelled':  return 'bg-[#F4F6F2] text-[#698156] border border-[#DCE4D7]';
-      case 'completed':  return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
-      default:           return 'bg-amber-50 text-amber-700 border border-amber-200';
+      case 'delivered': return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+      case 'shipped': return 'bg-blue-50 text-blue-700 border border-blue-200';
+      case 'cancelled': return 'bg-[#F4F6F2] text-[#698156] border border-[#DCE4D7]';
+      case 'completed': return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+      default: return 'bg-amber-50 text-amber-700 border border-amber-200';
     }
   };
 
@@ -1124,11 +1125,10 @@ export function AdminAanyaPage() {
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
                 title={!sidebarOpen ? item.label : undefined}
-                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all cursor-pointer ${
-                  isActive
+                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all cursor-pointer ${isActive
                     ? 'bg-[#698156]/15 text-gray-900 shadow-sm'
                     : 'text-gray-500 hover:text-gray-900 hover:bg-[#F4F6F2]'
-                }`}
+                  }`}
               >
                 <span className={`flex-shrink-0 ${isActive ? 'text-[#698156]' : ''}`}>{item.icon}</span>
                 <AnimatePresence>
@@ -1198,13 +1198,13 @@ export function AdminAanyaPage() {
             <div className="hidden md:block min-w-0">
               <h1 className="font-serif text-lg md:text-xl font-bold text-gray-900 capitalize truncate">
                 {activeTab === 'overview' ? 'Dashboard Overview' :
-                 (activeTab === 'banners' || activeTab === 'hero-models') ? 'Homepage Hero Banners' :
-                 activeTab === 'products' ? 'Catalog Products' :
-                 activeTab === 'inventory' ? 'Inventory Stock Management' :
-                 activeTab === 'categories' ? 'Categories Management' :
-                 activeTab === 'billing' ? 'Manual Billing & POS' :
-                 activeTab === 'orders' ? 'Customer Orders' :
-                 activeTab === 'customers' ? 'Customer Directory' : 'Payment Records'}
+                  (activeTab === 'banners' || activeTab === 'hero-models') ? 'Homepage Hero Banners' :
+                    activeTab === 'products' ? 'Catalog Products' :
+                      activeTab === 'inventory' ? 'Inventory Stock Management' :
+                        activeTab === 'categories' ? 'Categories Management' :
+                          activeTab === 'billing' ? 'Manual Billing & POS' :
+                            activeTab === 'orders' ? 'Customer Orders' :
+                              activeTab === 'customers' ? 'Customer Directory' : 'Payment Records'}
               </h1>
               <p className="text-[11px] md:text-xs text-gray-400 mt-0.5 truncate max-w-[200px] sm:max-w-none">
                 Live data from Supabase · Last synced {new Date().toLocaleTimeString('en-IN')}
@@ -1227,11 +1227,10 @@ export function AdminAanyaPage() {
             <button
               type="button"
               onClick={() => setActiveTab(activeTab === 'billing' ? 'overview' : 'billing')}
-              className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2 rounded-full text-xs font-bold shadow-md transition-all cursor-pointer active:scale-95 ${
-                activeTab === 'billing'
+              className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2 rounded-full text-xs font-bold shadow-md transition-all cursor-pointer active:scale-95 ${activeTab === 'billing'
                   ? 'bg-[#546944] text-white ring-2 ring-[#698156]/30'
                   : 'bg-[#698156] hover:bg-[#546944] text-white'
-              }`}
+                }`}
               title={activeTab === 'billing' ? "Exit Manual Billing" : "Open Manual Billing & POS"}
             >
               <Plus className={`w-4 h-4 transition-transform ${activeTab === 'billing' ? 'rotate-45' : ''}`} />
@@ -1271,11 +1270,10 @@ export function AdminAanyaPage() {
                     key={item.id}
                     type="button"
                     onClick={() => setActiveTab(item.id)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap flex-shrink-0 transition-all cursor-pointer active:scale-95 ${
-                      isActive
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap flex-shrink-0 transition-all cursor-pointer active:scale-95 ${isActive
                         ? 'bg-[#698156]/15 text-[#546944] border border-[#698156]/30 shadow-2xs'
                         : 'bg-[#F9FAF7] text-gray-600 border border-gray-200/60 hover:bg-[#F4F6F2]'
-                    }`}
+                      }`}
                   >
                     <span className="w-3.5 h-3.5 flex items-center justify-center">{item.icon}</span>
                     <span>{item.label}</span>
@@ -1350,7 +1348,7 @@ export function AdminAanyaPage() {
                     className="col-span-2 group relative overflow-hidden rounded-xl sm:rounded-2xl p-3 sm:p-4 bg-gradient-to-br from-[#698156]/12 via-[#698156]/5 to-white border border-[#698156]/25 shadow-xs hover:shadow-md text-left transition-all cursor-pointer"
                   >
                     <div className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-[#698156]/10 blur-xl pointer-events-none group-hover:scale-125 transition-transform" />
-                    
+
                     <div className="flex items-start justify-between relative z-10">
                       <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-[#698156] text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform">
                         <Package className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -1414,11 +1412,10 @@ export function AdminAanyaPage() {
                       <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
                         <Boxes className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       </div>
-                      <span className={`text-[9.5px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${
-                        dbProducts.filter(p => (p.stock_quantity ?? 0) <= (p.low_stock_threshold ?? 5)).length > 0
+                      <span className={`text-[9.5px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${dbProducts.filter(p => (p.stock_quantity ?? 0) <= (p.low_stock_threshold ?? 5)).length > 0
                           ? 'text-rose-700 bg-rose-50 border-rose-200 animate-pulse'
                           : 'text-amber-700 bg-amber-50 border-amber-200'
-                      }`}>
+                        }`}>
                         {dbProducts.filter(p => (p.stock_quantity ?? 0) <= (p.low_stock_threshold ?? 5)).length > 0
                           ? `${dbProducts.filter(p => (p.stock_quantity ?? 0) <= (p.low_stock_threshold ?? 5)).length} Low`
                           : 'Healthy'}
@@ -1719,7 +1716,7 @@ export function AdminAanyaPage() {
                     <form id="add-product-form" onSubmit={handleAddSubmit} className="p-4 sm:p-6 lg:p-8 space-y-5 sm:space-y-6">
                       {/* Two-column layout on large screens */}
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6 lg:gap-8">
-                        
+
                         {/* LEFT COLUMN: Product Info */}
                         <div className="space-y-4 sm:space-y-5">
                           {/* Product Title */}
@@ -1748,7 +1745,7 @@ export function AdminAanyaPage() {
                                 onChange={e => setForm({ ...form, category: e.target.value })}
                                 className="w-full px-3 py-2.5 sm:py-3 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20 cursor-pointer"
                               >
-                                {['Sarees','Kurtis','Lehengas','Salwar Sets','Western','Maxi','Tradition'].map(c => (
+                                {['Sarees', 'Kurtis', 'Lehengas', 'Salwar Sets', 'Western', 'Maxi', 'Tradition'].map(c => (
                                   <option key={c} value={c}>{c}</option>
                                 ))}
                               </select>
@@ -1892,9 +1889,8 @@ export function AdminAanyaPage() {
                           </div>
 
                           {/* ═══ OFFER / COUPON TOGGLE ═══ */}
-                          <div className={`border rounded-xl p-3 sm:p-4 transition-all space-y-3 ${
-                            form.offer_enabled ? 'bg-amber-50/60 border-amber-300 ring-1 ring-amber-200/50' : 'bg-gray-50/80 border-gray-200'
-                          }`}>
+                          <div className={`border rounded-xl p-3 sm:p-4 transition-all space-y-3 ${form.offer_enabled ? 'bg-amber-50/60 border-amber-300 ring-1 ring-amber-200/50' : 'bg-gray-50/80 border-gray-200'
+                            }`}>
                             <div
                               className="flex items-center justify-between cursor-pointer select-none"
                               onClick={() => setForm({ ...form, offer_enabled: !form.offer_enabled })}
@@ -1961,9 +1957,8 @@ export function AdminAanyaPage() {
                           </div>
 
                           {/* ═══ COLOR VARIANTS TOGGLE ═══ */}
-                          <div className={`border rounded-xl p-3 sm:p-4 transition-all space-y-3 ${
-                            form.variants_enabled ? 'bg-purple-50/60 border-purple-300 ring-1 ring-purple-200/50' : 'bg-gray-50/80 border-gray-200'
-                          }`}>
+                          <div className={`border rounded-xl p-3 sm:p-4 transition-all space-y-3 ${form.variants_enabled ? 'bg-purple-50/60 border-purple-300 ring-1 ring-purple-200/50' : 'bg-gray-50/80 border-gray-200'
+                            }`}>
                             <div
                               className="flex items-center justify-between cursor-pointer select-none"
                               onClick={() => setForm({ ...form, variants_enabled: !form.variants_enabled })}
@@ -1991,11 +1986,10 @@ export function AdminAanyaPage() {
                                         key={mat}
                                         type="button"
                                         onClick={() => setForm({ ...form, material_type: mat })}
-                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
-                                          form.material_type === mat
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${form.material_type === mat
                                             ? 'bg-purple-600 text-white border-purple-600'
                                             : 'bg-white text-gray-700 border-gray-200 hover:border-purple-300'
-                                        }`}
+                                          }`}
                                       >
                                         {mat}
                                       </button>
@@ -2109,9 +2103,8 @@ export function AdminAanyaPage() {
                                               </button>
                                             </div>
                                           ))}
-                                          <label className={`w-14 h-18 rounded-lg border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all ${
-                                            variantUploading === variant.id ? 'border-purple-400 bg-purple-50' : 'border-gray-300 hover:border-purple-400 bg-gray-50'
-                                          }`}>
+                                          <label className={`w-14 h-18 rounded-lg border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all ${variantUploading === variant.id ? 'border-purple-400 bg-purple-50' : 'border-gray-300 hover:border-purple-400 bg-gray-50'
+                                            }`}>
                                             {variantUploading === variant.id ? (
                                               <div className="animate-spin rounded-full h-4 w-4 border-2 border-purple-400 border-t-transparent" />
                                             ) : (
@@ -2139,9 +2132,8 @@ export function AdminAanyaPage() {
 
                           {/* Feature on Homepage Hero Model */}
                           <div
-                            className={`border rounded-xl p-3 sm:p-4 transition-all cursor-pointer select-none flex items-start gap-3 ${
-                              featureOnHero ? 'bg-[#F4F6F2] border-[#698156] ring-1 ring-[#698156]/20' : 'bg-gray-50/80 border-gray-200 hover:bg-gray-50'
-                            }`}
+                            className={`border rounded-xl p-3 sm:p-4 transition-all cursor-pointer select-none flex items-start gap-3 ${featureOnHero ? 'bg-[#F4F6F2] border-[#698156] ring-1 ring-[#698156]/20' : 'bg-gray-50/80 border-gray-200 hover:bg-gray-50'
+                              }`}
                             onClick={() => setFeatureOnHero(!featureOnHero)}
                           >
                             <input
@@ -2238,9 +2230,8 @@ export function AdminAanyaPage() {
                                   {form.images.map((imgSrc, idx) => (
                                     <div
                                       key={idx}
-                                      className={`relative group aspect-[3/4] rounded-xl overflow-hidden border-2 bg-white shadow-2xs transition-all ${
-                                        idx === 0 ? 'border-pink-500 ring-2 ring-[#698156]/30' : 'border-gray-200 hover:border-[#698156]'
-                                      }`}
+                                      className={`relative group aspect-[3/4] rounded-xl overflow-hidden border-2 bg-white shadow-2xs transition-all ${idx === 0 ? 'border-pink-500 ring-2 ring-[#698156]/30' : 'border-gray-200 hover:border-[#698156]'
+                                        }`}
                                     >
                                       <img
                                         src={imgSrc}
@@ -2327,209 +2318,206 @@ export function AdminAanyaPage() {
                   </div>
                 </motion.div>
               ) : (
-              /* ═══ NORMAL PRODUCTS VIEW (Search + Grid) ═══ */
-              <>
-              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
-                <div className="relative flex-1 max-w-md">
-                  <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
-                  <input type="text" placeholder="Search products…"
-                    value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20 transition-all shadow-2xs" />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsAddOpen(true)}
-                  className="flex items-center justify-center gap-2 px-5 py-2.5 bg-[#698156] hover:bg-[#546944] text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer active:scale-95 shrink-0"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Add Product</span>
-                </button>
-              </div>
+                /* ═══ NORMAL PRODUCTS VIEW (Search + Grid) ═══ */
+                <>
+                  <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+                    <div className="relative flex-1 max-w-md">
+                      <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
+                      <input type="text" placeholder="Search products…"
+                        value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20 transition-all shadow-2xs" />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsAddOpen(true)}
+                      className="flex items-center justify-center gap-2 px-5 py-2.5 bg-[#698156] hover:bg-[#546944] text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer active:scale-95 shrink-0"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Add Product</span>
+                    </button>
+                  </div>
 
-              {filtered.length === 0 ? (
-                <EmptyCard icon={<Package />} title="No products" sub="Add your first product — it will be saved to Supabase and appear in your store immediately." />
-              ) : (
-                /*  ── Clean, Non-overlapping Responsive Product Grid ── */
-                <div className={`grid gap-4 ${
-                  isCheckoutDrawerOpen
-                    ? 'grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4'
-                    : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'
-                }`}>
-                  {filtered.map(product => {
-                    const img = prodImg(product);
-                    const qtyInCart = getProductCartQty(product.id);
-                    return (
-                      <motion.div key={product.id} initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}
-                        className="bg-white rounded-xl border border-gray-200/80 shadow-2xs hover:shadow-md transition-all overflow-hidden group flex flex-col justify-between">
-                        {/* Compact clean image */}
-                        <div className="relative overflow-hidden bg-gray-50 h-44 sm:h-48 w-full">
-                          {img ? (
-                            <img src={img} alt={product.name}
-                              className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-200">
-                              <ImageIcon className="w-8 h-8" />
+                  {filtered.length === 0 ? (
+                    <EmptyCard icon={<Package />} title="No products" sub="Add your first product — it will be saved to Supabase and appear in your store immediately." />
+                  ) : (
+                    /*  ── Clean, Non-overlapping Responsive Product Grid ── */
+                    <div className={`grid gap-4 ${isCheckoutDrawerOpen
+                        ? 'grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4'
+                        : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'
+                      }`}>
+                      {filtered.map(product => {
+                        const img = prodImg(product);
+                        const qtyInCart = getProductCartQty(product.id);
+                        return (
+                          <motion.div key={product.id} initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}
+                            className="bg-white rounded-xl border border-gray-200/80 shadow-2xs hover:shadow-md transition-all overflow-hidden group flex flex-col justify-between">
+                            {/* Compact clean image */}
+                            <div className="relative overflow-hidden bg-gray-50 h-44 sm:h-48 w-full">
+                              {img ? (
+                                <img src={img} alt={product.name}
+                                  className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-gray-200">
+                                  <ImageIcon className="w-8 h-8" />
+                                </div>
+                              )}
+                              {/* Status badge */}
+                              <div className={`absolute top-2 left-2 px-2 py-0.5 rounded text-[10px] font-bold shadow-2xs ${product.status === 'Published' ? 'bg-emerald-500 text-white' : 'bg-gray-400 text-white'}`}>
+                                {product.status || 'Draft'}
+                              </div>
+                              {/* Stock quantity badge */}
+                              <div className={`absolute top-2 right-9 px-2 py-0.5 rounded text-[10px] font-bold shadow-2xs ${(product.stock_quantity ?? 25) === 0
+                                  ? 'bg-rose-600 text-white'
+                                  : (product.stock_quantity ?? 25) <= 10
+                                    ? 'bg-amber-600 text-white'
+                                    : 'bg-black/60 text-white backdrop-blur-xs'
+                                }`}>
+                                {(product.stock_quantity ?? 25) === 0 ? 'Out of Stock' : `Stock: ${product.stock_quantity ?? 25}`}
+                              </div>
+                              {/* Delete button */}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setProductToDelete(product);
+                                }}
+                                title="Delete this product"
+                                className="absolute top-2 right-2 p-1.5 bg-white/95 hover:bg-[#F4F6F2] hover:text-rose-600 text-gray-500 rounded-md shadow-2xs transition-all opacity-0 group-hover:opacity-100 cursor-pointer hover:scale-105 active:scale-95"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                              {/* Category tag */}
+                              <div className="absolute bottom-2 left-2 px-2 py-0.5 bg-black/60 text-white rounded text-[10px] font-medium backdrop-blur-sm">
+                                {product.category}
+                              </div>
                             </div>
-                          )}
-                          {/* Status badge */}
-                          <div className={`absolute top-2 left-2 px-2 py-0.5 rounded text-[10px] font-bold shadow-2xs ${
-                            product.status === 'Published' ? 'bg-emerald-500 text-white' : 'bg-gray-400 text-white'}`}>
-                            {product.status || 'Draft'}
-                          </div>
-                          {/* Stock quantity badge */}
-                          <div className={`absolute top-2 right-9 px-2 py-0.5 rounded text-[10px] font-bold shadow-2xs ${
-                            (product.stock_quantity ?? 25) === 0
-                              ? 'bg-rose-600 text-white'
-                              : (product.stock_quantity ?? 25) <= 10
-                              ? 'bg-amber-600 text-white'
-                              : 'bg-black/60 text-white backdrop-blur-xs'
-                          }`}>
-                            {(product.stock_quantity ?? 25) === 0 ? 'Out of Stock' : `Stock: ${product.stock_quantity ?? 25}`}
-                          </div>
-                          {/* Delete button */}
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setProductToDelete(product);
-                            }}
-                            title="Delete this product"
-                            className="absolute top-2 right-2 p-1.5 bg-white/95 hover:bg-[#F4F6F2] hover:text-rose-600 text-gray-500 rounded-md shadow-2xs transition-all opacity-0 group-hover:opacity-100 cursor-pointer hover:scale-105 active:scale-95"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                          {/* Category tag */}
-                          <div className="absolute bottom-2 left-2 px-2 py-0.5 bg-black/60 text-white rounded text-[10px] font-medium backdrop-blur-sm">
-                            {product.category}
-                          </div>
-                        </div>
 
-                        {/* Info below image */}
-                        <div className="p-3 flex-1 flex flex-col justify-between gap-2.5">
-                          <div className="space-y-1">
-                            <h4 className="font-serif font-bold text-gray-900 text-xs sm:text-sm leading-snug line-clamp-2 h-9" title={product.name}>
-                              {product.name}
-                            </h4>
-                            <div className="flex items-center gap-2">
-                              <span className="text-[#698156] font-bold text-xs sm:text-sm">₹{(product.price || 0).toLocaleString('en-IN')}</span>
-                              {product.compare_at_price && (
-                                <span className="text-gray-400 line-through text-[11px]">₹{product.compare_at_price.toLocaleString('en-IN')}</span>
+                            {/* Info below image */}
+                            <div className="p-3 flex-1 flex flex-col justify-between gap-2.5">
+                              <div className="space-y-1">
+                                <h4 className="font-serif font-bold text-gray-900 text-xs sm:text-sm leading-snug line-clamp-2 h-9" title={product.name}>
+                                  {product.name}
+                                </h4>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[#698156] font-bold text-xs sm:text-sm">₹{(product.price || 0).toLocaleString('en-IN')}</span>
+                                  {product.compare_at_price && (
+                                    <span className="text-gray-400 line-through text-[11px]">₹{product.compare_at_price.toLocaleString('en-IN')}</span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Cart Action Button - Clean, non-overlapping with Bill Now option */}
+                              {qtyInCart > 0 ? (
+                                <div className="space-y-1.5">
+                                  <div className="flex items-center justify-between bg-[#F4F6F2] border border-[#DCE4D7] rounded-xl p-1 shadow-2xs">
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDecrementCart(product.id);
+                                      }}
+                                      title="Decrease quantity"
+                                      className="w-6 h-6 flex items-center justify-center rounded-lg bg-white text-[#698156] hover:bg-[#698156]/15 shadow-2xs transition active:scale-90 cursor-pointer"
+                                    >
+                                      <Minus className="w-3 h-3" />
+                                    </button>
+                                    <span className="text-xs font-bold text-[#2F3C25]">
+                                      {qtyInCart} in Cart
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleAddToCart(product);
+                                      }}
+                                      title="Increase quantity"
+                                      className="w-6 h-6 flex items-center justify-center rounded-lg bg-white text-[#698156] hover:bg-[#698156]/15 shadow-2xs transition active:scale-90 cursor-pointer"
+                                    >
+                                      <Plus className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleProceedToPOSBilling();
+                                    }}
+                                    className="w-full py-1.5 px-2 bg-[#698156] hover:bg-[#546944] text-white text-[11px] font-bold rounded-lg flex items-center justify-center gap-1 transition shadow-2xs cursor-pointer active:scale-95"
+                                  >
+                                    <Receipt className="w-3 h-3" />
+                                    <span>Proceed to Bill ({cartTotalCount})</span>
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="grid grid-cols-2 gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleAddToCart(product);
+                                    }}
+                                    className="py-2 px-2 bg-[#F4F6F2] hover:bg-[#E8EDE4] text-[#698156] border border-[#DCE4D7] font-bold text-xs rounded-xl transition-all duration-200 flex items-center justify-center gap-1 cursor-pointer active:scale-95 shadow-2xs"
+                                    title="Add product to checkout sidebar"
+                                  >
+                                    <Plus className="w-3.5 h-3.5" />
+                                    <span>+ Cart</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDirectBillProduct(product);
+                                    }}
+                                    className="py-2 px-2 bg-[#698156] hover:bg-[#546944] text-white font-bold text-xs rounded-xl transition-all duration-200 flex items-center justify-center gap-1 cursor-pointer active:scale-95 shadow-2xs"
+                                    title="Directly bill this item in POS"
+                                  >
+                                    <Receipt className="w-3.5 h-3.5" />
+                                    <span>Bill Now</span>
+                                  </button>
+                                </div>
                               )}
                             </div>
-                          </div>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  )}
 
-                          {/* Cart Action Button - Clean, non-overlapping with Bill Now option */}
-                          {qtyInCart > 0 ? (
-                            <div className="space-y-1.5">
-                              <div className="flex items-center justify-between bg-[#F4F6F2] border border-[#DCE4D7] rounded-xl p-1 shadow-2xs">
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDecrementCart(product.id);
-                                  }}
-                                  title="Decrease quantity"
-                                  className="w-6 h-6 flex items-center justify-center rounded-lg bg-white text-[#698156] hover:bg-[#698156]/15 shadow-2xs transition active:scale-90 cursor-pointer"
-                                >
-                                  <Minus className="w-3 h-3" />
-                                </button>
-                                <span className="text-xs font-bold text-[#2F3C25]">
-                                  {qtyInCart} in Cart
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleAddToCart(product);
-                                  }}
-                                  title="Increase quantity"
-                                  className="w-6 h-6 flex items-center justify-center rounded-lg bg-white text-[#698156] hover:bg-[#698156]/15 shadow-2xs transition active:scale-90 cursor-pointer"
-                                >
-                                  <Plus className="w-3 h-3" />
-                                </button>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleProceedToPOSBilling();
-                                }}
-                                className="w-full py-1.5 px-2 bg-[#698156] hover:bg-[#546944] text-white text-[11px] font-bold rounded-lg flex items-center justify-center gap-1 transition shadow-2xs cursor-pointer active:scale-95"
-                              >
-                                <Receipt className="w-3 h-3" />
-                                <span>Proceed to Bill ({cartTotalCount})</span>
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="grid grid-cols-2 gap-1.5">
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleAddToCart(product);
-                                }}
-                                className="py-2 px-2 bg-[#F4F6F2] hover:bg-[#E8EDE4] text-[#698156] border border-[#DCE4D7] font-bold text-xs rounded-xl transition-all duration-200 flex items-center justify-center gap-1 cursor-pointer active:scale-95 shadow-2xs"
-                                title="Add product to checkout sidebar"
-                              >
-                                <Plus className="w-3.5 h-3.5" />
-                                <span>+ Cart</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDirectBillProduct(product);
-                                }}
-                                className="py-2 px-2 bg-[#698156] hover:bg-[#546944] text-white font-bold text-xs rounded-xl transition-all duration-200 flex items-center justify-center gap-1 cursor-pointer active:scale-95 shadow-2xs"
-                                title="Directly bill this item in POS"
-                              >
-                                <Receipt className="w-3.5 h-3.5" />
-                                <span>Bill Now</span>
-                              </button>
-                            </div>
-                          )}
+                  {/* Sticky bottom floating checkout bar - only show when sidebar is closed */}
+                  {cartTotalCount > 0 && !isCheckoutDrawerOpen && (
+                    <div className="sticky bottom-6 z-30 mx-auto max-w-2xl bg-gray-900/95 text-white backdrop-blur-md px-5 py-3 rounded-2xl shadow-2xl border border-white/10 flex items-center justify-between gap-4 animate-in slide-in-from-bottom-4 duration-300">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-xl bg-[#F4F6F2]0/20 text-[#849E70] border border-[#698156]/30 flex items-center justify-center shrink-0">
+                          <ShoppingCart className="w-5 h-5" />
                         </div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Sticky bottom floating checkout bar - only show when sidebar is closed */}
-              {cartTotalCount > 0 && !isCheckoutDrawerOpen && (
-                <div className="sticky bottom-6 z-30 mx-auto max-w-2xl bg-gray-900/95 text-white backdrop-blur-md px-5 py-3 rounded-2xl shadow-2xl border border-white/10 flex items-center justify-between gap-4 animate-in slide-in-from-bottom-4 duration-300">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-xl bg-[#F4F6F2]0/20 text-[#849E70] border border-[#698156]/30 flex items-center justify-center shrink-0">
-                      <ShoppingCart className="w-5 h-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-sm font-bold flex items-center gap-2">
-                        <span>{cartTotalCount} {cartTotalCount === 1 ? 'item' : 'items'} in Cart</span>
-                        <span className="text-[#849E70] font-extrabold text-base">₹{cartTotalPrice.toLocaleString('en-IN')}</span>
+                        <div className="min-w-0">
+                          <div className="text-sm font-bold flex items-center gap-2">
+                            <span>{cartTotalCount} {cartTotalCount === 1 ? 'item' : 'items'} in Cart</span>
+                            <span className="text-[#849E70] font-extrabold text-base">₹{cartTotalPrice.toLocaleString('en-IN')}</span>
+                          </div>
+                          <p className="text-[11px] text-gray-400 truncate">Multi-item selection ready for checkout</p>
+                        </div>
                       </div>
-                      <p className="text-[11px] text-gray-400 truncate">Multi-item selection ready for checkout</p>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={handleClearCart}
+                          className="text-xs text-gray-400 hover:text-white px-2.5 py-1.5 transition rounded-lg hover:bg-white/10 cursor-pointer"
+                        >
+                          Clear
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsCheckoutDrawerOpen(true)}
+                          className="px-4 py-2 bg-gradient-to-r from-[#698156] to-[#546944] hover:from-[#546944] hover:to-[#435436] text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+                        >
+                          <span>Checkout & Review</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      type="button"
-                      onClick={handleClearCart}
-                      className="text-xs text-gray-400 hover:text-white px-2.5 py-1.5 transition rounded-lg hover:bg-white/10 cursor-pointer"
-                    >
-                      Clear
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsCheckoutDrawerOpen(true)}
-                      className="px-4 py-2 bg-gradient-to-r from-[#698156] to-[#546944] hover:from-[#546944] hover:to-[#435436] text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
-                    >
-                      <span>Checkout & Review</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              )}
-              </>
+                  )}
+                </>
               )}
             </div>
           )}
@@ -2761,7 +2749,7 @@ export function AdminAanyaPage() {
                 setBillingInitialProducts(null);
                 try {
                   sessionStorage.removeItem('admin_billing_initial_products');
-                } catch (e) {}
+                } catch (e) { }
               }}
               onOrderCreated={(order) => {
                 setOrders(prev => [order, ...prev]);
@@ -2801,10 +2789,10 @@ export function AdminAanyaPage() {
             (o.shipping_address?.email && o.shipping_address.email === selectedCust.email)
           );
           const statusCfg: Record<string, { cls: string; label: string }> = {
-            delivered:  { cls: 'bg-green-100 text-green-700 border-green-200', label: 'Delivered' },
-            pending:    { cls: 'bg-amber-100 text-amber-700 border-amber-200',  label: 'Pending' },
-            cancelled:  { cls: 'bg-red-100 text-red-700 border-red-200',        label: 'Cancelled' },
-            processing: { cls: 'bg-blue-100 text-blue-700 border-blue-200',     label: 'Processing' },
+            delivered: { cls: 'bg-green-100 text-green-700 border-green-200', label: 'Delivered' },
+            pending: { cls: 'bg-amber-100 text-amber-700 border-amber-200', label: 'Pending' },
+            cancelled: { cls: 'bg-red-100 text-red-700 border-red-200', label: 'Cancelled' },
+            processing: { cls: 'bg-blue-100 text-blue-700 border-blue-200', label: 'Processing' },
           };
           return (
             <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
