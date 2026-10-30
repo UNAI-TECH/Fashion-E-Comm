@@ -368,8 +368,8 @@ export function CheckoutPage() {
       tracking_number: trackingNumber,
     };
 
-    // 1. Insert order in Pending state
-    const orderPayload = {
+    // 1. Insert order in Pending state with valid schema fields
+    const orderPayload: any = {
       id: orderId,
       status: initialPaymentStatus === 'Completed' ? 'Confirmed' : 'Pending',
       payment_method: 'UPI',
@@ -382,15 +382,14 @@ export function CheckoutPage() {
       total_price: totalAmount,
       shipping_address: shippingAddress,
       tracking_number: trackingNumber,
-      stock_decremented: false,
       ...(userId ? { user_id: userId } : {}),
     };
 
     try {
-      const { error: orderError } = await supabase.from('orders').insert([orderPayload]);
-      if (orderError) {
-        delete (orderPayload as any).user_id;
-        await supabase.from('orders').insert([orderPayload]);
+      const { error: orderError } = await supabase.from('orders').upsert([orderPayload], { onConflict: 'id' });
+      if (orderError && orderPayload.user_id) {
+        delete orderPayload.user_id;
+        await supabase.from('orders').upsert([orderPayload], { onConflict: 'id' });
       }
 
       // 2. Insert order items

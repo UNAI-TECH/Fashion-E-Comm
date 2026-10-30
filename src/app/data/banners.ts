@@ -133,22 +133,7 @@ export function setLocalBanners(banners: AdBanner[]) {
  * Fetch all active banners for the storefront
  */
 export async function fetchActiveBanners(): Promise<AdBanner[]> {
-  // 1. First try backend API endpoint (bypasses RLS with service role)
-  try {
-    const res = await fetch('/api/banners?active=true', { cache: 'no-store' });
-    if (res.ok) {
-      const json = await res.json();
-      if (json.success && Array.isArray(json.data)) {
-        const list: AdBanner[] = json.data;
-        setLocalBanners(list);
-        return list;
-      }
-    }
-  } catch (apiErr) {
-    // API not responding
-  }
-
-  // 2. Fallback to Supabase direct select (public anon read)
+  // 1. Try Supabase direct select first (fastest, client-side, zero latency)
   try {
     const { data, error } = await supabase
       .from('banners')
@@ -156,7 +141,7 @@ export async function fetchActiveBanners(): Promise<AdBanner[]> {
       .eq('status', 'Active')
       .order('display_order', { ascending: true });
 
-    if (!error && Array.isArray(data)) {
+    if (!error && Array.isArray(data) && data.length > 0) {
       const formatted: AdBanner[] = data.map((b: any, index: number) => ({
         id: b.id,
         title: b.title || 'Festive Saree Sale',
@@ -172,7 +157,22 @@ export async function fetchActiveBanners(): Promise<AdBanner[]> {
       return formatted;
     }
   } catch (e) {
-    console.warn('[Banners] Fetch active error:', e);
+    // Ignore direct error and try fallback
+  }
+
+  // 2. Try backend API endpoint
+  try {
+    const res = await fetch('/api/banners?active=true', { cache: 'no-store' });
+    if (res.ok) {
+      const json = await res.json();
+      if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+        const list: AdBanner[] = json.data;
+        setLocalBanners(list);
+        return list;
+      }
+    }
+  } catch (apiErr) {
+    // API not responding
   }
 
   return getLocalBanners().filter(b => b.status === 'Active');

@@ -29,6 +29,14 @@
       "destination": "/api/payments/key"
     },
     {
+      "source": "/api/banners",
+      "destination": "/api/banners"
+    },
+    {
+      "source": "/api/auth/register",
+      "destination": "/api/auth/register"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api"
     },

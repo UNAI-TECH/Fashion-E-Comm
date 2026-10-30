@@ -203,7 +203,7 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
   const signInWithEmail = async (email: string, password: string) => {
     try {
       const cleanEmail = email.trim().toLowerCase();
-      const { data, error } = await supabase.auth.signInWithPassword({
+      let { data, error } = await supabase.auth.signInWithPassword({
         email: cleanEmail,
         password,
       });
@@ -216,40 +216,34 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
           error.message.toLowerCase().includes('verification');
 
         if (isUnconfirmed) {
-          // Auto-confirm via Edge Function and retry sign-in
+          // Auto-confirm via backend register API and retry sign-in immediately
           try {
-            const { data: edgeData } = await supabase.functions.invoke('customer-register', {
-              body: { email: cleanEmail, password },
+            const apiRes = await fetch('/api/auth/register', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: cleanEmail, password }),
             });
-
-            if (edgeData?.success) {
+            if (apiRes.ok) {
               const retry = await supabase.auth.signInWithPassword({
                 email: cleanEmail,
                 password,
               });
               if (retry.data?.user) {
-                setUser(retry.data.user);
-                setSession(retry.data.session);
-                fetchProfile(retry.data.user.id, retry.data.user.email, retry.data.user.user_metadata).catch(() => {});
-                toast.success(`Welcome back, ${retry.data.user.user_metadata?.full_name || 'Customer'}!`);
-                return { success: true };
+                data = retry.data;
+                error = null;
               }
             }
           } catch (autoConfirmErr) {
             console.warn('Auto-confirm fallback failed:', autoConfirmErr);
           }
-
-          return {
-            success: false,
-            unconfirmedEmail: true,
-            error: 'Please verify your email before signing in. Check your inbox (and Spam/Promotions folder) for the confirmation link.',
-          };
         }
 
-        return { success: false, error: error.message };
+        if (error) {
+          return { success: false, error: error.message };
+        }
       }
 
-      if (data.user) {
+      if (data?.user) {
         setUser(data.user);
         setSession(data.session);
         fetchProfile(data.user.id, data.user.email, data.user.user_metadata).catch(() => {});
@@ -263,7 +257,7 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
     }
   };
 
-  // ─── 2. Sign Up — Native Supabase first, Edge Function fallback ───
+  // ─── 2. Sign Up — Instant Backend Registration & Auto-Confirmation first ───
   const signUp = async (formData: SignupFormData) => {
     try {
       const cleanEmail = formData.email.trim().toLowerCase();
@@ -290,87 +284,24 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
         state: '',
       });
 
-      // Determine canonical redirect URL based on environment policy
-      const redirectUrl = getCanonicalUrl('/');
-
-      // ── Strategy 1: Native Supabase signUp (sends confirmation email if SMTP configured) ──
-      let nativeSuccess = false;
+      // ── Strategy 1: Instant Backend Auto-Confirmed Registration (bypasses email rate limits) ──
       try {
-        const { data, error } = await supabase.auth.signUp({
-          email: cleanEmail,
-          password: formData.password,
-          options: {
-            data: {
-              full_name: cleanName,
-              phone: cleanPhone,
-              gender: cleanGender,
-            },
-            emailRedirectTo: redirectUrl,
-          },
+        const regRes = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fullName: cleanName,
+            phone: cleanPhone,
+            gender: cleanGender,
+            email: cleanEmail,
+            password: formData.password,
+          }),
         });
 
-        if (!error && data.user) {
-          // Check if user already exists (Supabase returns user with empty identities)
-          if (data.user.identities && data.user.identities.length === 0) {
-            return {
-              success: false,
-              error: 'An account with this email already exists. Please sign in instead.',
-            };
-          }
-
-          nativeSuccess = true;
-          const needsEmailVerification = !data.session;
-
-          if (data.session && data.user) {
-            // Email confirmation disabled or auto-confirmed — user is logged in
-            const customerProfile: CustomerProfile = {
-              id: data.user.id,
-              email: cleanEmail,
-              full_name: cleanName,
-              phone: cleanPhone,
-              gender: cleanGender,
-              role: 'customer',
-              status: 'Active',
-            };
-            setUser(data.user);
-            setSession(data.session);
-            setProfile(customerProfile);
-            localStorage.setItem('customer_profile_cache', JSON.stringify(customerProfile));
-            toast.success(`Welcome to Aanya Fashions, ${cleanName}!`);
-          } else {
-            toast.success('Registration successful! Please check your email for the confirmation link.');
-          }
-
-          return { success: true, needsEmailVerification };
-        }
-
-        // If error is NOT a server/rate issue, return it directly
-        if (error && error.status !== 500 && error.status !== 429) {
-          return { success: false, error: error.message };
-        }
-      } catch (nativeErr) {
-        console.warn('Native signup failed, trying Edge Function fallback:', nativeErr);
-      }
-
-      // ── Strategy 2: Edge Function fallback (when SMTP fails with 500 or 429) ──
-      if (!nativeSuccess) {
-        try {
-          const { data: edgeData, error: edgeErr } = await supabase.functions.invoke('customer-register', {
-            body: {
-              email: cleanEmail,
-              password: formData.password,
-              fullName: cleanName,
-              phone: cleanPhone,
-              gender: cleanGender,
-            },
-          });
-
-          if (edgeErr) {
-            return { success: false, error: edgeErr.message || 'Registration failed. Please try again.' };
-          }
-
-          if (edgeData?.success) {
-            // Edge Function auto-confirms the user — sign in immediately
+        if (regRes.ok) {
+          const regJson = await regRes.json();
+          if (regJson.success) {
+            // User created & confirmed on backend, sign in directly with supabase client
             const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({
               email: cleanEmail,
               password: formData.password,
@@ -393,20 +324,61 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
               toast.success(`Welcome to Aanya Fashions, ${cleanName}!`);
               return { success: true, needsEmailVerification: false };
             }
-
-            // Edge function succeeded but sign-in failed — account exists, ask to sign in
-            toast.success('Account created! Please sign in with your email and password.');
-            return { success: true, needsEmailVerification: false };
+          } else if (regJson.error && !regJson.error.toLowerCase().includes('network')) {
+            return { success: false, error: regJson.error };
           }
-
-          return { success: false, error: edgeData?.error || 'Registration failed.' };
-        } catch (edgeCatch) {
-          console.error('Edge function registration error:', edgeCatch);
-          return { success: false, error: 'Registration service is temporarily unavailable. Please try again in a moment.' };
         }
+      } catch (backendErr) {
+        console.warn('Backend register call failed, falling back to native Supabase:', backendErr);
       }
 
-      return { success: false, error: 'Registration failed. Please try again.' };
+      // ── Strategy 2: Native Supabase signUp fallback ──
+      const redirectUrl = getCanonicalUrl('/');
+      const { data, error } = await supabase.auth.signUp({
+        email: cleanEmail,
+        password: formData.password,
+        options: {
+          data: {
+            full_name: cleanName,
+            phone: cleanPhone,
+            gender: cleanGender,
+          },
+          emailRedirectTo: redirectUrl,
+        },
+      });
+
+      if (!error && data.user) {
+        if (data.user.identities && data.user.identities.length === 0) {
+          return {
+            success: false,
+            error: 'An account with this email already exists. Please sign in instead.',
+          };
+        }
+
+        const needsEmailVerification = !data.session;
+        if (data.session && data.user) {
+          const customerProfile: CustomerProfile = {
+            id: data.user.id,
+            email: cleanEmail,
+            full_name: cleanName,
+            phone: cleanPhone,
+            gender: cleanGender,
+            role: 'customer',
+            status: 'Active',
+          };
+          setUser(data.user);
+          setSession(data.session);
+          setProfile(customerProfile);
+          localStorage.setItem('customer_profile_cache', JSON.stringify(customerProfile));
+          toast.success(`Welcome to Aanya Fashions, ${cleanName}!`);
+        } else {
+          toast.success('Registration successful! You can now sign in.');
+        }
+
+        return { success: true, needsEmailVerification: false };
+      }
+
+      return { success: false, error: error?.message || 'Registration failed. Please try again.' };
     } catch (err: any) {
       console.error('Sign up error:', err);
       return { success: false, error: err.message || 'Registration failed.' };

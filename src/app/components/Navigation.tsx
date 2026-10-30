@@ -10,7 +10,6 @@ import { toast } from 'sonner';
 import { intelligentSearch, getRecommendedFallback, getSearchSuggestions } from '../../lib/aiSearchEngine';
 import { AuthModal } from './AuthModal';
 import { useCustomerAuth } from '../contexts/CustomerAuthContext';
-import { WelcomeSplashScreen } from './WelcomeSplashScreen';
 import { getUserProfileImage } from '../../lib/userProfile';
 
 const HighlightText = ({ text, highlight }: { text: string; highlight: string }) => {
@@ -196,9 +195,7 @@ export function Navigation() {
 
   return (
     <>
-      {/* First Page: Welcome to Aanya Fashions Splash Screen */}
-      <WelcomeSplashScreen />
-
+      
       {/* ══════════ DESKTOP HEADER (Myntra & Meesho style) ══════════ */}
       <header className="hidden lg:block fixed top-0 left-0 right-0 z-[40] bg-white shadow-xs border-b border-gray-100">
         {/* Row: Logo | Centered Search Bar | Actions */}

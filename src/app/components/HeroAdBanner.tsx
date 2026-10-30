@@ -98,12 +98,12 @@ export function HeroAdBanner() {
       }
     };
 
-    // 9. Periodic background sync every 12 seconds
+    // 9. Periodic background sync every 60 seconds
     const intervalId = setInterval(() => {
       fetchActiveBanners().then(data => {
         if (mounted && Array.isArray(data)) applyBanners(data);
       });
-    }, 12000);
+    }, 60000);
 
     window.addEventListener('ad-banners-updated', handleUpdate);
     window.addEventListener('storage', handleStorage);

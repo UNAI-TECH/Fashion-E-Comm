@@ -1,49 +1,103 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'motion/react';
-import { Link } from 'react-router';
 import { ProductCard } from './ProductCard';
 import { ProductSkeleton } from './Skeleton';
 import { Product } from '../data/products';
-import { Crown, ArrowUpDown, Filter, Check, PackageSearch } from 'lucide-react';
+import { Crown, PackageSearch } from 'lucide-react';
 
 interface TrendingCollectionProps {
   products: Product[];
   isLoading: boolean;
 }
 
+const PRESET_FILTERS = [
+  { id: 'kanchicotton', label: 'Kanchi Cotton' },
+  { id: 'viscose', label: 'Viscose Sarees' },
+  { id: 'fancy', label: 'Fancy Sarees' },
+  { id: 'checks', label: 'Checks Pedding' },
+  { id: 'banarasi', label: 'Banarasi Fashion silk sarees' },
+];
+
 export function TrendingCollection({ products, isLoading }: TrendingCollectionProps) {
-  const [activeFilter, setActiveFilter] = useState<'all' | 'kanchicotton' | 'viscose' | 'fancy' | 'checks' | 'silk'>('all');
+  const [activeFilter, setActiveFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'featured' | 'priceLow' | 'priceHigh'>('featured');
+
+  // Compute all available filter options in the requested exact order:
+  // 1. Kanchi Cotton
+  // 2. Viscose Sarees
+  // 3. Fancy Sarees
+  // 4. Checks Pedding
+  // 5. Banarasi Fashion silk sarees
+  // 6. Dynamic custom materials from products (if any)
+  // 7. At last: All Sarees ({products.length})
+  const filterTabs = useMemo(() => {
+    const presetLabelsLower = new Set(
+      PRESET_FILTERS.map(f => f.label.toLowerCase())
+    );
+
+    // Collect any other unique materials present on products
+    const customMaterials: { id: string; label: string }[] = [];
+    products.forEach(p => {
+      const mat = (p.material || '').trim();
+      if (!mat) return;
+      const lower = mat.toLowerCase();
+      // Skip if covered by presets
+      if (
+        lower.includes('kanchi') ||
+        lower.includes('viscose') ||
+        lower.includes('fancy') ||
+        lower.includes('check') ||
+        lower.includes('pedding') ||
+        lower.includes('banarasi')
+      ) {
+        return;
+      }
+      if (!presetLabelsLower.has(lower) && !customMaterials.some(c => c.label.toLowerCase() === lower)) {
+        customMaterials.push({ id: `mat_${lower.replace(/\s+/g, '_')}`, label: mat });
+      }
+    });
+
+    return [
+      ...PRESET_FILTERS,
+      ...customMaterials,
+      { id: 'all', label: `All Sarees (${products.length})` },
+    ];
+  }, [products]);
 
   // Filter and sort the sarees
   const filteredProducts = useMemo(() => {
     let list = [...products];
 
-    // Filter by material
     if (activeFilter === 'kanchicotton') {
       list = list.filter(p => {
-        const str = `${p.name} ${p.category} ${p.description || ''}`.toLowerCase();
+        const str = `${p.material || ''} ${p.name} ${p.category} ${p.description || ''}`.toLowerCase();
         return str.includes('kanchi') || str.includes('cotton');
       });
     } else if (activeFilter === 'viscose') {
       list = list.filter(p => {
-        const str = `${p.name} ${p.category} ${p.description || ''}`.toLowerCase();
+        const str = `${p.material || ''} ${p.name} ${p.category} ${p.description || ''}`.toLowerCase();
         return str.includes('viscose');
       });
     } else if (activeFilter === 'fancy') {
       list = list.filter(p => {
-        const str = `${p.name} ${p.category} ${p.description || ''}`.toLowerCase();
+        const str = `${p.material || ''} ${p.name} ${p.category} ${p.description || ''}`.toLowerCase();
         return str.includes('fancy') || str.includes('georgette') || str.includes('chiffon') || str.includes('net') || str.includes('designer') || str.includes('party');
       });
     } else if (activeFilter === 'checks') {
       list = list.filter(p => {
-        const str = `${p.name} ${p.category} ${p.description || ''}`.toLowerCase();
+        const str = `${p.material || ''} ${p.name} ${p.category} ${p.description || ''}`.toLowerCase();
         return str.includes('check') || str.includes('pedding') || str.includes('jamdani');
       });
-    } else if (activeFilter === 'silk') {
+    } else if (activeFilter === 'banarasi') {
       list = list.filter(p => {
-        const str = `${p.name} ${p.category} ${p.description || ''}`.toLowerCase();
-        return str.includes('silk') || str.includes('banarasi') || str.includes('kanchipuram') || str.includes('zari');
+        const str = `${p.material || ''} ${p.name} ${p.category} ${p.description || ''}`.toLowerCase();
+        return str.includes('banarasi') || str.includes('silk') || str.includes('kanchipuram') || str.includes('zari');
+      });
+    } else if (activeFilter.startsWith('mat_')) {
+      const targetLabel = filterTabs.find(t => t.id === activeFilter)?.label.toLowerCase() || '';
+      list = list.filter(p => {
+        const str = `${p.material || ''} ${p.name}`.toLowerCase();
+        return str.includes(targetLabel);
       });
     }
 
@@ -62,7 +116,7 @@ export function TrendingCollection({ products, isLoading }: TrendingCollectionPr
     }
 
     return list;
-  }, [products, activeFilter, sortBy]);
+  }, [products, activeFilter, sortBy, filterTabs]);
 
   return (
     <section id="grand-saree-showcase" className="py-10 sm:py-14 md:py-16 bg-gradient-to-b from-[#FAF8F5] via-white to-[#F4F6F2]">
@@ -90,68 +144,24 @@ export function TrendingCollection({ products, isLoading }: TrendingCollectionPr
 
         {/* Filter & Sorting Controls Bar */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6 sm:mb-8 pb-4 border-b border-gray-200/80">
-          {/* Material Filter Pills */}
+          {/* Material Filter Pills: Kanchi Cotton -> Viscose Sarees -> Fancy Sarees -> Checks Pedding -> Banarasi Fashion silk sarees -> custom -> All Sarees at last */}
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 w-full sm:w-auto">
-            <button
-              onClick={() => setActiveFilter('all')}
-              className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95 duration-150 cursor-pointer ${
-                activeFilter === 'all'
-                  ? 'bg-[#698156] text-white shadow-xs'
-                  : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              All Sarees ({products.length})
-            </button>
-            <button
-              onClick={() => setActiveFilter('kanchicotton')}
-              className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95 duration-150 cursor-pointer ${
-                activeFilter === 'kanchicotton'
-                  ? 'bg-[#698156] text-white shadow-xs'
-                  : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              Kanchi Cotton
-            </button>
-            <button
-              onClick={() => setActiveFilter('viscose')}
-              className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95 duration-150 cursor-pointer ${
-                activeFilter === 'viscose'
-                  ? 'bg-[#698156] text-white shadow-xs'
-                  : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              Viscose Sarees
-            </button>
-            <button
-              onClick={() => setActiveFilter('fancy')}
-              className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95 duration-150 cursor-pointer ${
-                activeFilter === 'fancy'
-                  ? 'bg-[#698156] text-white shadow-xs'
-                  : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              Fancy Sarees
-            </button>
-            <button
-              onClick={() => setActiveFilter('checks')}
-              className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95 duration-150 cursor-pointer ${
-                activeFilter === 'checks'
-                  ? 'bg-[#698156] text-white shadow-xs'
-                  : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              Checks Pedding
-            </button>
-            <button
-              onClick={() => setActiveFilter('silk')}
-              className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95 duration-150 cursor-pointer ${
-                activeFilter === 'silk'
-                  ? 'bg-[#698156] text-white shadow-xs'
-                  : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              Pure Silk
-            </button>
+            {filterTabs.map((tab) => {
+              const isActive = activeFilter === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveFilter(tab.id)}
+                  className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95 duration-150 cursor-pointer ${
+                    isActive
+                      ? 'bg-[#698156] text-white shadow-xs'
+                      : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
           </div>
 
           {/* Sort By Dropdown */}

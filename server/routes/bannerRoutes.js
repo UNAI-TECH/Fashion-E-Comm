@@ -41,10 +41,14 @@ router.get('/', async (req, res) => {
       query = query.eq('status', 'Active');
     }
     const { data, error } = await query;
-    if (error) throw error;
-    res.json({ success: true, data: data || [] });
+    if (error) {
+      console.warn('Supabase banners query warning:', error.message);
+      return res.json({ success: true, data: DEFAULT_BANNERS });
+    }
+    res.json({ success: true, data: data && data.length > 0 ? data : DEFAULT_BANNERS });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    console.warn('Banner route caught error, returning defaults:', err.message);
+    res.json({ success: true, data: DEFAULT_BANNERS });
   }
 });
 

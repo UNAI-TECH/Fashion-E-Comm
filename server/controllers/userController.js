@@ -2,47 +2,69 @@ import { supabase } from '../config/supabase.js';
 
 export const registerUser = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, fullName, phone, gender, email, password } = req.body || {};
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanName = (name || fullName || cleanEmail.split('@')[0]).trim();
+    const cleanPhone = (phone || '').toString().trim();
+    const cleanGender = (gender || 'Female').toString().trim();
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
+    if (!cleanEmail || !password) {
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
+
+    let userId;
+    const { data: adminData, error: adminErr } = await supabase.auth.admin.createUser({
+      email: cleanEmail,
       password,
-      options: {
-        data: {
-          full_name: name,
-        }
+      email_confirm: true,
+      user_metadata: {
+        full_name: cleanName,
+        phone: cleanPhone,
+        gender: cleanGender,
       }
     });
 
-    if (error) {
-      return res.status(400).json({ message: error.message });
+    if (adminErr) {
+      const msg = adminErr.message.toLowerCase();
+      if (msg.includes('already') || msg.includes('exists') || adminErr.status === 422) {
+        const { data: listData } = await supabase.auth.admin.listUsers();
+        const existingUser = listData?.users?.find(u => u.email?.toLowerCase() === cleanEmail);
+        if (existingUser) {
+          userId = existingUser.id;
+          await supabase.auth.admin.updateUserById(userId, {
+            email_confirm: true,
+            password,
+            user_metadata: { full_name: cleanName, phone: cleanPhone, gender: cleanGender }
+          });
+        } else {
+          return res.status(400).json({ message: adminErr.message });
+        }
+      } else {
+        return res.status(400).json({ message: adminErr.message });
+      }
+    } else {
+      userId = adminData?.user?.id;
     }
 
-    // Usually Supabase handles creating the profile with triggers if you set one up.
-    // If you used the provided supabase_schema.sql, you might need to insert it manually
-    // or rely on a trigger. Here we'll do an upsert just to be safe.
-    if (data.user) {
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: data.user.id,
-          email: data.user.email,
-          full_name: name,
-          role: 'customer',
-          status: 'Active'
-        });
-
-      if (profileError) {
-        console.error("Profile creation error: ", profileError);
-      }
+    if (userId) {
+      await supabase.from('profiles').upsert({
+        id: userId,
+        email: cleanEmail,
+        full_name: cleanName,
+        phone: cleanPhone,
+        role: 'customer',
+        status: 'Active',
+        updated_at: new Date().toISOString(),
+      });
     }
 
     res.status(201).json({
-      _id: data.user.id,
-      name,
-      email,
+      success: true,
+      _id: userId,
+      name: cleanName,
+      email: cleanEmail,
       role: 'customer',
-      token: data.session?.access_token || 'check-email-for-confirmation',
+      message: 'Account created successfully'
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -51,15 +73,27 @@ export const registerUser = async (req, res) => {
 
 export const authUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password } = req.body || {};
+    const cleanEmail = (email || '').trim().toLowerCase();
+
+    // Auto-confirm unconfirmed user if needed so signin never fails due to email unconfirmed
+    try {
+      const { data: listData } = await supabase.auth.admin.listUsers();
+      const existingUser = listData?.users?.find(u => u.email?.toLowerCase() === cleanEmail);
+      if (existingUser && !existingUser.email_confirmed_at) {
+        await supabase.auth.admin.updateUserById(existingUser.id, { email_confirm: true });
+      }
+    } catch (e) {
+      // Non-fatal
+    }
 
     const { data, error } = await supabase.auth.signInWithPassword({
-      email,
+      email: cleanEmail,
       password,
     });
 
     if (error || !data.user) {
-      return res.status(401).json({ message: 'Invalid email or password' });
+      return res.status(401).json({ message: error?.message || 'Invalid email or password' });
     }
 
     // Fetch user profile
@@ -116,7 +150,6 @@ export const updateUserProfile = async (req, res) => {
       updated_at: new Date(),
     };
 
-    // Update password in Auth if provided
     if (req.body.password) {
       const { error: authError } = await supabase.auth.updateUser({
         password: req.body.password
@@ -126,7 +159,6 @@ export const updateUserProfile = async (req, res) => {
       }
     }
 
-    // Update profile table
     const { data: updatedProfile, error } = await supabase
       .from('profiles')
       .update(updates)
@@ -143,8 +175,7 @@ export const updateUserProfile = async (req, res) => {
       name: updatedProfile.full_name,
       email: updatedProfile.email,
       role: updatedProfile.role,
-      // Frontend expects token (won't change from profile update alone usually, but mock it)
-      token: req.headers.authorization.split(' ')[1],
+      token: req.headers.authorization?.split(' ')[1] || '',
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

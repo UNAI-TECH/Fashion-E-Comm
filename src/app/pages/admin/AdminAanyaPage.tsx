@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   IndianRupee, ShoppingBag, Users, Package, ArrowUpRight,
@@ -7,7 +7,7 @@ import {
   ClipboardList, Menu, ChevronLeft, CreditCard, LogOut,
   Award, Camera, Shirt, Upload, Star, Receipt,
   Minus, ShoppingCart, ArrowRight, Tags, Boxes, Compass, Bell,
-  CheckCircle2, XCircle, Clock
+  CheckCircle2, XCircle, Clock, Edit, Ban
 } from 'lucide-react';
 import { AdminBannersSection } from './AdminBannersSection';
 import { AdminNotificationsSection } from './AdminNotificationsSection';
@@ -448,6 +448,27 @@ export function AdminAanyaPage() {
     material_type_custom: '',
   };
   const [form, setForm] = useState(emptyForm);
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
+  const [isCustomMaterial, setIsCustomMaterial] = useState<boolean>(false);
+
+  const PRESET_ADMIN_MATERIALS = [
+    'Kanchi Cotton',
+    'Viscose Sarees',
+    'Fancy Sarees',
+    'Checks Pedding',
+    'Banarasi Fashion silk sarees',
+  ];
+
+  const availableMaterials = useMemo(() => {
+    const mats = new Set<string>(PRESET_ADMIN_MATERIALS);
+    dbProducts.forEach(p => {
+      const m = (p.specifications?.material || p.material_type || p.material || '').trim();
+      if (m && !PRESET_ADMIN_MATERIALS.some(pm => pm.toLowerCase() === m.toLowerCase())) {
+        mats.add(m);
+      }
+    });
+    return Array.from(mats);
+  }, [dbProducts]);
   const [urlInput, setUrlInput] = useState('');
   const [isUploading, setIsUploading] = useState(false);
 
@@ -805,6 +826,77 @@ export function AdminAanyaPage() {
     toast.success(`Auto-added ${angles.length} complementary fashion angles!`);
   };
 
+  /* ─── Edit & Stock Helpers ─── */
+  const handleOpenEditProduct = (prod: any) => {
+    setEditingProductId(prod.id);
+    const specMat = (prod.specifications?.material || prod.material_type || prod.material || '').trim();
+    const isPreset = PRESET_ADMIN_MATERIALS.some(pm => pm.toLowerCase() === specMat.toLowerCase());
+
+    setForm({
+      ...emptyForm,
+      name: prod.name || '',
+      category: prod.category || 'Sarees',
+      price: String(prod.price ?? ''),
+      compare_at_price: prod.compare_at_price ? String(prod.compare_at_price) : '',
+      stock_quantity: prod.stock_quantity ?? 0,
+      image_url: prod.image_url || '',
+      images: prod.images && prod.images.length > 0 ? prod.images : (prod.image_url ? [prod.image_url] : []),
+      description: prod.description || '',
+      status: prod.status || 'Published',
+      spec_brand: prod.specifications?.brand || 'Aanya Fashions',
+      spec_color: prod.specifications?.color || '',
+      spec_material: specMat,
+      spec_design: prod.specifications?.design || '',
+      spec_pattern: prod.specifications?.pattern || '',
+      spec_wash_care: prod.specifications?.wash_care || 'Dry Clean Only',
+      spec_occasion: prod.specifications?.occasion || '',
+      offer_enabled: !!prod.offer_enabled,
+      offer_price: prod.offer_details?.offer_price ? String(prod.offer_details.offer_price) : '',
+      coupon_discount: prod.offer_details?.coupon_discount ? String(prod.offer_details.coupon_discount) : '',
+      applicable_on: prod.offer_details?.applicable_on || 'All Orders',
+      coupon_code: prod.offer_details?.coupon_code || '',
+      variants_enabled: false,
+      material_type: isPreset ? specMat : (specMat ? 'Other' : ''),
+      material_type_custom: isPreset ? '' : specMat,
+    });
+    setIsCustomMaterial(!isPreset && !!specMat);
+    setIsAddOpen(true);
+  };
+
+  const handleToggleStock = async (product: any, forcedStock?: number) => {
+    const currentStock = product.stock_quantity ?? 25;
+    const newStock = forcedStock !== undefined ? forcedStock : (currentStock > 0 ? 0 : 25);
+    try {
+      const { error } = await supabase
+        .from('products')
+        .update({ stock_quantity: newStock })
+        .eq('id', product.id);
+
+      if (error) {
+        toast.error('Failed to update stock: ' + error.message);
+        return;
+      }
+
+      setDbProducts(prev => prev.map(p => p.id === product.id ? { ...p, stock_quantity: newStock } : p));
+
+      try {
+        const bc = new BroadcastChannel('products_channel');
+        bc.postMessage({ type: 'STOCK_UPDATED', id: product.id, stock_quantity: newStock });
+        bc.close();
+      } catch {}
+      window.dispatchEvent(new Event('products_updated'));
+      window.dispatchEvent(new Event('storage'));
+
+      if (newStock === 0) {
+        toast.success('"' + product.name + '" marked Out of Stock! (Customers cannot order this item)');
+      } else {
+        toast.success('"' + product.name + '" marked In Stock (' + newStock + ' units available)');
+      }
+    } catch (err: any) {
+      toast.error('Failed to update stock: ' + err.message);
+    }
+  };
+
   /* ─── Add product → Supabase & Local Storefront ─── */
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -847,12 +939,72 @@ export function AdminAanyaPage() {
         wash_care: form.spec_wash_care.trim() || 'Dry Clean Only',
         occasion: form.spec_occasion.trim() || '',
       };
+      const finalMaterial = form.spec_material.trim();
       const baseOffer = form.offer_enabled ? {
         offer_price: form.offer_price ? parseFloat(form.offer_price) : null,
         coupon_discount: form.coupon_discount ? parseFloat(form.coupon_discount) : null,
         applicable_on: form.applicable_on.trim() || 'All Orders',
         coupon_code: form.coupon_code.trim().toUpperCase() || '',
       } : {};
+
+      // ─── EDIT MODE: Update existing product in database ───
+      if (editingProductId) {
+        const updatePayload = {
+          name: form.name.trim(),
+          category: form.category,
+          price: parseFloat(form.price),
+          compare_at_price: form.compare_at_price ? parseFloat(form.compare_at_price) : null,
+          stock_quantity: Number(form.stock_quantity) || 0,
+          image_url: primaryImg,
+          images: guaranteedImages,
+          description: form.description.trim() || null,
+          status: form.status,
+          specifications: {
+            brand: form.spec_brand.trim() || 'Aanya Fashions',
+            color: form.spec_color.trim() || '',
+            material: finalMaterial || '',
+            design: form.spec_design.trim() || '',
+            pattern: form.spec_pattern.trim() || '',
+            wash_care: form.spec_wash_care.trim() || 'Dry Clean Only',
+            occasion: form.spec_occasion.trim() || '',
+          },
+          offer_enabled: form.offer_enabled,
+          offer_details: baseOffer,
+          material_type: finalMaterial,
+        };
+
+        const { data: updatedProduct, error: updateErr } = await supabase
+          .from('products')
+          .update(updatePayload)
+          .eq('id', editingProductId)
+          .select()
+          .single();
+
+        if (updateErr) {
+          toast.error('Failed to update product: ' + updateErr.message);
+          setAdding(false);
+          return;
+        }
+
+        const updatedItem = updatedProduct || { id: editingProductId, ...updatePayload };
+        setDbProducts(prev => prev.map(p => p.id === editingProductId ? { ...p, ...updatedItem } : p));
+
+        try {
+          const bc = new BroadcastChannel('products_channel');
+          bc.postMessage({ type: 'PRODUCT_UPDATED', product: updatedItem });
+          bc.close();
+        } catch {}
+        window.dispatchEvent(new Event('products_updated'));
+        window.dispatchEvent(new Event('storage'));
+
+        toast.success('"' + form.name.trim() + '" updated successfully!');
+        setIsAddOpen(false);
+        setEditingProductId(null);
+        setForm(emptyForm);
+        setIsCustomMaterial(false);
+        setAdding(false);
+        return;
+      }
 
       // ─── VARIANT MODE: create multiple products sharing a variant_group_id ───
       if (form.variants_enabled && variants.length > 0 && variants.some(v => v.color.trim() && v.images.length > 0)) {
@@ -1689,7 +1841,7 @@ export function AdminAanyaPage() {
                       <div className="flex items-center gap-3">
                         <button
                           type="button"
-                          onClick={() => setIsAddOpen(false)}
+                          onClick={() => { setIsAddOpen(false); setEditingProductId(null); setForm(emptyForm); setIsCustomMaterial(false); }}
                           className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-white hover:bg-gray-100 border border-gray-200 text-gray-500 hover:text-gray-900 transition-all flex items-center justify-center cursor-pointer shadow-xs"
                           title="Back to Products"
                         >
@@ -1697,13 +1849,13 @@ export function AdminAanyaPage() {
                         </button>
                         <img src="/logo.png" alt="Aanya" className="h-8 sm:h-10 w-auto object-contain mix-blend-multiply" />
                         <div>
-                          <h2 className="font-serif text-base sm:text-xl font-bold text-gray-900 leading-tight">Add New Product</h2>
-                          <p className="text-[10px] sm:text-xs text-[#698156] font-medium">Publish directly to Supabase catalog & storefront</p>
+                          <h2 className="font-serif text-base sm:text-xl font-bold text-gray-900 leading-tight">{editingProductId ? "Edit Product" : "Add New Product"}</h2>
+                          <p className="text-[10px] sm:text-xs text-[#698156] font-medium">{editingProductId ? "Update saved product specifications & live storefront details" : "Publish directly to Supabase catalog & storefront"}</p>
                         </div>
                       </div>
                       <button
                         type="button"
-                        onClick={() => setIsAddOpen(false)}
+                        onClick={() => { setIsAddOpen(false); setEditingProductId(null); setForm(emptyForm); setIsCustomMaterial(false); }}
                         className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white hover:bg-rose-50 border border-gray-200 hover:border-rose-200 text-gray-400 hover:text-rose-600 transition-all flex items-center justify-center cursor-pointer shadow-xs"
                         title="Close (Esc)"
                         aria-label="Close"
@@ -1833,16 +1985,51 @@ export function AdminAanyaPage() {
                                   className="w-full px-3 py-2 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20"
                                 />
                               </div>
-                              <div>
-                                <label className="block text-[10px] sm:text-[11px] uppercase tracking-wider font-bold text-gray-500 mb-1">Material</label>
-                                <input
-                                  type="text"
-                                  placeholder="e.g. Pure Silk Blend"
-                                  value={form.spec_material}
-                                  onChange={e => setForm({ ...form, spec_material: e.target.value })}
-                                  className="w-full px-3 py-2 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20"
-                                />
-                              </div>
+                              <div className="col-span-2 sm:col-span-1">
+                                  <label className="block text-[10px] sm:text-[11px] uppercase tracking-wider font-bold text-gray-500 mb-1">
+                                    Material *
+                                  </label>
+                                  <select
+                                    value={
+                                      isCustomMaterial
+                                        ? 'other'
+                                        : (availableMaterials.find(m => m.toLowerCase() === (form.spec_material || '').toLowerCase()) || (form.spec_material ? 'other' : ''))
+                                    }
+                                    onChange={e => {
+                                      const val = e.target.value;
+                                      if (val === 'other') {
+                                        setIsCustomMaterial(true);
+                                        setForm({ ...form, spec_material: '' });
+                                      } else {
+                                        setIsCustomMaterial(false);
+                                        setForm({ ...form, spec_material: val });
+                                      }
+                                    }}
+                                    className="w-full px-3 py-2 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20 cursor-pointer font-medium"
+                                  >
+                                    <option value="">Select Material...</option>
+                                    {availableMaterials.map(m => (
+                                      <option key={m} value={m}>{m}</option>
+                                    ))}
+                                    <option value="other">+ Other (Add New Material)...</option>
+                                  </select>
+
+                                  {isCustomMaterial && (
+                                    <div className="mt-2">
+                                      <input
+                                        type="text"
+                                        required
+                                        placeholder="Enter new material name (e.g. Banarasi Fashion silk sarees, Organza...)"
+                                        value={form.spec_material}
+                                        onChange={e => setForm({ ...form, spec_material: e.target.value })}
+                                        className="w-full px-3 py-2 bg-[#F4F6F2] rounded-xl text-sm border border-[#DCE4D7] outline-none focus:ring-2 focus:ring-[#698156]/20 font-medium"
+                                      />
+                                      <p className="text-[10px] text-[#698156] font-medium mt-1">
+                                        * This new material will immediately appear in the filter options on the main site.
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
                               <div>
                                 <label className="block text-[10px] sm:text-[11px] uppercase tracking-wider font-bold text-gray-500 mb-1">Design</label>
                                 <input
@@ -2294,7 +2481,7 @@ export function AdminAanyaPage() {
                       <div className="flex items-center justify-between gap-3 pt-4 sm:pt-5 border-t border-[#DCE4D7]">
                         <button
                           type="button"
-                          onClick={() => setIsAddOpen(false)}
+                          onClick={() => { setIsAddOpen(false); setEditingProductId(null); setForm(emptyForm); setIsCustomMaterial(false); }}
                           className="px-5 sm:px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full text-xs sm:text-sm font-bold transition-all cursor-pointer"
                         >
                           ← Back to Products
@@ -2375,6 +2562,17 @@ export function AdminAanyaPage() {
                                 {(product.stock_quantity ?? 25) === 0 ? 'Out of Stock' : `Stock: ${product.stock_quantity ?? 25}`}
                               </div>
                               {/* Delete button */}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenEditProduct(product);
+                                }}
+                                title="Edit product details"
+                                className="absolute top-2 right-9 p-1.5 bg-white/95 hover:bg-[#F4F6F2] hover:text-[#698156] text-gray-700 rounded-md shadow-2xs transition-all opacity-0 group-hover:opacity-100 cursor-pointer hover:scale-105 active:scale-95"
+                              >
+                                <Edit className="w-3.5 h-3.5" />
+                              </button>
                               <button
                                 type="button"
                                 onClick={(e) => {
@@ -2773,7 +2971,7 @@ export function AdminAanyaPage() {
           {/* ─── TAB: CATEGORIES ─── */}
           {activeTab === 'categories' && (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-              <AdminCategories />
+              <AdminCategories onSelectCategory={(catName) => { setSearchQuery(catName); setActiveTab("products"); }} />
             </div>
           )}
 
