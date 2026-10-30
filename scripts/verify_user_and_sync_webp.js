@@ -53,7 +53,7 @@ function parseJsonSafe(val, fallback) {
 function toWebPUrl(url, newDomain = 'zofmwjuakybpuoiqzktm.supabase.co') {
   if (!url || typeof url !== 'string') return url;
   let res = url.trim();
-  res = res.replace(/cvhofhdwedszsqcngxbt\.supabase\.co/g, newDomain);
+  res = res.replace(/zofmwjuakybpuoiqzktm\.supabase\.co/g, newDomain);
   if (res.includes('unsplash.com')) {
     if (!res.includes('fm=webp')) {
       res += (res.includes('?') ? '&' : '?') + 'fm=webp';

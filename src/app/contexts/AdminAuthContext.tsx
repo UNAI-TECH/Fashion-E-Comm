@@ -102,7 +102,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://cvhofhdwedszsqcngxbt.supabase.co';
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://zofmwjuakybpuoiqzktm.supabase.co';
       const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
       // 1. Authenticate via direct REST (bypasses browser WebLock deadlocks)
