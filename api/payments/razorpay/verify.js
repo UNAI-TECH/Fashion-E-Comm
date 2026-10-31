@@ -199,11 +199,16 @@ export default async function handler(req, res) {
       await supabase
         .from('orders')
         .update({
-          payment_status: 'Completed',
-          status: 'Confirmed',
+          payment_status: 'Paid',
+          status: 'Processing',
           payment_method: paymentMethodUsed.includes('UPI') ? 'UPI' : 'Razorpay',
-          razorpay_payment_id: razorpay_payment_id || `pay_sim_${Date.now()}`,
-          razorpay_order_id: razorpay_order_id || dbOrder?.razorpay_order_id,
+          payment_timestamp: new Date().toISOString(),
+          payment_result: {
+            razorpay_payment_id: razorpay_payment_id || `pay_sim_${Date.now()}`,
+            razorpay_order_id: razorpay_order_id || null,
+            razorpay_signature: razorpay_signature || null,
+            status: 'PAID'
+          },
           updated_at: new Date().toISOString()
         })
         .eq('id', targetOrderId);

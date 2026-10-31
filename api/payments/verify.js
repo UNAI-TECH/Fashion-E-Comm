@@ -91,31 +91,36 @@ export default async function handler(req, res) {
         // Check if order was already confirmed/paid (idempotency guard)
         const { data: existingOrder } = await supabase
           .from('orders')
-          .select('id, payment_status, status, razorpay_payment_id')
+          .select('id, payment_status, status, payment_result')
           .eq('id', finalOrderId)
           .maybeSingle();
 
-        if (existingOrder && existingOrder.payment_status === 'Completed') {
+        if (existingOrder && (existingOrder.payment_status === 'Paid' || existingOrder.payment_status === 'Completed')) {
           return res.status(200).json({
             success: true,
             status: 'PAID',
             message: 'Payment already verified and confirmed.',
             order_id: rzpOrderId,
             orderId: finalOrderId,
-            payment_id: existingOrder.razorpay_payment_id || rzpPaymentId,
+            payment_id: rzpPaymentId,
             signature_valid: true
           });
         }
 
-        // Update order status to Completed & Confirmed
+        // Update order status to Paid & Processing
         await supabase
           .from('orders')
           .update({
-            payment_status: 'Completed',
-            status: 'Confirmed',
-            payment_method: 'UPI',
-            razorpay_payment_id: rzpPaymentId,
-            razorpay_order_id: rzpOrderId,
+            payment_status: 'Paid',
+            status: 'Processing',
+            payment_method: 'Online Payment (Razorpay)',
+            payment_timestamp: new Date().toISOString(),
+            payment_result: {
+              razorpay_payment_id: rzpPaymentId,
+              razorpay_order_id: rzpOrderId,
+              razorpay_signature: rzpSignature,
+              verified_at: new Date().toISOString()
+            },
             updated_at: new Date().toISOString()
           })
           .eq('id', finalOrderId);
@@ -136,11 +141,21 @@ export default async function handler(req, res) {
           console.warn('[Payment Verify] Payment record insert note:', payInsertErr?.message);
         }
 
-        // Atomic stock decrement via database RPC
+        // Direct stock decrement for order items
         try {
-          await supabase.rpc('fulfill_order_stock', { p_order_id: finalOrderId });
+          const { data: items } = await supabase.from('order_items').select('product_id, quantity').eq('order_id', finalOrderId);
+          if (items && Array.isArray(items)) {
+            for (const item of items) {
+              if (item.product_id) {
+                const { data: p } = await supabase.from('products').select('stock_quantity').eq('id', item.product_id).maybeSingle();
+                if (p && typeof p.stock_quantity === 'number') {
+                  await supabase.from('products').update({ stock_quantity: Math.max(0, p.stock_quantity - (item.quantity || 1)) }).eq('id', item.product_id);
+                }
+              }
+            }
+          }
         } catch (rpcErr) {
-          console.warn('[Payment Verify] fulfill_order_stock RPC notice:', rpcErr?.message);
+          console.warn('[Payment Verify] Stock deduction notice:', rpcErr?.message);
         }
       } catch (dbErr) {
         console.warn('[Payment Verify] Database recording warning:', dbErr?.message);

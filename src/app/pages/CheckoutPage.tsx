@@ -48,7 +48,7 @@ export function CheckoutPage() {
   const [step, setStep] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentState, setPaymentState] = useState<'IDLE' | 'CREATING_ORDER' | 'CHECKOUT_OPEN' | 'VERIFYING' | 'PAID' | 'FAILED' | 'PENDING_RECONCILIATION'>('IDLE');
-  const [orderPlaced, setOrderPlaced] = useState<{ orderId: string; trackingNumber: string; method?: string; status?: string; txnId?: string } | null>(null);
+  const [orderPlaced, setOrderPlaced] = useState<{ orderId: string; trackingNumber: string; method?: string; status?: string; txnId?: string; amount?: number } | null>(null);
 
   // Buy Now mode
   const buyNowProductId = searchParams.get('buyNow');
@@ -541,11 +541,39 @@ export function CheckoutPage() {
               throw new Error(verifyRes?.message || 'Payment verification could not be confirmed.');
             }
 
-            // Deduct stock ONLY on verified, successful payment
+            // 1. Update order status directly in Supabase orders table with exact existing schema columns
             try {
-              await supabase.rpc('fulfill_order_stock', { p_order_id: orderId });
+              await supabase.from('orders').update({
+                payment_status: 'Paid',
+                status: 'Processing',
+                payment_method: 'Online Payment (Razorpay)',
+                payment_timestamp: new Date().toISOString(),
+                payment_result: {
+                  razorpay_payment_id: rzpResponse.razorpay_payment_id,
+                  razorpay_order_id: rzpResponse.razorpay_order_id,
+                  status: 'PAID'
+                },
+                updated_at: new Date().toISOString()
+              }).eq('id', orderId);
+            } catch (updErr) {
+              console.warn('[Checkout] Direct order status update notice:', updErr);
+            }
+
+            // 2. Deduct stock directly from products table for items in checkout
+            try {
+              for (const item of checkoutItems) {
+                const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(item.id);
+                if (isUUID) {
+                  const { data: pData } = await supabase.from('products').select('stock_quantity').eq('id', item.id).maybeSingle();
+                  if (pData && typeof pData.stock_quantity === 'number') {
+                    await supabase.from('products').update({
+                      stock_quantity: Math.max(0, pData.stock_quantity - item.quantity)
+                    }).eq('id', item.id);
+                  }
+                }
+              }
             } catch (stockErr) {
-              console.warn('[Checkout] Stock fulfillment RPC warning:', stockErr);
+              console.warn('[Checkout] Direct stock deduction notice:', stockErr);
             }
 
             setPaymentState('PAID');
@@ -554,7 +582,8 @@ export function CheckoutPage() {
               trackingNumber,
               method: 'Online Payment (Razorpay)',
               status: 'Completed',
-              txnId: rzpResponse.razorpay_payment_id
+              txnId: rzpResponse.razorpay_payment_id,
+              amount: totalAmount
             });
             if (!buyNowProductId) clearCart();
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -568,7 +597,8 @@ export function CheckoutPage() {
               trackingNumber,
               method: 'Online Payment (Razorpay)',
               status: 'Pending Verification',
-              txnId: rzpResponse.razorpay_payment_id
+              txnId: rzpResponse.razorpay_payment_id,
+              amount: totalAmount
             });
             if (!buyNowProductId) clearCart();
             toast.warning('Payment verification notice: ' + (verifyErr.message || 'Your order is recorded and awaiting final bank reconciliation.'));
@@ -675,7 +705,7 @@ export function CheckoutPage() {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Amount</span>
-                <span className="font-bold text-gray-900">₹{totalAmount.toLocaleString('en-IN')}</span>
+                <span className="font-bold text-gray-900">₹{(orderPlaced.amount ?? totalAmount).toLocaleString('en-IN')}</span>
               </div>
               <div className="flex justify-between text-sm items-center">
                 <span className="text-gray-500">Payment</span>

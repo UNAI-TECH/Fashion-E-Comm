@@ -81,14 +81,24 @@ serve(async (req) => {
         // Fetch existing status for idempotency
         const { data: currentOrder } = await supabase
           .from('orders')
-          .select('id, payment_status, status, stock_decremented')
+          .select('id, payment_status, status')
           .eq('id', targetOrderId)
           .maybeSingle()
 
-        // Atomic stock fulfillment
-        if (!currentOrder?.stock_decremented) {
+        // Direct stock decrement for items if order wasn't paid yet
+        if (currentOrder && currentOrder.payment_status !== 'Paid') {
           try {
-            await supabase.rpc('fulfill_order_stock', { p_order_id: targetOrderId })
+            const { data: items } = await supabase.from('order_items').select('product_id, quantity').eq('order_id', targetOrderId)
+            if (items && Array.isArray(items)) {
+              for (const it of items) {
+                if (it.product_id) {
+                  const { data: p } = await supabase.from('products').select('stock_quantity').eq('id', it.product_id).maybeSingle()
+                  if (p && typeof p.stock_quantity === 'number') {
+                    await supabase.from('products').update({ stock_quantity: Math.max(0, p.stock_quantity - (it.quantity || 1)) }).eq('id', it.product_id)
+                  }
+                }
+              }
+            }
           } catch (stkErr) {
             console.warn('Webhook stock fulfillment notice:', stkErr)
           }
@@ -97,11 +107,15 @@ serve(async (req) => {
         const { error } = await supabase
           .from('orders')
           .update({
-            payment_status: 'Completed',
-            status: 'Confirmed',
+            payment_status: 'Paid',
+            status: 'Processing',
             payment_method: payment?.method === 'upi' ? 'UPI' : 'Razorpay',
-            razorpay_payment_id: payment?.id,
-            razorpay_order_id: payment?.order_id || order?.id,
+            payment_timestamp: new Date().toISOString(),
+            payment_result: {
+              razorpay_payment_id: payment?.id,
+              razorpay_order_id: payment?.order_id || order?.id,
+              status: 'PAID'
+            },
             updated_at: new Date().toISOString(),
           })
           .eq('id', targetOrderId)

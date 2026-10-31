@@ -164,7 +164,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             .select('*')
             .eq('cart_id', cartId)
             .eq('product_id', product.id)
-            .single();
+            .maybeSingle();
 
           if (existingItem) {
             await supabase
