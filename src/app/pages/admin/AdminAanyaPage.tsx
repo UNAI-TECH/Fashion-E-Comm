@@ -1115,9 +1115,7 @@ export function AdminAanyaPage() {
               discount_type: 'Percentage',
               discount_value: form.coupon_discount ? parseFloat(form.coupon_discount) : 0,
               status: 'Active',
-              product_id: createdProduct.id,
               min_order_amount: 0,
-              applicable_on: form.applicable_on.trim() || 'All Orders',
             };
             const { error: couponError } = await supabase.from('coupons').insert(couponPayload);
             if (couponError) {

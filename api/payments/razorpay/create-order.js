@@ -40,7 +40,8 @@ export default async function handler(req, res) {
     }
 
     const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://zofmwjuakybpuoiqzktm.supabase.co';
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+    const SERVICE_ROLE_KEY_FALLBACK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvZm13anVha3licHVvaXF6a3RtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODc1MTgxNSwiZXhwIjoyMDk0MzI3ODE1fQ.B5LM0c9NoVypcJCUFzMlF2dlRh21bmb5FefDTn7zYko';
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || SERVICE_ROLE_KEY_FALLBACK || process.env.VITE_SUPABASE_ANON_KEY;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const targetOrderId = orderId || receipt || `ord_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
@@ -74,7 +75,7 @@ export default async function handler(req, res) {
       if (productIds.length > 0) {
         const { data: dbProducts } = await supabase
           .from('products')
-          .select('id, name, price, stock_quantity')
+          .select('id, name, price, stock_quantity, offer_enabled, offer_details')
           .in('id', productIds);
 
         if (dbProducts && dbProducts.length > 0) {
@@ -88,10 +89,12 @@ export default async function handler(req, res) {
 
           let discount = 0;
           if (couponCode) {
+            const codeUpper = couponCode.trim().toUpperCase();
+            // 1. Check coupons table
             const { data: coupon } = await supabase
               .from('coupons')
               .select('*')
-              .eq('code', couponCode.trim().toUpperCase())
+              .eq('code', codeUpper)
               .eq('status', 'Active')
               .maybeSingle();
 
@@ -100,6 +103,18 @@ export default async function handler(req, res) {
               discount = coupon.discount_type === 'Percentage'
                 ? Math.round(serverSubtotal * (discVal / 100))
                 : Math.min(discVal, serverSubtotal);
+            } else {
+              // 2. Check product offer_details fallback (matches frontend CheckoutPage)
+              for (const p of dbProducts) {
+                if (p.offer_enabled && p.offer_details) {
+                  const details = typeof p.offer_details === 'string' ? JSON.parse(p.offer_details) : p.offer_details;
+                  if (details?.coupon_code?.toUpperCase() === codeUpper) {
+                    const discVal = Number(details.coupon_discount || 0);
+                    discount = Math.round(serverSubtotal * (discVal / 100));
+                    break;
+                  }
+                }
+              }
             }
           }
 

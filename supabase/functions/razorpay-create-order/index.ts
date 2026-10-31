@@ -68,7 +68,7 @@ serve(async (req) => {
       if (productIds.length > 0) {
         const { data: dbProducts } = await supabase
           .from('products')
-          .select('id, name, price, stock_quantity')
+          .select('id, name, price, stock_quantity, offer_enabled, offer_details')
           .in('id', productIds)
 
         if (dbProducts && dbProducts.length > 0) {
@@ -95,10 +95,11 @@ serve(async (req) => {
 
           let serverDiscount = 0
           if (couponCode) {
+            const codeUpper = couponCode.trim().toUpperCase()
             const { data: coupon } = await supabase
               .from('coupons')
               .select('*')
-              .eq('code', couponCode.trim().toUpperCase())
+              .eq('code', codeUpper)
               .eq('status', 'Active')
               .maybeSingle()
 
@@ -107,6 +108,18 @@ serve(async (req) => {
               serverDiscount = coupon.discount_type === 'Percentage'
                 ? Math.round(serverSubtotal * (val / 100))
                 : Math.min(val, serverSubtotal)
+            } else {
+              // Product offer_details fallback
+              for (const prod of dbProducts) {
+                if (prod.offer_enabled && prod.offer_details) {
+                  const details = typeof prod.offer_details === 'string' ? JSON.parse(prod.offer_details) : prod.offer_details
+                  if (details?.coupon_code?.toUpperCase() === codeUpper) {
+                    const val = Number(details.coupon_discount || 0)
+                    serverDiscount = Math.round(serverSubtotal * (val / 100))
+                    break
+                  }
+                }
+              }
             }
           }
 

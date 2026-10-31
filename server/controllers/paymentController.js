@@ -116,7 +116,64 @@ export const createRazorpayOrder = async (req, res) => {
       }
     }
 
-    // STEP B: Explicit amount in request
+    // STEP B: Compute from products and coupons
+    if (authoritativeRupees === null && Array.isArray(items) && items.length > 0 && supabase) {
+      try {
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        const productIds = items.map(i => i.id || i.product_id).filter(id => id && uuidRegex.test(id));
+        if (productIds.length > 0) {
+          const { data: dbProducts } = await supabase
+            .from('products')
+            .select('id, name, price, stock_quantity, offer_enabled, offer_details')
+            .in('id', productIds);
+
+          if (dbProducts && dbProducts.length > 0) {
+            let serverSubtotal = 0;
+            for (const item of items) {
+              const p = dbProducts.find(x => x.id === (item.id || item.product_id));
+              if (p) serverSubtotal += Number(p.price) * (Number(item.quantity) || 1);
+            }
+
+            let discount = 0;
+            if (couponCode) {
+              const codeUpper = couponCode.trim().toUpperCase();
+              const { data: coupon } = await supabase
+                .from('coupons')
+                .select('*')
+                .eq('code', codeUpper)
+                .eq('status', 'Active')
+                .maybeSingle();
+
+              if (coupon) {
+                const discVal = Number(coupon.discount_value);
+                discount = coupon.discount_type === 'Percentage'
+                  ? Math.round(serverSubtotal * (discVal / 100))
+                  : Math.min(discVal, serverSubtotal);
+              } else {
+                for (const p of dbProducts) {
+                  if (p.offer_enabled && p.offer_details) {
+                    const details = typeof p.offer_details === 'string' ? JSON.parse(p.offer_details) : p.offer_details;
+                    if (details?.coupon_code?.toUpperCase() === codeUpper) {
+                      const discVal = Number(details.coupon_discount || 0);
+                      discount = Math.round(serverSubtotal * (discVal / 100));
+                      break;
+                    }
+                  }
+                }
+              }
+            }
+
+            if (serverSubtotal > 0) {
+              authoritativeRupees = Math.max(1, serverSubtotal - discount);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Product/coupon price resolution notice:', err);
+      }
+    }
+
+    // STEP C: Explicit amount in request
     if (authoritativeRupees === null) {
       if (amountInRupees != null && Number(amountInRupees) > 0) {
         authoritativeRupees = Number(amountInRupees);
