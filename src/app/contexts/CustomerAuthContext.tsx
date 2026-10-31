@@ -37,7 +37,7 @@ interface CustomerAuthContextType {
   closeAuthModal: () => void;
   requireAuth: (callback: () => void, message?: string) => boolean;
   signUp: (formData: SignupFormData) => Promise<{ success: boolean; needsEmailVerification?: boolean; error?: string }>;
-  signInWithEmail: (email: string, password: string) => Promise<{ success: boolean; unconfirmedEmail?: boolean; error?: string }>;
+  signInWithEmail: (email: string, password: string) => Promise<{ success: boolean; unconfirmedEmail?: boolean; userNotFound?: boolean; error?: string }>;
   signInWithGoogle: () => Promise<{ success: boolean; error?: string }>;
   resendVerificationEmail: (email: string) => Promise<{ success: boolean; error?: string }>;
   resetPasswordForEmail: (email: string) => Promise<{ success: boolean; error?: string }>;
@@ -240,7 +240,25 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
         }
 
         if (error) {
-          return { success: false, error: error.message };
+          try {
+            const { data: profileCheck } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('email', cleanEmail)
+              .maybeSingle();
+
+            if (!profileCheck) {
+              return {
+                success: false,
+                userNotFound: true,
+                error: 'No account found with this email. Please sign up to create an account.'
+              };
+            }
+          } catch (chkErr) {
+            console.warn('Profile existence check note:', chkErr);
+          }
+
+          return { success: false, error: 'Incorrect password. Please try again.' };
         }
       }
 

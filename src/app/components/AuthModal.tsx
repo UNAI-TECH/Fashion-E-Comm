@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Mail, Phone, Lock, User, ArrowRight, Crown, CheckCircle2, RefreshCw } from 'lucide-react';
+import { X, Mail, Phone, Lock, User, ArrowRight, Crown, CheckCircle2, RefreshCw, AlertCircle } from 'lucide-react';
 import { useCustomerAuth, SignupFormData } from '../contexts/CustomerAuthContext';
 import { toast } from 'sonner';
 
@@ -47,6 +47,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', onSuccess }
   const [signInEmail, setSignInEmail] = useState('');
   const [signInPassword, setSignInPassword] = useState('');
   const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(null);
+  const [userNotFoundError, setUserNotFoundError] = useState(false);
 
   // Sign Up state
   const [signupForm, setSignupForm] = useState<SignupFormData & { confirmPassword: string }>({
@@ -94,6 +95,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', onSuccess }
     setSignInEmail('');
     setSignInPassword('');
     setUnconfirmedEmail(null);
+    setUserNotFoundError(false);
     setSignupForm({
       fullName: '',
       phone: '',
@@ -133,6 +135,9 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', onSuccess }
       } else {
         if (res.unconfirmedEmail) {
           setUnconfirmedEmail(signInEmail.trim().toLowerCase());
+        }
+        if (res.userNotFound) {
+          setUserNotFoundError(true);
         }
         toast.error(res.error || 'Invalid email or password');
       }
@@ -308,6 +313,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', onSuccess }
                 type="button"
                 onClick={() => {
                   setMode('signin');
+                  setUserNotFoundError(false);
                   setShowForgotPassword(false);
                 }}
                 className={`flex-1 py-3 text-xs font-bold transition-all text-center cursor-pointer ${
@@ -322,6 +328,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', onSuccess }
                 type="button"
                 onClick={() => {
                   setMode('signup');
+                  setUserNotFoundError(false);
                   setShowForgotPassword(false);
                 }}
                 className={`flex-1 py-3 text-xs font-bold transition-all text-center cursor-pointer ${
@@ -419,6 +426,31 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', onSuccess }
                     </div>
 
                     <form onSubmit={handlePasswordSignIn} className="space-y-4">
+                    {/* User Not Found Alert */}
+                    {userNotFoundError && (
+                      <div className="bg-red-50 border border-red-200/90 rounded-2xl p-3.5 text-xs text-red-800 space-y-2 animate-in fade-in">
+                        <p className="font-bold flex items-center gap-1.5 text-red-900">
+                          <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
+                          No account found with this email
+                        </p>
+                        <p className="text-[11px] text-red-700 leading-relaxed">
+                          We couldn't find an account for <strong>{signInEmail}</strong>. Please sign up to create your luxury shopping account.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMode('signup');
+                            setSignupForm((prev) => ({ ...prev, email: signInEmail }));
+                            setUserNotFoundError(false);
+                          }}
+                          className="w-full py-2.5 bg-gradient-to-r from-[#698156] to-[#546944] text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:opacity-95 transition-all cursor-pointer shadow-sm flex items-center justify-center gap-1.5"
+                        >
+                          <span>Sign Up with this email</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+
                     {/* Unconfirmed Email Alert */}
                     {unconfirmedEmail && (
                       <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3.5 text-xs text-amber-800 space-y-2">
@@ -451,28 +483,19 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', onSuccess }
                           required
                           placeholder="you@domain.com"
                           value={signInEmail}
-                          onChange={(e) => setSignInEmail(e.target.value)}
+                          onChange={(e) => {
+                            setSignInEmail(e.target.value);
+                            if (userNotFoundError) setUserNotFoundError(false);
+                          }}
                           className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-900 focus:bg-white focus:border-[#698156] focus:outline-none transition-all"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
-                          Password
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowForgotPassword(true);
-                            setForgotEmail(signInEmail);
-                          }}
-                          className="text-[11px] font-semibold text-[#698156] hover:underline cursor-pointer"
-                        >
-                          Forgot Password?
-                        </button>
-                      </div>
+                      <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                        Password
+                      </label>
                       <div className="relative">
                         <Lock className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                         <input
