@@ -114,6 +114,8 @@ export default async function handler(req, res) {
             payment_status: 'Paid',
             status: 'Processing',
             payment_method: 'Online Payment (Razorpay)',
+            razorpay_payment_id: rzpPaymentId,
+            razorpay_order_id: rzpOrderId,
             payment_timestamp: new Date().toISOString(),
             payment_result: {
               razorpay_payment_id: rzpPaymentId,

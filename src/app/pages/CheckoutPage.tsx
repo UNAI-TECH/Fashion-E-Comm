@@ -547,6 +547,8 @@ export function CheckoutPage() {
                 payment_status: 'Paid',
                 status: 'Processing',
                 payment_method: 'Online Payment (Razorpay)',
+                razorpay_payment_id: rzpResponse.razorpay_payment_id,
+                razorpay_order_id: rzpResponse.razorpay_order_id,
                 payment_timestamp: new Date().toISOString(),
                 payment_result: {
                   razorpay_payment_id: rzpResponse.razorpay_payment_id,
