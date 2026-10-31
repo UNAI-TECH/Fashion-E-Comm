@@ -108,3 +108,4 @@ console.log('Security check passed: Tampered amount rejected.\n');
 console.log('===============================================================');
 console.log('   ALL 5 AMOUNTS & SECURITY CHECKS PASSED WITH 100% ACCURACY  ');
 console.log('===============================================================');
+
