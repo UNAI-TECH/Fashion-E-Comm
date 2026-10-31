@@ -71,3 +71,4 @@ $$;
 -- Grant execution permissions
 GRANT EXECUTE ON FUNCTION public.fulfill_order_stock(TEXT, JSONB) TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.fulfill_order_stock(TEXT) TO anon, authenticated, service_role;
+
