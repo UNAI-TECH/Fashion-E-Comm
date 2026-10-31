@@ -38,6 +38,7 @@ interface CustomerAuthContextType {
   requireAuth: (callback: () => void, message?: string) => boolean;
   signUp: (formData: SignupFormData) => Promise<{ success: boolean; needsEmailVerification?: boolean; error?: string }>;
   signInWithEmail: (email: string, password: string) => Promise<{ success: boolean; unconfirmedEmail?: boolean; error?: string }>;
+  signInWithGoogle: () => Promise<{ success: boolean; error?: string }>;
   resendVerificationEmail: (email: string) => Promise<{ success: boolean; error?: string }>;
   resetPasswordForEmail: (email: string) => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
@@ -443,6 +444,37 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
     }
   };
 
+  // ─── 4b. Sign In with Google OAuth ───
+  const signInWithGoogle = async () => {
+    try {
+      const redirectOrigin = typeof window !== 'undefined' && window.location.origin
+        ? window.location.origin
+        : 'https://www.aanyafashions.com';
+      const currentPath = typeof window !== 'undefined' ? (window.location.pathname + window.location.search) : '/';
+      const redirectTo = `${redirectOrigin}${currentPath.startsWith('/') ? currentPath : '/' + currentPath}`;
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'select_account'
+          }
+        }
+      });
+
+      if (error) {
+        toast.error(error.message || 'Failed to start Google sign-in.');
+        return { success: false, error: error.message };
+      }
+      return { success: true };
+    } catch (err: any) {
+      toast.error(err?.message || 'Google sign-in failed');
+      return { success: false, error: err?.message };
+    }
+  };
+
   // ─── 5. Sign Out ───
   const signOut = async () => {
     // Sign out locally first for instant UI update
@@ -539,6 +571,7 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
         requireAuth,
         signUp,
         signInWithEmail,
+        signInWithGoogle,
         resendVerificationEmail,
         resetPasswordForEmail,
         signOut,
