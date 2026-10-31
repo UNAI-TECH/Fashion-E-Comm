@@ -25,6 +25,10 @@
       "destination": "/api/payments/webhook"
     },
     {
+      "source": "/api/payments/status",
+      "destination": "/api/payments/status"
+    },
+    {
       "source": "/api/payments/key",
       "destination": "/api/payments/key"
     },

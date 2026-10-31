@@ -187,7 +187,7 @@ serve(async (req) => {
         .from('orders')
         .update({
           razorpay_order_id: rzpOrder.id,
-          total_amount: verifiedAmount,
+          total_amount: authoritativeRupees,
           updated_at: new Date().toISOString()
         })
         .eq('id', targetOrderId)
@@ -200,7 +200,7 @@ serve(async (req) => {
         currency: rzpOrder.currency,
         keyId,
         receipt: rzpOrder.receipt,
-        verifiedAmount,
+        authoritativeRupees,
         isSimulated: false
       }), {
         status: 200,
@@ -214,7 +214,7 @@ serve(async (req) => {
       .from('orders')
       .update({
         razorpay_order_id: simOrderId,
-        total_amount: verifiedAmount,
+        total_amount: authoritativeRupees,
         updated_at: new Date().toISOString()
       })
       .eq('id', targetOrderId)
@@ -227,7 +227,7 @@ serve(async (req) => {
       currency: 'INR',
       keyId,
       receipt: receiptId,
-      verifiedAmount,
+      authoritativeRupees,
       isSimulated: true
     }), {
       status: 200,

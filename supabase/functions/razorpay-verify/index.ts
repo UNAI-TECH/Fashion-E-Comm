@@ -11,6 +11,18 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS'
 }
 
+// Constant-time string equality check to prevent timing attacks
+function timingSafeEqual(a: string, b: string): boolean {
+  if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) {
+    return false
+  }
+  let result = 0
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  }
+  return result === 0
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -82,47 +94,45 @@ serve(async (req) => {
     }
 
     // 2. Cryptographic HMAC-SHA256 Signature Verification
-    const isPlaceholderMode = isSimulated || keySecret.includes('placeholder')
     let paymentStatus = 'captured'
     let paymentMethodUsed = 'Razorpay (Online)'
 
-    if (!isPlaceholderMode) {
-      if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
-        return new Response(JSON.stringify({
-          success: false,
-          message: 'Missing Razorpay verification credentials'
-        }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        })
-      }
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return new Response(JSON.stringify({
+        success: false,
+        message: 'Missing Razorpay verification credentials'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
 
-      // Compute HMAC-SHA256 signature using Web Crypto API
-      const encoder = new TextEncoder()
-      const cryptoKey = await crypto.subtle.importKey(
-        'raw',
-        encoder.encode(keySecret),
-        { name: 'HMAC', hash: 'SHA-256' },
-        false,
-        ['sign']
-      )
-      const dataToSign = encoder.encode(`${razorpay_order_id}|${razorpay_payment_id}`)
-      const signatureBytes = await crypto.subtle.sign('HMAC', cryptoKey, dataToSign)
-      const generatedSignature = Array.from(new Uint8Array(signatureBytes))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('')
+    // Compute HMAC-SHA256 signature using Web Crypto API
+    const encoder = new TextEncoder()
+    const cryptoKey = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(keySecret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    )
+    const dataToSign = encoder.encode(`${razorpay_order_id}|${razorpay_payment_id}`)
+    const signatureBytes = await crypto.subtle.sign('HMAC', cryptoKey, dataToSign)
+    const generatedSignature = Array.from(new Uint8Array(signatureBytes))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('')
 
-      if (generatedSignature !== razorpay_signature) {
-        console.error('Signature mismatch for order:', targetOrderId)
-        return new Response(JSON.stringify({
-          success: false,
-          code: 'INVALID_SIGNATURE',
-          message: 'Invalid payment signature'
-        }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        })
-      }
+    if (!timingSafeEqual(generatedSignature, razorpay_signature)) {
+      console.error('Signature mismatch for order:', targetOrderId)
+      return new Response(JSON.stringify({
+        success: false,
+        code: 'INVALID_SIGNATURE',
+        message: 'Invalid payment signature'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
 
       // 3. Verify directly with Razorpay API
       try {

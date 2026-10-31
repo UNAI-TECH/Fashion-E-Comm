@@ -10,6 +10,17 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-razorpay-signature, x-razorpay-event-id, content-type',
 }
 
+function timingSafeEqual(a: string, b: string): boolean {
+  if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) {
+    return false
+  }
+  let result = 0
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  }
+  return result === 0
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -58,7 +69,7 @@ serve(async (req) => {
       .map((b) => b.toString(16).padStart(2, '0'))
       .join('')
 
-    if (expectedSignature !== signature) {
+    if (!timingSafeEqual(expectedSignature, signature)) {
       console.warn('Webhook signature mismatch')
       return new Response(JSON.stringify({ error: 'Invalid webhook signature' }), {
         status: 400,

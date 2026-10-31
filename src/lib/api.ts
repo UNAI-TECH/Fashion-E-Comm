@@ -304,7 +304,8 @@ export const api = {
         const { data: edgeData, error: edgeErr } = await supabase.functions.invoke('razorpay-create-order', {
           body: {
             amount: payload.amount,
-            amountInPaise: payload.amount,
+            amountInRupees: payload.amountInRupees || payload.amount,
+            amountInPaise: payload.amountInPaise || Math.round(payload.amount * 100),
             orderId: payload.orderId,
             receipt: payload.receipt,
             customerName: payload.customerName,

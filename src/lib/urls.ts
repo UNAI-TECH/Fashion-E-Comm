@@ -33,3 +33,27 @@ export const getCanonicalUrl = (path: string = ''): string => {
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
   return `${base}${cleanPath}`;
 };
+
+/**
+ * Sanitizes image URLs to prevent ERR_CONNECTION_REFUSED in production
+ * when database records contain development localhost/127.0.0.1 image paths.
+ */
+export const sanitizeImageUrl = (url?: string | null, fallback: string = '/logo.png'): string => {
+  if (!url || typeof url !== 'string') return fallback;
+  const trimmed = url.trim();
+  if (!trimmed) return fallback;
+
+  if (typeof window !== 'undefined' && window.location) {
+    const hostname = window.location.hostname;
+    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+      if (
+        trimmed.startsWith('http://localhost') ||
+        trimmed.startsWith('http://127.0.0.1') ||
+        trimmed.startsWith('https://localhost')
+      ) {
+        return fallback;
+      }
+    }
+  }
+  return trimmed;
+};

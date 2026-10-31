@@ -183,7 +183,7 @@ export default async function handler(req, res) {
               customer_phone: customerPhone,
               currency: 'INR',
               status: 'Paid',
-              amount: Number(amount) || Number(existingOrder?.total_amount) || 0,
+              amount: rzpPaymentEntity?.amount ? (rzpPaymentEntity.amount / 100) : (Number(existingOrder?.total_amount) || Number(amount) || 0),
               gateway_response: {
                 razorpay_order_id: rzpOrderId,
                 razorpay_payment_id: rzpPaymentId,

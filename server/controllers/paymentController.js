@@ -474,8 +474,13 @@ export const verifyRazorpayPayment = async (req, res) => {
  */
 export const handleRazorpayWebhook = async (req, res) => {
   try {
-    const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET || 'rzp_test_webhook_secret';
+    const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
     const signature = req.headers['x-razorpay-signature'];
+
+    if (!webhookSecret) {
+      console.error('Razorpay Webhook: RAZORPAY_WEBHOOK_SECRET not configured.');
+      return res.status(500).json({ success: false, message: 'Server webhook secret not configured' });
+    }
 
     if (!signature) {
       return res.status(400).json({ success: false, message: 'Webhook signature missing' });
@@ -488,7 +493,10 @@ export const handleRazorpayWebhook = async (req, res) => {
       .update(rawPayload)
       .digest('hex');
 
-    if (expectedSignature !== signature && !webhookSecret.includes('placeholder')) {
+    const expectedBuffer = Buffer.from(expectedSignature, 'utf8');
+    const actualBuffer = Buffer.from(signature, 'utf8');
+
+    if (expectedBuffer.length !== actualBuffer.length || !crypto.timingSafeEqual(expectedBuffer, actualBuffer)) {
       console.warn('Razorpay Webhook: Signature mismatch detected.');
       return res.status(400).json({ success: false, message: 'Invalid webhook signature' });
     }

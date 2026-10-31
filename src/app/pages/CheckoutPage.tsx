@@ -16,6 +16,7 @@ import { Product, ensureProductImages } from '../data/products';
 import { SEOHead } from '../components/SEOHead';
 import { openRazorpayCheckout } from '../../lib/razorpay';
 import api from '../../lib/api';
+import { sanitizeImageUrl } from '../../lib/urls';
 
 interface SavedAddress {
   id: string;
@@ -734,7 +735,7 @@ export function CheckoutPage() {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Amount</span>
-                <span className="font-bold text-gray-900">₹{(orderPlaced.amount ?? totalAmount).toLocaleString('en-IN')}</span>
+                <span className="font-bold text-gray-900">₹{(Number(orderPlaced.amount) > 0 ? Number(orderPlaced.amount) : (Number(totalAmount) > 0 ? Number(totalAmount) : 0)).toLocaleString('en-IN')}</span>
               </div>
               <div className="flex justify-between text-sm items-center">
                 <span className="text-gray-500">Payment</span>
@@ -988,7 +989,7 @@ export function CheckoutPage() {
                     <div className="space-y-3">
                       {checkoutItems.map(item => (
                         <div key={item.id} className="bg-white rounded-xl p-4 border border-gray-200 flex gap-4">
-                          <img src={item.image} alt={item.name} className="w-16 h-20 object-cover rounded-lg bg-gray-50 flex-shrink-0" />
+                          <img src={sanitizeImageUrl(item.image)} alt={item.name} className="w-16 h-20 object-cover rounded-lg bg-gray-50 flex-shrink-0" />
                           <div className="flex-grow min-w-0 space-y-1">
                             <h4 className="text-sm font-semibold text-gray-900 line-clamp-1">{item.name}</h4>
                             <p className="text-xs text-gray-400">{item.category || 'Fashion'} • Free Size • Qty: {item.quantity}</p>
