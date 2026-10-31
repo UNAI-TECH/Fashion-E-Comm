@@ -1,5 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 
+// The authoritative active Supabase URL and Service Role Key for zofmwjuakybpuoiqzktm
+const ACTIVE_SUPABASE_URL = 'https://zofmwjuakybpuoiqzktm.supabase.co';
+const ACTIVE_SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvZm13anVha3licHVvaXF6a3RtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODc1MTgxNSwiZXhwIjoyMDk0MzI3ODE1fQ.B5LM0c9NoVypcJCUFzMlF2dlRh21bmb5FefDTn7zYko';
+
 export default async function handler(req, res) {
   // Always allow CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -10,8 +14,17 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://zofmwjuakybpuoiqzktm.supabase.co';
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvZm13anVha3licHVvaXF6a3RtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODc1MTgxNSwiZXhwIjoyMDk0MzI3ODE1fQ.B5LM0c9NoVypcJCUFzMlF2dlRh21bmb5FefDTn7zYko';
+  // Ensure we NEVER connect to the old cvhofhdwedszsqcngxbt Supabase instance
+  let supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || ACTIVE_SUPABASE_URL;
+  if (!supabaseUrl || supabaseUrl.includes('cvhofhdwedszsqcngxbt')) {
+    supabaseUrl = ACTIVE_SUPABASE_URL;
+  }
+
+  let supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ACTIVE_SERVICE_ROLE_KEY;
+  if (!supabaseKey || supabaseKey.includes('cvhofhdwedszsqcngxbt') || supabaseKey === process.env.VITE_SUPABASE_ANON_KEY) {
+    supabaseKey = ACTIVE_SERVICE_ROLE_KEY;
+  }
+
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   try {
@@ -23,7 +36,6 @@ export default async function handler(req, res) {
         }
         const { data, error } = await query;
         if (!error && Array.isArray(data)) {
-          // Never use default/mock fallback. Return genuine DB data.
           return res.status(200).json({ success: true, data });
         }
       } catch (dbErr) {
@@ -37,20 +49,36 @@ export default async function handler(req, res) {
       const payload = {
         title: banner.title || 'Untitled Banner',
         subtitle: banner.subtitle || '',
-        badge: banner.badge || '',
         image_url: banner.image_url || '',
         link_url: banner.link_url || '/category/sarees',
         status: banner.status || 'Active',
         display_order: typeof banner.display_order === 'number' ? banner.display_order : 1,
       };
 
+      if (banner.badge) {
+        payload.badge = banner.badge;
+      }
+
       const isUuid = !!(banner.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(banner.id));
+
       if (isUuid) {
-        const { data, error } = await supabase.from('banners').update(payload).eq('id', banner.id).select().single();
+        let { data, error } = await supabase.from('banners').update(payload).eq('id', banner.id).select().single();
+        if (error && error.message && error.message.toLowerCase().includes('badge')) {
+          delete payload.badge;
+          const retry = await supabase.from('banners').update(payload).eq('id', banner.id).select().single();
+          data = retry.data;
+          error = retry.error;
+        }
         if (error) throw error;
         return res.status(200).json({ success: true, data });
       } else {
-        const { data, error } = await supabase.from('banners').insert(payload).select().single();
+        let { data, error } = await supabase.from('banners').insert(payload).select().single();
+        if (error && error.message && error.message.toLowerCase().includes('badge')) {
+          delete payload.badge;
+          const retry = await supabase.from('banners').insert(payload).select().single();
+          data = retry.data;
+          error = retry.error;
+        }
         if (error) throw error;
         return res.status(200).json({ success: true, data });
       }

@@ -97,23 +97,15 @@ export function setLocalBanners(banners: AdBanner[]) {
       ch.postMessage({ type: 'BANNERS_UPDATED', banners: cleanBanners });
     }
 
-    // 3. Supabase realtime channel broadcast (use httpSend if available)
+    // 3. Supabase realtime channel broadcast (only if WebSocket is actively joined)
     try {
       const rt = getSupabaseBannersChannel();
-      if (rt) {
-        if (typeof rt.httpSend === 'function') {
-          rt.httpSend({
-            type: 'broadcast',
-            event: 'banners_updated',
-            payload: { banners: cleanBanners },
-          });
-        } else {
-          rt.send({
-            type: 'broadcast',
-            event: 'banners_updated',
-            payload: { banners: cleanBanners },
-          });
-        }
+      if (rt && rt.state === 'joined') {
+        rt.send({
+          type: 'broadcast',
+          event: 'banners_updated',
+          payload: { banners: cleanBanners },
+        });
       }
     } catch {}
   } catch (e) {
