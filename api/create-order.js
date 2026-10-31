@@ -1,6 +1,10 @@
 import Razorpay from 'razorpay';
 import { createClient } from '@supabase/supabase-js';
 
+// Consistent currency conversion boundaries
+const toPaise = (rupees) => Math.round(Number(rupees) * 100);
+const toRupees = (paise) => Number(paise) / 100;
+
 export default async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -13,6 +17,8 @@ export default async function handler(req, res) {
   try {
     const {
       amount,
+      amountInRupees,
+      amountInPaise: explicitAmountInPaise,
       currency = 'INR',
       receipt,
       orderId,
@@ -52,11 +58,39 @@ export default async function handler(req, res) {
       }
     }
 
-    // 2. Authoritative Server-side Price & Stock Calculation
-    let calculatedAmount = 0;
     const targetOrderId = orderId || receipt || `ord_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
-    if (Array.isArray(items) && items.length > 0) {
+    // 2. Authoritative Price Resolution
+    // STEP A: Priority 1 - Fetch internal order and its actual total from Supabase orders table
+    let authoritativeRupees = null;
+    let dbOrder = null;
+
+    if (targetOrderId) {
+      const { data: ord, error: ordErr } = await supabase
+        .from('orders')
+        .select('id, user_id, total_amount, total_price, status, payment_status, currency')
+        .eq('id', targetOrderId)
+        .maybeSingle();
+
+      if (!ordErr && ord) {
+        dbOrder = ord;
+        // Verify customer ownership if authenticated
+        if (authUserId && dbOrder.user_id && dbOrder.user_id !== authUserId) {
+          return res.status(403).json({
+            success: false,
+            code: 'FORBIDDEN',
+            message: 'You are not authorized to pay for this order.'
+          });
+        }
+        const dbTotal = Number(dbOrder.total_amount ?? dbOrder.total_price);
+        if (!isNaN(dbTotal) && dbTotal > 0) {
+          authoritativeRupees = dbTotal;
+        }
+      }
+    }
+
+    // STEP B: Priority 2 - Calculate server-side from catalog products and coupons table
+    if (authoritativeRupees === null && Array.isArray(items) && items.length > 0) {
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
       const productIds = items
         .map(i => i.id || i.product_id)
@@ -84,7 +118,6 @@ export default async function handler(req, res) {
             }
           }
 
-          // Validate coupon if applied
           let discount = 0;
           if (couponCode) {
             const { data: coupon } = await supabase
@@ -103,22 +136,47 @@ export default async function handler(req, res) {
           }
 
           if (subtotal > 0) {
-            calculatedAmount = Math.max(1, subtotal - discount);
+            authoritativeRupees = Math.max(1, subtotal - discount);
           }
         }
       }
     }
 
-    // If server calculation produced an amount, use it; otherwise fallback to request amount
-    const finalAmountInINR = calculatedAmount > 0 ? calculatedAmount : Math.max(1, Math.round(Number(amount) / (Number(amount) > 100 ? 100 : 1)));
-    const amountInPaise = Math.round(finalAmountInINR * 100);
+    // STEP C: Priority 3 - Explicit amount supplied in request
+    if (authoritativeRupees === null) {
+      if (amountInRupees != null && Number(amountInRupees) > 0) {
+        authoritativeRupees = Number(amountInRupees);
+      } else if (explicitAmountInPaise != null && Number(explicitAmountInPaise) > 0) {
+        authoritativeRupees = toRupees(explicitAmountInPaise);
+      } else if (amount != null && Number(amount) > 0) {
+        authoritativeRupees = Number(amount);
+      }
+    }
+
+    if (authoritativeRupees === null || isNaN(authoritativeRupees) || authoritativeRupees <= 0) {
+      return res.status(400).json({
+        success: false,
+        code: 'INVALID_AMOUNT',
+        message: 'Could not determine a valid order amount. Minimum is ₹1.00.'
+      });
+    }
+
+    // Convert actual INR rupees to paise EXACTLY ONCE
+    const amountInPaise = toPaise(authoritativeRupees);
 
     if (amountInPaise < 100) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid amount. Minimum amount is 100 paise (₹1.00).'
+        code: 'MINIMUM_AMOUNT_NOT_MET',
+        message: 'Invalid payable order amount. Minimum is 100 paise (₹1.00).'
       });
     }
+
+    // Structured Development & Production-Safe Logging
+    console.log('[CreateOrder] Order ID:', targetOrderId);
+    console.log('[CreateOrder] Authoritative Order Total (INR):', authoritativeRupees);
+    console.log('[CreateOrder] Razorpay Order Amount (Paise):', amountInPaise);
+    console.log('[CreateOrder] Razorpay Currency:', currency);
 
     // 3. Create Razorpay Order via official SDK
     const receiptId = (receipt || targetOrderId).slice(0, 40);
@@ -128,6 +186,7 @@ export default async function handler(req, res) {
       receipt: receiptId,
       notes: {
         orderId: targetOrderId,
+        amountInRupees: authoritativeRupees,
         customerName,
         customerEmail,
         customerPhone,
@@ -139,13 +198,20 @@ export default async function handler(req, res) {
     const razorpay = new Razorpay({ key_id: keyId, key_secret: keySecret });
     const rzpOrder = await razorpay.orders.create(orderOptions);
 
+    console.log('[CreateOrder] Razorpay Order successfully created:', {
+      id: rzpOrder.id,
+      amountPaise: rzpOrder.amount,
+      currency: rzpOrder.currency
+    });
+
     // 4. Update orders table in Supabase
     try {
       await supabase
         .from('orders')
         .update({
           razorpay_order_id: rzpOrder.id,
-          total_amount: finalAmountInINR,
+          total_amount: authoritativeRupees,
+          total_price: authoritativeRupees,
           payment_status: 'Pending',
           updated_at: new Date().toISOString()
         })
@@ -156,7 +222,6 @@ export default async function handler(req, res) {
 
     // 5. Create or associate record in payments table
     try {
-      // Check if payment already exists for this order
       const { data: existingPay } = await supabase
         .from('payments')
         .select('id')
@@ -173,7 +238,7 @@ export default async function handler(req, res) {
         customer_phone: customerPhone,
         currency: 'INR',
         status: 'Pending',
-        amount: finalAmountInINR,
+        amount: authoritativeRupees,
         gateway_response: { razorpay_order_id: rzpOrder.id, status: rzpOrder.status },
         created_at: new Date().toISOString()
       };
@@ -183,31 +248,27 @@ export default async function handler(req, res) {
       } else {
         await supabase.from('payments').insert([paymentRecord]);
       }
-    } catch (payDbErr) {
-      console.warn('Supabase payments insert note:', payDbErr?.message);
+    } catch (pErr) {
+      console.warn('Payments record note:', pErr?.message);
     }
 
-    // Return: { order_id, amount, currency, key_id }
     return res.status(200).json({
       success: true,
       order_id: rzpOrder.id,
       id: rzpOrder.id,
-      amount: rzpOrder.amount,
+      amount: rzpOrder.amount, // Authoritative paise for Razorpay Standard Checkout SDK
+      amount_in_rupees: authoritativeRupees, // INR rupees for customer reference
       currency: rzpOrder.currency,
-      receipt: rzpOrder.receipt,
+      receipt: receiptId,
       key_id: keyId,
-      keyId: keyId,
-      verifiedAmount: finalAmountInINR
+      keyId: keyId
     });
   } catch (error) {
-    console.error('Create Order Fatal Error:', error);
+    console.error('Razorpay Create Order Error:', error);
     return res.status(500).json({
       success: false,
-      error: {
-        code: error?.error?.code || 'RAZORPAY_API_ERROR',
-        message: error?.error?.description || error.message || 'Internal server error'
-      },
-      message: error?.error?.description || error.message || 'Internal server error'
+      error: { code: 'GATEWAY_ERROR', message: error?.message || 'Failed to create payment order.' },
+      message: error?.message || 'Failed to create payment order.'
     });
   }
 }

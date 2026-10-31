@@ -491,6 +491,10 @@ export function CheckoutPage() {
     const custEmail = user.email || '';
 
     console.log('[Checkout] Order details prepared:', { orderId, trackingNumber, totalAmount, custName });
+    console.log('[Checkout] Product price (INR):', checkoutItems[0]?.price);
+    console.log('[Checkout] Cart subtotal (INR):', sellingTotal);
+    console.log('[Checkout] Checkout total (INR):', totalAmount);
+    console.log('[Checkout] Internal order total (INR):', totalAmount);
 
     setIsProcessing(true);
     setPaymentState('CREATING_ORDER');

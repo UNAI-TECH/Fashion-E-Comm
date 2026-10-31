@@ -55,33 +55,27 @@ export const getRazorpayKey = async (req, res) => {
  * @route   POST /api/create-order, POST /api/payments/create-order
  * @access  Public
  */
+// Consistent currency conversion boundaries
+const toPaise = (rupees) => Math.round(Number(rupees) * 100);
+const toRupees = (paise) => Number(paise) / 100;
+
 export const createRazorpayOrder = async (req, res) => {
   try {
     refreshEnv();
     const {
       amount,
+      amountInRupees,
+      amountInPaise: explicitAmountInPaise,
       currency = 'INR',
       receipt,
       orderId,
-      customerName,
-      customerEmail,
-      customerPhone,
+      items = [],
+      couponCode,
+      customerName = 'Customer',
+      customerEmail = '',
+      customerPhone = '',
       notes = {}
     } = req.body || {};
-
-    const amountNum = Number(amount);
-
-    // Validate amount >= 100 paise (Razorpay minimum is 100 paise = ₹1)
-    if (!amount || isNaN(amountNum) || amountNum < 100) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'BAD_REQUEST',
-          message: 'Invalid amount. Minimum amount is 100 paise (₹1.00).'
-        },
-        message: 'Invalid amount. Minimum amount is 100 paise (₹1.00).'
-      });
-    }
 
     const keyId = process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID;
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
@@ -97,14 +91,81 @@ export const createRazorpayOrder = async (req, res) => {
       });
     }
 
-    const receiptId = (receipt || orderId || `rcpt_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`).slice(0, 40);
+    const targetOrderId = orderId || receipt || `ord_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+
+    // 1. Authoritative Price Resolution
+    let authoritativeRupees = null;
+
+    // STEP A: Fetch internal order from Supabase orders table
+    if (targetOrderId && supabase) {
+      try {
+        const { data: ord } = await supabase
+          .from('orders')
+          .select('id, user_id, total_amount, total_price, status, payment_status')
+          .eq('id', targetOrderId)
+          .maybeSingle();
+
+        if (ord) {
+          const dbTotal = Number(ord.total_amount ?? ord.total_price);
+          if (!isNaN(dbTotal) && dbTotal > 0) {
+            authoritativeRupees = dbTotal;
+          }
+        }
+      } catch (dbErr) {
+        console.warn('Orders table fetch notice in createRazorpayOrder:', dbErr);
+      }
+    }
+
+    // STEP B: Explicit amount in request
+    if (authoritativeRupees === null) {
+      if (amountInRupees != null && Number(amountInRupees) > 0) {
+        authoritativeRupees = Number(amountInRupees);
+      } else if (explicitAmountInPaise != null && Number(explicitAmountInPaise) > 0) {
+        authoritativeRupees = toRupees(explicitAmountInPaise);
+      } else if (amount != null && Number(amount) > 0) {
+        // If amount was sent as paise (>= 100) or rupees (< 100)
+        // If explicit amountInRupees is not present, check whether amount was in rupees
+        authoritativeRupees = Number(amount);
+      }
+    }
+
+    if (authoritativeRupees === null || isNaN(authoritativeRupees) || authoritativeRupees <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'BAD_REQUEST',
+          message: 'Invalid amount. Minimum amount is ₹1.00.'
+        },
+        message: 'Invalid amount. Minimum amount is ₹1.00.'
+      });
+    }
+
+    const amountInPaise = toPaise(authoritativeRupees);
+
+    if (amountInPaise < 100) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'BAD_REQUEST',
+          message: 'Invalid amount. Minimum amount is 100 paise (₹1.00).'
+        },
+        message: 'Invalid amount. Minimum amount is 100 paise (₹1.00).'
+      });
+    }
+
+    console.log('[PaymentController] Order ID:', targetOrderId);
+    console.log('[PaymentController] Authoritative Total (INR):', authoritativeRupees);
+    console.log('[PaymentController] Razorpay Amount (Paise):', amountInPaise);
+
+    const receiptId = (receipt || targetOrderId).slice(0, 40);
 
     const orderOptions = {
-      amount: Math.round(amountNum),
+      amount: amountInPaise,
       currency: (currency || 'INR').toUpperCase(),
       receipt: receiptId,
       notes: {
-        orderId: orderId || receiptId,
+        orderId: targetOrderId,
+        amountInRupees: authoritativeRupees,
         customerName: customerName || 'Customer',
         customerEmail: customerEmail || '',
         customerPhone: customerPhone || '',
@@ -263,11 +324,51 @@ export const verifyRazorpayPayment = async (req, res) => {
       });
     }
 
+    // Independent Razorpay Server-side Payment Verification
+    const keyId = process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID;
+    let rzpPaymentEntity = null;
+    if (keyId && keySecret) {
+      try {
+        const authHeader = 'Basic ' + Buffer.from(`${keyId}:${keySecret}`).toString('base64');
+        const rzpPayRes = await fetch(`https://api.razorpay.com/v1/payments/${rzpPaymentId}`, {
+          headers: { Authorization: authHeader }
+        });
+        if (rzpPayRes.ok) {
+          rzpPaymentEntity = await rzpPayRes.json();
+        }
+      } catch (rzpFetchErr) {
+        console.warn('Could not fetch Razorpay payment entity in paymentController:', rzpFetchErr?.message);
+      }
+    }
+
     // Return success only if signatures match
     let updatedOrder = null;
     const finalOrderId = targetOrderId || (req.body.order_id && !req.body.order_id.startsWith('order_') ? req.body.order_id : null);
     if (finalOrderId && supabase) {
       try {
+        // Fetch existing order to compare expected amount
+        const { data: existingOrd } = await supabase.from('orders').select('*').eq('id', finalOrderId).maybeSingle();
+        const expectedAmountInRupees = Number(existingOrd?.total_amount ?? amount);
+        const expectedAmountInPaise = toPaise(expectedAmountInRupees);
+
+        if (rzpPaymentEntity) {
+          if (rzpPaymentEntity.order_id && rzpOrderId && rzpPaymentEntity.order_id !== rzpOrderId) {
+            return res.status(400).json({
+              success: false,
+              code: 'ORDER_MISMATCH',
+              message: 'Razorpay payment does not correspond to this order ID.'
+            });
+          }
+
+          if (typeof rzpPaymentEntity.amount === 'number' && expectedAmountInPaise > 0 && rzpPaymentEntity.amount !== expectedAmountInPaise) {
+            return res.status(400).json({
+              success: false,
+              code: 'AMOUNT_MISMATCH',
+              message: `Payment amount mismatch: expected ₹${expectedAmountInRupees} (${expectedAmountInPaise} paise), but charged amount was ₹${rzpPaymentEntity.amount / 100} (${rzpPaymentEntity.amount} paise).`
+            });
+          }
+        }
+
         const { data, error: dbErr } = await supabase
           .from('orders')
           .update({

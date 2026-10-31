@@ -96,11 +96,17 @@ export function loadRazorpayScript(): Promise<boolean> {
  * 3. On success, receives razorpay_payment_id, razorpay_order_id, razorpay_signature
  * 4. Handles modal dismiss and payment.failed events with user feedback
  */
+// Consistent currency conversion boundaries
+export const toPaise = (rupees: number | string): number => Math.round(Number(rupees) * 100);
+export const toRupees = (paise: number | string): number => Number(paise) / 100;
+
 export async function openRazorpayCheckout(options: RazorpayCheckoutOptions): Promise<void> {
   const {
     orderId = `ord_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
     amount,
     amountInPaise,
+    items = [],
+    couponCode,
     customerName = 'Customer',
     customerEmail = '',
     customerPhone = '',
@@ -110,13 +116,14 @@ export async function openRazorpayCheckout(options: RazorpayCheckoutOptions): Pr
     onDismiss
   } = options;
 
-  console.log('[Razorpay] openRazorpayCheckout called', { orderId, amount });
+  const amountInRupees = typeof amount === 'number' && amount > 0 ? amount : (amountInPaise ? toRupees(amountInPaise) : 0);
+  const payablePaise = amountInPaise || toPaise(amountInRupees);
+
+  console.log('[Razorpay] openRazorpayCheckout called', { orderId, amountInRupees, payablePaise });
+  console.log('[Razorpay] Order total (INR):', amountInRupees);
+  console.log('[Razorpay] Expected amount (paise):', payablePaise);
 
   try {
-    // 1. Calculate amount in paise (minimum 100 paise = ₹1.00)
-    const payablePaise = amountInPaise || Math.round(amount * 100);
-    console.log('[Razorpay] Amount in paise:', payablePaise);
-
     if (payablePaise < 100) {
       throw new Error('Payment amount must be at least 100 paise (₹1.00).');
     }
@@ -126,10 +133,14 @@ export async function openRazorpayCheckout(options: RazorpayCheckoutOptions): Pr
     let orderData: any;
     try {
       orderData = await api.payments.createRazorpayOrder({
-        amount: payablePaise,
-        currency: 'INR',
         orderId,
+        amount: amountInRupees,
+        amountInRupees,
+        amountInPaise: payablePaise,
+        currency: 'INR',
         receipt: orderId.slice(0, 40),
+        items,
+        couponCode,
         customerName,
         customerEmail,
         customerPhone,

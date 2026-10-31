@@ -70,6 +70,29 @@ export default async function handler(req, res) {
       });
     }
 
+    // Independent Razorpay Server-side Payment Verification
+    const keyId = process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID;
+    let rzpPaymentEntity = null;
+    if (keyId && keySecret) {
+      try {
+        const authHeader = 'Basic ' + Buffer.from(`${keyId}:${keySecret}`).toString('base64');
+        const rzpPayRes = await fetch(`https://api.razorpay.com/v1/payments/${rzpPaymentId}`, {
+          headers: { Authorization: authHeader }
+        });
+        if (rzpPayRes.ok) {
+          rzpPaymentEntity = await rzpPayRes.json();
+          console.log('[Payment Verify] Fetched Razorpay payment:', {
+            id: rzpPaymentEntity.id,
+            amountPaise: rzpPaymentEntity.amount,
+            currency: rzpPaymentEntity.currency,
+            status: rzpPaymentEntity.status
+          });
+        }
+      } catch (rzpFetchErr) {
+        console.warn('Could not fetch Razorpay payment entity:', rzpFetchErr?.message);
+      }
+    }
+
     // Synchronize status with Supabase Database
     const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
@@ -90,6 +113,28 @@ export default async function handler(req, res) {
         }
 
         const resolvedOrderId = existingOrder?.id || finalOrderId;
+        const expectedAmountInRupees = Number(existingOrder?.total_amount ?? amount);
+        const expectedAmountInPaise = Math.round(expectedAmountInRupees * 100);
+
+        // Validate amount against Razorpay API
+        if (rzpPaymentEntity) {
+          if (rzpPaymentEntity.order_id && rzpOrderId && rzpPaymentEntity.order_id !== rzpOrderId) {
+            return res.status(400).json({
+              success: false,
+              code: 'ORDER_MISMATCH',
+              message: 'Razorpay payment does not correspond to this order ID.'
+            });
+          }
+
+          if (typeof rzpPaymentEntity.amount === 'number' && expectedAmountInPaise > 0 && rzpPaymentEntity.amount !== expectedAmountInPaise) {
+            console.error(`Amount mismatch: expected ${expectedAmountInPaise} paise, but received ${rzpPaymentEntity.amount} paise.`);
+            return res.status(400).json({
+              success: false,
+              code: 'AMOUNT_MISMATCH',
+              message: `Payment amount mismatch: expected ₹${expectedAmountInRupees} (${expectedAmountInPaise} paise), but charged amount was ₹${rzpPaymentEntity.amount / 100} (${rzpPaymentEntity.amount} paise).`
+            });
+          }
+        }
 
         // Update order status to Paid & Processing
         if (resolvedOrderId) {

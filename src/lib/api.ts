@@ -262,6 +262,8 @@ export const api = {
       request<{ success: boolean; keyId: string; currency: string; merchantName: string }>('/payments/key'),
     createRazorpayOrder: async (payload: {
       amount: number;
+      amountInRupees?: number;
+      amountInPaise?: number;
       currency?: string;
       orderId?: string;
       receipt?: string;

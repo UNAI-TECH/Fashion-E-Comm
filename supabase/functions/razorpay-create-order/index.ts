@@ -25,6 +25,7 @@ serve(async (req) => {
 
     const {
       amount,
+      amountInRupees,
       amountInPaise: explicitAmountInPaise,
       orderId,
       receipt,
@@ -36,11 +37,30 @@ serve(async (req) => {
       notes = {}
     } = await req.json()
 
-    const targetOrderId = orderId || receipt || `ord_${Date.now()}`
-    let verifiedAmount = Number(amount) || 0
+    const toPaise = (rupees: number | string) => Math.round(Number(rupees) * 100);
+    const toRupees = (paise: number | string) => Number(paise) / 100;
 
-    // Authoritative Server-side Price & Stock Calculation
-    if (Array.isArray(items) && items.length > 0) {
+    const targetOrderId = orderId || receipt || `ord_${Date.now()}`
+    let authoritativeRupees: number | null = null;
+
+    // STEP A: Fetch from orders table in Supabase
+    if (targetOrderId) {
+      const { data: ord } = await supabase
+        .from('orders')
+        .select('id, user_id, total_amount, total_price')
+        .eq('id', targetOrderId)
+        .maybeSingle()
+
+      if (ord) {
+        const dbTotal = Number(ord.total_amount ?? ord.total_price);
+        if (!isNaN(dbTotal) && dbTotal > 0) {
+          authoritativeRupees = dbTotal;
+        }
+      }
+    }
+
+    // STEP B: Authoritative Server-side Price & Stock Calculation
+    if (authoritativeRupees === null && Array.isArray(items) && items.length > 0) {
       const productIds = items
         .map((i: any) => i.id || i.product_id)
         .filter((id: string) => id && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id))
@@ -91,15 +111,35 @@ serve(async (req) => {
           }
 
           if (serverSubtotal > 0) {
-            verifiedAmount = Math.max(0, serverSubtotal - serverDiscount)
+            authoritativeRupees = Math.max(1, serverSubtotal - serverDiscount)
           }
         }
       }
     }
 
-    const amountInPaise = Array.isArray(items) && items.length > 0 && verifiedAmount > 0
-      ? Math.round(verifiedAmount * 100)
-      : (explicitAmountInPaise ? Math.round(Number(explicitAmountInPaise)) : Math.round(verifiedAmount))
+    // STEP C: Fallback to explicitly passed amounts
+    if (authoritativeRupees === null) {
+      if (amountInRupees != null && Number(amountInRupees) > 0) {
+        authoritativeRupees = Number(amountInRupees);
+      } else if (explicitAmountInPaise != null && Number(explicitAmountInPaise) > 0) {
+        authoritativeRupees = toRupees(explicitAmountInPaise);
+      } else if (amount != null && Number(amount) > 0) {
+        authoritativeRupees = Number(amount);
+      }
+    }
+
+    if (authoritativeRupees === null || isNaN(authoritativeRupees) || authoritativeRupees <= 0) {
+      return new Response(JSON.stringify({
+        success: false,
+        code: 'INVALID_AMOUNT',
+        message: 'Could not determine a valid order amount. Minimum is ₹1.00.'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    const amountInPaise = toPaise(authoritativeRupees);
 
     if (!amountInPaise || amountInPaise < 100) {
       return new Response(JSON.stringify({ success: false, message: 'Invalid payable order amount. Minimum is 100 paise (₹1.00).' }), {

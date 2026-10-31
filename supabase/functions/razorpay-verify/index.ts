@@ -145,6 +145,20 @@ serve(async (req) => {
             })
           }
 
+          const expectedAmountInRupees = Number(dbOrder.total_amount ?? dbOrder.total_price);
+          const expectedAmountInPaise = Math.round(expectedAmountInRupees * 100);
+
+          if (typeof rzpPayment.amount === 'number' && expectedAmountInPaise > 0 && rzpPayment.amount !== expectedAmountInPaise) {
+            return new Response(JSON.stringify({
+              success: false,
+              code: 'AMOUNT_MISMATCH',
+              message: `Payment amount mismatch: expected ₹${expectedAmountInRupees} (${expectedAmountInPaise} paise), but charged amount was ₹${rzpPayment.amount / 100} (${rzpPayment.amount} paise).`
+            }), {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+          }
+
           paymentStatus = rzpPayment.status
           paymentMethodUsed = rzpPayment.method === 'upi' ? 'UPI' : (rzpPayment.method || 'Razorpay')
 
