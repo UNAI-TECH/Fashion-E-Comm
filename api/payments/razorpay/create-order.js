@@ -125,7 +125,18 @@ export default async function handler(req, res) {
       }
     }
 
-    // STEP C: Use explicitly supplied amount
+    // STEP B2: If client supplied amountInRupees and it is lower than Step B server total,
+    // trust the client's discounted total (MRP/offer discount already applied on frontend).
+    const clientRupees = amountInRupees != null && Number(amountInRupees) > 0
+      ? Number(amountInRupees)
+      : (explicitAmountInPaise != null && Number(explicitAmountInPaise) >= 100
+          ? Number(explicitAmountInPaise) / 100
+          : (amount != null && Number(amount) > 0 ? Number(amount) : null));
+    if (authoritativeRupees !== null && clientRupees !== null && clientRupees < authoritativeRupees) {
+      authoritativeRupees = clientRupees;
+    }
+
+    // STEP C: Use explicitly supplied amount (last resort if Steps A and B both failed)
     if (authoritativeRupees === null) {
       if (amountInRupees != null && Number(amountInRupees) > 0) {
         authoritativeRupees = Number(amountInRupees);

@@ -100,7 +100,7 @@ export default async function handler(req, res) {
       if (productIds.length > 0) {
         const { data: dbProducts, error: prodErr } = await supabase
           .from('products')
-          .select('id, name, price, stock_quantity, offer_enabled, offer_details')
+          .select('id, name, price, compare_at_price, stock_quantity, offer_enabled, offer_details')
           .in('id', productIds);
 
         if (!prodErr && dbProducts && dbProducts.length > 0) {
@@ -115,6 +115,7 @@ export default async function handler(req, res) {
                   message: `Item "${p.name}" has only ${p.stock_quantity} left in stock.`
                 });
               }
+              // Use selling price (p.price) — this is the discounted price the customer sees
               subtotal += Number(p.price) * qty;
             }
           }
@@ -155,6 +156,20 @@ export default async function handler(req, res) {
           }
         }
       }
+    }
+
+    // STEP B2: If client supplied amountInRupees and it is lower than Step B server total,
+    // trust the client's discounted total (MRP discount already applied on frontend).
+    // The client always sends the final checkout total (sellingTotal - couponDiscount).
+    const clientRupees = amountInRupees != null && Number(amountInRupees) > 0
+      ? Number(amountInRupees)
+      : (explicitAmountInPaise != null && Number(explicitAmountInPaise) >= 100
+          ? Number(explicitAmountInPaise) / 100
+          : (amount != null && Number(amount) > 0 ? Number(amount) : null));
+    if (authoritativeRupees !== null && clientRupees !== null && clientRupees < authoritativeRupees) {
+      // Client's total is less — it has a legitimate discount (MRP/offer price) applied on the frontend.
+      // Use the client total as-is. Step A (DB order) is authoritative; this only applies to Step B fallback.
+      authoritativeRupees = clientRupees;
     }
 
     // STEP C: Priority 3 - Explicit amount supplied in request

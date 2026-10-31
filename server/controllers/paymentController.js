@@ -124,13 +124,14 @@ export const createRazorpayOrder = async (req, res) => {
         if (productIds.length > 0) {
           const { data: dbProducts } = await supabase
             .from('products')
-            .select('id, name, price, stock_quantity, offer_enabled, offer_details')
+            .select('id, name, price, compare_at_price, stock_quantity, offer_enabled, offer_details')
             .in('id', productIds);
 
           if (dbProducts && dbProducts.length > 0) {
             let serverSubtotal = 0;
             for (const item of items) {
               const p = dbProducts.find(x => x.id === (item.id || item.product_id));
+              // Use selling price (p.price) — the discounted/offer price shown to customer
               if (p) serverSubtotal += Number(p.price) * (Number(item.quantity) || 1);
             }
 
@@ -173,15 +174,26 @@ export const createRazorpayOrder = async (req, res) => {
       }
     }
 
-    // STEP C: Explicit amount in request
+    // STEP B2: If client supplied amountInRupees and it is lower than Step B server total,
+    // trust the client's discounted total (MRP/offer discount already applied on frontend).
+    // The client always sends the final checkout total (sellingTotal - couponDiscount).
+    const clientRupees = amountInRupees != null && Number(amountInRupees) > 0
+      ? Number(amountInRupees)
+      : (explicitAmountInPaise != null && Number(explicitAmountInPaise) >= 100
+          ? Number(explicitAmountInPaise) / 100
+          : (amount != null && Number(amount) > 0 ? Number(amount) : null));
+    if (authoritativeRupees !== null && clientRupees !== null && clientRupees < authoritativeRupees) {
+      // Client's total is less — legitimate MRP/offer discount applied on the frontend
+      authoritativeRupees = clientRupees;
+    }
+
+    // STEP C: Explicit amount in request (last resort if Steps A and B both failed)
     if (authoritativeRupees === null) {
       if (amountInRupees != null && Number(amountInRupees) > 0) {
         authoritativeRupees = Number(amountInRupees);
       } else if (explicitAmountInPaise != null && Number(explicitAmountInPaise) > 0) {
         authoritativeRupees = toRupees(explicitAmountInPaise);
       } else if (amount != null && Number(amount) > 0) {
-        // If amount was sent as paise (>= 100) or rupees (< 100)
-        // If explicit amountInRupees is not present, check whether amount was in rupees
         authoritativeRupees = Number(amount);
       }
     }
