@@ -67,6 +67,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', onSuccess }
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isSubmittingRef = useRef(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   // Synchronize default mode when modal opens
   useEffect(() => {
@@ -244,7 +245,6 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', onSuccess }
   };
 
   // 5. Sign In with Google
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const handleGoogleSignIn = async () => {
     try {
       setIsGoogleLoading(true);
