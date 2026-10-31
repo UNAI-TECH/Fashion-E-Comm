@@ -97,15 +97,23 @@ export function setLocalBanners(banners: AdBanner[]) {
       ch.postMessage({ type: 'BANNERS_UPDATED', banners: cleanBanners });
     }
 
-    // 3. Supabase realtime channel broadcast
+    // 3. Supabase realtime channel broadcast (use httpSend if available)
     try {
       const rt = getSupabaseBannersChannel();
       if (rt) {
-        rt.send({
-          type: 'broadcast',
-          event: 'banners_updated',
-          payload: { banners: cleanBanners },
-        });
+        if (typeof rt.httpSend === 'function') {
+          rt.httpSend({
+            type: 'broadcast',
+            event: 'banners_updated',
+            payload: { banners: cleanBanners },
+          });
+        } else {
+          rt.send({
+            type: 'broadcast',
+            event: 'banners_updated',
+            payload: { banners: cleanBanners },
+          });
+        }
       }
     } catch {}
   } catch (e) {
@@ -246,7 +254,28 @@ export async function saveBanner(banner: Partial<AdBanner>): Promise<AdBanner> {
 
   setLocalBanners(current);
 
-  // 1. Direct Supabase save (primary)
+  // 1. Primary Save: Persist via backend API (runs with service role key, bypassing RLS)
+  try {
+    const res = await fetch('/api/banners', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updated),
+    });
+    if (res.ok) {
+      const json = await res.json();
+      if (json.success && json.data?.id) {
+        updated.id = json.data.id;
+        if (json.data.image_url) updated.image_url = json.data.image_url;
+        const freshList = current.map(b => b === updated ? { ...b, id: json.data.id, image_url: json.data.image_url || b.image_url } : b);
+        setLocalBanners(freshList);
+        return updated;
+      }
+    }
+  } catch (apiErr) {
+    console.warn('[Banners] API save failed, attempting direct Supabase fallback:', apiErr);
+  }
+
+  // 2. Direct Supabase save fallback
   try {
     const payload: any = {
       title: updated.title,
@@ -272,24 +301,6 @@ export async function saveBanner(banner: Partial<AdBanner>): Promise<AdBanner> {
     console.warn('[Banners] Direct Supabase save error:', err);
   }
 
-  // 2. Persist via backend API fallback
-  try {
-    const res = await fetch('/api/banners', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updated),
-    });
-    if (res.ok) {
-      const json = await res.json();
-      if (json.success && json.data?.id) {
-        updated.id = json.data.id;
-        if (json.data.image_url) updated.image_url = json.data.image_url;
-        const freshList = current.map(b => b === updated ? { ...b, id: json.data.id, image_url: json.data.image_url || b.image_url } : b);
-        setLocalBanners(freshList);
-      }
-    }
-  } catch (apiErr) {}
-
   return updated;
 }
 
@@ -301,7 +312,19 @@ export async function deleteBanner(id: string, extra?: { image_url?: string; tit
   const current = getLocalBanners().filter(b => b.id !== id && (!extra?.image_url || b.image_url !== extra.image_url));
   setLocalBanners(current);
 
-  // 2. Direct Supabase delete
+  // 2. Delete via backend API (service role bypasses RLS)
+  try {
+    const params = new URLSearchParams({ id });
+    if (extra?.image_url) params.set('image_url', extra.image_url);
+    if (extra?.title) params.set('title', extra.title);
+
+    const res = await fetch(`/api/banners?${params.toString()}`, { method: 'DELETE' });
+    if (res.ok) {
+      return true;
+    }
+  } catch (apiErr) {}
+
+  // 3. Direct Supabase delete fallback
   const isUuid = !!(id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id));
   if (isUuid) {
     try {
@@ -318,15 +341,6 @@ export async function deleteBanner(id: string, extra?: { image_url?: string; tit
       await supabase.from('banners').delete().eq('title', extra.title);
     } catch (e) {}
   }
-
-  // 3. Delete via backend API
-  try {
-    const params = new URLSearchParams({ id });
-    if (extra?.image_url) params.set('image_url', extra.image_url);
-    if (extra?.title) params.set('title', extra.title);
-
-    await fetch(`/api/banners?${params.toString()}`, { method: 'DELETE' });
-  } catch (apiErr) {}
 
   return true;
 }
