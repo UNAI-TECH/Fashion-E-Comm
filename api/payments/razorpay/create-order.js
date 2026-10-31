@@ -53,7 +53,7 @@ export default async function handler(req, res) {
     if (targetOrderId) {
       const { data: ord } = await supabase
         .from('orders')
-        .select('id, user_id, total_amount, total_price, status, payment_status, currency')
+        .select('id, user_id, total_amount, total_price, status, payment_status')
         .eq('id', targetOrderId)
         .maybeSingle();
 
