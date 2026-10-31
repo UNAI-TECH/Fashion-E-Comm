@@ -164,69 +164,52 @@ export function HeroAdBanner() {
 
   const currentBanner = activeBanners[currentIndex] || activeBanners[0];
 
+  if (!currentBanner || activeBanners.length === 0) {
+    return null;
+  }
+
   return (
     <div className="w-full bg-[#FCFAF8] select-none">
       {/* ─── Main Hero Ad Banner (Meesho & Myntra Style) ─── */}
-      {activeBanners.length === 0 ? (
-        /* Sleek fallback state when all banners are deleted / none active */
-        <section className="relative w-full py-16 sm:py-24 bg-gradient-to-r from-[#2A0815] via-[#4A0E2E] to-[#1E0510] text-white flex items-center justify-center px-4">
-          <div className="max-w-3xl mx-auto text-center space-y-4">
-            <span className="inline-block px-3 py-1 rounded-full text-xs font-black bg-amber-400 text-gray-900 tracking-wider uppercase">
-              Exclusive Saree Collection
-            </span>
-            <h2 className="text-2xl sm:text-4xl md:text-5xl font-serif font-bold text-amber-100">
-              Handcrafted Heritage Sarees
-            </h2>
-            <p className="text-xs sm:text-sm text-pink-100/80 max-w-lg mx-auto">
-              Explore authentic Banarasi, Kanchipuram, and organza silk sarees woven with pure zari artistry.
-            </p>
-            <div className="pt-2">
+      <section
+        className="relative w-full overflow-hidden bg-gray-950 group"
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        {/* Banner Aspect Ratio Container: 16:9 on mobile, adaptive on desktop to prevent cropping */}
+        <div className="relative w-full aspect-[16/9] sm:aspect-[16/8] md:aspect-[16/7] lg:aspect-[16/6.5] max-h-[580px] min-h-[230px] sm:min-h-[320px] md:min-h-[420px] lg:min-h-[480px] flex items-center justify-center">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentBanner.id || currentIndex}
+              initial={{ opacity: 0, scale: 1.01 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.99 }}
+              transition={{ duration: 0.5, ease: 'easeInOut' }}
+              className="absolute inset-0 w-full h-full cursor-pointer"
+            >
               <Link
-                to="/category/sarees"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-gray-950 font-bold text-xs sm:text-sm shadow-lg hover:shadow-xl transition-all"
+                to={currentBanner.link_url || '/category/sarees'}
+                className="block w-full h-full relative"
               >
-                <span>Shop Sarees Collection</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
-          </div>
-        </section>
-      ) : (
-        <section
-          className="relative w-full overflow-hidden bg-gray-950 group"
-          onMouseEnter={() => setIsPaused(true)}
-          onMouseLeave={() => setIsPaused(false)}
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
-        >
-          {/* Banner Aspect Ratio Container: 16:9 on mobile, adaptive on desktop to prevent cropping */}
-          <div className="relative w-full aspect-[16/9] sm:aspect-[16/8] md:aspect-[16/7] lg:aspect-[16/6.5] max-h-[580px] min-h-[230px] sm:min-h-[320px] md:min-h-[420px] lg:min-h-[480px] flex items-center justify-center">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentBanner.id || currentIndex}
-                initial={{ opacity: 0, scale: 1.01 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.99 }}
-                transition={{ duration: 0.5, ease: 'easeInOut' }}
-                className="absolute inset-0 w-full h-full cursor-pointer"
-              >
-                <Link
-                  to={currentBanner.link_url || '/category/sarees'}
-                  className="block w-full h-full relative"
-                >
-                  <img
-                    src={currentBanner.image_url}
-                    alt={currentBanner.title || 'Festive Saree Sale Banner'}
-                    className="w-full h-full object-cover object-top select-none"
-                    loading="eager"
-                    draggable={false}
-                  />
+                <img
+                  src={currentBanner.image_url}
+                  alt={currentBanner.title || 'Hero Banner'}
+                  className="w-full h-full object-cover object-top select-none"
+                  loading="eager"
+                  draggable={false}
+                  onError={() => {
+                    // Automatically filter out invalid / broken image banners
+                    setBanners(prev => prev.filter(b => b.id !== currentBanner.id && b.image_url !== currentBanner.image_url));
+                  }}
+                />
 
-                  {/* Subtle vignette gradient */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-black/10 pointer-events-none" />
-                </Link>
-              </motion.div>
-            </AnimatePresence>
+                {/* Subtle vignette gradient */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-black/10 pointer-events-none" />
+              </Link>
+            </motion.div>
+          </AnimatePresence>
 
             {/* Left Arrow Navigation Button */}
             {activeBanners.length > 1 && (
@@ -272,7 +255,6 @@ export function HeroAdBanner() {
             )}
           </div>
         </section>
-      )}
 
       {/* ─── Meesho-Style Trust & Value Proposition Bar (Desktop & Tablet only) ─── */}
       <div className="hidden md:block w-full bg-white border-b border-gray-100 shadow-xs">

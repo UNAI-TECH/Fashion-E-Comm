@@ -153,19 +153,42 @@ export default async function handler(req, res) {
           return res.status(500).json({ success: false, error: updateErr.message });
         }
 
-        // Insert payment audit record
+        // Insert or update payment audit record in public.payments
         try {
-          await supabase.from('payments').insert([{
+          const { data: existingPay } = await supabase
+            .from('payments')
+            .select('id')
+            .eq('order_id', finalOrderId)
+            .maybeSingle();
+
+          const shippingAddr = orderRecord?.shipping_address || {};
+          const customerName = shippingAddr.full_name || [shippingAddr.first_name, shippingAddr.last_name].filter(Boolean).join(' ') || 'Customer';
+          const customerPhone = shippingAddr.phone || '';
+
+          const payData = {
             order_id: finalOrderId,
-            payment_id: rzpPaymentId || `pay_${Date.now()}`,
+            user_id: orderRecord?.user_id || null,
+            method: 'Razorpay',
+            payment_method: payment?.method === 'upi' ? 'UPI' : 'Razorpay',
+            razorpay_order_id: rzpOrderId,
+            razorpay_payment_id: rzpPaymentId,
             gateway_txn_id: rzpPaymentId,
-            payment_method: payment?.method || 'Razorpay',
-            status: 'Success',
-            amount: payment?.amount ? payment.amount / 100 : (orderRecord?.total_amount || 0),
-            currency: payment?.currency || 'INR',
+            payment_id: rzpPaymentId,
             payer_vpa: payment?.vpa || payment?.email || '',
-            created_at: new Date().toISOString()
-          }]);
+            customer_name: customerName,
+            customer_phone: customerPhone,
+            status: 'Paid',
+            amount: payment?.amount ? payment.amount / 100 : (orderRecord?.total_amount || 0),
+            currency: 'INR',
+            gateway_response: payment || {},
+            created_at: new Date().toISOString(),
+          };
+
+          if (existingPay?.id) {
+            await supabase.from('payments').update(payData).eq('id', existingPay.id);
+          } else {
+            await supabase.from('payments').insert([payData]);
+          }
         } catch (payErr) {
           console.warn('Payment insert note:', payErr);
         }

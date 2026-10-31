@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, Filter, Eye, X, PackageOpen, Truck, CheckCircle, Package, Loader2, RefreshCw, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { Search, Filter, Eye, X, PackageOpen, Truck, CheckCircle, Package, Loader2, RefreshCw, CheckCircle2, XCircle, Clock, CreditCard } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { toast } from 'sonner';
 
@@ -14,6 +14,8 @@ interface Order {
   status: string;
   payment_method: string;
   payment_status: string;
+  razorpay_order_id?: string;
+  razorpay_payment_id?: string;
   shipping_address: any;
   order_items: any[];
 }
@@ -24,6 +26,7 @@ export function AdminOrders() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState('All');
 
   useEffect(() => {
     loadOrders();
@@ -49,7 +52,7 @@ export function AdminOrders() {
 
   const loadOrders = async () => {
     try {
-        const { data, error } = await supabase
+      const { data, error } = await supabase
         .from('orders')
         .select(`
           *,
@@ -69,6 +72,12 @@ export function AdminOrders() {
         const customerEmail = o.profiles?.email || addr.email || '';
         const firstProduct = o.order_items?.[0]?.products?.name || 'N/A';
 
+        // Standardize payment status
+        let stdPayStatus = o.payment_status || 'Pending';
+        if (stdPayStatus.toLowerCase() === 'paid' || stdPayStatus.toLowerCase() === 'completed' || stdPayStatus.toLowerCase() === 'success') {
+          stdPayStatus = 'Paid';
+        }
+
         return {
           id: o.id,
           customer_name: customerName,
@@ -78,7 +87,9 @@ export function AdminOrders() {
           amount: Number(o.total_amount || 0),
           status: o.status || 'Pending',
           payment_method: o.payment_method || 'N/A',
-          payment_status: o.payment_status || 'Pending',
+          payment_status: stdPayStatus,
+          razorpay_order_id: o.razorpay_order_id || undefined,
+          razorpay_payment_id: o.razorpay_payment_id || undefined,
           shipping_address: addr,
           order_items: o.order_items || [],
         };
@@ -130,9 +141,11 @@ export function AdminOrders() {
   const filtered = orders.filter(o => {
     const matchesSearch = !searchQuery || 
       o.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      o.customer_name.toLowerCase().includes(searchQuery.toLowerCase());
+      o.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (o.razorpay_payment_id && o.razorpay_payment_id.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesStatus = statusFilter === 'All' || o.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesPayStatus = paymentStatusFilter === 'All' || o.payment_status === paymentStatusFilter;
+    return matchesSearch && matchesStatus && matchesPayStatus;
   });
 
   if (isLoading) {
@@ -150,7 +163,7 @@ export function AdminOrders() {
           <h1 className="text-2xl font-bold text-gray-900">Orders Management</h1>
           <p className="text-xs text-gray-500 mt-0.5">Real-time sync • Auto-refreshes every 30 seconds</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={() => { loadOrders(); toast.info('Orders refreshed'); }}
             className="flex items-center gap-1.5 px-3.5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold rounded-lg transition-all cursor-pointer shadow-xs active:scale-95"
@@ -161,15 +174,27 @@ export function AdminOrders() {
           <select 
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
-            className="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#698156]"
+            className="px-3 py-2 bg-white border border-gray-200 text-gray-700 text-xs rounded-lg focus:outline-none focus:ring-2 focus:ring-[#698156]"
           >
-            <option value="All">All Statuses</option>
+            <option value="All">All Order Statuses</option>
             <option value="Pending">Pending</option>
+            <option value="Processing">Processing</option>
             <option value="Confirmed">Confirmed</option>
             <option value="Packed">Packed</option>
             <option value="Shipped">Shipped</option>
             <option value="Delivered">Delivered</option>
             <option value="Cancelled">Cancelled</option>
+          </select>
+          <select 
+            value={paymentStatusFilter}
+            onChange={e => setPaymentStatusFilter(e.target.value)}
+            className="px-3 py-2 bg-white border border-gray-200 text-gray-700 text-xs rounded-lg focus:outline-none focus:ring-2 focus:ring-[#698156]"
+          >
+            <option value="All">All Payment Statuses</option>
+            <option value="Paid">Paid</option>
+            <option value="Pending">Pending</option>
+            <option value="Failed">Failed</option>
+            <option value="Refunded">Refunded</option>
           </select>
         </div>
       </div>
@@ -182,62 +207,70 @@ export function AdminOrders() {
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search by Order ID or Customer Name..." 
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#698156]"
+              placeholder="Search by Order ID, Razorpay Pay ID, or Customer..." 
+              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#698156]"
             />
           </div>
         </div>
         
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
-            <thead className="bg-gray-50 text-gray-500 text-sm border-b border-gray-100">
+            <thead className="bg-gray-50 text-gray-500 text-xs border-b border-gray-100">
               <tr>
-                <th className="px-6 py-4 font-medium">Order ID</th>
-                <th className="px-6 py-4 font-medium">Customer</th>
-                <th className="px-6 py-4 font-medium">Date</th>
-                <th className="px-6 py-4 font-medium">Total Amount</th>
-                <th className="px-6 py-4 font-medium">Payment Status</th>
-                <th className="px-6 py-4 font-medium">Order Status</th>
-                <th className="px-6 py-4 font-medium text-right">Actions</th>
+                <th className="px-5 py-3.5 font-medium">Order ID</th>
+                <th className="px-5 py-3.5 font-medium">Customer</th>
+                <th className="px-5 py-3.5 font-medium">Date</th>
+                <th className="px-5 py-3.5 font-medium">Amount</th>
+                <th className="px-5 py-3.5 font-medium">Payment</th>
+                <th className="px-5 py-3.5 font-medium">Order Status</th>
+                <th className="px-5 py-3.5 text-right font-medium">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 text-sm">
+            <tbody className="divide-y divide-gray-100 text-xs">
               {filtered.length > 0 ? filtered.map((order) => (
                 <tr key={order.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 font-medium text-gray-900 font-mono text-xs">{order.id}</td>
-                  <td className="px-6 py-4">
-                    <div className="font-medium text-gray-900">{order.customer_name}</div>
-                    <div className="text-gray-500 text-xs">{order.customer_email}</div>
-                  </td>
-                  <td className="px-6 py-4 text-gray-500">{order.date}</td>
-                  <td className="px-6 py-4 font-medium">{formatCurrency(order.amount)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {order.payment_status === 'Completed' || order.payment_status === 'Success' ? (
-                      <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 inline-flex items-center gap-1">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Success
-                      </span>
-                    ) : order.payment_status === 'Failed' ? (
-                      <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-200 inline-flex items-center gap-1">
-                        <XCircle className="w-3.5 h-3.5 text-rose-600" /> Failed
-                      </span>
-                    ) : (
-                      <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 inline-flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5 text-amber-600" /> Pending
-                      </span>
+                  <td className="px-5 py-3.5 font-medium text-gray-900 font-mono">
+                    <div>{order.id}</div>
+                    {order.razorpay_payment_id && (
+                      <div className="text-[10px] text-emerald-700 font-mono mt-0.5">{order.razorpay_payment_id}</div>
                     )}
                   </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium inline-block ${getStatusColor(order.status)}`}>
+                  <td className="px-5 py-3.5">
+                    <div className="font-medium text-gray-900">{order.customer_name}</div>
+                    <div className="text-gray-500 text-[11px]">{order.customer_email}</div>
+                  </td>
+                  <td className="px-5 py-3.5 text-gray-500">{order.date}</td>
+                  <td className="px-5 py-3.5 font-bold text-gray-900">{formatCurrency(order.amount)}</td>
+                  <td className="px-5 py-3.5 whitespace-nowrap">
+                    <div className="space-y-1">
+                      {order.payment_status === 'Paid' || order.payment_status === 'Success' || order.payment_status === 'Completed' ? (
+                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 inline-flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Paid
+                        </span>
+                      ) : order.payment_status === 'Failed' ? (
+                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-200 inline-flex items-center gap-1">
+                          <XCircle className="w-3 h-3 text-rose-600" /> Failed
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-200 inline-flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-amber-600" /> Pending
+                        </span>
+                      )}
+                      <div className="text-[10px] text-gray-400">{order.payment_method}</div>
+                    </div>
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <span className={`px-2.5 py-1 rounded-full text-[11px] font-medium inline-block ${getStatusColor(order.status)}`}>
                       {order.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-5 py-3.5 text-right">
                     <button 
                       onClick={() => setSelectedOrder(order)}
-                      className="p-2 text-gray-400 hover:text-[#698156] hover:bg-[#698156]/10 rounded-lg transition-colors inline-block"
+                      className="p-1.5 text-gray-400 hover:text-[#698156] hover:bg-[#698156]/10 rounded-lg transition-colors inline-block"
                       title="View Details"
                     >
-                      <Eye className="w-5 h-5" />
+                      <Eye className="w-4 h-4" />
                     </button>
                   </td>
                 </tr>
@@ -281,6 +314,18 @@ export function AdminOrders() {
                   <span className="text-gray-500">Order ID:</span>
                   <span className="font-mono font-medium text-gray-900">{selectedOrder.id}</span>
                 </div>
+                {selectedOrder.razorpay_order_id && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Razorpay Order ID:</span>
+                    <span className="font-mono font-medium text-gray-900">{selectedOrder.razorpay_order_id}</span>
+                  </div>
+                )}
+                {selectedOrder.razorpay_payment_id && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Razorpay Payment ID:</span>
+                    <span className="font-mono font-bold text-emerald-700">{selectedOrder.razorpay_payment_id}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Customer:</span>
                   <span className="font-medium text-gray-900">{selectedOrder.customer_name}</span>
@@ -299,23 +344,25 @@ export function AdminOrders() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Payment:</span>
-                  <span className="text-gray-900">{selectedOrder.payment_method} ({selectedOrder.payment_status})</span>
+                  <span className="font-bold text-gray-900">
+                    {selectedOrder.payment_method} — {selectedOrder.payment_status}
+                  </span>
                 </div>
 
                 {/* Order Items */}
                 {selectedOrder.order_items.length > 0 && (
                   <div className="pt-4 border-t border-gray-100">
-                    <h3 className="font-semibold text-gray-900 mb-3">Items</h3>
+                    <h3 className="font-semibold text-gray-900 mb-3 text-sm">Items Ordered ({selectedOrder.order_items.length})</h3>
                     {selectedOrder.order_items.map((item: any, i: number) => (
                       <div key={i} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
                         {item.products?.images?.[0] && (
                           <img src={item.products.images[0]} alt="" className="w-12 h-12 rounded-lg object-cover" />
                         )}
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium text-gray-900 truncate">{item.products?.name || 'Unknown Product'}</div>
+                          <div className="text-sm font-medium text-gray-900 truncate">{item.products?.name || 'Item'}</div>
                           <div className="text-xs text-gray-500">Qty: {item.quantity} × {formatCurrency(Number(item.price_at_time || item.price || 0))}</div>
                         </div>
-                        <div className="text-sm font-bold">{formatCurrency(Number(item.total_price || 0))}</div>
+                        <div className="text-sm font-bold">{formatCurrency(Number(item.total_price || (item.price * item.quantity) || 0))}</div>
                       </div>
                     ))}
                   </div>
@@ -324,7 +371,7 @@ export function AdminOrders() {
                 {/* Shipping Address */}
                 {selectedOrder.shipping_address && Object.keys(selectedOrder.shipping_address).length > 0 && (
                   <div className="pt-4 border-t border-gray-100">
-                    <h3 className="font-semibold text-gray-900 mb-2">Shipping Address</h3>
+                    <h3 className="font-semibold text-gray-900 mb-2 text-sm">Shipping Address</h3>
                     <p className="text-sm text-gray-600">
                       {[
                         selectedOrder.shipping_address.address,
@@ -341,9 +388,9 @@ export function AdminOrders() {
 
                 {/* Update Status */}
                 <div className="pt-4 border-t border-gray-100">
-                  <h3 className="font-semibold text-gray-900 mb-3">Update Status</h3>
+                  <h3 className="font-semibold text-gray-900 mb-3 text-sm">Fulfillment Status</h3>
                   <div className="flex flex-wrap gap-2">
-                    {['Pending', 'Confirmed', 'Packed', 'Shipped', 'Delivered', 'Cancelled'].map(status => (
+                    {['Pending', 'Processing', 'Confirmed', 'Packed', 'Shipped', 'Delivered', 'Cancelled'].map(status => (
                       <button
                         key={status}
                         onClick={() => handleUpdateStatus(selectedOrder.id, status)}

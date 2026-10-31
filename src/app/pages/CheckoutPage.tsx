@@ -614,11 +614,34 @@ export function CheckoutPage() {
           setIsProcessing(false);
           toast.error(err?.message || 'Payment was unsuccessful or cancelled');
         },
-        onDismiss: () => {
-          console.log('[Checkout] Razorpay modal dismissed');
+        onDismiss: async () => {
+          console.log('[Checkout] Razorpay modal dismissed by user');
+          // For UPI QR Payments: If customer completed payment in UPI mobile app, verify status immediately
+          try {
+            const statusCheck = await api.payments.checkPaymentStatus(orderId);
+            if (statusCheck && (statusCheck.success || statusCheck.status === 'PAID')) {
+              setPaymentState('PAID');
+              setOrderPlaced({
+                orderId,
+                trackingNumber,
+                method: 'Online Payment (Razorpay)',
+                status: 'Completed',
+                txnId: statusCheck.payment_id || 'UPI-QR',
+                amount: totalAmount
+              });
+              if (!buyNowProductId) clearCart();
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+              toast.success('Payment confirmed! Your order has been placed.');
+              window.dispatchEvent(new Event('orders_updated'));
+              return;
+            }
+          } catch (chkErr) {
+            console.warn('[Checkout] Post-dismiss status check note:', chkErr);
+          }
+
           setPaymentState('IDLE');
           setIsProcessing(false);
-          toast.info('Payment window closed');
+          toast.info('Payment window closed. If you paid via UPI QR, you can view your order in Order History.');
         }
       });
 

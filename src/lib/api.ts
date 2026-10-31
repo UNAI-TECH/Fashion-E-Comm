@@ -387,6 +387,23 @@ export const api = {
         }
         throw err;
       }
+    },
+    checkPaymentStatus: async (orderId: string, razorpayOrderId?: string) => {
+      try {
+        const queryParams = new URLSearchParams({ order_id: orderId });
+        if (razorpayOrderId) queryParams.set('razorpay_order_id', razorpayOrderId);
+        return await request<{
+          success: boolean;
+          status: string;
+          message?: string;
+          order_id?: string;
+          payment_id?: string;
+        }>(`/payments/status?${queryParams.toString()}`, {
+          method: 'GET'
+        });
+      } catch (err) {
+        return { success: false, status: 'PENDING' };
+      }
     }
   },
 

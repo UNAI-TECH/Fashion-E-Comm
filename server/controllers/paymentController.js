@@ -295,19 +295,52 @@ export const verifyRazorpayPayment = async (req, res) => {
         }
 
         try {
-          await supabase.from('payments').insert([{
+          const { data: existingPay } = await supabase.from('payments').select('id').eq('order_id', finalOrderId).maybeSingle();
+          const shippingAddr = updatedOrder?.shipping_address || {};
+          const customerName = shippingAddr.full_name || [shippingAddr.first_name, shippingAddr.last_name].filter(Boolean).join(' ') || 'Customer';
+          const customerPhone = shippingAddr.phone || '';
+
+          const payData = {
             order_id: finalOrderId,
-            payment_id: rzpPaymentId,
+            user_id: updatedOrder?.user_id || null,
+            method: 'Razorpay',
             payment_method: 'Razorpay',
-            status: 'Success',
+            razorpay_order_id: rzpOrderId,
+            razorpay_payment_id: rzpPaymentId,
+            gateway_txn_id: rzpPaymentId,
+            payment_id: rzpPaymentId,
+            customer_name: customerName,
+            customer_phone: customerPhone,
+            currency: 'INR',
+            status: 'Paid',
             amount: updatedOrder?.total_amount || amount || 0,
+            gateway_response: { razorpay_order_id: rzpOrderId, razorpay_payment_id: rzpPaymentId, status: 'PAID' },
             created_at: new Date().toISOString()
-          }]);
+          };
+
+          if (existingPay?.id) {
+            await supabase.from('payments').update(payData).eq('id', existingPay.id);
+          } else {
+            await supabase.from('payments').insert([payData]);
+          }
         } catch {}
 
-        try {
-          await supabase.rpc('fulfill_order_stock', { p_order_id: finalOrderId });
-        } catch {}
+        if (!updatedOrder?.stock_decremented) {
+          try {
+            const { data: items } = await supabase.from('order_items').select('product_id, quantity').eq('order_id', finalOrderId);
+            if (items && Array.isArray(items)) {
+              for (const it of items) {
+                if (it.product_id) {
+                  const { data: p } = await supabase.from('products').select('stock_quantity').eq('id', it.product_id).maybeSingle();
+                  if (p && typeof p.stock_quantity === 'number') {
+                    await supabase.from('products').update({ stock_quantity: Math.max(0, p.stock_quantity - (it.quantity || 1)) }).eq('id', it.product_id);
+                  }
+                }
+              }
+              await supabase.from('orders').update({ stock_decremented: true }).eq('id', finalOrderId);
+            }
+          } catch {}
+        }
       } catch (err) {
         console.warn('Database recording warning:', err);
       }
@@ -455,6 +488,109 @@ export const handleRazorpayWebhook = async (req, res) => {
     return res.status(200).json({ status: 'ok' });
   } catch (error) {
     console.error('Razorpay Webhook Error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * @desc    Check payment status against live Razorpay API and DB
+ * @route   GET /api/payments/status
+ * @access  Public
+ */
+export const checkPaymentStatus = async (req, res) => {
+  try {
+    refreshEnv();
+    const orderId = req.query?.order_id || req.body?.order_id || req.query?.orderId;
+    const rzpOrderId = req.query?.razorpay_order_id || req.body?.razorpay_order_id;
+
+    if (!orderId && !rzpOrderId) {
+      return res.status(400).json({ success: false, message: 'Missing order_id or razorpay_order_id parameter.' });
+    }
+
+    let orderRecord = null;
+    if (orderId && supabase) {
+      const { data } = await supabase.from('orders').select('*').eq('id', orderId).maybeSingle();
+      orderRecord = data;
+    }
+    if (!orderRecord && rzpOrderId && supabase) {
+      const { data } = await supabase.from('orders').select('*').eq('razorpay_order_id', rzpOrderId).maybeSingle();
+      orderRecord = data;
+    }
+
+    if (orderRecord && orderRecord.payment_status === 'Paid') {
+      return res.status(200).json({
+        success: true,
+        status: 'PAID',
+        message: 'Order is confirmed and paid.',
+        order_id: orderRecord.razorpay_order_id,
+        payment_id: orderRecord.razorpay_payment_id
+      });
+    }
+
+    const effectiveRzpOrderId = rzpOrderId || orderRecord?.razorpay_order_id;
+    if (effectiveRzpOrderId) {
+      try {
+        const razorpay = getRazorpayInstance();
+        const paymentsResponse = await razorpay.orders.fetchPayments(effectiveRzpOrderId);
+        const paymentsList = paymentsResponse?.items || [];
+        const captured = paymentsList.find(p => p.status === 'captured');
+
+        if (captured && supabase) {
+          const finalOrderId = orderRecord?.id || orderId;
+          await supabase
+            .from('orders')
+            .update({
+              payment_status: 'Paid',
+              status: 'Processing',
+              payment_method: captured.method === 'upi' ? 'UPI' : 'Online Payment (Razorpay)',
+              razorpay_payment_id: captured.id,
+              razorpay_order_id: effectiveRzpOrderId,
+              payment_timestamp: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', finalOrderId);
+
+          const { data: existingPay } = await supabase.from('payments').select('id').eq('order_id', finalOrderId).maybeSingle();
+          const payData = {
+            order_id: finalOrderId,
+            method: 'Razorpay',
+            payment_method: captured.method === 'upi' ? 'UPI' : 'Razorpay',
+            razorpay_order_id: effectiveRzpOrderId,
+            razorpay_payment_id: captured.id,
+            gateway_txn_id: captured.id,
+            payment_id: captured.id,
+            payer_vpa: captured.vpa || '',
+            amount: captured.amount ? captured.amount / 100 : (orderRecord?.total_amount || 0),
+            currency: 'INR',
+            status: 'Paid',
+            created_at: new Date().toISOString()
+          };
+
+          if (existingPay?.id) {
+            await supabase.from('payments').update(payData).eq('id', existingPay.id);
+          } else {
+            await supabase.from('payments').insert([payData]);
+          }
+
+          return res.status(200).json({
+            success: true,
+            status: 'PAID',
+            message: 'Payment captured successfully.',
+            payment_id: captured.id,
+            order_id: effectiveRzpOrderId
+          });
+        }
+      } catch (e) {
+        console.warn('Live Razorpay fetch error:', e?.message);
+      }
+    }
+
+    return res.status(200).json({
+      success: false,
+      status: orderRecord?.payment_status || 'PENDING',
+      message: 'Payment awaiting completion or bank confirmation.'
+    });
+  } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
 };

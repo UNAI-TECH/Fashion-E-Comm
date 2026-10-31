@@ -2,44 +2,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Image as ImageIcon, Plus, Trash2, Edit3, MoveLeft, MoveRight,
-  UploadCloud, Check, X, RotateCcw, Eye, ArrowUpRight,
-  Link as LinkIcon, Award, ExternalLink, RefreshCw, AlertCircle
+  UploadCloud, Check, X, Eye, Link as LinkIcon, Award, RefreshCw, AlertCircle
 } from 'lucide-react';
 import {
   AdBanner,
-  DEFAULT_AD_BANNERS,
   fetchAllBannersAdmin,
   saveBanner,
   deleteBanner,
-  resetBannersToDefault,
   uploadBannerImage,
   setLocalBanners
 } from '../../data/banners';
 import { toast } from 'sonner';
-
-const PRESET_BANNERS = [
-  {
-    title: 'Mega Blockbuster Saree Sale — Up to 80% Off',
-    subtitle: 'Festive Maroon & Gold Pure Silk Sarees',
-    badge: 'MEGA BLOCKBUSTER SALE',
-    image_url: '/banners/festive_saree_sale_banner.jpg',
-    link_url: '/category/sarees',
-  },
-  {
-    title: 'Flat 50-70% Off Handcrafted Heritage Silk',
-    subtitle: 'Royal Emerald & Gold Zari Banarasi Weaves',
-    badge: 'ROYAL WEDDING COLLECTION',
-    image_url: '/banners/royal_banarasi_saree_banner.jpg',
-    link_url: '/category/sarees',
-  },
-  {
-    title: 'Festival Boutique Sale — Pure Silk & Organza Sarees',
-    subtitle: 'Artisanal Drapes & Handwoven Border Collections',
-    badge: 'LIMITED FESTIVAL OFFER',
-    image_url: '/banners/organza_festive_saree_banner.jpg',
-    link_url: '/category/sarees',
-  },
-];
 
 export function AdminBannersSection() {
   const [banners, setBanners] = useState<AdBanner[]>([]);
@@ -56,14 +29,14 @@ export function AdminBannersSection() {
     id: '',
     title: '',
     subtitle: '',
-    badge: 'FESTIVE SALE',
-    image_url: '/banners/festive_saree_sale_banner.jpg',
+    badge: 'NEW ARRIVAL',
+    image_url: '',
     link_url: '/category/sarees',
     status: 'Active' as 'Active' | 'Inactive',
     display_order: 1,
   };
   const [form, setForm] = useState(emptyForm);
-  const [imageSourceTab, setImageSourceTab] = useState<'upload' | 'preset' | 'url'>('upload');
+  const [imageSourceTab, setImageSourceTab] = useState<'upload' | 'url'>('upload');
 
   const loadBanners = async () => {
     setLoading(true);
@@ -98,7 +71,7 @@ export function AdminBannersSection() {
       id: b.id,
       title: b.title,
       subtitle: b.subtitle || '',
-      badge: b.badge || 'FESTIVE SALE',
+      badge: b.badge || '',
       image_url: b.image_url,
       link_url: b.link_url || '/category/sarees',
       status: b.status,
@@ -118,7 +91,7 @@ export function AdminBannersSection() {
     }
 
     setIsUploading(true);
-    const toastId = toast.loading('Uploading banner image...');
+    const toastId = toast.loading('Uploading banner image to storage...');
     try {
       const url = await uploadBannerImage(file);
       setForm(prev => ({ ...prev, image_url: url }));
@@ -137,14 +110,14 @@ export function AdminBannersSection() {
       return;
     }
     if (!form.image_url.trim()) {
-      toast.error('Please provide a banner image');
+      toast.error('Please upload or enter a banner image URL');
       return;
     }
 
     setIsSaving(true);
     try {
-      const saved = await saveBanner(form);
-      toast.success(form.id ? 'Banner updated successfully!' : 'Banner added successfully!');
+      await saveBanner(form);
+      toast.success(form.id ? 'Banner updated successfully!' : 'Banner published successfully!');
       setIsModalOpen(false);
       await loadBanners();
     } catch (err: any) {
@@ -163,7 +136,7 @@ export function AdminBannersSection() {
       if (activePreviewIdx >= banners.length - 1) {
         setActivePreviewIdx(Math.max(0, banners.length - 2));
       }
-      toast.success('Banner removed from admin and storefront');
+      toast.success('Banner deleted permanently');
     } catch (err: any) {
       toast.error('Failed to delete banner');
     }
@@ -196,25 +169,13 @@ export function AdminBannersSection() {
 
     try {
       await Promise.all(updated.map(b => saveBanner(b)));
-      toast.success('Banner order updated');
+      toast.success('Banner sequence updated');
     } catch (err) {
       toast.error('Failed to reorder banners');
     }
   };
 
-  const handleRestoreDefaults = async () => {
-    if (!window.confirm('Restore default Myntra & Meesho style ad banners? Any custom banners will be replaced.')) return;
-    try {
-      const defs = await resetBannersToDefault();
-      setBanners(defs);
-      setActivePreviewIdx(0);
-      toast.success('Default ad banners restored!');
-    } catch (err) {
-      toast.error('Failed to reset banners');
-    }
-  };
-
-  const currentPreviewBanner = banners[activePreviewIdx] || banners[0] || DEFAULT_AD_BANNERS[0];
+  const currentPreviewBanner = banners[activePreviewIdx] || banners[0] || null;
 
   return (
     <div className="space-y-8 pb-16">
@@ -230,22 +191,13 @@ export function AdminBannersSection() {
                 Hero Ad Banners
               </h1>
               <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
-                Meesho & Myntra styled promotional banners. Upload photos, set store links, and publish instantly.
+                Upload custom promotional banners for the storefront hero carousel. Only manually uploaded banners appear.
               </p>
             </div>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-          <button
-            onClick={handleRestoreDefaults}
-            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl border border-gray-200 text-gray-700 text-xs font-bold hover:bg-gray-50 transition-all active:scale-95"
-            title="Reset to default banners"
-          >
-            <RotateCcw className="w-3.5 h-3.5 text-gray-500" />
-            <span>Reset Defaults</span>
-          </button>
-
+        <div className="flex items-center gap-3 w-full md:w-auto">
           <button
             onClick={openAddModal}
             className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-[#698156] hover:bg-[#5b724a] text-white text-xs font-bold shadow-md hover:shadow-lg transition-all active:scale-95"
@@ -256,7 +208,7 @@ export function AdminBannersSection() {
         </div>
       </div>
 
-      {/* ─── Banner Size Specification Banner ─── */}
+      {/* ─── Banner Sizing Guide ─── */}
       <div className="bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-[#698156]/10 border border-amber-200/70 rounded-3xl p-5 sm:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-start gap-3.5">
           <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-800 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -264,36 +216,30 @@ export function AdminBannersSection() {
           </div>
           <div>
             <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-              <span>Actual Banner Sizing & Design Guide</span>
+              <span>Banner Sizing & Dimensions</span>
               <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                Meesho & Myntra Standard
+                Recommended Standard
               </span>
             </h3>
-            <p className="text-xs text-gray-600 mt-1">
-              Follow these pixel dimensions so the model's head, jewellery, and discount texts never get cut off:
-            </p>
-            <div className="flex flex-wrap items-center gap-2.5 mt-2.5 text-xs">
+            <div className="flex flex-wrap items-center gap-2.5 mt-2 text-xs">
               <span className="px-3 py-1.5 rounded-xl bg-white border border-gray-200 font-semibold text-gray-800 shadow-2xs">
-                💻 <strong>Desktop Banner:</strong> 1920 × 600 px <span className="text-gray-400 font-normal">(16:5 ratio, or 1920 × 504 px)</span>
+                💻 <strong>Desktop:</strong> 1920 × 600 px (16:5 ratio)
               </span>
               <span className="px-3 py-1.5 rounded-xl bg-white border border-gray-200 font-semibold text-gray-800 shadow-2xs">
-                📱 <strong>Mobile Banner:</strong> 1080 × 600 px <span className="text-gray-400 font-normal">(16:9 ratio, or 1080 × 540 px)</span>
-              </span>
-              <span className="px-3 py-1.5 rounded-xl bg-white border border-amber-200 font-semibold text-amber-900 shadow-2xs">
-                🛡️ <strong>Safe Zone:</strong> Leave ~40px margin at the top so heads & titles aren't clipped
+                📱 <strong>Mobile:</strong> 1080 × 600 px (16:9 ratio)
               </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ─── Live Simulator Preview (Storefront View) ─── */}
+      {/* ─── Live Simulator Preview ─── */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-xs space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className={`w-2.5 h-2.5 rounded-full ${currentPreviewBanner ? 'bg-emerald-500 animate-pulse' : 'bg-gray-300'}`} />
             <h2 className="text-base sm:text-lg font-bold text-gray-900">
-              Live Banner Simulator (Active Storefront View)
+              Live Banner Simulator (Storefront View)
             </h2>
           </div>
           {banners.length > 1 && (
@@ -318,222 +264,224 @@ export function AdminBannersSection() {
         </div>
 
         {/* The Live Banner Simulator Box */}
-        <div className="relative w-full rounded-2xl overflow-hidden shadow-md aspect-[16/9] sm:aspect-[16/8] md:aspect-[16/7] lg:aspect-[16/6.5] max-h-[460px] bg-gray-900 border border-gray-200/80">
-          <img
-            src={currentPreviewBanner.image_url}
-            alt={currentPreviewBanner.title}
-            className="w-full h-full object-cover object-top"
-          />
+        {currentPreviewBanner ? (
+          <div className="relative w-full rounded-2xl overflow-hidden shadow-md aspect-[16/9] sm:aspect-[16/8] md:aspect-[16/7] lg:aspect-[16/6.5] max-h-[460px] bg-gray-900 border border-gray-200/80">
+            <img
+              src={currentPreviewBanner.image_url}
+              alt={currentPreviewBanner.title}
+              className="w-full h-full object-cover object-top"
+              onError={(e) => {
+                (e.target as HTMLElement).style.display = 'none';
+              }}
+            />
 
-          {/* Banner Overlay Info */}
-          <div className="absolute top-4 left-4 flex items-center gap-2">
-            <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-              currentPreviewBanner.status === 'Active' ? 'bg-emerald-500 text-white' : 'bg-gray-600 text-white'
-            }`}>
-              {currentPreviewBanner.status}
-            </span>
-            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-black/60 text-white backdrop-blur-sm">
-              #{currentPreviewBanner.display_order} • {currentPreviewBanner.title}
-            </span>
-          </div>
-
-          <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between pointer-events-none">
-            <div className="bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-xl text-white text-xs font-medium">
-              Link: <span className="text-amber-300 font-bold">{currentPreviewBanner.link_url || '/category/sarees'}</span>
+            {/* Banner Overlay Info */}
+            <div className="absolute top-4 left-4 flex items-center gap-2">
+              <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                currentPreviewBanner.status === 'Active' ? 'bg-emerald-500 text-white' : 'bg-gray-600 text-white'
+              }`}>
+                {currentPreviewBanner.status}
+              </span>
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-black/60 text-white backdrop-blur-sm">
+                #{currentPreviewBanner.display_order} • {currentPreviewBanner.title}
+              </span>
             </div>
-            <div className="flex items-center gap-1.5">
-              {banners.map((_, i) => (
-                <div
-                  key={i}
-                  className={`h-1.5 rounded-full transition-all ${
-                    i === activePreviewIdx ? 'w-6 bg-white' : 'w-1.5 bg-white/40'
-                  }`}
-                />
-              ))}
+
+            <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between pointer-events-none">
+              <div className="bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-xl text-white text-xs font-medium">
+                Link: <span className="text-amber-300 font-bold">{currentPreviewBanner.link_url || '/category/sarees'}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                {banners.map((_, i) => (
+                  <div
+                    key={i}
+                    className={`h-1.5 rounded-full transition-all ${
+                      i === activePreviewIdx ? 'w-6 bg-white' : 'w-1.5 bg-white/40'
+                    }`}
+                  />
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* ─── Current Banners Grid ─── */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-gray-900">
-            Storefront Banners ({banners.length})
-          </h2>
-          <p className="text-xs text-gray-400">
-            Drag, toggle, or edit banner sequence below
-          </p>
-        </div>
-
-        {loading ? (
-          <div className="bg-white rounded-3xl p-16 text-center text-gray-400 border border-gray-100 flex items-center justify-center gap-3">
-            <RefreshCw className="w-5 h-5 animate-spin text-[#698156]" />
-            <span>Loading banners...</span>
-          </div>
-        ) : banners.length === 0 ? (
-          <div className="bg-white rounded-3xl p-16 text-center text-gray-400 border border-dashed border-gray-200 space-y-3">
-            <ImageIcon className="w-12 h-12 text-gray-300 mx-auto" />
-            <p className="text-base font-bold text-gray-700">No ad banners active yet</p>
-            <p className="text-xs text-gray-400 max-w-sm mx-auto">
-              Upload promotional banners or click "Reset Defaults" to load festival templates.
+        ) : (
+          <div className="w-full py-16 rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-center p-6 bg-gray-50/50">
+            <ImageIcon className="w-12 h-12 text-gray-300 mb-3" />
+            <h3 className="text-base font-bold text-gray-700">No Hero Banners Currently Active</h3>
+            <p className="text-xs text-gray-500 max-w-md mt-1 mb-4">
+              The storefront hero banner slider is currently empty. Upload your first custom banner below to publish it.
             </p>
             <button
-              onClick={handleRestoreDefaults}
-              className="mt-2 inline-flex items-center gap-2 px-4 py-2 bg-[#698156] text-white text-xs font-bold rounded-xl"
+              onClick={openAddModal}
+              className="px-4 py-2 bg-[#698156] text-white text-xs font-bold rounded-xl hover:bg-[#546944] transition-all"
             >
-              Restore Default Ad Banners
+              + Upload Banner
             </button>
+          </div>
+        )}
+      </div>
+
+      {/* ─── Storefront Banners List ─── */}
+      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-xs space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-serif font-bold text-gray-900">
+              Uploaded Storefront Banners ({banners.length})
+            </h2>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Drag, toggle, or edit banner sequence below
+            </p>
+          </div>
+          <button
+            onClick={openAddModal}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold transition-all"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Banner</span>
+          </button>
+        </div>
+
+        {banners.length === 0 ? (
+          <div className="py-12 text-center text-gray-400 border border-gray-100 rounded-2xl bg-gray-50/30">
+            <ImageIcon className="w-10 h-10 mx-auto text-gray-300 mb-2" />
+            <p className="text-sm font-semibold text-gray-600">No banners in catalogue</p>
+            <p className="text-xs text-gray-400 mt-0.5">All default banners have been removed. Click &ldquo;Upload New Banner&rdquo; to add one.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {banners.map((banner, idx) => (
-              <motion.div
-                key={banner.id || idx}
-                layout
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`bg-white rounded-3xl border overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col ${
-                  banner.status === 'Active' ? 'border-gray-200' : 'border-gray-200/60 opacity-60'
+            {banners.map((banner, index) => (
+              <div
+                key={banner.id || index}
+                className={`group rounded-2xl overflow-hidden border transition-all ${
+                  banner.status === 'Active'
+                    ? 'border-gray-200 bg-white shadow-xs hover:shadow-md'
+                    : 'border-gray-200 bg-gray-50/60 opacity-75'
                 }`}
               >
                 {/* Banner Thumbnail */}
-                <div className="relative aspect-[16/9] bg-gray-100 overflow-hidden group">
+                <div className="relative aspect-[16/9] bg-gray-100 overflow-hidden">
                   <img
                     src={banner.image_url}
                     alt={banner.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
                   />
-                  
-                  {/* Order & Status Badges */}
-                  <div className="absolute top-3 left-3 flex items-center gap-2">
-                    <span className="w-7 h-7 rounded-xl bg-black/70 backdrop-blur-sm text-white font-black text-xs flex items-center justify-center shadow-xs">
+                  <div className="absolute top-3 left-3 flex items-center gap-1.5">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-black/70 text-white backdrop-blur-sm">
                       #{banner.display_order}
                     </span>
                     <button
                       onClick={() => handleToggleStatus(banner)}
-                      className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-xs cursor-pointer transition-all ${
-                        banner.status === 'Active' ? 'bg-emerald-500 text-white hover:bg-emerald-600' : 'bg-gray-700 text-white hover:bg-gray-800'
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                        banner.status === 'Active'
+                          ? 'bg-emerald-500 text-white hover:bg-emerald-600'
+                          : 'bg-rose-500 text-white hover:bg-rose-600'
                       }`}
                     >
                       {banner.status}
                     </button>
                   </div>
 
-                  {/* Actions overlay on hover */}
                   <div className="absolute top-3 right-3 flex items-center gap-1.5">
                     <button
                       onClick={() => openEditModal(banner)}
-                      className="w-8 h-8 rounded-xl bg-white/90 text-gray-700 hover:text-[#698156] hover:bg-white shadow-sm flex items-center justify-center transition-all"
+                      className="w-7 h-7 rounded-full bg-white/90 hover:bg-white text-gray-700 shadow-sm flex items-center justify-center transition-all"
                       title="Edit banner"
                     >
-                      <Edit3 className="w-4 h-4" />
+                      <Edit3 className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => handleDelete(banner)}
-                      className="w-8 h-8 rounded-xl bg-white/90 text-red-500 hover:text-red-700 hover:bg-white shadow-sm flex items-center justify-center transition-all"
+                      className="w-7 h-7 rounded-full bg-white/90 hover:bg-rose-50 text-rose-600 shadow-sm flex items-center justify-center transition-all"
                       title="Delete banner"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
 
-                {/* Banner Info */}
-                <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                  <div>
-                    <h3 className="font-serif text-base font-bold text-gray-900 line-clamp-1">
-                      {banner.title}
-                    </h3>
-                    {banner.subtitle && (
-                      <p className="text-xs text-gray-500 mt-1 line-clamp-1">
-                        {banner.subtitle}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-1.5 text-xs text-gray-400 mt-2">
-                      <LinkIcon className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                      <span className="truncate text-gray-600 font-mono text-[11px]">
-                        {banner.link_url || '/category/sarees'}
-                      </span>
-                    </div>
+                {/* Banner Meta Info */}
+                <div className="p-4 space-y-2">
+                  <h3 className="font-serif font-bold text-sm text-gray-900 truncate">
+                    {banner.title}
+                  </h3>
+                  {banner.subtitle && (
+                    <p className="text-xs text-gray-500 truncate">{banner.subtitle}</p>
+                  )}
+                  <div className="flex items-center gap-1.5 text-[11px] text-gray-400 pt-1">
+                    <LinkIcon className="w-3 h-3" />
+                    <span className="truncate">{banner.link_url || '/category/sarees'}</span>
                   </div>
 
-                  {/* Move Left / Right Buttons */}
-                  <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
+                  <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1">
                       <button
-                        onClick={() => handleMoveOrder(idx, 'left')}
-                        disabled={idx === 0}
-                        className="px-2.5 py-1.5 rounded-xl border border-gray-200 text-gray-600 text-xs font-bold hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1"
+                        onClick={() => handleMoveOrder(index, 'left')}
+                        disabled={index === 0}
+                        className="px-2 py-1 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:pointer-events-none"
                       >
-                        <MoveLeft className="w-3.5 h-3.5" />
-                        <span>Move Up</span>
+                        ← Move Up
                       </button>
                       <button
-                        onClick={() => handleMoveOrder(idx, 'right')}
-                        disabled={idx === banners.length - 1}
-                        className="px-2.5 py-1.5 rounded-xl border border-gray-200 text-gray-600 text-xs font-bold hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1"
+                        onClick={() => handleMoveOrder(index, 'right')}
+                        disabled={index === banners.length - 1}
+                        className="px-2 py-1 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:pointer-events-none"
                       >
-                        <span>Move Down</span>
-                        <MoveRight className="w-3.5 h-3.5" />
+                        Move Down →
                       </button>
                     </div>
 
                     <button
-                      onClick={() => {
-                        setActivePreviewIdx(idx);
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      }}
-                      className="text-xs font-bold text-[#698156] hover:underline flex items-center gap-1"
+                      onClick={() => setActivePreviewIdx(index)}
+                      className="text-[#698156] font-semibold hover:underline flex items-center gap-1"
                     >
                       <Eye className="w-3.5 h-3.5" />
                       <span>Preview</span>
                     </button>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         )}
       </div>
 
-      {/* ─── Upload / Edit Banner Modal ─── */}
+      {/* ─── Add / Edit Modal ─── */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-100"
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-3xl shadow-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto"
             >
-              {/* Modal Header */}
-              <div className="p-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-md z-10">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-[#698156]/10 text-[#698156] flex items-center justify-center">
-                    <ImageIcon className="w-5 h-5 stroke-[2.2]" />
+              <div className="p-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-xs z-10">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-[#698156]/10 text-[#698156] flex items-center justify-center">
+                    <ImageIcon className="w-4 h-4" />
                   </div>
-                  <h3 className="text-lg font-serif font-bold text-gray-900">
+                  <h3 className="font-serif font-bold text-lg text-gray-900">
                     {form.id ? 'Edit Hero Banner' : 'Upload New Hero Banner'}
                   </h3>
                 </div>
                 <button
                   onClick={() => setIsModalOpen(false)}
-                  className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors"
+                  className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
-              {/* Form Content */}
-              <form onSubmit={handleSave} className="p-6 space-y-6">
-                {/* 1. Image Source Tabs */}
+              <form onSubmit={handleSave} className="p-6 space-y-5">
+                {/* 1. Image Upload Section */}
                 <div className="space-y-3">
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
-                    Banner Graphic *
+                    Banner Photo *
                   </label>
 
-                  <div className="flex rounded-xl bg-gray-100 p-1 gap-1">
+                  <div className="flex items-center gap-2 p-1 bg-gray-100 rounded-xl">
                     <button
                       type="button"
                       onClick={() => setImageSourceTab('upload')}
@@ -542,15 +490,6 @@ export function AdminBannersSection() {
                       }`}
                     >
                       📁 Upload File
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setImageSourceTab('preset')}
-                      className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
-                        imageSourceTab === 'preset' ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-800'
-                      }`}
-                    >
-                      ✨ Presets (3)
                     </button>
                     <button
                       type="button"
@@ -578,48 +517,20 @@ export function AdminBannersSection() {
                       />
                       <UploadCloud className="w-10 h-10 text-gray-400 mx-auto mb-2" />
                       <p className="text-xs font-bold text-gray-800">
-                        {isUploading ? 'Uploading image...' : 'Click to upload banner image'}
+                        {isUploading ? 'Uploading image...' : 'Click to select image from computer'}
                       </p>
                       <p className="text-[11px] text-gray-500 mt-1">
-                        Recommended: <strong>1920 × 600 px</strong> (Desktop) / <strong>1080 × 600 px</strong> (Mobile) • High-res JPG, PNG, WEBP
+                        High-res JPG, PNG, WEBP • Recommended: 1920 × 600 px
                       </p>
                     </div>
                   )}
 
-                  {/* Tab 2: Presets */}
-                  {imageSourceTab === 'preset' && (
-                    <div className="grid grid-cols-3 gap-3">
-                      {PRESET_BANNERS.map((preset, i) => (
-                        <div
-                          key={i}
-                          onClick={() => {
-                            setForm(prev => ({
-                              ...prev,
-                              image_url: preset.image_url,
-                              title: prev.title || preset.title,
-                              subtitle: prev.subtitle || preset.subtitle,
-                              link_url: preset.link_url,
-                            }));
-                          }}
-                          className={`rounded-xl overflow-hidden border-2 cursor-pointer transition-all ${
-                            form.image_url === preset.image_url ? 'border-[#698156] ring-2 ring-[#698156]/30' : 'border-gray-200 hover:border-gray-300'
-                          }`}
-                        >
-                          <img src={preset.image_url} alt={preset.title} className="w-full aspect-[16/9] object-cover" />
-                          <div className="p-2 bg-white">
-                            <p className="text-[10px] font-bold text-gray-800 truncate">{preset.title}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Tab 3: Image URL input */}
+                  {/* Tab 2: Image URL input */}
                   {imageSourceTab === 'url' && (
                     <div className="space-y-1">
                       <input
                         type="url"
-                        placeholder="https://example.com/banner-image.jpg or /banners/..."
+                        placeholder="https://your-domain.com/banner.jpg"
                         value={form.image_url}
                         onChange={e => setForm({ ...form, image_url: e.target.value })}
                         className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs focus:outline-none focus:border-[#698156] focus:ring-1 focus:ring-[#698156]/20 font-mono"
@@ -634,6 +545,9 @@ export function AdminBannersSection() {
                         src={form.image_url}
                         alt="Selected Preview"
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = 'none';
+                        }}
                       />
                       <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-md bg-black/60 text-white text-[10px] font-bold">
                         Image Preview
@@ -650,7 +564,7 @@ export function AdminBannersSection() {
                     </label>
                     <input
                       type="text"
-                      placeholder="e.g. Mega Blockbuster Saree Sale — Up to 80% Off"
+                      placeholder="e.g. Exclusive Festive Silk Saree Collection"
                       value={form.title}
                       onChange={e => setForm({ ...form, title: e.target.value })}
                       required
@@ -664,7 +578,7 @@ export function AdminBannersSection() {
                     </label>
                     <input
                       type="text"
-                      placeholder="e.g. Handcrafted Silk, Banarasi & Kanchipuram Weaves"
+                      placeholder="e.g. Handcrafted pure zari borders and silk weaves"
                       value={form.subtitle}
                       onChange={e => setForm({ ...form, subtitle: e.target.value })}
                       className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs focus:outline-none focus:border-[#698156] focus:ring-1 focus:ring-[#698156]/20"

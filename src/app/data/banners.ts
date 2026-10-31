@@ -12,41 +12,26 @@ export interface AdBanner {
   created_at?: string;
 }
 
-export const DEFAULT_AD_BANNERS: AdBanner[] = [
-  {
-    id: '7cc4b364-dfe6-484e-ad72-26f02d2abf59',
-    title: "Mega Blockbuster Saree Sale — Up to 80% Off",
-    subtitle: "Festive Maroon & Gold Pure Silk Sarees",
-    badge: "MEGA BLOCKBUSTER SALE",
-    image_url: "/banners/festive_saree_sale_banner.jpg",
-    link_url: "/category/sarees",
-    status: 'Active',
-    display_order: 1,
-  },
-  {
-    id: 'd1f7e0ca-16c7-4c52-b078-dd85213e3dca',
-    title: "Flat 50-70% Off Handcrafted Heritage Silk",
-    subtitle: "Royal Emerald & Gold Zari Banarasi Weaves",
-    badge: "ROYAL WEDDING COLLECTION",
-    image_url: "/banners/royal_banarasi_saree_banner.jpg",
-    link_url: "/category/sarees",
-    status: 'Active',
-    display_order: 2,
-  },
-  {
-    id: '4a5a4295-2cb3-49ba-b7d4-21a6a362723f',
-    title: "Festival Boutique Sale — Pure Silk & Organza Sarees",
-    subtitle: "Artisanal Drapes & Handwoven Border Collections",
-    badge: "LIMITED FESTIVAL OFFER",
-    image_url: "/banners/organza_festive_saree_banner.jpg",
-    link_url: "/category/sarees",
-    status: 'Active',
-    display_order: 3,
-  },
-];
+// Strictly NO mock, default, or preset banners. Storefront shows only admin-uploaded banners.
+export const DEFAULT_AD_BANNERS: AdBanner[] = [];
 
 const LOCAL_STORAGE_KEY = 'aanya_ad_banners';
 const LOCAL_STORAGE_INITIALIZED = 'aanya_ad_banners_customized';
+
+// Demo banner signatures to purge if present in legacy browser storage
+const DEMO_TITLES = [
+  'mega blockbuster',
+  'royal banarasi',
+  'festive elegance 2026',
+  'flat 50-70% off',
+  'festival boutique sale'
+];
+
+function isDemoBanner(b: any): boolean {
+  if (!b) return false;
+  const title = (b.title || '').toLowerCase();
+  return DEMO_TITLES.some(d => title.includes(d));
+}
 
 // Persistent cross-tab BroadcastChannel singleton
 let globalBroadcastChannel: BroadcastChannel | null = null;
@@ -79,38 +64,37 @@ export function getSupabaseBannersChannel() {
 export function getLocalBanners(): AdBanner[] {
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
-    const hasCustomized = localStorage.getItem(LOCAL_STORAGE_INITIALIZED) === 'true';
-
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        // If user customized (or deleted all banners), respect the stored array
-        if (hasCustomized) {
-          return parsed;
+        // Purge legacy demo banners
+        const filtered = parsed.filter(b => !isDemoBanner(b) && b.image_url);
+        if (filtered.length !== parsed.length) {
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(filtered));
         }
-        if (parsed.length > 0) {
-          return parsed;
-        }
+        return filtered;
       }
     }
   } catch (e) {
     console.warn('[Banners] Local storage parse error:', e);
   }
-  return DEFAULT_AD_BANNERS;
+  return [];
 }
 
 export function setLocalBanners(banners: AdBanner[]) {
   try {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(banners));
+    // Filter out any accidental demo banners
+    const cleanBanners = (banners || []).filter(b => !isDemoBanner(b));
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(cleanBanners));
     localStorage.setItem(LOCAL_STORAGE_INITIALIZED, 'true');
 
     // 1. Dispatch window event for current window
-    window.dispatchEvent(new CustomEvent('ad-banners-updated', { detail: banners }));
+    window.dispatchEvent(new CustomEvent('ad-banners-updated', { detail: cleanBanners }));
 
     // 2. BroadcastChannel for instant cross-tab sync
     const ch = getBannersChannel();
     if (ch) {
-      ch.postMessage({ type: 'BANNERS_UPDATED', banners });
+      ch.postMessage({ type: 'BANNERS_UPDATED', banners: cleanBanners });
     }
 
     // 3. Supabase realtime channel broadcast
@@ -120,7 +104,7 @@ export function setLocalBanners(banners: AdBanner[]) {
         rt.send({
           type: 'broadcast',
           event: 'banners_updated',
-          payload: { banners },
+          payload: { banners: cleanBanners },
         });
       }
     } catch {}
@@ -130,10 +114,10 @@ export function setLocalBanners(banners: AdBanner[]) {
 }
 
 /**
- * Fetch all active banners for the storefront
+ * Fetch all active banners for the storefront exclusively from Supabase
  */
 export async function fetchActiveBanners(): Promise<AdBanner[]> {
-  // 1. Try Supabase direct select first (fastest, client-side, zero latency)
+  // 1. Query Supabase direct select
   try {
     const { data, error } = await supabase
       .from('banners')
@@ -141,10 +125,11 @@ export async function fetchActiveBanners(): Promise<AdBanner[]> {
       .eq('status', 'Active')
       .order('display_order', { ascending: true });
 
-    if (!error && Array.isArray(data) && data.length > 0) {
-      const formatted: AdBanner[] = data.map((b: any, index: number) => ({
+    if (!error && Array.isArray(data)) {
+      const valid = data.filter(b => !isDemoBanner(b) && b.image_url);
+      const formatted: AdBanner[] = valid.map((b: any, index: number) => ({
         id: b.id,
-        title: b.title || 'Festive Saree Sale',
+        title: b.title || 'Special Collection',
         subtitle: b.subtitle || '',
         badge: b.badge || '',
         image_url: b.image_url || b.image || '',
@@ -156,46 +141,30 @@ export async function fetchActiveBanners(): Promise<AdBanner[]> {
       setLocalBanners(formatted);
       return formatted;
     }
-  } catch (e) {
-    // Ignore direct error and try fallback
-  }
+  } catch (e) {}
 
   // 2. Try backend API endpoint
   try {
     const res = await fetch('/api/banners?active=true', { cache: 'no-store' });
     if (res.ok) {
       const json = await res.json();
-      if (json.success && Array.isArray(json.data) && json.data.length > 0) {
-        const list: AdBanner[] = json.data;
-        setLocalBanners(list);
-        return list;
+      if (json.success && Array.isArray(json.data)) {
+        const valid = json.data.filter((b: any) => !isDemoBanner(b) && b.image_url);
+        setLocalBanners(valid);
+        return valid;
       }
     }
-  } catch (apiErr) {
-    // API not responding
-  }
+  } catch (apiErr) {}
 
-  return getLocalBanners().filter(b => b.status === 'Active');
+  // Return clean local cache or empty array
+  return getLocalBanners().filter(b => b.status === 'Active' && !isDemoBanner(b));
 }
 
 /**
  * Fetch all banners for Admin dashboard
  */
 export async function fetchAllBannersAdmin(): Promise<AdBanner[]> {
-  // 1. Try backend API endpoint
-  try {
-    const res = await fetch('/api/banners', { cache: 'no-store' });
-    if (res.ok) {
-      const json = await res.json();
-      if (json.success && Array.isArray(json.data)) {
-        const list: AdBanner[] = json.data;
-        setLocalBanners(list);
-        return list;
-      }
-    }
-  } catch (apiErr) {}
-
-  // 2. Fallback to Supabase direct select
+  // 1. Try Supabase direct select
   try {
     const { data, error } = await supabase
       .from('banners')
@@ -203,7 +172,8 @@ export async function fetchAllBannersAdmin(): Promise<AdBanner[]> {
       .order('display_order', { ascending: true });
 
     if (!error && Array.isArray(data)) {
-      const formatted: AdBanner[] = data.map((b: any, index: number) => ({
+      const valid = data.filter(b => !isDemoBanner(b));
+      const formatted: AdBanner[] = valid.map((b: any, index: number) => ({
         id: b.id,
         title: b.title || 'Untitled Banner',
         subtitle: b.subtitle || '',
@@ -218,10 +188,23 @@ export async function fetchAllBannersAdmin(): Promise<AdBanner[]> {
       return formatted;
     }
   } catch (e) {
-    console.warn('[Banners Admin] Fetch error:', e);
+    console.warn('[Banners Admin] Supabase query error:', e);
   }
 
-  return getLocalBanners();
+  // 2. Try backend API endpoint
+  try {
+    const res = await fetch('/api/banners', { cache: 'no-store' });
+    if (res.ok) {
+      const json = await res.json();
+      if (json.success && Array.isArray(json.data)) {
+        const valid = json.data.filter((b: any) => !isDemoBanner(b));
+        setLocalBanners(valid);
+        return valid;
+      }
+    }
+  } catch (apiErr) {}
+
+  return getLocalBanners().filter(b => !isDemoBanner(b));
 }
 
 /**
@@ -252,7 +235,7 @@ export async function saveBanner(banner: Partial<AdBanner>): Promise<AdBanner> {
       title: banner.title || 'New Ad Banner',
       subtitle: banner.subtitle || '',
       badge: banner.badge || '',
-      image_url: banner.image_url || '/banners/festive_saree_sale_banner.jpg',
+      image_url: banner.image_url || '',
       link_url: banner.link_url || '/category/sarees',
       status: banner.status || 'Active',
       display_order: newOrder,
@@ -263,31 +246,12 @@ export async function saveBanner(banner: Partial<AdBanner>): Promise<AdBanner> {
 
   setLocalBanners(current);
 
-  // 1. Persist via backend API (bypasses RLS with service role)
-  try {
-    const res = await fetch('/api/banners', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updated),
-    });
-    if (res.ok) {
-      const json = await res.json();
-      if (json.success && json.data?.id) {
-        updated.id = json.data.id;
-        if (json.data.image_url) updated.image_url = json.data.image_url;
-        const freshList = current.map(b => b === updated ? { ...b, id: json.data.id, image_url: json.data.image_url || b.image_url } : b);
-        setLocalBanners(freshList);
-        return updated;
-      }
-    }
-  } catch (apiErr) {
-    console.warn('[Banners] API save failed, attempting direct Supabase:', apiErr);
-  }
-
-  // 2. Direct Supabase save fallback
+  // 1. Direct Supabase save (primary)
   try {
     const payload: any = {
       title: updated.title,
+      subtitle: updated.subtitle || '',
+      badge: updated.badge || '',
       image_url: updated.image_url,
       link_url: updated.link_url || '/category/sarees',
       status: updated.status,
@@ -305,8 +269,26 @@ export async function saveBanner(banner: Partial<AdBanner>): Promise<AdBanner> {
       }
     }
   } catch (err) {
-    console.warn('[Banners] Direct Supabase error:', err);
+    console.warn('[Banners] Direct Supabase save error:', err);
   }
+
+  // 2. Persist via backend API fallback
+  try {
+    const res = await fetch('/api/banners', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updated),
+    });
+    if (res.ok) {
+      const json = await res.json();
+      if (json.success && json.data?.id) {
+        updated.id = json.data.id;
+        if (json.data.image_url) updated.image_url = json.data.image_url;
+        const freshList = current.map(b => b === updated ? { ...b, id: json.data.id, image_url: json.data.image_url || b.image_url } : b);
+        setLocalBanners(freshList);
+      }
+    }
+  } catch (apiErr) {}
 
   return updated;
 }
@@ -319,26 +301,7 @@ export async function deleteBanner(id: string, extra?: { image_url?: string; tit
   const current = getLocalBanners().filter(b => b.id !== id && (!extra?.image_url || b.image_url !== extra.image_url));
   setLocalBanners(current);
 
-  // 2. Delete permanently from backend / Supabase
-  try {
-    const params = new URLSearchParams({ id });
-    if (extra?.image_url) params.set('image_url', extra.image_url);
-    if (extra?.title) params.set('title', extra.title);
-
-    const res = await fetch(`/api/banners?${params.toString()}`, {
-      method: 'DELETE',
-    });
-    if (res.ok) {
-      const json = await res.json();
-      if (json.success) {
-        return true;
-      }
-    }
-  } catch (apiErr) {
-    console.warn('[Banners] API delete failed, attempting direct:', apiErr);
-  }
-
-  // 3. Direct Supabase delete fallback (if valid UUID)
+  // 2. Direct Supabase delete
   const isUuid = !!(id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id));
   if (isUuid) {
     try {
@@ -350,37 +313,28 @@ export async function deleteBanner(id: string, extra?: { image_url?: string; tit
     try {
       await supabase.from('banners').delete().eq('image_url', extra.image_url);
     } catch (e) {}
+  } else if (extra?.title) {
+    try {
+      await supabase.from('banners').delete().eq('title', extra.title);
+    } catch (e) {}
   }
+
+  // 3. Delete via backend API
+  try {
+    const params = new URLSearchParams({ id });
+    if (extra?.image_url) params.set('image_url', extra.image_url);
+    if (extra?.title) params.set('title', extra.title);
+
+    await fetch(`/api/banners?${params.toString()}`, { method: 'DELETE' });
+  } catch (apiErr) {}
 
   return true;
 }
 
 /**
- * Reset / Seed default ad banners
- */
-export async function resetBannersToDefault(): Promise<AdBanner[]> {
-  setLocalBanners(DEFAULT_AD_BANNERS);
-
-  try {
-    const res = await fetch('/api/banners/reset', { method: 'POST' });
-    if (res.ok) {
-      const json = await res.json();
-      if (json.success && json.data) {
-        setLocalBanners(json.data);
-        return json.data;
-      }
-    }
-  } catch (e) {}
-
-  return DEFAULT_AD_BANNERS;
-}
-
-/**
  * Upload banner image directly to Supabase Storage products bucket
- * Returns permanent public URL, with optimized local canvas fallback.
  */
 export async function uploadBannerImage(file: File): Promise<string> {
-  // 1. Upload to Supabase Storage products bucket
   try {
     const fileExt = file.name.split('.').pop() || 'jpg';
     const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
@@ -403,7 +357,7 @@ export async function uploadBannerImage(file: File): Promise<string> {
     console.warn('[Banners] Direct Supabase storage upload failed, falling back:', err);
   }
 
-  // 2. High-performance Canvas Compression fallback
+  // High-performance Canvas Compression fallback
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {

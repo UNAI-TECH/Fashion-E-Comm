@@ -3,36 +3,6 @@ import { supabase } from '../config/supabase.js';
 
 const router = express.Router();
 
-export const DEFAULT_BANNERS = [
-  {
-    title: 'Mega Blockbuster Saree Sale — Up to 80% Off',
-    subtitle: 'Festive Maroon & Gold Pure Silk Sarees',
-    badge: 'MEGA BLOCKBUSTER SALE',
-    image_url: '/banners/festive_saree_sale_banner.jpg',
-    link_url: '/category/sarees',
-    status: 'Active',
-    display_order: 1,
-  },
-  {
-    title: 'Flat 50-70% Off Handcrafted Heritage Silk',
-    subtitle: 'Royal Emerald & Gold Zari Banarasi Weaves',
-    badge: 'ROYAL WEDDING COLLECTION',
-    image_url: '/banners/royal_banarasi_saree_banner.jpg',
-    link_url: '/category/sarees',
-    status: 'Active',
-    display_order: 2,
-  },
-  {
-    title: 'Festival Boutique Sale — Pure Silk & Organza Sarees',
-    subtitle: 'Artisanal Drapes & Handwoven Border Collections',
-    badge: 'LIMITED FESTIVAL OFFER',
-    image_url: '/banners/organza_festive_saree_banner.jpg',
-    link_url: '/category/sarees',
-    status: 'Active',
-    display_order: 3,
-  },
-];
-
 // GET /api/banners
 router.get('/', async (req, res) => {
   try {
@@ -43,12 +13,12 @@ router.get('/', async (req, res) => {
     const { data, error } = await query;
     if (error) {
       console.warn('Supabase banners query warning:', error.message);
-      return res.json({ success: true, data: DEFAULT_BANNERS });
+      return res.json({ success: true, data: [] });
     }
-    res.json({ success: true, data: data && data.length > 0 ? data : DEFAULT_BANNERS });
+    res.json({ success: true, data: Array.isArray(data) ? data : [] });
   } catch (err) {
-    console.warn('Banner route caught error, returning defaults:', err.message);
-    res.json({ success: true, data: DEFAULT_BANNERS });
+    console.warn('Banner route caught error, returning empty list:', err.message);
+    res.json({ success: true, data: [] });
   }
 });
 
@@ -79,6 +49,8 @@ router.post('/', async (req, res) => {
 
     const payload = {
       title: banner.title || 'Untitled Banner',
+      subtitle: banner.subtitle || '',
+      badge: banner.badge || '',
       image_url: imageUrl,
       link_url: banner.link_url || '/category/sarees',
       status: banner.status || 'Active',
@@ -101,59 +73,17 @@ router.post('/', async (req, res) => {
   }
 });
 
-// DELETE /api/banners/:id or /api/banners?id=...
-const handleDeleteBanner = async (req, res) => {
+// DELETE /api/banners/:id
+router.delete('/:id', async (req, res) => {
   try {
-    const id = req.params.id || req.query.id;
-    const imageUrl = req.query.image_url || '';
-    const title = req.query.title || '';
-
-    if (!id && !imageUrl && !title) {
-      return res.status(400).json({ success: false, error: 'Banner ID, image_url, or title required' });
-    }
-
-    const isUuid = !!(id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id));
+    const { id } = req.params;
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     if (isUuid) {
-      const { error } = await supabase.from('banners').delete().eq('id', id);
-      if (!error) return res.json({ success: true, id });
+      await supabase.from('banners').delete().eq('id', id);
+    } else {
+      await supabase.from('banners').delete().eq('title', id);
     }
-
-    if (imageUrl) {
-      await supabase.from('banners').delete().eq('image_url', imageUrl);
-    }
-    if (title) {
-      await supabase.from('banners').delete().eq('title', title);
-    }
-    if (id === 'banner_mega_saree_sale') {
-      await supabase.from('banners').delete().ilike('image_url', '%festive_saree_sale_banner%');
-    } else if (id === 'banner_royal_banarasi') {
-      await supabase.from('banners').delete().ilike('image_url', '%royal_banarasi_saree_banner%');
-    } else if (id === 'banner_organza_boutique') {
-      await supabase.from('banners').delete().ilike('image_url', '%organza_festive_saree_banner%');
-    }
-
-    res.json({ success: true, id });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-};
-router.delete('/:id', handleDeleteBanner);
-router.delete('/', handleDeleteBanner);
-
-// POST /api/banners/reset
-router.post('/reset', async (req, res) => {
-  try {
-    await supabase.from('banners').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    const rows = DEFAULT_BANNERS.map(b => ({
-      title: b.title,
-      image_url: b.image_url,
-      link_url: b.link_url,
-      status: b.status,
-      display_order: b.display_order
-    }));
-    const { data, error } = await supabase.from('banners').insert(rows).select();
-    if (error) throw error;
-    res.json({ success: true, data });
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

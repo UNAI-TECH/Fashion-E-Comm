@@ -1,38 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
 
-const DEFAULT_BANNERS = [
-  {
-    id: '4b9dbd0e-e31e-4d26-9a5a-0d204aa26175',
-    title: 'Royal Banarasi Collection',
-    subtitle: 'Handwoven pure silk sarees crafted by master weavers',
-    badge: 'Handcrafted',
-    image_url: '/saree_category.webp',
-    link_url: '/category/sarees',
-    status: 'Active',
-    display_order: 1,
-  },
-  {
-    id: '58c4563d-4b9a-4271-adca-f3e8356fa680',
-    title: 'Festive Elegance 2026',
-    subtitle: 'Handcrafted drapes & artisanal saree collections',
-    badge: 'Festive Offer',
-    image_url: '/lehenga_category_pink.webp',
-    link_url: '/category/sarees',
-    status: 'Active',
-    display_order: 2,
-  },
-  {
-    id: '7cc4b364-dfe6-484e-ad72-26f02d2abf59',
-    title: 'Mega Blockbuster Saree Sale — Up to 80% Off',
-    subtitle: 'Festive Maroon & Gold Pure Silk Sarees',
-    badge: 'MEGA BLOCKBUSTER SALE',
-    image_url: '/banners/festive_saree_sale_banner.jpg',
-    link_url: '/category/sarees',
-    status: 'Active',
-    display_order: 3,
-  },
-];
-
 export default async function handler(req, res) {
   // Always allow CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -44,7 +11,7 @@ export default async function handler(req, res) {
   }
 
   const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://zofmwjuakybpuoiqzktm.supabase.co';
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvZm13anVha3licHVvaXF6a3RtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3NTE4MTUsImV4cCI6MjA5NDMyNzgxNX0.rI_Fvxo4k5CKvrPPu8ANBj5ignxl0X1mbOIJkjUTVW8';
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   try {
@@ -55,13 +22,14 @@ export default async function handler(req, res) {
           query = query.eq('status', 'Active');
         }
         const { data, error } = await query;
-        if (!error && data && data.length > 0) {
+        if (!error && Array.isArray(data)) {
+          // Never use default/mock fallback. Return genuine DB data.
           return res.status(200).json({ success: true, data });
         }
       } catch (dbErr) {
-        console.warn('Supabase banners query fallback:', dbErr);
+        console.warn('Supabase banners query warning:', dbErr);
       }
-      return res.status(200).json({ success: true, data: DEFAULT_BANNERS });
+      return res.status(200).json({ success: true, data: [] });
     }
 
     if (req.method === 'POST') {
@@ -70,7 +38,7 @@ export default async function handler(req, res) {
         title: banner.title || 'Untitled Banner',
         subtitle: banner.subtitle || '',
         badge: banner.badge || '',
-        image_url: banner.image_url || '/banners/festive_saree_sale_banner.jpg',
+        image_url: banner.image_url || '',
         link_url: banner.link_url || '/category/sarees',
         status: banner.status || 'Active',
         display_order: typeof banner.display_order === 'number' ? banner.display_order : 1,
@@ -98,14 +66,12 @@ export default async function handler(req, res) {
           await supabase.from('banners').delete().eq('title', id);
         }
       }
-      return res.status(200).json({ success: true, id });
+      return res.status(200).json({ success: true });
     }
 
-    return res.status(200).json({ success: true, data: DEFAULT_BANNERS });
-  } catch (err) {
-    console.error('Banner handler error:', err);
-    // Return default banners with 200 so storefront never shows 500 error in console
-    return res.status(200).json({ success: true, data: DEFAULT_BANNERS });
+    return res.status(405).json({ success: false, message: 'Method not allowed' });
+  } catch (error) {
+    console.error('API /api/banners error:', error);
+    return res.status(500).json({ success: false, error: error.message });
   }
 }
-

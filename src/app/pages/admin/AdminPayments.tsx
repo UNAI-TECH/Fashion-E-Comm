@@ -14,173 +14,228 @@ import {
   AlertCircle,
   ExternalLink,
   RefreshCw,
-  X
+  X,
+  Eye,
+  Filter,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  ShieldCheck,
+  XCircle,
+  RotateCcw
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { toast } from 'sonner';
 
-interface PaymentTransaction {
+export interface PaymentTransaction {
   id: string;
   order_id: string;
-  customer_name?: string;
-  customer_phone?: string;
-  method: string;
+  razorpay_order_id?: string;
+  razorpay_payment_id?: string;
   gateway_txn_id?: string;
   payer_vpa?: string;
+  customer_name: string;
+  customer_email?: string;
+  customer_phone?: string;
+  payment_method: string;
   amount: number;
-  status: string;
+  currency: string;
+  status: 'Paid' | 'Pending' | 'Failed' | 'Refunded' | string;
   date: string;
+  time: string;
   raw_date: string;
-}
-
-interface PayoutRecord {
-  id: string;
-  payout_id: string;
-  gross_amount: number;
-  fee_amount: number;
-  tax_amount: number;
-  net_amount: number;
-  bank_account_last4?: string;
-  settlement_utr?: string;
-  status: string;
-  settled_at: string;
+  gateway_response?: any;
+  metadata?: any;
+  shipping_address?: any;
 }
 
 export function AdminPayments() {
-  const [activeTab, setActiveTab] = useState<'transactions' | 'payouts'>('transactions');
   const [transactions, setTransactions] = useState<PaymentTransaction[]>([]);
-  const [payouts, setPayouts] = useState<PayoutRecord[]>([]);
-  const [stats, setStats] = useState({ 
-    totalRevenue: 0, 
-    gpayRevenue: 0,
-    totalPayouts: 0,
-    pendingSettlements: 0 
-  });
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [methodFilter, setMethodFilter] = useState<string>('all');
+  const [dateRangeFilter, setDateRangeFilter] = useState<string>('all');
+  const [selectedTxn, setSelectedTxn] = useState<PaymentTransaction | null>(null);
 
-  // Record Payout Modal State
-  const [showPayoutModal, setShowPayoutModal] = useState(false);
-  const [isSubmittingPayout, setIsSubmittingPayout] = useState(false);
-  const [newPayout, setNewPayout] = useState({
-    gross_amount: '',
-    fee_amount: '0',
-    tax_amount: '0',
-    bank_account_last4: '4589',
-    settlement_utr: '',
-    status: 'Processed'
-  });
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
+  // Real-time subscription and initial fetch
   useEffect(() => {
-    loadAllPaymentData();
+    loadTransactions();
+
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(() => {
+      loadTransactions(false);
+    }, 30000);
+
+    // Supabase Real-time listener on payments and orders
+    const payChannel = supabase
+      .channel('admin-payments-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => {
+        loadTransactions(false);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        loadTransactions(false);
+      })
+      .subscribe();
+
+    return () => {
+      clearInterval(interval);
+      supabase.removeChannel(payChannel);
+    };
   }, []);
 
-  const loadAllPaymentData = async () => {
+  const loadTransactions = async (showLoading = true) => {
+    if (showLoading) setIsLoading(true);
+    else setIsRefreshing(true);
+
     try {
-      // 1. Fetch payments table
+      // 1. Fetch real payments records from public.payments
       const { data: paymentsData, error: paymentsError } = await supabase
         .from('payments')
         .select('*')
         .order('created_at', { ascending: false });
 
-      // 2. Fetch orders table as fallback/supplement
+      // 2. Fetch orders to join address, customer info, and any orders that placed payments
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
-        .select('id, total_amount, payment_method, payment_status, created_at, customer_name, customer_phone')
+        .select(`
+          id,
+          user_id,
+          total_amount,
+          payment_method,
+          payment_status,
+          status,
+          created_at,
+          razorpay_order_id,
+          razorpay_payment_id,
+          shipping_address,
+          payment_result
+        `)
         .order('created_at', { ascending: false });
 
-      // 3. Fetch payouts table
-      const { data: payoutsData, error: payoutsError } = await supabase
-        .from('payouts')
-        .select('*')
-        .order('settled_at', { ascending: false });
-
-      // Build consolidated transactions strictly from real data
-      let formattedTxns: PaymentTransaction[] = [];
-
-      if (paymentsData && paymentsData.length > 0) {
-        formattedTxns = paymentsData.map((p: any) => ({
-          id: p.id,
-          order_id: p.order_id || 'N/A',
-          customer_name: p.customer_name || 'Customer',
-          customer_phone: p.customer_phone || '',
-          method: p.payment_method || 'Razorpay',
-          gateway_txn_id: p.gateway_txn_id || p.payment_id || (p.metadata?.utr || '—'),
-          payer_vpa: p.payer_vpa || 'Razorpay Online',
-          amount: Number(p.amount || 0),
-          status: p.status || 'Success',
-          raw_date: p.created_at,
-          date: new Date(p.created_at).toLocaleString('en-IN', {
-            day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
-          }),
-        }));
-      } else if (ordersData && ordersData.length > 0) {
-        formattedTxns = ordersData
-          .filter((o: any) => o.payment_status === 'Completed' || o.payment_status === 'Success' || o.payment_status === 'Failed')
-          .map((o: any) => ({
-            id: o.razorpay_payment_id || `RZP-${o.id.substring(0, 10)}`,
-            order_id: o.id,
-            customer_name: o.customer_name || 'Customer',
-            customer_phone: o.customer_phone || '',
-            method: 'Razorpay (UPI, Cards, NetBanking)',
-            gateway_txn_id: o.razorpay_payment_id || o.razorpay_order_id || '—',
-            payer_vpa: 'Razorpay Checkout',
-            amount: Number(o.total_amount || 0),
-            status: o.payment_status === 'Completed' ? 'Success' : o.payment_status,
-            raw_date: o.created_at,
-            date: new Date(o.created_at).toLocaleString('en-IN', {
-              day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
-            }),
-          }));
-      }
-
-      setTransactions(formattedTxns);
-
-      // Payouts list
-      if (payoutsData && payoutsData.length > 0) {
-        setPayouts(payoutsData.map((p: any) => ({
-          id: p.id,
-          payout_id: p.payout_id || `PO-${p.id.slice(0, 8)}`,
-          gross_amount: Number(p.gross_amount || 0),
-          fee_amount: Number(p.fee_amount || 0),
-          tax_amount: Number(p.tax_amount || 0),
-          net_amount: Number(p.net_amount || p.gross_amount || 0),
-          bank_account_last4: p.bank_account_last4 || '4589',
-          settlement_utr: p.settlement_utr || '—',
-          status: p.status || 'Processed',
-          settled_at: new Date(p.settled_at || p.created_at).toLocaleString('en-IN', {
-            day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
-          })
-        })));
-      }
-
-      // Calculate aggregated stats strictly from real data
-      const totalRev = formattedTxns
-        .filter(t => t.status === 'Completed' || t.status === 'Success')
-        .reduce((sum, t) => sum + t.amount, 0);
-
-      const razorpayRev = formattedTxns
-        .filter(t => (t.status === 'Completed' || t.status === 'Success'))
-        .reduce((sum, t) => sum + t.amount, 0);
-
-      const pendingSet = formattedTxns
-        .filter(t => t.status === 'Initiated' || t.status === 'Pending')
-        .reduce((sum, t) => sum + t.amount, 0);
-
-      const totalPay = (payoutsData || []).reduce((sum: number, p: any) => sum + Number(p.net_amount || p.gross_amount || 0), 0);
-
-      setStats({
-        totalRevenue: totalRev,
-        gpayRevenue: razorpayRev,
-        totalPayouts: totalPay,
-        pendingSettlements: pendingSet
+      const ordersMap = new Map<string, any>();
+      (ordersData || []).forEach((o: any) => {
+        ordersMap.set(o.id, o);
+        if (o.razorpay_order_id) ordersMap.set(o.razorpay_order_id, o);
       });
 
-    } catch (error) {
-      console.error('Error loading payment and payout data:', error);
-      toast.error('Failed to load payment transactions');
+      // Build unified transaction list
+      const txnsList: PaymentTransaction[] = [];
+      const seenPaymentKeys = new Set<string>();
+
+      // A. Process records from public.payments
+      if (paymentsData && paymentsData.length > 0) {
+        paymentsData.forEach((p: any) => {
+          const linkedOrder = ordersMap.get(p.order_id) || (p.razorpay_order_id ? ordersMap.get(p.razorpay_order_id) : null);
+          const shipAddr = linkedOrder?.shipping_address || {};
+
+          const customerName = p.customer_name || shipAddr.full_name || [shipAddr.first_name, shipAddr.last_name].filter(Boolean).join(' ') || 'Customer';
+          const customerPhone = p.customer_phone || shipAddr.phone || '';
+          const customerEmail = shipAddr.email || p.metadata?.customer_email || '';
+
+          const createdDate = new Date(p.created_at || linkedOrder?.created_at || Date.now());
+
+          // Standardize status
+          let cleanStatus: 'Paid' | 'Pending' | 'Failed' | 'Refunded' = 'Pending';
+          const rawStatus = (p.status || linkedOrder?.payment_status || 'Pending').toLowerCase();
+          if (rawStatus === 'paid' || rawStatus === 'success' || rawStatus === 'completed' || rawStatus === 'captured') {
+            cleanStatus = 'Paid';
+          } else if (rawStatus === 'failed') {
+            cleanStatus = 'Failed';
+          } else if (rawStatus === 'refunded') {
+            cleanStatus = 'Refunded';
+          }
+
+          const rzpPayId = p.razorpay_payment_id || p.payment_id || p.gateway_txn_id || linkedOrder?.razorpay_payment_id;
+          const rzpOrdId = p.razorpay_order_id || linkedOrder?.razorpay_order_id;
+
+          const txnItem: PaymentTransaction = {
+            id: p.id,
+            order_id: p.order_id || linkedOrder?.id || 'N/A',
+            razorpay_order_id: rzpOrdId || undefined,
+            razorpay_payment_id: rzpPayId || undefined,
+            gateway_txn_id: rzpPayId || '—',
+            payer_vpa: p.payer_vpa || (p.method === 'UPI' ? 'UPI' : 'Razorpay'),
+            customer_name: customerName,
+            customer_email: customerEmail,
+            customer_phone: customerPhone,
+            payment_method: p.payment_method || p.method || linkedOrder?.payment_method || 'Razorpay',
+            amount: Number(p.amount || linkedOrder?.total_amount || 0),
+            currency: p.currency || 'INR',
+            status: cleanStatus,
+            date: createdDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+            time: createdDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }),
+            raw_date: p.created_at || linkedOrder?.created_at,
+            gateway_response: p.gateway_response || p.metadata,
+            shipping_address: shipAddr
+          };
+
+          const dedupKey = `${txnItem.order_id}_${txnItem.razorpay_payment_id || txnItem.id}`;
+          seenPaymentKeys.add(dedupKey);
+          seenPaymentKeys.add(txnItem.order_id);
+          txnsList.push(txnItem);
+        });
+      }
+
+      // B. Process orders that don't have a payments row yet (e.g. COD or pre-existing orders)
+      if (ordersData && ordersData.length > 0) {
+        ordersData.forEach((o: any) => {
+          if (!seenPaymentKeys.has(o.id)) {
+            const shipAddr = o.shipping_address || {};
+            const customerName = shipAddr.full_name || [shipAddr.first_name, shipAddr.last_name].filter(Boolean).join(' ') || 'Customer';
+            const customerPhone = shipAddr.phone || '';
+            const customerEmail = shipAddr.email || '';
+
+            const createdDate = new Date(o.created_at || Date.now());
+
+            let cleanStatus: 'Paid' | 'Pending' | 'Failed' | 'Refunded' = 'Pending';
+            const rawStatus = (o.payment_status || 'Pending').toLowerCase();
+            if (rawStatus === 'paid' || rawStatus === 'success' || rawStatus === 'completed') {
+              cleanStatus = 'Paid';
+            } else if (rawStatus === 'failed') {
+              cleanStatus = 'Failed';
+            } else if (rawStatus === 'refunded') {
+              cleanStatus = 'Refunded';
+            }
+
+            const txnItem: PaymentTransaction = {
+              id: `TXN-${o.id}`,
+              order_id: o.id,
+              razorpay_order_id: o.razorpay_order_id || undefined,
+              razorpay_payment_id: o.razorpay_payment_id || undefined,
+              gateway_txn_id: o.razorpay_payment_id || '—',
+              payer_vpa: o.payment_method === 'COD' ? 'Cash on Delivery' : 'Online Payment',
+              customer_name: customerName,
+              customer_email: customerEmail,
+              customer_phone: customerPhone,
+              payment_method: o.payment_method || (o.razorpay_order_id ? 'Razorpay' : 'COD'),
+              amount: Number(o.total_amount || 0),
+              currency: 'INR',
+              status: cleanStatus,
+              date: createdDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+              time: createdDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }),
+              raw_date: o.created_at,
+              gateway_response: o.payment_result,
+              shipping_address: shipAddr
+            };
+
+            txnsList.push(txnItem);
+          }
+        });
+      }
+
+      // Sort newest transactions first
+      txnsList.sort((a, b) => new Date(b.raw_date).getTime() - new Date(a.raw_date).getTime());
+
+      setTransactions(txnsList);
+    } catch (error: any) {
+      console.error('Error loading payments:', error);
+      toast.error('Failed to load payments: ' + (error?.message || ''));
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -188,154 +243,142 @@ export function AdminPayments() {
   };
 
   const handleRefresh = () => {
-    setIsRefreshing(true);
-    loadAllPaymentData();
+    loadTransactions(false);
+    toast.info('Refreshing payment records...');
   };
 
-  const handleCreatePayout = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const gross = parseFloat(newPayout.gross_amount);
-    if (!gross || gross <= 0) {
-      toast.error('Please enter a valid payout amount');
-      return;
+  // Filter calculations
+  const filteredTransactions = transactions.filter(t => {
+    // 1. Search Query Filter
+    const searchLower = searchQuery.trim().toLowerCase();
+    const matchesSearch = !searchLower ||
+      t.order_id.toLowerCase().includes(searchLower) ||
+      (t.razorpay_payment_id && t.razorpay_payment_id.toLowerCase().includes(searchLower)) ||
+      (t.razorpay_order_id && t.razorpay_order_id.toLowerCase().includes(searchLower)) ||
+      t.customer_name.toLowerCase().includes(searchLower) ||
+      (t.customer_phone && t.customer_phone.includes(searchLower)) ||
+      (t.customer_email && t.customer_email.toLowerCase().includes(searchLower));
+
+    // 2. Status Filter
+    const matchesStatus = statusFilter === 'all' || t.status.toLowerCase() === statusFilter.toLowerCase();
+
+    // 3. Method Filter
+    let matchesMethod = true;
+    if (methodFilter !== 'all') {
+      const m = t.payment_method.toLowerCase();
+      if (methodFilter === 'razorpay') matchesMethod = m.includes('razorpay') || m.includes('online');
+      else if (methodFilter === 'upi') matchesMethod = m.includes('upi');
+      else if (methodFilter === 'cod') matchesMethod = m.includes('cod') || m.includes('cash');
+      else if (methodFilter === 'cards') matchesMethod = m.includes('card');
     }
 
-    const fee = parseFloat(newPayout.fee_amount) || 0;
-    const tax = parseFloat(newPayout.tax_amount) || 0;
-    const net = gross - fee - tax;
-
-    setIsSubmittingPayout(true);
-    try {
-      const payoutId = `PO-${Date.now().toString().slice(-8)}`;
-      const { error } = await supabase
-        .from('payouts')
-        .insert([{
-          payout_id: payoutId,
-          gross_amount: gross,
-          fee_amount: fee,
-          tax_amount: tax,
-          net_amount: net,
-          currency: 'INR',
-          bank_account_last4: newPayout.bank_account_last4 || '4589',
-          settlement_utr: newPayout.settlement_utr || `UTR${Date.now().toString().slice(-10)}`,
-          status: newPayout.status,
-          settled_at: new Date().toISOString()
-        }]);
-
-      if (error) throw error;
-
-      toast.success('Payout record created successfully!');
-      setShowPayoutModal(false);
-      setNewPayout({
-        gross_amount: '',
-        fee_amount: '0',
-        tax_amount: '0',
-        bank_account_last4: '4589',
-        settlement_utr: '',
-        status: 'Processed'
-      });
-      loadAllPaymentData();
-    } catch (err: any) {
-      console.error('Payout insertion error:', err);
-      toast.error(`Failed to record payout: ${err.message || 'Unknown error'}`);
-    } finally {
-      setIsSubmittingPayout(false);
+    // 4. Date Range Filter
+    let matchesDate = true;
+    if (dateRangeFilter !== 'all') {
+      const txnTime = new Date(t.raw_date).getTime();
+      const now = Date.now();
+      if (dateRangeFilter === 'today') {
+        const todayStart = new Date().setHours(0, 0, 0, 0);
+        matchesDate = txnTime >= todayStart;
+      } else if (dateRangeFilter === '7days') {
+        matchesDate = txnTime >= now - 7 * 24 * 60 * 60 * 1000;
+      } else if (dateRangeFilter === '30days') {
+        matchesDate = txnTime >= now - 30 * 24 * 60 * 60 * 1000;
+      }
     }
-  };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
+    return matchesSearch && matchesStatus && matchesMethod && matchesDate;
+  });
+
+  // Calculate Authoritative Summary Figures strictly from actual DB records
+  const totalTransactionsCount = transactions.length;
+  const successfulPaymentsCount = transactions.filter(t => t.status === 'Paid').length;
+  const pendingPaymentsCount = transactions.filter(t => t.status === 'Pending').length;
+  const failedPaymentsCount = transactions.filter(t => t.status === 'Failed').length;
+  
+  // Total Revenue: ONLY successful/paid payments (never pending or failed)
+  const totalRevenueAmount = transactions
+    .filter(t => t.status === 'Paid')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  // Refunded Amount
+  const totalRefundedAmount = transactions
+    .filter(t => t.status === 'Refunded')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredTransactions.length / pageSize) || 1;
+  const paginatedTransactions = filteredTransactions.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
+  const formatCurrency = (amt: number) => {
+    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amt);
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'Success': 
-      case 'Completed': 
-      case 'Processed':
-        return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
-      case 'Initiated': 
-      case 'Pending': 
-      case 'Scheduled':
-        return 'bg-amber-50 text-amber-700 border border-amber-200';
-      case 'Failed': 
-        return 'bg-red-50 text-red-700 border border-red-200';
-      case 'Refunded': 
-        return 'bg-gray-100 text-gray-700 border border-gray-200';
-      default: 
-        return 'bg-gray-100 text-gray-700 border border-gray-200';
+      case 'Paid':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+            Paid
+          </span>
+        );
+      case 'Pending':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+            <Clock className="w-3.5 h-3.5 text-amber-600" />
+            Pending
+          </span>
+        );
+      case 'Failed':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+            <XCircle className="w-3.5 h-3.5 text-rose-600" />
+            Failed
+          </span>
+        );
+      case 'Refunded':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+            <RotateCcw className="w-3.5 h-3.5 text-blue-600" />
+            Refunded
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-gray-50 text-gray-700 border border-gray-200">
+            {status}
+          </span>
+        );
     }
   };
-
-  const filteredTransactions = transactions.filter(t => {
-    const matchesSearch = 
-      t.order_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (t.gateway_txn_id && t.gateway_txn_id.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (t.customer_name && t.customer_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (t.customer_phone && t.customer_phone.includes(searchQuery));
-    
-    const matchesFilter = statusFilter === 'all' || t.status.toLowerCase() === statusFilter.toLowerCase();
-
-    return matchesSearch && matchesFilter;
-  });
-
-  const statCards = [
-    { 
-      name: 'Total Revenue Collected', 
-      value: formatCurrency(stats.totalRevenue), 
-      sub: 'All completed orders',
-      icon: IndianRupee, 
-      accent: 'text-[#698156]',
-      bg: 'bg-emerald-50' 
-    },
-    { 
-      name: 'Google Pay (UPI) Inflow', 
-      value: formatCurrency(stats.gpayRevenue), 
-      sub: 'Instant digital payments',
-      icon: CreditCard, 
-      accent: 'text-[#1a73e8]',
-      bg: 'bg-blue-50' 
-    },
-    { 
-      name: 'Bank Payouts Settled', 
-      value: formatCurrency(stats.totalPayouts), 
-      sub: `${payouts.length} settlement batches`,
-      icon: Building2, 
-      accent: 'text-[#546944]',
-      bg: 'bg-amber-50' 
-    },
-    { 
-      name: 'Pending / Unsettled', 
-      value: formatCurrency(stats.pendingSettlements), 
-      sub: 'Awaiting verification/COD',
-      icon: HandCoins, 
-      accent: 'text-amber-600',
-      bg: 'bg-amber-50/50' 
-    },
-  ];
 
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-96 gap-3">
         <Loader2 className="w-9 h-9 animate-spin text-[#698156]" />
-        <p className="text-sm font-medium text-gray-500">Loading Google Pay & Payment records...</p>
+        <p className="text-sm font-medium text-gray-500">Loading payment transactions from database...</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12 px-4 sm:px-6">
-      {/* Header */}
+    <div className="space-y-6 max-w-7xl mx-auto pb-16 px-4 sm:px-6">
+      {/* ─── Header ─── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-5">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-serif font-bold text-gray-900 tracking-tight">Payments & Settlements</h1>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-[#1a73e8] border border-blue-100">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#1a73e8] animate-pulse"></span>
-              Google Pay Active
+            <h1 className="text-2xl font-serif font-bold text-gray-900 tracking-tight">Payments & Transactions</h1>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-100">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+              Razorpay Live Verified
             </span>
           </div>
           <p className="text-sm text-gray-500 mt-1">
-            Track real-time Google Pay UPI transactions, gateway UTR references, and bank settlement payouts.
+            Real-time audit log of all customer transactions, UPI QR payments, and gateway settlements.
           </p>
         </div>
 
@@ -343,385 +386,361 @@ export function AdminPayments() {
           <button
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 shadow-sm transition-all"
+            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 shadow-xs transition-all active:scale-95"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-[#698156]' : ''}`} />
             Refresh
           </button>
-          
-          <button
-            onClick={() => setShowPayoutModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-[#698156] hover:bg-[#546944] rounded-xl shadow-sm transition-all"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            Record Bank Payout
-          </button>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map((stat, i) => (
-          <motion.div
-            key={stat.name}
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.08 }}
-            className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-medium text-gray-500">{stat.name}</span>
-              <div className={`w-9 h-9 ${stat.bg} rounded-xl flex items-center justify-center`}>
-                <stat.icon className={`w-5 h-5 ${stat.accent}`} />
-              </div>
-            </div>
+      {/* ─── 6 Authoritative Summary Metric Cards ─── */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+        {/* Total Transactions */}
+        <div className="bg-white p-4 rounded-2xl shadow-xs border border-gray-100 flex flex-col justify-between">
+          <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Total Txns</span>
+          <div className="mt-2 text-2xl font-bold text-gray-900">{totalTransactionsCount}</div>
+          <p className="text-[10px] text-gray-400 mt-0.5">All records</p>
+        </div>
+
+        {/* Successful Payments */}
+        <div className="bg-white p-4 rounded-2xl shadow-xs border border-emerald-100 flex flex-col justify-between">
+          <span className="text-[11px] font-semibold text-emerald-700 uppercase tracking-wider">Successful</span>
+          <div className="mt-2 text-2xl font-bold text-emerald-600">{successfulPaymentsCount}</div>
+          <p className="text-[10px] text-emerald-600/70 mt-0.5">Paid orders</p>
+        </div>
+
+        {/* Pending Payments */}
+        <div className="bg-white p-4 rounded-2xl shadow-xs border border-amber-100 flex flex-col justify-between">
+          <span className="text-[11px] font-semibold text-amber-700 uppercase tracking-wider">Pending</span>
+          <div className="mt-2 text-2xl font-bold text-amber-600">{pendingPaymentsCount}</div>
+          <p className="text-[10px] text-amber-600/70 mt-0.5">Awaiting capture</p>
+        </div>
+
+        {/* Failed Payments */}
+        <div className="bg-white p-4 rounded-2xl shadow-xs border border-rose-100 flex flex-col justify-between">
+          <span className="text-[11px] font-semibold text-rose-700 uppercase tracking-wider">Failed</span>
+          <div className="mt-2 text-2xl font-bold text-rose-600">{failedPaymentsCount}</div>
+          <p className="text-[10px] text-rose-600/70 mt-0.5">Declined txns</p>
+        </div>
+
+        {/* Total Revenue */}
+        <div className="bg-white p-4 rounded-2xl shadow-xs border border-gray-100 flex flex-col justify-between col-span-2 sm:col-span-1 lg:col-span-1">
+          <span className="text-[11px] font-semibold text-[#698156] uppercase tracking-wider">Total Revenue</span>
+          <div className="mt-2 text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">{formatCurrency(totalRevenueAmount)}</div>
+          <p className="text-[10px] text-gray-400 mt-0.5">Verified collected</p>
+        </div>
+
+        {/* Refunded Amount */}
+        <div className="bg-white p-4 rounded-2xl shadow-xs border border-gray-100 flex flex-col justify-between">
+          <span className="text-[11px] font-semibold text-blue-700 uppercase tracking-wider">Refunded</span>
+          <div className="mt-2 text-2xl font-bold text-gray-700">{formatCurrency(totalRefundedAmount)}</div>
+          <p className="text-[10px] text-gray-400 mt-0.5">Returned funds</p>
+        </div>
+      </div>
+
+      {/* ─── Search & Filters Bar ─── */}
+      <div className="bg-white p-4 rounded-2xl shadow-xs border border-gray-100 space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* Search Input */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+              placeholder="Search Order ID, Pay ID, Name, Phone..."
+              className="w-full pl-9 pr-4 py-2 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-[#698156] focus:bg-white transition-all"
+            />
+          </div>
+
+          {/* Payment Status Filter */}
+          <div>
+            <select
+              value={statusFilter}
+              onChange={e => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+              className="w-full px-3 py-2 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-[#698156] text-gray-700"
+            >
+              <option value="all">All Payment Statuses</option>
+              <option value="paid">Paid (Successful)</option>
+              <option value="pending">Pending</option>
+              <option value="failed">Failed</option>
+              <option value="refunded">Refunded</option>
+            </select>
+          </div>
+
+          {/* Payment Method Filter */}
+          <div>
+            <select
+              value={methodFilter}
+              onChange={e => { setMethodFilter(e.target.value); setCurrentPage(1); }}
+              className="w-full px-3 py-2 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-[#698156] text-gray-700"
+            >
+              <option value="all">All Payment Methods</option>
+              <option value="razorpay">Razorpay (Online)</option>
+              <option value="upi">UPI / QR</option>
+              <option value="cards">Cards</option>
+              <option value="cod">Cash on Delivery (COD)</option>
+            </select>
+          </div>
+
+          {/* Date Range Filter */}
+          <div>
+            <select
+              value={dateRangeFilter}
+              onChange={e => { setDateRangeFilter(e.target.value); setCurrentPage(1); }}
+              className="w-full px-3 py-2 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-[#698156] text-gray-700"
+            >
+              <option value="all">All Dates</option>
+              <option value="today">Today</option>
+              <option value="7days">Last 7 Days</option>
+              <option value="30days">Last 30 Days</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── Transactions Table ─── */}
+      <div className="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse text-xs">
+            <thead className="bg-gray-50/80 text-gray-500 uppercase tracking-wider font-semibold border-b border-gray-100">
+              <tr>
+                <th className="px-5 py-3.5">Internal Order ID</th>
+                <th className="px-5 py-3.5">Razorpay Order ID</th>
+                <th className="px-5 py-3.5">Payment ID</th>
+                <th className="px-5 py-3.5">Customer</th>
+                <th className="px-5 py-3.5">Method</th>
+                <th className="px-5 py-3.5">Amount</th>
+                <th className="px-5 py-3.5">Status</th>
+                <th className="px-5 py-3.5">Date & Time</th>
+                <th className="px-5 py-3.5 text-right">Details</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 text-gray-700">
+              {paginatedTransactions.length > 0 ? (
+                paginatedTransactions.map((txn) => (
+                  <tr key={txn.id} className="hover:bg-gray-50/70 transition-colors">
+                    {/* Order ID */}
+                    <td className="px-5 py-3.5 font-mono font-bold text-gray-900">
+                      {txn.order_id}
+                    </td>
+
+                    {/* Razorpay Order ID */}
+                    <td className="px-5 py-3.5 font-mono text-gray-500">
+                      {txn.razorpay_order_id ? (
+                        <span className="bg-gray-100 px-2 py-0.5 rounded text-[11px]">{txn.razorpay_order_id}</span>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
+                    </td>
+
+                    {/* Razorpay Payment ID */}
+                    <td className="px-5 py-3.5 font-mono text-gray-700">
+                      {txn.razorpay_payment_id ? (
+                        <span className="bg-emerald-50 text-emerald-800 border border-emerald-100 px-2 py-0.5 rounded text-[11px] font-bold">
+                          {txn.razorpay_payment_id}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
+                    </td>
+
+                    {/* Customer */}
+                    <td className="px-5 py-3.5">
+                      <div className="font-semibold text-gray-900">{txn.customer_name}</div>
+                      <div className="text-gray-400 text-[11px]">
+                        {txn.customer_phone || txn.customer_email || '—'}
+                      </div>
+                    </td>
+
+                    {/* Method */}
+                    <td className="px-5 py-3.5">
+                      <span className="font-medium text-gray-800">{txn.payment_method}</span>
+                    </td>
+
+                    {/* Amount */}
+                    <td className="px-5 py-3.5 font-bold text-gray-900">
+                      {formatCurrency(txn.amount)}
+                    </td>
+
+                    {/* Status */}
+                    <td className="px-5 py-3.5 whitespace-nowrap">
+                      {getStatusBadge(txn.status)}
+                    </td>
+
+                    {/* Date & Time */}
+                    <td className="px-5 py-3.5 whitespace-nowrap text-gray-500">
+                      <div>{txn.date}</div>
+                      <div className="text-[10px] text-gray-400">{txn.time}</div>
+                    </td>
+
+                    {/* Action: View Modal */}
+                    <td className="px-5 py-3.5 text-right">
+                      <button
+                        onClick={() => setSelectedTxn(txn)}
+                        className="p-1.5 text-gray-400 hover:text-[#698156] hover:bg-[#698156]/10 rounded-lg transition-colors inline-block"
+                        title="View Transaction Details"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={9} className="px-6 py-16 text-center text-gray-400">
+                    <CreditCard className="w-9 h-9 mx-auto text-gray-300 mb-2" />
+                    <p className="text-sm font-semibold text-gray-600">No payment transactions found</p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {searchQuery || statusFilter !== 'all' ? 'Try adjusting your search query or filters.' : 'Transactions will appear here automatically when orders are placed.'}
+                    </p>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* ─── Pagination Controls ─── */}
+        {filteredTransactions.length > pageSize && (
+          <div className="px-5 py-3.5 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
             <div>
-              <div className="text-2xl font-bold text-gray-900 tracking-tight">{stat.value}</div>
-              <p className="text-[11px] text-gray-400 mt-1">{stat.sub}</p>
+              Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, filteredTransactions.length)} of {filteredTransactions.length} transactions
             </div>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Tabs */}
-      <div className="flex items-center gap-3 border-b border-gray-200">
-        <button
-          onClick={() => setActiveTab('transactions')}
-          className={`pb-3 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 ${
-            activeTab === 'transactions'
-              ? 'border-[#698156] text-[#698156]'
-              : 'border-transparent text-gray-500 hover:text-gray-900'
-          }`}
-        >
-          <CreditCard className="w-4 h-4" />
-          Customer Transactions ({transactions.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('payouts')}
-          className={`pb-3 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 ${
-            activeTab === 'payouts'
-              ? 'border-[#698156] text-[#698156]'
-              : 'border-transparent text-gray-500 hover:text-gray-900'
-          }`}
-        >
-          <Building2 className="w-4 h-4" />
-          Bank Payouts & Settlements ({payouts.length})
-        </button>
-      </div>
-
-      {/* Tab 1: Transactions View */}
-      {activeTab === 'transactions' && (
-        <div className="space-y-4">
-          {/* Filters & Search */}
-          <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-white p-3.5 rounded-2xl border border-gray-100 shadow-sm">
-            <div className="relative w-full sm:w-80">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search by Order ID, UTR, Name..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-[#698156] focus:bg-white transition-all"
-              />
-            </div>
-
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <span className="text-xs text-gray-400 font-medium">Status:</span>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="text-xs bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-700 focus:outline-none focus:border-[#698156]"
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:pointer-events-none flex items-center gap-1"
               >
-                <option value="all">All Statuses</option>
-                <option value="Completed">Completed / Success</option>
-                <option value="Initiated">Initiated / Pending</option>
-                <option value="Failed">Failed</option>
-                <option value="Refunded">Refunded</option>
-              </select>
+                <ChevronLeft className="w-3.5 h-3.5" />
+                Previous
+              </button>
+              <span className="px-2 font-bold text-gray-800">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:pointer-events-none flex items-center gap-1"
+              >
+                Next
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
+        )}
+      </div>
 
-          {/* Transactions Table */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead className="bg-gray-50/75 text-gray-500 text-xs uppercase font-bold tracking-wider border-b border-gray-100">
-                  <tr>
-                    <th className="px-5 py-3.5">Order / Customer</th>
-                    <th className="px-5 py-3.5">Method & Provider</th>
-                    <th className="px-5 py-3.5">Gateway UTR / Txn Ref</th>
-                    <th className="px-5 py-3.5">Date & Time</th>
-                    <th className="px-5 py-3.5 text-right">Amount</th>
-                    <th className="px-5 py-3.5 text-center">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 text-xs">
-                  {filteredTransactions.length > 0 ? (
-                    filteredTransactions.map((txn) => {
-                      const isGPay = txn.method.toLowerCase().includes('google pay');
-                      return (
-                        <tr key={txn.id} className="hover:bg-gray-50/70 transition-colors">
-                          <td className="px-5 py-4">
-                            <div className="font-mono font-bold text-gray-900">{txn.order_id}</div>
-                            <div className="text-[11px] text-gray-500 mt-0.5">
-                              {txn.customer_name} {txn.customer_phone ? `• ${txn.customer_phone}` : ''}
-                            </div>
-                          </td>
-                          <td className="px-5 py-4">
-                            <div className="flex items-center gap-2">
-                              {isGPay ? (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-[#1a73e8]/10 text-[#1a73e8]">
-                                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15h-2v-6h2v6zm4 0h-2v-6h2v6z" />
-                                  </svg>
-                                  Google Pay UPI
-                                </span>
-                              ) : (
-                                <span className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-gray-100 text-gray-700">
-                                  {txn.method}
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-5 py-4 font-mono text-[11px]">
-                            {txn.gateway_txn_id && txn.gateway_txn_id !== '—' ? (
-                              <span className="text-gray-900 bg-gray-100 px-2 py-0.5 rounded font-medium">
-                                {txn.gateway_txn_id}
-                              </span>
-                            ) : (
-                              <span className="text-gray-400">Direct COD</span>
-                            )}
-                          </td>
-                          <td className="px-5 py-4 text-gray-500 whitespace-nowrap">
-                            {txn.date}
-                          </td>
-                          <td className="px-5 py-4 text-right font-bold text-gray-900 whitespace-nowrap text-sm">
-                            {formatCurrency(txn.amount)}
-                          </td>
-                          <td className="px-5 py-4 text-center">
-                            <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold inline-block ${getStatusBadge(txn.status)}`}>
-                              {txn.status}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  ) : (
-                    <tr>
-                      <td colSpan={6} className="px-6 py-16 text-center text-gray-400">
-                        No transactions found matching your filter.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Tab 2: Payouts & Settlements View */}
-      {activeTab === 'payouts' && (
-        <div className="space-y-4">
-          <div className="bg-amber-50/60 border border-amber-200/70 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-amber-900">
-            <div>
-              <p className="font-bold flex items-center gap-1.5 text-amber-950">
-                <Building2 className="w-4 h-4 text-amber-700" />
-                Google Pay India & UPI Direct Bank Settlements
-              </p>
-              <p className="text-amber-800/80 mt-0.5">
-                UPI payments made via Google Pay are directly settled T+0 / T+1 to your linked merchant bank account. Record settlements here for accounting reconciliation.
-              </p>
-            </div>
-            <button
-              onClick={() => setShowPayoutModal(true)}
-              className="px-3.5 py-1.5 bg-[#698156] text-white rounded-xl font-bold shadow-sm hover:bg-[#546944] whitespace-nowrap"
-            >
-              + Record New Settlement
-            </button>
-          </div>
-
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead className="bg-gray-50/75 text-gray-500 text-xs uppercase font-bold tracking-wider border-b border-gray-100">
-                  <tr>
-                    <th className="px-5 py-3.5">Payout ID</th>
-                    <th className="px-5 py-3.5">Bank Account</th>
-                    <th className="px-5 py-3.5">Settlement UTR</th>
-                    <th className="px-5 py-3.5">Settled Date</th>
-                    <th className="px-5 py-3.5 text-right">Gross Amount</th>
-                    <th className="px-5 py-3.5 text-right">Fee / Tax</th>
-                    <th className="px-5 py-3.5 text-right">Net Transferred</th>
-                    <th className="px-5 py-3.5 text-center">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 text-xs">
-                  {payouts.length > 0 ? (
-                    payouts.map((po) => (
-                      <tr key={po.id} className="hover:bg-gray-50/70 transition-colors">
-                        <td className="px-5 py-4 font-mono font-bold text-gray-900">
-                          {po.payout_id}
-                        </td>
-                        <td className="px-5 py-4 text-gray-600">
-                          <span className="font-mono">••••{po.bank_account_last4 || '4589'}</span>
-                        </td>
-                        <td className="px-5 py-4 font-mono text-gray-600">
-                          <span className="bg-gray-100 px-2 py-0.5 rounded text-[11px]">
-                            {po.settlement_utr || '—'}
-                          </span>
-                        </td>
-                        <td className="px-5 py-4 text-gray-500 whitespace-nowrap">
-                          {po.settled_at}
-                        </td>
-                        <td className="px-5 py-4 text-right font-medium text-gray-700">
-                          {formatCurrency(po.gross_amount)}
-                        </td>
-                        <td className="px-5 py-4 text-right text-gray-400">
-                          {formatCurrency(po.fee_amount + po.tax_amount)}
-                        </td>
-                        <td className="px-5 py-4 text-right font-bold text-[#698156] text-sm">
-                          {formatCurrency(po.net_amount)}
-                        </td>
-                        <td className="px-5 py-4 text-center">
-                          <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold inline-block ${getStatusBadge(po.status)}`}>
-                            {po.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={8} className="px-6 py-16 text-center text-gray-400">
-                        <Building2 className="w-8 h-8 mx-auto text-gray-300 mb-2" />
-                        <p className="font-medium">No payout settlement batches logged yet.</p>
-                        <p className="text-xs text-gray-400 mt-1">Use the "Record Bank Payout" button to register settlements received from your bank.</p>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Record Payout Modal */}
+      {/* ─── Transaction Details Modal ─── */}
       <AnimatePresence>
-        {showPayoutModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        {selectedTxn && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4"
+            onClick={() => setSelectedTxn(null)}
+          >
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl shadow-xl max-w-md w-full overflow-hidden border border-gray-100"
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={e => e.stopPropagation()}
+              className="bg-white rounded-3xl shadow-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto"
             >
-              <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-[#698156]/10 flex items-center justify-center text-[#698156]">
-                    <Building2 className="w-4 h-4" />
+              <div className="p-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-xs z-10">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                    <ShieldCheck className="w-4 h-4" />
                   </div>
-                  <h3 className="font-serif font-bold text-gray-900">Record Bank Settlement Payout</h3>
+                  <div>
+                    <h3 className="font-serif font-bold text-base text-gray-900">Transaction Details</h3>
+                    <p className="text-[11px] text-gray-400 font-mono">{selectedTxn.order_id}</p>
+                  </div>
                 </div>
                 <button
-                  onClick={() => setShowPayoutModal(false)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  onClick={() => setSelectedTxn(null)}
+                  className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <form onSubmit={handleCreatePayout} className="p-5 space-y-4 text-xs">
-                <div>
-                  <label className="block font-medium text-gray-700 mb-1">
-                    Gross Settlement Amount (₹) *
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    placeholder="e.g. 25000"
-                    value={newPayout.gross_amount}
-                    onChange={(e) => setNewPayout({ ...newPayout, gross_amount: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:border-[#698156] focus:outline-none text-sm"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
+              <div className="p-6 space-y-4 text-xs">
+                <div className="grid grid-cols-2 gap-3 p-4 bg-gray-50 rounded-2xl">
                   <div>
-                    <label className="block font-medium text-gray-700 mb-1">Gateway Fee (₹)</label>
-                    <input
-                      type="number"
-                      value={newPayout.fee_amount}
-                      onChange={(e) => setNewPayout({ ...newPayout, fee_amount: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:border-[#698156] focus:outline-none"
-                    />
+                    <span className="text-gray-400 block text-[10px] uppercase font-bold">Transaction Amount</span>
+                    <span className="text-lg font-bold text-gray-900">{formatCurrency(selectedTxn.amount)}</span>
                   </div>
                   <div>
-                    <label className="block font-medium text-gray-700 mb-1">Tax / GST (₹)</label>
-                    <input
-                      type="number"
-                      value={newPayout.tax_amount}
-                      onChange={(e) => setNewPayout({ ...newPayout, tax_amount: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:border-[#698156] focus:outline-none"
-                    />
+                    <span className="text-gray-400 block text-[10px] uppercase font-bold">Payment Status</span>
+                    <div className="mt-0.5">{getStatusBadge(selectedTxn.status)}</div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block font-medium text-gray-700 mb-1">Bank Last 4 Digits</label>
-                    <input
-                      type="text"
-                      maxLength={4}
-                      placeholder="e.g. 4589"
-                      value={newPayout.bank_account_last4}
-                      onChange={(e) => setNewPayout({ ...newPayout, bank_account_last4: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:border-[#698156] focus:outline-none font-mono"
-                    />
+                <div className="space-y-2.5 divide-y divide-gray-100">
+                  <div className="flex justify-between py-1.5">
+                    <span className="text-gray-500">Internal Order ID:</span>
+                    <span className="font-mono font-bold text-gray-900">{selectedTxn.order_id}</span>
                   </div>
-                  <div>
-                    <label className="block font-medium text-gray-700 mb-1">Status</label>
-                    <select
-                      value={newPayout.status}
-                      onChange={(e) => setNewPayout({ ...newPayout, status: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:border-[#698156] focus:outline-none"
-                    >
-                      <option value="Processed">Processed</option>
-                      <option value="Scheduled">Scheduled</option>
-                      <option value="Failed">Failed</option>
-                    </select>
+                  <div className="flex justify-between py-1.5">
+                    <span className="text-gray-500">Razorpay Order ID:</span>
+                    <span className="font-mono font-bold text-gray-900">{selectedTxn.razorpay_order_id || '—'}</span>
+                  </div>
+                  <div className="flex justify-between py-1.5">
+                    <span className="text-gray-500">Razorpay Payment ID:</span>
+                    <span className="font-mono font-bold text-emerald-700">{selectedTxn.razorpay_payment_id || '—'}</span>
+                  </div>
+                  <div className="flex justify-between py-1.5">
+                    <span className="text-gray-500">Payment Method:</span>
+                    <span className="font-bold text-gray-900">{selectedTxn.payment_method}</span>
+                  </div>
+                  <div className="flex justify-between py-1.5">
+                    <span className="text-gray-500">Customer Name:</span>
+                    <span className="font-medium text-gray-900">{selectedTxn.customer_name}</span>
+                  </div>
+                  {selectedTxn.customer_phone && (
+                    <div className="flex justify-between py-1.5">
+                      <span className="text-gray-500">Customer Phone:</span>
+                      <span className="text-gray-900">{selectedTxn.customer_phone}</span>
+                    </div>
+                  )}
+                  {selectedTxn.customer_email && (
+                    <div className="flex justify-between py-1.5">
+                      <span className="text-gray-500">Customer Email:</span>
+                      <span className="text-gray-900">{selectedTxn.customer_email}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between py-1.5">
+                    <span className="text-gray-500">Transaction Time:</span>
+                    <span className="text-gray-900">{selectedTxn.date} at {selectedTxn.time}</span>
                   </div>
                 </div>
 
-                <div>
-                  <label className="block font-medium text-gray-700 mb-1">Bank Settlement UTR / Reference</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. UTR202610129948"
-                    value={newPayout.settlement_utr}
-                    onChange={(e) => setNewPayout({ ...newPayout, settlement_utr: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:border-[#698156] focus:outline-none font-mono"
-                  />
-                </div>
+                {/* Shipping Address */}
+                {selectedTxn.shipping_address && Object.keys(selectedTxn.shipping_address).length > 0 && (
+                  <div className="pt-3 border-t border-gray-100">
+                    <h4 className="font-bold text-gray-800 mb-1">Delivery Address</h4>
+                    <p className="text-gray-600 leading-relaxed text-[11px]">
+                      {[
+                        selectedTxn.shipping_address.address,
+                        selectedTxn.shipping_address.city,
+                        selectedTxn.shipping_address.state,
+                        selectedTxn.shipping_address.pincode
+                      ].filter(Boolean).join(', ')}
+                    </p>
+                  </div>
+                )}
 
-                <div className="pt-2 flex items-center justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowPayoutModal(false)}
-                    className="px-4 py-2 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmittingPayout}
-                    className="px-5 py-2 bg-[#698156] hover:bg-[#546944] text-white rounded-xl font-bold flex items-center gap-1.5 shadow-sm"
-                  >
-                    {isSubmittingPayout && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                    Save Settlement
-                  </button>
-                </div>
-              </form>
+                {/* Raw Gateway Response Preview if available */}
+                {selectedTxn.gateway_response && (
+                  <div className="pt-3 border-t border-gray-100">
+                    <h4 className="font-bold text-gray-800 mb-1">Gateway Metadata</h4>
+                    <pre className="bg-gray-900 text-gray-200 p-3 rounded-xl text-[10px] overflow-x-auto max-h-36">
+                      {JSON.stringify(selectedTxn.gateway_response, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </div>
             </motion.div>
           </div>
         )}

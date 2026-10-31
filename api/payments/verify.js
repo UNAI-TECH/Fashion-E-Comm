@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 
 export default async function handler(req, res) {
+  // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-request-id');
@@ -14,26 +15,21 @@ export default async function handler(req, res) {
       razorpay_order_id,
       razorpay_payment_id,
       razorpay_signature,
-      order_id,
-      payment_id,
-      signature,
       orderId,
+      order_id,
       amount
     } = req.body || {};
 
-    const rzpOrderId = razorpay_order_id || (order_id && order_id.startsWith('order_') ? order_id : null);
-    const rzpPaymentId = razorpay_payment_id || payment_id;
-    const rzpSignature = razorpay_signature || signature;
-    const targetOrderId = orderId || (order_id && !order_id.startsWith('order_') ? order_id : null);
+    const finalOrderId = orderId || order_id;
+    const rzpOrderId = razorpay_order_id;
+    const rzpPaymentId = razorpay_payment_id;
+    const rzpSignature = razorpay_signature;
 
-    if (!rzpOrderId || !rzpPaymentId || !rzpSignature) {
+    if (!rzpPaymentId || !rzpSignature) {
       return res.status(400).json({
         success: false,
-        error: {
-          code: 'MISSING_FIELDS',
-          message: 'Missing required fields: order_id, payment_id, and signature are required.'
-        },
-        message: 'Missing required fields: order_id, payment_id, and signature are required.'
+        code: 'MISSING_PAYMENT_CREDENTIALS',
+        message: 'Missing razorpay_payment_id or razorpay_signature for verification.'
       });
     }
 
@@ -41,123 +37,147 @@ export default async function handler(req, res) {
     if (!keySecret) {
       return res.status(500).json({
         success: false,
-        error: {
-          code: 'CONFIG_ERROR',
-          message: 'Razorpay key secret not configured on server.'
-        },
-        message: 'Razorpay key secret not configured on server.'
+        code: 'CONFIG_ERROR',
+        message: 'Server payment key secret not configured.'
       });
     }
 
-    // Standard Razorpay HMAC-SHA256 signature calculation
-    const generatedSignature = crypto
-      .createHmac('sha256', keySecret)
-      .update(`${rzpOrderId}|${rzpPaymentId}`)
-      .digest('hex');
+    // Cryptographic HMAC Verification
+    let isSignatureValid = false;
+    if (rzpOrderId) {
+      const generatedSignature = crypto
+        .createHmac('sha256', keySecret)
+        .update(`${rzpOrderId}|${rzpPaymentId}`)
+        .digest('hex');
 
-    // Secure timing-safe comparison to prevent timing attacks
-    let isMatch = false;
-    try {
-      const generatedBuffer = Buffer.from(generatedSignature, 'utf8');
-      const signatureBuffer = Buffer.from(rzpSignature, 'utf8');
-      if (generatedBuffer.length === signatureBuffer.length) {
-        isMatch = crypto.timingSafeEqual(generatedBuffer, signatureBuffer);
+      try {
+        isSignatureValid = crypto.timingSafeEqual(
+          Buffer.from(generatedSignature, 'utf-8'),
+          Buffer.from(rzpSignature, 'utf-8')
+        );
+      } catch {
+        isSignatureValid = false;
       }
-    } catch {
-      isMatch = false;
+    } else {
+      isSignatureValid = false;
     }
 
-    if (!isMatch) {
-      console.warn(`[Payment Verify] Signature mismatch for razorpay_order_id=${rzpOrderId}`);
+    if (!isSignatureValid) {
       return res.status(400).json({
         success: false,
-        error: {
-          code: 'SIGNATURE_MISMATCH',
-          message: 'Invalid payment signature. Verification failed.'
-        },
-        message: 'Invalid payment signature. Verification failed.'
+        code: 'INVALID_SIGNATURE',
+        message: 'Payment verification failed: cryptographic signature mismatch.'
       });
     }
 
-    // Signature verified! Now handle idempotent database persistence
+    // Synchronize status with Supabase Database
     const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
-    const finalOrderId = targetOrderId;
 
-    if (finalOrderId && supabaseUrl && supabaseKey) {
+    if (supabaseUrl && supabaseKey && (finalOrderId || rzpOrderId)) {
       try {
         const supabase = createClient(supabaseUrl, supabaseKey);
 
-        // Check if order was already confirmed/paid (idempotency guard)
-        const { data: existingOrder } = await supabase
-          .from('orders')
-          .select('id, payment_status, status, payment_result')
-          .eq('id', finalOrderId)
-          .maybeSingle();
-
-        if (existingOrder && (existingOrder.payment_status === 'Paid' || existingOrder.payment_status === 'Completed')) {
-          return res.status(200).json({
-            success: true,
-            status: 'PAID',
-            message: 'Payment already verified and confirmed.',
-            order_id: rzpOrderId,
-            orderId: finalOrderId,
-            payment_id: rzpPaymentId,
-            signature_valid: true
-          });
+        // Fetch existing order to preserve customer details and check status
+        let existingOrder = null;
+        if (finalOrderId) {
+          const { data } = await supabase.from('orders').select('*').eq('id', finalOrderId).maybeSingle();
+          existingOrder = data;
         }
+        if (!existingOrder && rzpOrderId) {
+          const { data } = await supabase.from('orders').select('*').eq('razorpay_order_id', rzpOrderId).maybeSingle();
+          existingOrder = data;
+        }
+
+        const resolvedOrderId = existingOrder?.id || finalOrderId;
 
         // Update order status to Paid & Processing
-        await supabase
-          .from('orders')
-          .update({
-            payment_status: 'Paid',
-            status: 'Processing',
-            payment_method: 'Online Payment (Razorpay)',
-            razorpay_payment_id: rzpPaymentId,
-            razorpay_order_id: rzpOrderId,
-            payment_timestamp: new Date().toISOString(),
-            payment_result: {
+        if (resolvedOrderId) {
+          await supabase
+            .from('orders')
+            .update({
+              payment_status: 'Paid',
+              status: 'Processing',
+              payment_method: 'Online Payment (Razorpay)',
               razorpay_payment_id: rzpPaymentId,
               razorpay_order_id: rzpOrderId,
+              payment_timestamp: new Date().toISOString(),
+              payment_result: {
+                razorpay_payment_id: rzpPaymentId,
+                razorpay_order_id: rzpOrderId,
+                razorpay_signature: rzpSignature,
+                verified_at: new Date().toISOString()
+              },
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', resolvedOrderId);
+
+          // Record payment record in public.payments
+          try {
+            const { data: existingPay } = await supabase
+              .from('payments')
+              .select('id')
+              .eq('order_id', resolvedOrderId)
+              .maybeSingle();
+
+            const shippingAddr = existingOrder?.shipping_address || {};
+            const customerName = shippingAddr.full_name || [shippingAddr.first_name, shippingAddr.last_name].filter(Boolean).join(' ') || 'Customer';
+            const customerPhone = shippingAddr.phone || '';
+
+            const payPayload = {
+              order_id: resolvedOrderId,
+              user_id: existingOrder?.user_id || null,
+              method: 'Razorpay',
+              payment_method: 'Razorpay',
+              razorpay_order_id: rzpOrderId,
+              razorpay_payment_id: rzpPaymentId,
               razorpay_signature: rzpSignature,
-              verified_at: new Date().toISOString()
-            },
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', finalOrderId);
+              gateway_txn_id: rzpPaymentId,
+              payment_id: rzpPaymentId,
+              customer_name: customerName,
+              customer_phone: customerPhone,
+              currency: 'INR',
+              status: 'Paid',
+              amount: Number(amount) || Number(existingOrder?.total_amount) || 0,
+              gateway_response: {
+                razorpay_order_id: rzpOrderId,
+                razorpay_payment_id: rzpPaymentId,
+                status: 'PAID',
+                verified_at: new Date().toISOString()
+              },
+              created_at: new Date().toISOString()
+            };
 
-        // Record payment record in public.payments
-        try {
-          await supabase.from('payments').insert([{
-            order_id: finalOrderId,
-            payment_id: rzpPaymentId,
-            gateway_txn_id: rzpPaymentId,
-            payment_method: 'Razorpay',
-            status: 'Success',
-            amount: amount || 0,
-            currency: 'INR',
-            created_at: new Date().toISOString()
-          }]);
-        } catch (payInsertErr) {
-          console.warn('[Payment Verify] Payment record insert note:', payInsertErr?.message);
-        }
+            if (existingPay?.id) {
+              await supabase.from('payments').update(payPayload).eq('id', existingPay.id);
+            } else {
+              await supabase.from('payments').insert([payPayload]);
+            }
+          } catch (payInsertErr) {
+            console.warn('[Payment Verify] Payment record insert note:', payInsertErr?.message);
+          }
 
-        // Direct stock decrement for order items
-        try {
-          const { data: items } = await supabase.from('order_items').select('product_id, quantity').eq('order_id', finalOrderId);
-          if (items && Array.isArray(items)) {
-            for (const item of items) {
-              if (item.product_id) {
-                const { data: p } = await supabase.from('products').select('stock_quantity').eq('id', item.product_id).maybeSingle();
-                if (p && typeof p.stock_quantity === 'number') {
-                  await supabase.from('products').update({ stock_quantity: Math.max(0, p.stock_quantity - (item.quantity || 1)) }).eq('id', item.product_id);
+          // Direct stock decrement for order items (if not already done)
+          if (!existingOrder?.stock_decremented) {
+            try {
+              const { data: items } = await supabase.from('order_items').select('product_id, quantity').eq('order_id', resolvedOrderId);
+              if (items && Array.isArray(items)) {
+                for (const item of items) {
+                  if (item.product_id) {
+                    const { data: p } = await supabase.from('products').select('stock_quantity').eq('id', item.product_id).maybeSingle();
+                    if (p && typeof p.stock_quantity === 'number') {
+                      await supabase.from('products').update({
+                        stock_quantity: Math.max(0, p.stock_quantity - (item.quantity || 1))
+                      }).eq('id', item.product_id);
+                    }
+                  }
                 }
+                await supabase.from('orders').update({ stock_decremented: true }).eq('id', resolvedOrderId);
               }
+            } catch (stockErr) {
+              console.warn('[Payment Verify] Stock deduction notice:', stockErr?.message);
             }
           }
-        } catch (rpcErr) {
-          console.warn('[Payment Verify] Stock deduction notice:', rpcErr?.message);
         }
       } catch (dbErr) {
         console.warn('[Payment Verify] Database recording warning:', dbErr?.message);
@@ -177,11 +197,8 @@ export default async function handler(req, res) {
     console.error('Verify Payment Fatal Error:', error);
     return res.status(500).json({
       success: false,
-      error: {
-        code: 'INTERNAL_SERVER_ERROR',
-        message: error.message || 'Internal payment verification error'
-      },
-      message: error.message || 'Internal payment verification error'
+      error: { code: 'INTERNAL_ERROR', message: error.message || 'Verification failed.' },
+      message: error.message || 'Verification failed.'
     });
   }
 }
