@@ -201,3 +201,4 @@ GRANT EXECUTE ON FUNCTION public.fulfill_order_stock(TEXT) TO anon, authenticate
 -- DROP FUNCTION IF EXISTS public.fulfill_order_stock(TEXT);
 -- DROP FUNCTION IF EXISTS public.fulfill_order_stock(TEXT, JSONB);
 -- ============================================================================
+
