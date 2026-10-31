@@ -17,6 +17,7 @@ import { supabase } from '../../lib/supabase';
 import { fetchProducts, Product, ensureProductImages } from '../data/products';
 import { toast } from 'sonner';
 import { SEOHead, getProductSchema, getBreadcrumbSchema } from '../components/SEOHead';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 
 /* ─── Review type for real DB reviews ─── */
@@ -45,6 +46,7 @@ export function ProductPage() {
 
   // Lightbox & coupon states
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  useBodyScrollLock(isLightboxOpen);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [isCopiedCoupon, setIsCopiedCoupon] = useState(false);
 

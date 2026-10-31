@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { Link, useSearchParams, useNavigate } from 'react-router';
 import { toast } from 'sonner';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import { supabase } from '../../lib/supabase';
 import { useCustomerAuth } from '../contexts/CustomerAuthContext';
 import { useWishlist } from '../contexts/WishlistContext';
@@ -102,6 +103,7 @@ export function ProfilePage() {
   const [addresses, setAddresses] = useState<SavedAddressItem[]>([]);
   const [addressesLoading, setAddressesLoading] = useState(false);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+  useBodyScrollLock(isAddressModalOpen);
   const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
   const [addressForm, setAddressForm] = useState<{
     full_name: string;

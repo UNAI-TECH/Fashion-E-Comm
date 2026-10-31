@@ -4,6 +4,7 @@ import { useCart } from '../contexts/CartContext';
 import { useWishlist } from '../contexts/WishlistContext';
 import { useState } from 'react';
 import { Product } from '../data/products';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 interface QuickViewModalProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ interface QuickViewModalProps {
 }
 
 export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps) {
+  useBodyScrollLock(isOpen && !!product);
   const { addToCart } = useCart();
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const [selectedImage, setSelectedImage] = useState(0);

@@ -12,6 +12,7 @@ import { AuthModal } from './AuthModal';
 import { useCustomerAuth } from '../contexts/CustomerAuthContext';
 import { getUserProfileImage } from '../../lib/userProfile';
 import { sanitizeImageUrl } from '../../lib/urls';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 const HighlightText = ({ text, highlight }: { text: string; highlight: string }) => {
   if (!highlight.trim()) return <>{text}</>;
@@ -61,6 +62,7 @@ export function Navigation() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
   const [profileImage, setProfileImage] = useState(() => getUserProfileImage());
+  useBodyScrollLock(isMobileMenuOpen || isSearchOpen || isWishlistOpen || isAccountOpen);
 
   // Keep nav profile avatar in sync with profile updates from anywhere
   useEffect(() => {

@@ -4,11 +4,13 @@ import { Search, Plus, Filter, Edit, Trash2, X, Upload, RefreshCw, ImageIcon, St
 import { supabase } from '../../../lib/supabase';
 import { Product, fetchProducts as getStorefrontProducts, ensureProductImages, buildComplementaryAngles } from '../../data/products';
 import { toast } from 'sonner';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 
 export function AdminProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  useBodyScrollLock(isModalOpen || !!productToDelete);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);

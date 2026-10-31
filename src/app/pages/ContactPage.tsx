@@ -10,6 +10,7 @@ export function ContactPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [isMapOpen, setIsMapOpen] = useState(false);
+  useBodyScrollLock(isMapOpen);
 
   const [formData, setFormData] = useState({
     firstName: '',

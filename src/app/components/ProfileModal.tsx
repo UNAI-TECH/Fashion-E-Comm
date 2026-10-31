@@ -9,6 +9,7 @@ import {
   saveUserProfileDetails
 } from '../../lib/userProfile';
 import { useCustomerAuth } from '../contexts/CustomerAuthContext';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 export interface ProfileModalProps {
   isOpen: boolean;
@@ -51,16 +52,7 @@ export function ProfileModal({
   }, [isOpen, user, profile]);
 
   // Lock background scroll when open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [isOpen]);
+  useBodyScrollLock(isOpen);
 
   const handleProfileImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, Mail, Phone, Lock, User, ArrowRight, Crown, CheckCircle2, RefreshCw, AlertCircle } from 'lucide-react';
 import { useCustomerAuth, SignupFormData } from '../contexts/CustomerAuthContext';
 import { toast } from 'sonner';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -88,6 +89,9 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', onSuccess }
     }, 1000);
     return () => clearInterval(interval);
   }, [resendCooldown]);
+
+  // Lock background scroll while modal is open
+  useBodyScrollLock(isOpen);
 
   if (!isOpen) return null;
 

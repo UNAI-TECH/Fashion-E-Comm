@@ -6,7 +6,6 @@ import { HeroAdBanner } from '../components/HeroAdBanner';
 import { MotionBanner } from '../components/MotionBanner';
 import { ShopByCategory } from '../components/ShopByCategory';
 import { TrendingCollection } from '../components/TrendingCollection';
-import { NotificationOffersPopup } from '../components/NotificationOffersPopup';
 import { Footer } from '../components/Footer';
 import { fetchProducts, Product } from '../data/products';
 import { SEOHead, getOrganizationSchema, getWebsiteSchema, getOnlineStoreSchema, getFAQSchema } from '../components/SEOHead';
@@ -128,8 +127,6 @@ export function Home() {
       {/* 5. Compact, Proportional Footer */}
       <Footer />
 
-      {/* 6. Floating Notification Bell & Latest Offers Popup (Image 3 & 4) */}
-      <NotificationOffersPopup />
     </div>
   );
 }
