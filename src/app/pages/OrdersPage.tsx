@@ -471,111 +471,130 @@ export function OrdersPage() {
                             </div>
                           </div>
 
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-4 gap-x-6 mt-6 bg-gray-50/50 p-4 rounded-2xl border border-gray-50">
-                            <div>
-                              <p className="text-xs text-gray-500 mb-1">Color</p>
-                              <p className="text-sm font-semibold text-gray-900">{colorMock}</p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-gray-500 mb-1">Size</p>
-                              <p className="text-sm font-semibold text-gray-900">{sizeMock}</p>
-                            </div>
+                          <div className="grid grid-cols-2 gap-4 mt-6 bg-gray-50/50 p-4 rounded-2xl border border-gray-50 max-w-xs">
                             <div>
                               <p className="text-xs text-gray-500 mb-1">Quantity</p>
                               <p className="text-sm font-semibold text-gray-900">Qty: {quantity}</p>
                             </div>
                             <div>
-                              <p className="text-xs text-gray-500 mb-1">Unit Price</p>
-                              <p className="text-sm font-semibold text-gray-900">₹{Number(basePrice).toLocaleString('en-IN')}</p>
+                              <p className="text-xs text-gray-500 mb-1">Price</p>
+                              <p className="text-sm font-bold text-gray-900">₹{Number(basePrice).toLocaleString('en-IN')}</p>
                             </div>
                           </div>
                         </div>
 
                         {/* Status & Payment info with Progress Tracker */}
                         <div className="mt-6 pt-6 border-t border-gray-100">
-                          {/* Progress Tracker UI */}
-                          <div className="mb-6 relative">
-                            <div className="absolute top-3 left-0 w-full h-1 bg-gray-100 rounded-full z-0 overflow-hidden">
-                              <div
-                                className="h-full bg-emerald-500 transition-all duration-1000"
-                                style={{
-                                  width: status === 'Delivered' ? '100%' :
-                                    status === 'Out for Delivery' ? '80%' :
-                                      status === 'Shipped' ? '60%' :
-                                        status === 'Packed' ? '40%' :
-                                          ['Confirmed', 'Order Placed', 'Pending'].includes(status) ? '20%' : '0%'
-                                }}
-                              />
-                            </div>
-                            <div className="relative z-10 flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                              <div className="flex flex-col items-center gap-2">
-                                <div className={`w-7 h-7 rounded-full flex items-center justify-center border-2 bg-white ${['Confirmed', 'Order Placed', 'Pending', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'].includes(status) ? 'border-emerald-500 text-emerald-500' : 'border-gray-200'}`}>1</div>
-                                <span className={['Confirmed', 'Order Placed', 'Pending', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'].includes(status) ? 'text-gray-900' : ''}>Placed</span>
+                          {status === 'Cancelled' ? (
+                            <div className="bg-rose-50/80 border border-rose-200 rounded-2xl p-4 sm:p-5 flex items-start sm:items-center gap-3.5 mb-6">
+                              <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0 text-rose-600">
+                                <Ban className="w-5 h-5" />
                               </div>
-                              <div className="flex flex-col items-center gap-2">
-                                <div className={`w-7 h-7 rounded-full flex items-center justify-center border-2 bg-white ${['Packed', 'Shipped', 'Out for Delivery', 'Delivered'].includes(status) ? 'border-emerald-500 text-emerald-500' : 'border-gray-200'}`}>2</div>
-                                <span className={['Packed', 'Shipped', 'Out for Delivery', 'Delivered'].includes(status) ? 'text-gray-900' : ''}>Packed</span>
-                              </div>
-                              <div className="flex flex-col items-center gap-2">
-                                <div className={`w-7 h-7 rounded-full flex items-center justify-center border-2 bg-white ${['Shipped', 'Out for Delivery', 'Delivered'].includes(status) ? 'border-emerald-500 text-emerald-500' : 'border-gray-200'}`}>3</div>
-                                <span className={['Shipped', 'Out for Delivery', 'Delivered'].includes(status) ? 'text-gray-900' : ''}>Shipped</span>
-                              </div>
-                              <div className="flex flex-col items-center gap-2">
-                                <div className={`w-7 h-7 rounded-full flex items-center justify-center border-2 bg-white ${status === 'Delivered' ? 'border-emerald-500 text-emerald-500 bg-emerald-50' : 'border-gray-200'}`}><CheckCircle2 className="w-4 h-4" /></div>
-                                <span className={status === 'Delivered' ? 'text-emerald-600' : ''}>Delivered</span>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-700 border border-rose-200">
+                                    Order Cancelled
+                                  </span>
+                                </div>
+                                <p className="text-sm font-bold text-rose-950 mt-1">
+                                  The order was cancelled.
+                                </p>
+                                <p className="text-xs text-rose-700 font-medium mt-0.5">
+                                  Your amount will be refunded in 5 - 7 working days.
+                                </p>
                               </div>
                             </div>
-                          </div>
+                          ) : (
+                            <>
+                              {/* Progress Tracker UI */}
+                              <div className="mb-6 relative">
+                                <div className="absolute top-3 left-0 w-full h-1 bg-gray-100 rounded-full z-0 overflow-hidden">
+                                  <div
+                                    className="h-full bg-emerald-500 transition-all duration-1000"
+                                    style={{
+                                      width: status === 'Delivered' ? '100%' :
+                                        status === 'Out for Delivery' ? '80%' :
+                                          status === 'Shipped' ? '60%' :
+                                            status === 'Packed' ? '40%' :
+                                              ['Confirmed', 'Order Placed', 'Pending'].includes(status) ? '20%' : '0%'
+                                    }}
+                                  />
+                                </div>
+                                <div className="relative z-10 flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                                  <div className="flex flex-col items-center gap-2">
+                                    <div className={`w-7 h-7 rounded-full flex items-center justify-center border-2 bg-white ${['Confirmed', 'Order Placed', 'Pending', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'].includes(status) ? 'border-emerald-500 text-emerald-500' : 'border-gray-200'}`}>1</div>
+                                    <span className={['Confirmed', 'Order Placed', 'Pending', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'].includes(status) ? 'text-gray-900' : ''}>Placed</span>
+                                  </div>
+                                  <div className="flex flex-col items-center gap-2">
+                                    <div className={`w-7 h-7 rounded-full flex items-center justify-center border-2 bg-white ${['Packed', 'Shipped', 'Out for Delivery', 'Delivered'].includes(status) ? 'border-emerald-500 text-emerald-500' : 'border-gray-200'}`}>2</div>
+                                    <span className={['Packed', 'Shipped', 'Out for Delivery', 'Delivered'].includes(status) ? 'text-gray-900' : ''}>Packed</span>
+                                  </div>
+                                  <div className="flex flex-col items-center gap-2">
+                                    <div className={`w-7 h-7 rounded-full flex items-center justify-center border-2 bg-white ${['Shipped', 'Out for Delivery', 'Delivered'].includes(status) ? 'border-emerald-500 text-emerald-500' : 'border-gray-200'}`}>3</div>
+                                    <span className={['Shipped', 'Out for Delivery', 'Delivered'].includes(status) ? 'text-gray-900' : ''}>Shipped</span>
+                                  </div>
+                                  <div className="flex flex-col items-center gap-2">
+                                    <div className={`w-7 h-7 rounded-full flex items-center justify-center border-2 bg-white ${status === 'Delivered' ? 'border-emerald-500 text-emerald-500 bg-emerald-50' : 'border-gray-200'}`}><CheckCircle2 className="w-4 h-4" /></div>
+                                    <span className={status === 'Delivered' ? 'text-emerald-600' : ''}>Delivered</span>
+                                  </div>
+                                </div>
+                              </div>
 
-                          <div className="flex flex-wrap items-center justify-between gap-4">
-                            <div className="flex items-center gap-3">
-                              {getStatusBadge(status)}
-                              {['Order Placed', 'Pending', 'Confirmed', 'Packed', 'Shipped', 'Out for Delivery'].includes(status) && (
-                                <p className="text-sm font-medium text-gray-600">Arriving by <strong className="text-gray-900">{deliveryDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</strong></p>
-                              )}
-                            </div>
+                              <div className="flex flex-wrap items-center justify-between gap-4">
+                                <div className="flex items-center gap-3">
+                                  {getStatusBadge(status)}
+                                  {['Order Placed', 'Pending', 'Confirmed', 'Packed', 'Shipped', 'Out for Delivery'].includes(status) && (
+                                    <p className="text-sm font-medium text-gray-600">Arriving by <strong className="text-gray-900">{deliveryDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</strong></p>
+                                  )}
+                                </div>
 
-                            <div className="flex flex-wrap items-center gap-2">
-                              {getPaymentStatusBadge(order.payment_status)}
-                              <span className="text-xs text-gray-500 bg-gray-50 px-2.5 py-1 rounded-full border border-gray-200 font-medium">
-                                {order.payment_method || 'Razorpay Online'}
-                              </span>
-                            </div>
-                          </div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  {getPaymentStatusBadge(order.payment_status)}
+                                  <span className="text-xs text-gray-500 bg-gray-50 px-2.5 py-1 rounded-full border border-gray-200 font-medium">
+                                    {order.payment_method || 'Razorpay Online'}
+                                  </span>
+                                </div>
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
 
                     {/* Actions Bar */}
                     <div className="bg-gray-50/50 border-t border-gray-100 p-4 flex flex-wrap items-center justify-between gap-3">
-                      <div className="flex flex-wrap gap-2">
-                        <button onClick={() => toast.success('Tracking information will be sent to your email.')} className="px-4 py-2 bg-gray-900 text-white hover:bg-[#546944] rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 shadow-sm">
-                          <Truck className="w-3.5 h-3.5" /> Track Order
-                        </button>
-                        <button onClick={() => toast.success('Downloading Invoice...')} className="px-4 py-2 bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 shadow-sm">
-                          <Download className="w-3.5 h-3.5" /> Invoice
-                        </button>
-                        {status === 'Delivered' && (
-                          <button onClick={() => toast.success('Opening Review Form...')} className="px-4 py-2 bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 shadow-sm">
-                            <Star className="w-3.5 h-3.5" /> Write Review
-                          </button>
+                      <div className="flex items-center gap-2">
+                        {status === 'Cancelled' ? (
+                          <span className="text-xs font-bold text-rose-600 flex items-center gap-1.5 bg-rose-50 px-3 py-1.5 rounded-xl border border-rose-100">
+                            <Ban className="w-3.5 h-3.5" /> Order Cancelled • Refund in 5-7 working days
+                          </span>
+                        ) : status === 'Cancellation Requested' ? (
+                          <span className="text-xs font-bold text-amber-700 flex items-center gap-1.5 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200">
+                            <Clock className="w-3.5 h-3.5 animate-pulse text-amber-600" /> Cancel Request Created — Under Review
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-500 font-medium">Order Status: <strong className="text-gray-800">{status}</strong></span>
                         )}
                       </div>
 
                       <div className="flex flex-wrap gap-2">
-                        {status === 'Delivered' && (
-                          <button onClick={() => toast.success('Return request initiated.')} className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 border border-transparent">
-                            <RotateCcw className="w-3.5 h-3.5" /> Return / Replace
+                        {status === 'Cancellation Requested' ? (
+                          <button
+                            disabled
+                            className="px-4 py-2 bg-amber-50 text-amber-700 border border-amber-200 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-not-allowed shadow-2xs"
+                          >
+                            <Clock className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
+                            Cancel Request Created
                           </button>
-                        )}
-                        {['Order Placed', 'Pending', 'Confirmed'].includes(status) && (
-                          <button onClick={() => toast.success('Cancellation requested.')} className="px-4 py-2 text-red-600 hover:bg-[#698156]/10 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5">
-                            <Ban className="w-3.5 h-3.5" /> Cancel Order
+                        ) : ['Order Placed', 'Pending', 'Confirmed', 'Processing', 'Packed'].includes(status) ? (
+                          <button
+                            onClick={() => setOrderToCancel(order)}
+                            className="px-4 py-2 text-red-600 hover:bg-red-50 border border-red-200/80 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+                          >
+                            <Ban className="w-3.5 h-3.5" />
+                            Cancel Order
                           </button>
-                        )}
-                        <button onClick={() => toast.success('Adding items back to cart...')} className="px-4 py-2 text-[#698156] hover:bg-[#698156]/10 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 border border-[#698156]/10">
-                          <ShoppingBag className="w-3.5 h-3.5" /> Buy Again
-                        </button>
+                        ) : null}
                       </div>
                     </div>
                   </motion.div>
