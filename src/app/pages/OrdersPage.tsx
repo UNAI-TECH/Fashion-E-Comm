@@ -422,9 +422,26 @@ export function OrdersPage() {
                           <p className="text-gray-500 uppercase text-[10px] font-bold tracking-wider mb-0.5">Total</p>
                           <p className="font-medium text-gray-900">₹{Number(order.total_amount || 0).toLocaleString('en-IN')}</p>
                         </div>
-                        <div className="hidden sm:block">
-                          <p className="text-gray-500 uppercase text-[10px] font-bold tracking-wider mb-0.5">Dispatch To</p>
-                          <p className="font-medium text-[#698156] cursor-pointer hover:underline">{order.shipping_address?.full_name || order.shipping_address?.first_name || 'Customer'}</p>
+                        <div className="max-w-xs">
+                          <p className="text-gray-500 uppercase text-[10px] font-bold tracking-wider mb-0.5 flex items-center gap-1">
+                            <MapPin className="w-3 h-3 text-[#698156]" /> Delivery To
+                          </p>
+                          <p className="font-bold text-gray-900 text-xs">
+                            {order.shipping_address?.full_name || order.shipping_address?.first_name || 'Customer'}
+                          </p>
+                          <p className="text-gray-500 text-[11px] leading-tight mt-0.5 line-clamp-1" title={[
+                            order.shipping_address?.address,
+                            order.shipping_address?.city,
+                            order.shipping_address?.state,
+                            order.shipping_address?.pincode
+                          ].filter(Boolean).join(', ')}>
+                            {[
+                              order.shipping_address?.address,
+                              order.shipping_address?.city,
+                              order.shipping_address?.state,
+                              order.shipping_address?.pincode
+                            ].filter(Boolean).join(', ') || 'Address on file'}
+                          </p>
                         </div>
                       </div>
                       <div className="text-right">
