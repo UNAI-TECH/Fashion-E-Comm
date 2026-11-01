@@ -7,7 +7,7 @@ import {
   ClipboardList, Menu, ChevronLeft, CreditCard, LogOut,
   Award, Camera, Shirt, Upload, Star, Receipt,
   Minus, ShoppingCart, ArrowRight, Tags, Boxes, Compass, Bell,
-  CheckCircle2, XCircle, Clock, Edit, Ban, Tag
+  CheckCircle2, XCircle, Clock, Edit, Ban, Tag, Check
 } from 'lucide-react';
 import { AdminBannersSection } from './AdminBannersSection';
 import { AdminNotificationsSection } from './AdminNotificationsSection';
@@ -583,10 +583,11 @@ export function AdminAanyaPage() {
     setIsLoading(true);
     try {
       // Use supabase (service role) to bypass RLS policies
-      const [prodsRes, ordersRes, paymentsRes] = await Promise.all([
+      const [prodsRes, ordersRes, paymentsRes, cancelOrdersRes] = await Promise.all([
         supabase.from('products').select('*').order('created_at', { ascending: false }),
         supabase.from('orders').select('*, products:product_id(*), order_items(*, products(*))').order('created_at', { ascending: false }),
         supabase.from('payments').select('*').order('created_at', { ascending: false }),
+        supabase.from('cancel_orders').select('*').order('created_at', { ascending: false }),
       ]);
 
       // Log & toast detailed errors for each table
@@ -601,6 +602,9 @@ export function AdminAanyaPage() {
       if (paymentsRes.error) {
         console.error('[Admin] Payments error:', paymentsRes.error);
         toast.error('Payments: ' + paymentsRes.error.message);
+      }
+      if (cancelOrdersRes.error) {
+        console.error('[Admin] Cancel orders error:', cancelOrdersRes.error);
       }
 
       // --- Products: merge Supabase DB products + local mock catalog ---
@@ -633,6 +637,11 @@ export function AdminAanyaPage() {
 
       // --- Payments ---
       setPayments(paymentsRes.data || []);
+
+      // --- Cancel Orders ---
+      if (!cancelOrdersRes.error && cancelOrdersRes.data) {
+        setCancelOrders(cancelOrdersRes.data as CancelOrderRequest[]);
+      }
 
 
       const customerMap = new Map<string, DerivedUser>();
@@ -689,10 +698,17 @@ export function AdminAanyaPage() {
 
   useEffect(() => {
     loadData();
+    const handleOrdersUpdated = () => {
+      loadData();
+    };
+    window.addEventListener('orders_updated', handleOrdersUpdated);
     const refreshInterval = setInterval(() => {
       loadData();
     }, 30000); // 30 seconds auto-refresh for real-time order tracking
-    return () => clearInterval(refreshInterval);
+    return () => {
+      clearInterval(refreshInterval);
+      window.removeEventListener('orders_updated', handleOrdersUpdated);
+    };
   }, [loadData]);
 
   /* ─── Update order status → Supabase ─── */
@@ -1446,7 +1462,8 @@ export function AdminAanyaPage() {
                         activeTab === 'categories' ? 'Categories Management' :
                           activeTab === 'billing' ? 'Manual Billing & POS' :
                             activeTab === 'orders' ? 'Customer Orders' :
-                              activeTab === 'customers' ? 'Customer Directory' : 'Payment Records'}
+                              activeTab === 'canceled-orders' ? 'Canceled Orders & Refunds' :
+                                activeTab === 'customers' ? 'Customer Directory' : 'Payment Records'}
               </h1>
               <p className="text-[11px] md:text-xs text-gray-400 mt-0.5 truncate max-w-[200px] sm:max-w-none">
                 Live data from Supabase · Last synced {new Date().toLocaleTimeString('en-IN')}
@@ -2986,7 +3003,268 @@ export function AdminAanyaPage() {
             </div>
           )}
 
-          {/* ─── TAB: CUSTOMERS ─── */}
+          {/* ─── TAB: CANCELED ORDERS ─── */}
+          {activeTab === 'canceled-orders' && (
+            <div className="space-y-6">
+              {/* Summary Metrics */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Total Requests</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-1">{cancelOrders.length}</p>
+                </div>
+                <div className="bg-amber-50/60 p-5 rounded-2xl border border-amber-200/60 shadow-sm">
+                  <p className="text-xs font-bold text-amber-700 uppercase tracking-wider">Pending Review</p>
+                  <p className="text-2xl font-bold text-amber-800 mt-1">
+                    {cancelOrders.filter(c => c.status === 'Pending').length}
+                  </p>
+                </div>
+                <div className="bg-emerald-50/60 p-5 rounded-2xl border border-emerald-200/60 shadow-sm">
+                  <p className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Approved & Refund</p>
+                  <p className="text-2xl font-bold text-emerald-800 mt-1">
+                    {cancelOrders.filter(c => c.status === 'Approved').length}
+                  </p>
+                </div>
+                <div className="bg-rose-50/60 p-5 rounded-2xl border border-rose-200/60 shadow-sm">
+                  <p className="text-xs font-bold text-rose-700 uppercase tracking-wider">Rejected</p>
+                  <p className="text-2xl font-bold text-rose-800 mt-1">
+                    {cancelOrders.filter(c => c.status === 'Rejected').length}
+                  </p>
+                </div>
+              </div>
+
+              {/* Controls: Search & Filter Tabs */}
+              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+                  {(['All', 'Pending', 'Approved', 'Rejected'] as const).map(st => {
+                    const count = st === 'All' ? cancelOrders.length : cancelOrders.filter(c => c.status === st).length;
+                    return (
+                      <button
+                        key={st}
+                        onClick={() => setCancelFilterStatus(st)}
+                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                          cancelFilterStatus === st
+                            ? 'bg-[#698156] text-white shadow-xs'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        <span>{st}</span>
+                        <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                          cancelFilterStatus === st ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-700'
+                        }`}>
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="relative min-w-[240px]">
+                  <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    value={cancelSearchQuery}
+                    onChange={e => setCancelSearchQuery(e.target.value)}
+                    placeholder="Search by Order ID, Customer, SKU..."
+                    className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#698156] focus:ring-1 focus:ring-[#698156]"
+                  />
+                </div>
+              </div>
+
+              {/* Table or Empty State */}
+              {(() => {
+                const filtered = cancelOrders.filter(req => {
+                  if (cancelFilterStatus !== 'All' && req.status !== cancelFilterStatus) return false;
+                  if (cancelSearchQuery.trim()) {
+                    const q = cancelSearchQuery.toLowerCase();
+                    const matchesOrder = req.order_id?.toLowerCase().includes(q);
+                    const matchesCust = req.customer_name?.toLowerCase().includes(q) || req.customer_phone?.includes(q);
+                    const matchesProd = req.product_name?.toLowerCase().includes(q) || req.product_id?.toLowerCase().includes(q);
+                    if (!matchesOrder && !matchesCust && !matchesProd) return false;
+                  }
+                  return true;
+                });
+
+                if (filtered.length === 0) {
+                  return (
+                    <EmptyCard
+                      icon={<Ban className="w-8 h-8 text-rose-500" />}
+                      title={cancelOrders.length === 0 ? "No Cancellation Requests" : "No Matching Requests"}
+                      sub={cancelOrders.length === 0 ? "When customers request an order cancellation, it will appear here for your review and approval." : "Try adjusting your search query or filter selection."}
+                    />
+                  );
+                }
+
+                return (
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="border-b border-gray-100 bg-gray-50/60 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                            <th className="py-4 px-5">Order ID & Date</th>
+                            <th className="py-4 px-5">Product Details</th>
+                            <th className="py-4 px-5">Customer & Delivery</th>
+                            <th className="py-4 px-5">Amount & Payment</th>
+                            <th className="py-4 px-5">Reason</th>
+                            <th className="py-4 px-5">Status</th>
+                            <th className="py-4 px-5 text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50 text-xs">
+                          {filtered.map(req => {
+                            const dateStr = req.created_at ? new Date(req.created_at).toLocaleDateString('en-IN', {
+                              day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                            }) : '—';
+                            const addr = req.shipping_address || {};
+                            const formattedAddr = [
+                              addr.address, addr.city, addr.state, addr.pincode
+                            ].filter(Boolean).join(', ') || 'Address on file';
+
+                            return (
+                              <tr key={req.id} className="hover:bg-gray-50/60 transition-colors">
+                                {/* Order ID & Date */}
+                                <td className="py-4 px-5 align-top">
+                                  <span className="font-mono font-bold text-gray-900 text-xs">
+                                    #{req.order_id}
+                                  </span>
+                                  <p className="text-[11px] text-gray-500 mt-1">{dateStr}</p>
+                                </td>
+
+                                {/* Product Details */}
+                                <td className="py-4 px-5 align-top">
+                                  <div className="flex items-center gap-3">
+                                    {req.product_image ? (
+                                      <img
+                                        src={req.product_image}
+                                        alt={req.product_name || 'Product'}
+                                        className="w-12 h-14 object-cover rounded-xl border border-gray-100 flex-shrink-0"
+                                      />
+                                    ) : (
+                                      <div className="w-12 h-14 bg-gray-100 rounded-xl flex items-center justify-center text-gray-400 flex-shrink-0">
+                                        <Package className="w-5 h-5" />
+                                      </div>
+                                    )}
+                                    <div className="min-w-0 max-w-[180px]">
+                                      <p className="font-bold text-gray-900 truncate" title={req.product_name}>
+                                        {req.product_name || 'Ethnic Wear Item'}
+                                      </p>
+                                      <p className="text-[10px] text-gray-500 font-mono mt-0.5 truncate" title={req.product_id}>
+                                        SKU: {req.product_id ? req.product_id.slice(0, 10) : '—'}
+                                      </p>
+                                      <span className="inline-block mt-1 px-2 py-0.5 bg-gray-100 rounded-md text-[10px] font-semibold text-gray-700">
+                                        Qty: {req.quantity || 1}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </td>
+
+                                {/* Customer & Delivery */}
+                                <td className="py-4 px-5 align-top">
+                                  <div className="max-w-[200px]">
+                                    <p className="font-bold text-gray-900">{req.customer_name || 'Customer'}</p>
+                                    <p className="text-[11px] text-gray-500 mt-0.5 flex items-center gap-1 font-mono">
+                                      <Phone className="w-3 h-3 text-gray-400" />
+                                      {req.customer_phone || '—'}
+                                    </p>
+                                    <p className="text-[10px] text-gray-500 mt-1 line-clamp-2 leading-tight" title={formattedAddr}>
+                                      <MapPin className="w-3 h-3 text-gray-400 inline mr-0.5" />
+                                      {formattedAddr}
+                                    </p>
+                                  </div>
+                                </td>
+
+                                {/* Amount & Payment */}
+                                <td className="py-4 px-5 align-top">
+                                  <p className="font-bold text-gray-900 text-sm">
+                                    ₹{Number(req.amount || 0).toLocaleString('en-IN')}
+                                  </p>
+                                  <p className="text-[10px] text-gray-500 mt-0.5">
+                                    {req.payment_method || 'Online'}
+                                  </p>
+                                  <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                    req.payment_status?.toLowerCase() === 'paid' || req.payment_status?.toLowerCase() === 'completed'
+                                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                      : 'bg-amber-50 text-amber-700 border border-amber-200'
+                                  }`}>
+                                    {req.payment_status || 'Paid'}
+                                  </span>
+                                </td>
+
+                                {/* Reason */}
+                                <td className="py-4 px-5 align-top">
+                                  <div className="max-w-[160px]">
+                                    <span className="inline-block px-2.5 py-1 bg-rose-50 text-rose-700 border border-rose-100 rounded-xl text-[11px] font-semibold">
+                                      {req.reason || 'Customer request'}
+                                    </span>
+                                  </div>
+                                </td>
+
+                                {/* Status */}
+                                <td className="py-4 px-5 align-top">
+                                  {req.status === 'Pending' ? (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-[11px] font-bold">
+                                      <Clock className="w-3 h-3 animate-pulse" />
+                                      Pending Review
+                                    </span>
+                                  ) : req.status === 'Approved' ? (
+                                    <div>
+                                      <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[11px] font-bold">
+                                        <CheckCircle2 className="w-3 h-3" />
+                                        Approved
+                                      </span>
+                                      <p className="text-[10px] text-emerald-600 font-medium mt-1">
+                                        Refund 5-7 days
+                                      </p>
+                                    </div>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 text-gray-600 border border-gray-200 rounded-full text-[11px] font-bold">
+                                      <Ban className="w-3 h-3" />
+                                      Rejected
+                                    </span>
+                                  )}
+                                </td>
+
+                                {/* Actions */}
+                                <td className="py-4 px-5 align-top text-right">
+                                  {req.status === 'Pending' ? (
+                                    <div className="flex items-center justify-end gap-2">
+                                      <button
+                                        onClick={() => approveCancelOrder(req)}
+                                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-2xs transition-all flex items-center gap-1 cursor-pointer active:scale-95"
+                                        title="Approve cancellation and initiate refund notice"
+                                      >
+                                        <Check className="w-3.5 h-3.5" />
+                                        Approve
+                                      </button>
+                                      <button
+                                        onClick={() => rejectCancelOrder(req)}
+                                        className="px-3 py-1.5 bg-gray-100 hover:bg-rose-50 text-gray-600 hover:text-rose-600 rounded-xl text-xs font-bold border border-gray-200 transition-all flex items-center gap-1 cursor-pointer active:scale-95"
+                                        title="Reject cancellation request"
+                                      >
+                                        <X className="w-3.5 h-3.5" />
+                                        Reject
+                                      </button>
+                                    </div>
+                                  ) : req.status === 'Approved' ? (
+                                    <span className="text-[11px] text-emerald-700 font-bold">
+                                      Order Cancelled
+                                    </span>
+                                  ) : (
+                                    <span className="text-[11px] text-gray-400 font-medium">
+                                      No action
+                                    </span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
           {activeTab === 'customers' && (
             <div className="space-y-5">
               {customers.length === 0 ? (
