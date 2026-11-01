@@ -369,6 +369,9 @@ export function CheckoutPage() {
       tracking_number: trackingNumber,
     };
 
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const firstProductId = checkoutItems[0]?.id && uuidRegex.test(checkoutItems[0].id) ? checkoutItems[0].id : null;
+
     // 1. Insert order in Pending state with valid schema fields
     const orderPayload: any = {
       id: orderId,
@@ -383,6 +386,7 @@ export function CheckoutPage() {
       total_price: totalAmount,
       shipping_address: shippingAddress,
       tracking_number: trackingNumber,
+      product_id: firstProductId,
       ...(userId ? { user_id: userId } : {}),
     };
 

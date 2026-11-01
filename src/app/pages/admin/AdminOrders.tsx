@@ -227,7 +227,10 @@ export function AdminOrders() {
                   <span className="inline-flex items-center gap-1"><MapPin className="w-3 h-3" /> Delivery Address</span>
                 </th>
                 <th className="px-5 py-3.5 font-medium whitespace-nowrap">
-                  <span className="inline-flex items-center gap-1"><Tag className="w-3 h-3" /> Product SKU</span>
+                  <span className="inline-flex items-center gap-1"><Tag className="w-3 h-3" /> Product SKU / Code</span>
+                </th>
+                <th className="px-5 py-3.5 font-medium whitespace-nowrap">
+                  <span className="inline-flex items-center gap-1"><Package className="w-3 h-3" /> Product Name</span>
                 </th>
                 <th className="px-5 py-3.5 text-right font-medium whitespace-nowrap">Actions</th>
               </tr>
@@ -308,19 +311,48 @@ export function AdminOrders() {
                     </td>
 
                     {/* Product SKU column */}
-                    <td className="px-5 py-3.5 max-w-[160px]">
+                    <td className="px-5 py-3.5 whitespace-nowrap">
                       {skuList.length > 0 ? (
                         <div className="flex flex-col gap-1">
                           {order.order_items.map((item: any, idx: number) => {
                             const pid: string = item.products?.id || item.product_id || '';
-                            const productName: string = item.products?.name || 'Item';
                             const skuCode = pid ? `#${pid.slice(0, 8).toUpperCase()}` : '—';
                             return (
-                              <div key={idx} className="flex items-center gap-1">
-                                <Tag className="w-3 h-3 text-indigo-400 flex-shrink-0" />
-                                <div>
-                                  <div className="font-mono text-[10px] font-semibold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100 inline-block">{skuCode}</div>
-                                  <div className="text-[9px] text-gray-400 truncate max-w-[120px]" title={productName}>{productName}</div>
+                              <div key={idx}>
+                                <div className="font-mono text-[10px] font-semibold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100 inline-block">
+                                  {skuCode}
+                                </div>
+                                {pid && (
+                                  <div className="text-[9px] text-gray-400 font-mono mt-0.5 truncate max-w-[110px]" title={pid}>
+                                    {pid}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <span className="text-gray-300 text-[11px]">—</span>
+                      )}
+                    </td>
+
+                    {/* Product Name column */}
+                    <td className="px-5 py-3.5 min-w-[200px] max-w-[260px]">
+                      {order.order_items.length > 0 ? (
+                        <div className="flex flex-col gap-2">
+                          {order.order_items.map((item: any, idx: number) => {
+                            const productName: string = item.products?.name || item.product_name || 'Item';
+                            const itemImg = item.products?.images?.[0] || item.products?.image_url;
+                            return (
+                              <div key={idx} className="flex items-start gap-2">
+                                {itemImg && (
+                                  <img src={itemImg} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0 border border-gray-100" />
+                                )}
+                                <div className="min-w-0">
+                                  <div className="text-[11px] font-semibold text-gray-900 leading-tight line-clamp-2" title={productName}>
+                                    {productName}
+                                  </div>
+                                  <div className="text-[10px] text-gray-400">Qty: {item.quantity || 1}</div>
                                 </div>
                               </div>
                             );
@@ -344,7 +376,7 @@ export function AdminOrders() {
                 );
               }) : (
                 <tr>
-                  <td colSpan={9} className="px-6 py-16 text-center text-gray-400">
+                  <td colSpan={10} className="px-6 py-16 text-center text-gray-400">
                     {searchQuery || statusFilter !== 'All' ? 'No orders match your filter.' : 'No orders yet.'}
                   </td>
                 </tr>

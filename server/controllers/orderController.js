@@ -145,7 +145,8 @@ export const createOrder = async (req, res) => {
         tax_amount: Number(taxPrice),
         shipping_fee: Number(shippingPrice),
         discount_amount: Number(discountAmount),
-        total_amount: serverGrandTotal
+        total_amount: serverGrandTotal,
+        product_id: validatedItems[0]?.product_id || null
       })
       .select()
       .single();

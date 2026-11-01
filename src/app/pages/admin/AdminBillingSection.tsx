@@ -681,6 +681,7 @@ export function AdminBillingSection({
       const orderPayload = {
         id: invoiceNo.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase(),
         total_amount: Math.round(grandTotal),
+        product_id: (billItems[0] && billItems[0].id) || null,
         status: paymentStatus === 'Paid' ? 'completed' : 'pending',
         payment_method: paymentMode,
         payment_status: paymentStatus.toLowerCase(),

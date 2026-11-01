@@ -29,11 +29,13 @@ import { saveHeroModel } from '@/app/data/heroModels';
 interface OrderItem {
   id: string;
   product_id: string;
+  product_name?: string;
   quantity: number;
   price: number;
   products?: {
     id: string; name: string; images?: string[]; image_url?: string;
   };
+  [key: string]: any;
 }
 
 interface ShippingAddress {
@@ -2762,16 +2764,90 @@ export function AdminAanyaPage() {
                         {orders.map(order => {
                           const addr = order.shipping_address || {};
                           const name = getFormattedCustomerName(addr, order);
+                          const addressLine = [
+                            addr.address,
+                            addr.city,
+                            addr.state,
+                            addr.pincode
+                          ].filter(Boolean).join(', ');
+
+                          // Fetch Product ID / SKU and Product Name
+                          const productId = order.product_id || order.order_items?.[0]?.product_id || order.order_items?.[0]?.products?.id || '';
+                          const skuCode = productId ? '#' + productId.slice(0, 8).toUpperCase() : '—';
+                          const productName = order.products?.name || order.order_items?.[0]?.products?.name || order.order_items?.[0]?.product_name || '—';
+                          const productImg = order.products?.images?.[0] || order.products?.image_url || order.order_items?.[0]?.products?.images?.[0] || order.order_items?.[0]?.products?.image_url || null;
+
                           return (
                             <tr key={order.id} className="hover:bg-gray-50/60 transition-colors">
-                              <td className="p-4 font-mono text-xs font-bold text-gray-800">#{String(order.id).slice(0, 8)}</td>
-                              <td className="p-4">
+                              <td className="p-4 font-mono text-xs font-bold text-gray-800 whitespace-nowrap">
+                                <div>#{String(order.id).slice(0, 8)}</div>
+                                {order.razorpay_payment_id && (
+                                  <div className="text-[10px] text-emerald-700 font-mono font-normal mt-0.5">{order.razorpay_payment_id}</div>
+                                )}
+                              </td>
+                              <td className="p-4 whitespace-nowrap">
                                 <div className="font-semibold text-gray-900">{name}</div>
                                 <div className="text-xs text-gray-400">{addr.city || ''}{addr.state ? `, ${addr.state}` : ''}</div>
                               </td>
-                              <td className="p-4">
-                                <div className="text-xs flex items-center gap-1 text-gray-600"><Phone className="w-3 h-3" />{addr.phone || '—'}</div>
-                                <div className="text-xs flex items-center gap-1 text-gray-400"><Mail className="w-3 h-3" />{addr.email || '—'}</div>
+                              <td className="p-4 whitespace-nowrap">
+                                <div className="text-xs flex items-center gap-1 text-gray-600"><Phone className="w-3 h-3 text-gray-400 flex-shrink-0" />{addr.phone || '—'}</div>
+                                <div className="text-xs flex items-center gap-1 text-gray-400"><Mail className="w-3 h-3 text-gray-400 flex-shrink-0" />{addr.email || '—'}</div>
+                              </td>
+
+                              {/* Delivery Address */}
+                              <td className="p-4 min-w-[200px] max-w-[260px]">
+                                {addressLine ? (
+                                  <div className="flex items-start gap-1.5">
+                                    <MapPin className="w-3.5 h-3.5 text-[#698156] mt-0.5 flex-shrink-0" />
+                                    <div>
+                                      {addr.full_name && (
+                                        <div className="text-xs font-bold text-gray-800">{addr.full_name}</div>
+                                      )}
+                                      <div className="text-xs text-gray-600 leading-snug break-words">{addressLine}</div>
+                                      {addr.phone && (
+                                        <div className="text-[11px] text-gray-400 mt-0.5 font-medium">📞 {addr.phone}</div>
+                                      )}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <span className="text-gray-300 text-xs">—</span>
+                                )}
+                              </td>
+
+                              {/* Product SKU / Code */}
+                              <td className="p-4 whitespace-nowrap">
+                                {productId ? (
+                                  <div>
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-indigo-50 border border-indigo-100 font-mono text-xs font-bold text-indigo-700">
+                                      <Tag className="w-3 h-3 text-indigo-500" />
+                                      {skuCode}
+                                    </span>
+                                    <div className="text-[10px] text-gray-400 font-mono mt-0.5 truncate max-w-[120px]" title={productId}>
+                                      {productId}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <span className="text-gray-300 text-xs">—</span>
+                                )}
+                              </td>
+
+                              {/* Product Name */}
+                              <td className="p-4 min-w-[220px] max-w-[280px]">
+                                <div className="flex items-start gap-2.5">
+                                  {productImg && (
+                                    <img src={productImg} alt="" className="w-9 h-9 rounded-lg object-cover flex-shrink-0 border border-gray-100 shadow-2xs" />
+                                  )}
+                                  <div className="min-w-0">
+                                    <div className="text-xs font-semibold text-gray-900 leading-snug line-clamp-2" title={productName}>
+                                      {productName}
+                                    </div>
+                                    {order.order_items && order.order_items.length > 1 && (
+                                      <div className="text-[10px] text-gray-400 mt-0.5 font-medium">
+                                        +{order.order_items.length - 1} more items
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
                               </td>
                               <td className="p-4 font-bold text-[#698156]">₹{(order.total_amount || 0).toLocaleString('en-IN')}</td>
                               <td className="p-4 text-xs font-medium text-gray-700">
@@ -2782,7 +2858,7 @@ export function AdminAanyaPage() {
                                 )}
                               </td>
                               <td className="p-4 whitespace-nowrap">
-                                {order.payment_status === 'Completed' || order.payment_status === 'Success' ? (
+                                {order.payment_status === 'Completed' || order.payment_status === 'Success' || order.payment_status === 'Paid' ? (
                                   <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 inline-flex items-center gap-1">
                                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Success
                                   </span>
