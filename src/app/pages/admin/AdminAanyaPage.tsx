@@ -2753,7 +2753,7 @@ export function AdminAanyaPage() {
                     <table className="w-full text-sm text-gray-700">
                       <thead className="bg-gray-50 text-xs uppercase font-bold text-gray-400 tracking-wider">
                         <tr>
-                          {['Order ID', 'Customer', 'Contact', 'Amount', 'Payment Method', 'Payment Status', 'Order Status', 'Date', 'Update'].map(h => (
+                          {['Order ID', 'Customer', 'Contact', 'Delivery Address', 'Product SKU / Code', 'Product Name', 'Amount', 'Payment Method', 'Payment Status', 'Order Status', 'Date', 'Update'].map(h => (
                             <th key={h} className="p-4 text-left whitespace-nowrap">{h}</th>
                           ))}
                         </tr>
