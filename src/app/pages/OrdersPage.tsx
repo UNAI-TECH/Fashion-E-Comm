@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Package, Truck, Clock, X, FileText, RotateCcw, MessageSquare, ChevronRight, Ban, CheckCircle2, ShoppingBag, HeadphonesIcon, Search, ListFilter, ArrowDownUp, Download, RefreshCcw, Star, LogIn } from 'lucide-react';
+import { Package, Truck, Clock, X, FileText, RotateCcw, MessageSquare, ChevronRight, Ban, CheckCircle2, ShoppingBag, HeadphonesIcon, Search, ListFilter, ArrowDownUp, Download, RefreshCcw, Star, LogIn, MapPin, AlertCircle, Loader2 } from 'lucide-react';
 import { Footer } from '../components/Footer';
 import { AnnouncementBar } from '../components/AnnouncementBar';
 import { supabase } from '../../lib/supabase';
@@ -23,6 +23,57 @@ export function OrdersPage() {
   const [activeFilter, setActiveFilter] = useState('All Orders');
   const [sortBy, setSortBy] = useState('Newest First');
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
+  const [orderToCancel, setOrderToCancel] = useState<any | null>(null);
+  const [cancelReason, setCancelReason] = useState('Changed my mind');
+  const [isSubmittingCancel, setIsSubmittingCancel] = useState(false);
+
+  const handleConfirmCancel = async () => {
+    if (!orderToCancel) return;
+    setIsSubmittingCancel(true);
+    try {
+      const firstItem = orderToCancel.order_items?.[0];
+      const pid = firstItem?.products?.id || firstItem?.product_id || orderToCancel.product_id || null;
+      const pName = firstItem?.products?.name || firstItem?.product_name || 'Designer Fashion Apparel';
+      const pImg = firstItem?.products?.images?.[0] || firstItem?.products?.image || null;
+      const qty = firstItem?.quantity || 1;
+
+      // 1. Insert into cancel_orders table
+      const { error: cancelErr } = await supabase.from('cancel_orders').insert({
+        order_id: orderToCancel.id,
+        user_id: user?.id || orderToCancel.user_id || null,
+        product_id: pid,
+        product_name: pName,
+        product_image: pImg,
+        quantity: qty,
+        amount: Number(orderToCancel.total_amount || 0),
+        payment_method: orderToCancel.payment_method || 'Online Payment',
+        payment_status: orderToCancel.payment_status || 'Paid',
+        customer_name: orderToCancel.shipping_address?.full_name || orderToCancel.shipping_address?.first_name || 'Customer',
+        customer_phone: orderToCancel.shipping_address?.phone || '',
+        shipping_address: orderToCancel.shipping_address || {},
+        reason: cancelReason,
+        status: 'Pending',
+        refund_status: '5-7 working days',
+      });
+
+      if (cancelErr) throw cancelErr;
+
+      // 2. Update order status to 'Cancellation Requested'
+      await supabase.from('orders').update({
+        status: 'Cancellation Requested',
+        updated_at: new Date().toISOString()
+      }).eq('id', orderToCancel.id);
+
+      setOrders(prev => prev.map(o => o.id === orderToCancel.id ? { ...o, status: 'Cancellation Requested' } : o));
+      setOrderToCancel(null);
+      toast.success('Cancellation request submitted successfully. Awaiting admin approval.');
+    } catch (err: any) {
+      console.error('Error submitting cancel request:', err);
+      toast.error('Failed to submit cancellation request: ' + (err.message || 'Please try again.'));
+    } finally {
+      setIsSubmittingCancel(false);
+    }
+  };
 
   const fetchOrders = async (manual = false) => {
     if (manual) setIsRefreshing(true);
@@ -109,7 +160,7 @@ export function OrdersPage() {
       result = result.filter(o => {
         const firstItem = o.order_items?.[0];
         const productName = (firstItem?.products?.name || '').toLowerCase();
-        const brandName = (firstItem?.products?.brand || 'aanya exclusive').toLowerCase();
+        const brandName = (firstItem?.products?.brand || 'aanya fashions').toLowerCase();
         const categoryName = (firstItem?.products?.category || '').toLowerCase();
         const orderId = (o.id || '').toLowerCase();
         return productName.includes(q) || brandName.includes(q) || orderId.includes(q) || categoryName.includes(q);
@@ -129,7 +180,7 @@ export function OrdersPage() {
     result.sort((a, b) => {
       const dateA = new Date(a.created_at).getTime();
       const dateB = new Date(b.created_at).getTime();
-      
+
       const priceA = a.order_items?.[0]?.price_at_time || a.order_items?.[0]?.price || a.order_items?.[0]?.products?.price || a.total_amount || 0;
       const priceB = b.order_items?.[0]?.price_at_time || b.order_items?.[0]?.price || b.order_items?.[0]?.products?.price || b.total_amount || 0;
 
@@ -190,7 +241,7 @@ export function OrdersPage() {
     <div className="min-h-screen bg-gray-50/50">
       <SEOHead title="My Orders" canonicalUrl="/orders" noIndex={true} />
       <AnnouncementBar />
-      
+
       {/* Custom Header */}
       <header className="fixed top-0 left-0 right-0 z-[40] bg-white/90 backdrop-blur-md shadow-sm border-b border-gray-100 h-16 flex items-center px-4 sm:px-6">
         <div className="flex-1 flex justify-start">
@@ -218,7 +269,7 @@ export function OrdersPage() {
             <h2 className="text-3xl font-serif text-gray-900 mb-2">Order History</h2>
             <p className="text-gray-500">Track, return, or buy your favorite styles again.</p>
           </div>
-          <button 
+          <button
             onClick={() => fetchOrders(true)}
             disabled={isRefreshing}
             className="px-5 py-2.5 bg-white border border-gray-200 rounded-full text-xs font-bold hover:bg-gray-50 transition-colors shadow-sm whitespace-nowrap flex items-center gap-2 text-gray-700 disabled:opacity-60 cursor-pointer"
@@ -249,7 +300,7 @@ export function OrdersPage() {
                   </button>
                 )}
               </div>
-              
+
               <div className="relative z-20">
                 <button
                   onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
@@ -260,7 +311,7 @@ export function OrdersPage() {
                   </span>
                   <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform ${isSortDropdownOpen ? 'rotate-90' : ''}`} />
                 </button>
-                
+
                 <AnimatePresence>
                   {isSortDropdownOpen && (
                     <motion.div
@@ -290,11 +341,10 @@ export function OrdersPage() {
                 <button
                   key={tab}
                   onClick={() => setActiveFilter(tab)}
-                  className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all shadow-sm ${
-                    activeFilter === tab 
-                      ? 'bg-gray-900 text-white border-transparent' 
+                  className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all shadow-sm ${activeFilter === tab
+                      ? 'bg-gray-900 text-white border-transparent'
                       : 'bg-white text-gray-600 border-gray-200 border hover:bg-gray-50'
-                  }`}
+                    }`}
                 >
                   {tab}
                 </button>
@@ -346,19 +396,19 @@ export function OrdersPage() {
                 const quantity = firstItem?.quantity || 1;
                 const basePrice = firstItem?.price_at_time || firstItem?.price || firstItem?.products?.price || order.total_amount;
                 const status = order.status || 'Order Placed';
-                
+
                 // Mocks for rich display based on user requirements
-                const brandName = "Aanya Exclusive";
+                const brandName = "Aanya Fashions";
                 const sizeMock = "M (Standard)";
                 const colorMock = "Designer Palette";
                 const discount = 15; // 15% off mock
 
                 return (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.05 }}
-                    key={order.id} 
+                    key={order.id}
                     className="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.1)] hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.1)] transition-all duration-300"
                   >
                     {/* Top Order Meta Bar */}
@@ -387,10 +437,10 @@ export function OrdersPage() {
                     <div className="p-6 flex flex-col md:flex-row gap-6 lg:gap-8">
                       {/* Product Image */}
                       <div className="w-32 h-44 sm:w-40 sm:h-52 rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 flex-shrink-0 relative group">
-                        <img 
-                          src={productImage} 
-                          alt={productName} 
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
+                        <img
+                          src={productImage}
+                          alt={productName}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                         />
                       </div>
 
@@ -403,7 +453,7 @@ export function OrdersPage() {
                               <p className="text-sm font-medium text-gray-500 mt-1">by {brandName}</p>
                             </div>
                           </div>
-                          
+
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-4 gap-x-6 mt-6 bg-gray-50/50 p-4 rounded-2xl border border-gray-50">
                             <div>
                               <p className="text-xs text-gray-500 mb-1">Color</p>
@@ -429,14 +479,14 @@ export function OrdersPage() {
                           {/* Progress Tracker UI */}
                           <div className="mb-6 relative">
                             <div className="absolute top-3 left-0 w-full h-1 bg-gray-100 rounded-full z-0 overflow-hidden">
-                              <div 
-                                className="h-full bg-emerald-500 transition-all duration-1000" 
-                                style={{ 
-                                  width: status === 'Delivered' ? '100%' : 
-                                         status === 'Out for Delivery' ? '80%' : 
-                                         status === 'Shipped' ? '60%' : 
-                                         status === 'Packed' ? '40%' : 
-                                         ['Confirmed', 'Order Placed', 'Pending'].includes(status) ? '20%' : '0%' 
+                              <div
+                                className="h-full bg-emerald-500 transition-all duration-1000"
+                                style={{
+                                  width: status === 'Delivered' ? '100%' :
+                                    status === 'Out for Delivery' ? '80%' :
+                                      status === 'Shipped' ? '60%' :
+                                        status === 'Packed' ? '40%' :
+                                          ['Confirmed', 'Order Placed', 'Pending'].includes(status) ? '20%' : '0%'
                                 }}
                               />
                             </div>
@@ -467,7 +517,7 @@ export function OrdersPage() {
                                 <p className="text-sm font-medium text-gray-600">Arriving by <strong className="text-gray-900">{deliveryDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</strong></p>
                               )}
                             </div>
-                            
+
                             <div className="flex flex-wrap items-center gap-2">
                               {getPaymentStatusBadge(order.payment_status)}
                               <span className="text-xs text-gray-500 bg-gray-50 px-2.5 py-1 rounded-full border border-gray-200 font-medium">
@@ -494,7 +544,7 @@ export function OrdersPage() {
                           </button>
                         )}
                       </div>
-                      
+
                       <div className="flex flex-wrap gap-2">
                         {status === 'Delivered' && (
                           <button onClick={() => toast.success('Return request initiated.')} className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 border border-transparent">
@@ -518,6 +568,129 @@ export function OrdersPage() {
           </div>
         )}
       </main>
+
+            {/* Cancel Order Confirmation Modal */}
+      <AnimatePresence>
+        {orderToCancel && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4"
+            onClick={() => !isSubmittingCancel && setOrderToCancel(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-gray-100"
+            >
+              {/* Header */}
+              <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-red-100 flex items-center justify-center text-red-600">
+                    <Ban className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-serif text-lg font-bold text-gray-900">Cancel Order Request</h3>
+                    <p className="text-xs text-gray-500 font-mono">#{orderToCancel.id}</p>
+                  </div>
+                </div>
+                <button
+                  disabled={isSubmittingCancel}
+                  onClick={() => setOrderToCancel(null)}
+                  className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="p-6 space-y-4">
+                {/* Product preview */}
+                <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 flex items-center gap-4">
+                  {orderToCancel.order_items?.[0]?.products?.images?.[0] && (
+                    <img
+                      src={orderToCancel.order_items[0].products.images[0]}
+                      alt=""
+                      className="w-16 h-16 rounded-xl object-cover border border-gray-200"
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-sm font-bold text-gray-900 truncate">
+                      {orderToCancel.order_items?.[0]?.products?.name || 'Designer Fashion Item'}
+                    </h4>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Qty: {orderToCancel.order_items?.[0]?.quantity || 1} • Total: <strong className="text-gray-900">₹{Number(orderToCancel.total_amount || 0).toLocaleString('en-IN')}</strong>
+                    </p>
+                    <p className="text-[11px] text-[#698156] font-medium mt-0.5">
+                      Delivery to: {orderToCancel.shipping_address?.full_name || 'Customer'} ({orderToCancel.shipping_address?.city || ''})
+                    </p>
+                  </div>
+                </div>
+
+                {/* Reason Selection */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                    Reason for Cancellation
+                  </label>
+                  <select
+                    value={cancelReason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#698156]/20"
+                  >
+                    <option value="Changed my mind">Changed my mind</option>
+                    <option value="Ordered by mistake">Ordered by mistake</option>
+                    <option value="Found better price / alternative">Found better price / alternative</option>
+                    <option value="Delivery time is too long">Delivery time is too long</option>
+                    <option value="Incorrect shipping address selected">Incorrect shipping address selected</option>
+                    <option value="Other reasons">Other reasons</option>
+                  </select>
+                </div>
+
+                {/* Refund Notice */}
+                <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-3.5 flex items-start gap-2.5 text-xs text-emerald-900">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-bold text-emerald-950">Refund Guarantee</p>
+                    <p className="text-emerald-800 text-[11px] mt-0.5">
+                      Once approved by our team, your full payment will be refunded within <strong>5 - 7 working days</strong> to your original payment method.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-6 border-t border-gray-100 flex items-center justify-end gap-3 bg-gray-50/30">
+                <button
+                  type="button"
+                  disabled={isSubmittingCancel}
+                  onClick={() => setOrderToCancel(null)}
+                  className="px-5 py-2.5 bg-white hover:bg-gray-100 border border-gray-200 text-gray-700 rounded-xl text-xs font-bold transition-all"
+                >
+                  Keep Order
+                </button>
+                <button
+                  type="button"
+                  disabled={isSubmittingCancel}
+                  onClick={handleConfirmCancel}
+                  className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-sm disabled:opacity-50 cursor-pointer"
+                >
+                  {isSubmittingCancel ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Submitting Request...
+                    </>
+                  ) : (
+                    'Confirm Cancellation'
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AuthModal
         isOpen={isAuthModalOpen}

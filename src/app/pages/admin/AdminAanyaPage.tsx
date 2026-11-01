@@ -38,6 +38,28 @@ interface OrderItem {
   [key: string]: any;
 }
 
+interface CancelOrderRequest {
+  id: string;
+  order_id: string;
+  user_id?: string;
+  product_id?: string;
+  product_name?: string;
+  product_image?: string;
+  quantity: number;
+  amount: number;
+  payment_method?: string;
+  payment_status?: string;
+  customer_name?: string;
+  customer_phone?: string;
+  shipping_address?: any;
+  reason?: string;
+  status: 'Pending' | 'Approved' | 'Rejected';
+  refund_status?: string;
+  created_at: string;
+  updated_at?: string;
+  [key: string]: any;
+}
+
 interface ShippingAddress {
   first_name?: string;
   last_name?: string;
@@ -117,9 +139,9 @@ const CAT_COLORS: Record<string, string> = {
 };
 
 /* ─── Nav items ─── */
-export type NavTab = 'overview' | 'notifications' | 'banners' | 'hero-models' | 'products' | 'inventory' | 'categories' | 'billing' | 'orders' | 'customers' | 'payments';
+export type NavTab = 'overview' | 'notifications' | 'banners' | 'hero-models' | 'products' | 'inventory' | 'categories' | 'billing' | 'orders' | 'canceled-orders' | 'customers' | 'payments';
 export const VALID_TABS: readonly NavTab[] = [
-  'overview', 'notifications', 'banners', 'hero-models', 'products', 'inventory', 'categories', 'billing', 'orders', 'customers', 'payments'
+  'overview', 'notifications', 'banners', 'hero-models', 'products', 'inventory', 'categories', 'billing', 'orders', 'canceled-orders', 'customers', 'payments'
 ] as const;
 export const isValidTab = (tab: any): tab is NavTab => VALID_TABS.includes(tab);
 
@@ -194,6 +216,7 @@ export function AdminAanyaPage() {
     if (path.endsWith('/categories')) return 'categories';
     if (path.endsWith('/billing') || path.endsWith('/pos')) return 'billing';
     if (path.endsWith('/orders')) return 'orders';
+    if (path.endsWith('/canceled-orders') || path.endsWith('/cancelled-orders')) return 'canceled-orders';
     if (path.endsWith('/customers')) return 'customers';
     if (path.endsWith('/payments')) return 'payments';
     if (path.endsWith('/dashboard') || path.endsWith('/overview')) return 'overview';
@@ -253,6 +276,72 @@ export function AdminAanyaPage() {
   /* ── Data state ── */
   const [dbProducts, setDbProducts] = useState<DbProduct[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [cancelOrders, setCancelOrders] = useState<CancelOrderRequest[]>([]);
+  const [cancelSearchQuery, setCancelSearchQuery] = useState('');
+  const [cancelFilterStatus, setCancelFilterStatus] = useState<'All' | 'Pending' | 'Approved' | 'Rejected'>('All');
+
+  const approveCancelOrder = async (req: CancelOrderRequest) => {
+    try {
+      const { error: cancelErr } = await supabase
+        .from('cancel_orders')
+        .update({
+          status: 'Approved',
+          refund_status: 'Refund in 5-7 working days',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', req.id);
+
+      if (cancelErr) throw cancelErr;
+
+      const { error: orderErr } = await supabase
+        .from('orders')
+        .update({
+          status: 'Cancelled',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', req.order_id);
+
+      if (orderErr) throw orderErr;
+
+      setCancelOrders(prev => prev.map(c => c.id === req.id ? { ...c, status: 'Approved', refund_status: 'Refund in 5-7 working days' } : c));
+      setOrders(prev => prev.map(o => o.id === req.order_id ? { ...o, status: 'Cancelled' } : o));
+      window.dispatchEvent(new Event('orders_updated'));
+      toast.success(`Order #${req.order_id} cancellation approved. Refund in 5-7 working days initiated.`);
+    } catch (err: any) {
+      console.error('Error approving cancel order:', err);
+      toast.error('Failed to approve cancellation: ' + err.message);
+    }
+  };
+
+  const rejectCancelOrder = async (req: CancelOrderRequest) => {
+    try {
+      const { error: cancelErr } = await supabase
+        .from('cancel_orders')
+        .update({
+          status: 'Rejected',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', req.id);
+
+      if (cancelErr) throw cancelErr;
+
+      await supabase
+        .from('orders')
+        .update({
+          status: 'Order Placed',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', req.order_id);
+
+      setCancelOrders(prev => prev.map(c => c.id === req.id ? { ...c, status: 'Rejected' } : c));
+      setOrders(prev => prev.map(o => o.id === req.order_id ? { ...o, status: 'Order Placed' } : o));
+      window.dispatchEvent(new Event('orders_updated'));
+      toast.info(`Cancellation request for Order #${req.order_id} rejected.`);
+    } catch (err: any) {
+      console.error('Error rejecting cancel order:', err);
+      toast.error('Failed to reject cancellation: ' + err.message);
+    }
+  };
   const [payments, setPayments] = useState<Payment[]>([]);
   const [customers, setCustomers] = useState<DerivedUser[]>([]);
 
