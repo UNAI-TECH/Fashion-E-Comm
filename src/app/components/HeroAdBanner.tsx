@@ -178,8 +178,8 @@ export function HeroAdBanner() {
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        {/* Banner Aspect Ratio Container: 16:9 on mobile, adaptive on desktop to prevent cropping */}
-        <div className="relative w-full aspect-[16/9] sm:aspect-[16/8] md:aspect-[16/7] lg:aspect-[16/6.5] max-h-[580px] min-h-[230px] sm:min-h-[320px] md:min-h-[420px] lg:min-h-[480px] flex items-center justify-center">
+        {/* Banner Aspect Ratio Container: 1904/826 on mobile matching actual banner size, adaptive on desktop */}
+        <div className="relative w-full aspect-[1904/826] sm:aspect-[1904/826] md:aspect-[16/7] lg:aspect-[16/6.5] max-h-[580px] flex items-center justify-center overflow-hidden">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentBanner.id || currentIndex}
@@ -187,16 +187,16 @@ export function HeroAdBanner() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.99 }}
               transition={{ duration: 0.5, ease: 'easeInOut' }}
-              className="absolute inset-0 w-full h-full cursor-pointer"
+              className="absolute inset-0 w-full h-full flex items-center justify-center cursor-pointer"
             >
               <Link
                 to={currentBanner.link_url || '/category/sarees'}
-                className="block w-full h-full relative"
+                className="w-full h-full flex items-center justify-center relative"
               >
                 <img
                   src={currentBanner.image_url}
                   alt={currentBanner.title || 'Hero Banner'}
-                  className="w-full h-full object-cover object-top select-none"
+                  className="w-full h-full object-cover sm:object-cover object-center select-none"
                   loading="eager"
                   draggable={false}
                   onError={() => {

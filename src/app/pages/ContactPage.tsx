@@ -5,6 +5,7 @@ import { Navigation } from '../components/Navigation';
 import { AnnouncementBar } from '../components/AnnouncementBar';
 import { Footer } from '../components/Footer';
 import { SEOHead, getBreadcrumbSchema } from '../components/SEOHead';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 export function ContactPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);

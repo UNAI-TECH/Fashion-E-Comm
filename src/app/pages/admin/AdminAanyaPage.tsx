@@ -7,7 +7,7 @@ import {
   ClipboardList, Menu, ChevronLeft, CreditCard, LogOut,
   Award, Camera, Shirt, Upload, Star, Receipt,
   Minus, ShoppingCart, ArrowRight, Tags, Boxes, Compass, Bell,
-  CheckCircle2, XCircle, Clock, Edit, Ban
+  CheckCircle2, XCircle, Clock, Edit, Ban, Tag
 } from 'lucide-react';
 import { AdminBannersSection } from './AdminBannersSection';
 import { AdminNotificationsSection } from './AdminNotificationsSection';
@@ -493,7 +493,7 @@ export function AdminAanyaPage() {
       // Use supabase (service role) to bypass RLS policies
       const [prodsRes, ordersRes, paymentsRes] = await Promise.all([
         supabase.from('products').select('*').order('created_at', { ascending: false }),
-        supabase.from('orders').select('*, order_items(*, products(*))').order('created_at', { ascending: false }),
+        supabase.from('orders').select('*, products:product_id(*), order_items(*, products(*))').order('created_at', { ascending: false }),
         supabase.from('payments').select('*').order('created_at', { ascending: false }),
       ]);
 
