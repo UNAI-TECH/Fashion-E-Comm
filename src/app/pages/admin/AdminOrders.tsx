@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, Filter, Eye, X, PackageOpen, Truck, CheckCircle, Package, Loader2, RefreshCw, CheckCircle2, XCircle, Clock, CreditCard } from 'lucide-react';
+import { Search, Filter, Eye, X, PackageOpen, Truck, CheckCircle, Package, Loader2, RefreshCw, CheckCircle2, XCircle, Clock, CreditCard, MapPin, Tag } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { toast } from 'sonner';
 
@@ -59,7 +59,7 @@ export function AdminOrders() {
           profiles:user_id (full_name, email, phone),
           order_items (
             *,
-            products (name, images, price)
+            products (id, name, images, price)
           )
         `)
         .order('created_at', { ascending: false });
@@ -217,66 +217,134 @@ export function AdminOrders() {
           <table className="w-full text-left border-collapse">
             <thead className="bg-gray-50 text-gray-500 text-xs border-b border-gray-100">
               <tr>
-                <th className="px-5 py-3.5 font-medium">Order ID</th>
-                <th className="px-5 py-3.5 font-medium">Customer</th>
-                <th className="px-5 py-3.5 font-medium">Date</th>
-                <th className="px-5 py-3.5 font-medium">Amount</th>
-                <th className="px-5 py-3.5 font-medium">Payment</th>
-                <th className="px-5 py-3.5 font-medium">Order Status</th>
-                <th className="px-5 py-3.5 text-right font-medium">Actions</th>
+                <th className="px-5 py-3.5 font-medium whitespace-nowrap">Order ID</th>
+                <th className="px-5 py-3.5 font-medium whitespace-nowrap">Customer</th>
+                <th className="px-5 py-3.5 font-medium whitespace-nowrap">Date</th>
+                <th className="px-5 py-3.5 font-medium whitespace-nowrap">Amount</th>
+                <th className="px-5 py-3.5 font-medium whitespace-nowrap">Payment</th>
+                <th className="px-5 py-3.5 font-medium whitespace-nowrap">Order Status</th>
+                <th className="px-5 py-3.5 font-medium whitespace-nowrap">
+                  <span className="inline-flex items-center gap-1"><MapPin className="w-3 h-3" /> Delivery Address</span>
+                </th>
+                <th className="px-5 py-3.5 font-medium whitespace-nowrap">
+                  <span className="inline-flex items-center gap-1"><Tag className="w-3 h-3" /> Product SKU</span>
+                </th>
+                <th className="px-5 py-3.5 text-right font-medium whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-xs">
-              {filtered.length > 0 ? filtered.map((order) => (
-                <tr key={order.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-5 py-3.5 font-medium text-gray-900 font-mono">
-                    <div>{order.id}</div>
-                    {order.razorpay_payment_id && (
-                      <div className="text-[10px] text-emerald-700 font-mono mt-0.5">{order.razorpay_payment_id}</div>
-                    )}
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <div className="font-medium text-gray-900">{order.customer_name}</div>
-                    <div className="text-gray-500 text-[11px]">{order.customer_email}</div>
-                  </td>
-                  <td className="px-5 py-3.5 text-gray-500">{order.date}</td>
-                  <td className="px-5 py-3.5 font-bold text-gray-900">{formatCurrency(order.amount)}</td>
-                  <td className="px-5 py-3.5 whitespace-nowrap">
-                    <div className="space-y-1">
-                      {order.payment_status === 'Paid' || order.payment_status === 'Success' || order.payment_status === 'Completed' ? (
-                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 inline-flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Paid
-                        </span>
-                      ) : order.payment_status === 'Failed' ? (
-                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-200 inline-flex items-center gap-1">
-                          <XCircle className="w-3 h-3 text-rose-600" /> Failed
-                        </span>
-                      ) : (
-                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-200 inline-flex items-center gap-1">
-                          <Clock className="w-3 h-3 text-amber-600" /> Pending
-                        </span>
+              {filtered.length > 0 ? filtered.map((order) => {
+                const addr = order.shipping_address || {};
+                const addressLine = [
+                  addr.address || addr.street,
+                  addr.city,
+                  addr.state,
+                  addr.pincode || addr.zip
+                ].filter(Boolean).join(', ');
+
+                const skuList = order.order_items
+                  .map((item: any) => {
+                    const pid: string = item.products?.id || item.product_id || '';
+                    return pid ? `#${pid.slice(0, 8).toUpperCase()}` : null;
+                  })
+                  .filter(Boolean) as string[];
+
+                return (
+                  <tr key={order.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-5 py-3.5 font-medium text-gray-900 font-mono">
+                      <div>{order.id}</div>
+                      {order.razorpay_payment_id && (
+                        <div className="text-[10px] text-emerald-700 font-mono mt-0.5">{order.razorpay_payment_id}</div>
                       )}
-                      <div className="text-[10px] text-gray-400">{order.payment_method}</div>
-                    </div>
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <span className={`px-2.5 py-1 rounded-full text-[11px] font-medium inline-block ${getStatusColor(order.status)}`}>
-                      {order.status}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3.5 text-right">
-                    <button 
-                      onClick={() => setSelectedOrder(order)}
-                      className="p-1.5 text-gray-400 hover:text-[#698156] hover:bg-[#698156]/10 rounded-lg transition-colors inline-block"
-                      title="View Details"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              )) : (
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <div className="font-medium text-gray-900">{order.customer_name}</div>
+                      <div className="text-gray-500 text-[11px]">{order.customer_email}</div>
+                    </td>
+                    <td className="px-5 py-3.5 text-gray-500 whitespace-nowrap">{order.date}</td>
+                    <td className="px-5 py-3.5 font-bold text-gray-900 whitespace-nowrap">{formatCurrency(order.amount)}</td>
+                    <td className="px-5 py-3.5 whitespace-nowrap">
+                      <div className="space-y-1">
+                        {order.payment_status === 'Paid' || order.payment_status === 'Success' || order.payment_status === 'Completed' ? (
+                          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 inline-flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Paid
+                          </span>
+                        ) : order.payment_status === 'Failed' ? (
+                          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-200 inline-flex items-center gap-1">
+                            <XCircle className="w-3 h-3 text-rose-600" /> Failed
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-200 inline-flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-amber-600" /> Pending
+                          </span>
+                        )}
+                        <div className="text-[10px] text-gray-400">{order.payment_method}</div>
+                      </div>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <span className={`px-2.5 py-1 rounded-full text-[11px] font-medium inline-block ${getStatusColor(order.status)}`}>
+                        {order.status}
+                      </span>
+                    </td>
+
+                    {/* Delivery Address column */}
+                    <td className="px-5 py-3.5 max-w-[180px]">
+                      {addressLine ? (
+                        <div className="flex items-start gap-1">
+                          <MapPin className="w-3 h-3 text-[#698156] mt-0.5 flex-shrink-0" />
+                          <div>
+                            {addr.full_name && (
+                              <div className="font-medium text-gray-800 text-[11px]">{addr.full_name}</div>
+                            )}
+                            <div className="text-gray-500 text-[10px] leading-tight break-words">{addressLine}</div>
+                            {addr.phone && (
+                              <div className="text-[10px] text-gray-400 mt-0.5">📞 {addr.phone}</div>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-gray-300 text-[11px]">—</span>
+                      )}
+                    </td>
+
+                    {/* Product SKU column */}
+                    <td className="px-5 py-3.5 max-w-[160px]">
+                      {skuList.length > 0 ? (
+                        <div className="flex flex-col gap-1">
+                          {order.order_items.map((item: any, idx: number) => {
+                            const pid: string = item.products?.id || item.product_id || '';
+                            const productName: string = item.products?.name || 'Item';
+                            const skuCode = pid ? `#${pid.slice(0, 8).toUpperCase()}` : '—';
+                            return (
+                              <div key={idx} className="flex items-center gap-1">
+                                <Tag className="w-3 h-3 text-indigo-400 flex-shrink-0" />
+                                <div>
+                                  <div className="font-mono text-[10px] font-semibold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100 inline-block">{skuCode}</div>
+                                  <div className="text-[9px] text-gray-400 truncate max-w-[120px]" title={productName}>{productName}</div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <span className="text-gray-300 text-[11px]">—</span>
+                      )}
+                    </td>
+
+                    <td className="px-5 py-3.5 text-right">
+                      <button 
+                        onClick={() => setSelectedOrder(order)}
+                        className="p-1.5 text-gray-400 hover:text-[#698156] hover:bg-[#698156]/10 rounded-lg transition-colors inline-block"
+                        title="View Details"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              }) : (
                 <tr>
-                  <td colSpan={7} className="px-6 py-16 text-center text-gray-400">
+                  <td colSpan={9} className="px-6 py-16 text-center text-gray-400">
                     {searchQuery || statusFilter !== 'All' ? 'No orders match your filter.' : 'No orders yet.'}
                   </td>
                 </tr>
