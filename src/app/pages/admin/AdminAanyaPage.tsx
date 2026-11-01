@@ -153,6 +153,7 @@ const NAV_ITEMS: { id: NavTab; label: string; icon: React.ReactNode }[] = [
   { id: 'inventory', label: 'Inventory Stock', icon: <Boxes className="w-5 h-5" /> },
   { id: 'categories', label: 'Categories', icon: <Tags className="w-5 h-5" /> },
   { id: 'orders', label: 'Orders', icon: <ClipboardList className="w-5 h-5" /> },
+  { id: 'canceled-orders', label: 'Canceled Orders', icon: <Ban className="w-5 h-5 text-rose-500" /> },
   { id: 'customers', label: 'Customers', icon: <Users className="w-5 h-5" /> },
   { id: 'payments', label: 'Payments', icon: <CreditCard className="w-5 h-5" /> },
 ];
