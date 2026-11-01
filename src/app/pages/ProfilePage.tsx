@@ -932,74 +932,28 @@ export function ProfilePage() {
                   exit={{ opacity: 0, y: -10 }}
                   className="space-y-6 max-w-4xl mx-auto"
                 >
-                  {/* Track Search Box */}
-                  <div className="bg-white rounded-3xl border border-gray-100 p-6 sm:p-8 shadow-sm">
-                    <h2 className="text-xl sm:text-2xl font-serif font-bold text-gray-900 mb-2">
-                      Live Order Tracking
-                    </h2>
-                    <p className="text-xs sm:text-sm text-gray-500 mb-6">
-                      Enter your Order ID or tracking AWB number to check real-time dispatch and delivery status.
-                    </p>
-
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <div className="relative flex-1">
-                        <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                        <input
-                          type="text"
-                          value={trackSearchId}
-                          onChange={(e) => setTrackSearchId(e.target.value)}
-                          placeholder="e.g. AF-84920 or Order UUID..."
-                          className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-medium focus:outline-none focus:border-[#698156] focus:ring-2 focus:ring-[#698156]/20 transition-all"
-                        />
-                      </div>
-                      <button
-                        onClick={() => {
-                          if (!trackSearchId.trim()) {
-                            toast.error('Please enter an Order ID');
-                            return;
-                          }
-                          const found = orders.find(
-                            (o) =>
-                              o.id === trackSearchId.trim() ||
-                              (o.id && o.id.toLowerCase().includes(trackSearchId.toLowerCase())) ||
-                              (o.order_number && o.order_number.toLowerCase().includes(trackSearchId.toLowerCase()))
-                          );
-                          if (found) {
-                            setActiveTrackOrder(found);
-                            toast.success('Order found!');
-                          } else {
-                            toast.error('Order not found. Please verify the ID.');
-                          }
-                        }}
-                        className="px-8 py-3.5 bg-[#698156] hover:bg-[#586e47] text-white font-bold rounded-2xl text-sm shadow-md shadow-[#698156]/20 transition-all cursor-pointer whitespace-nowrap"
-                      >
-                        Track Shipment
-                      </button>
+                  {/* Order Selector if multiple orders exist */}
+                  {orders.length > 1 && (
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
+                      <span className="text-gray-500 font-semibold whitespace-nowrap">Switch Order:</span>
+                      {orders.map((o) => (
+                        <button
+                          key={o.id}
+                          onClick={() => {
+                            setActiveTrackOrder(o);
+                            setTrackSearchId(o.id.slice(0, 8));
+                          }}
+                          className={`px-3.5 py-1.5 rounded-xl border transition-all whitespace-nowrap font-medium cursor-pointer ${
+                            activeTrackOrder?.id === o.id
+                              ? 'bg-[#698156] text-white border-[#698156] shadow-xs'
+                              : 'bg-white text-gray-700 border-gray-200 hover:border-[#698156]'
+                          }`}
+                        >
+                          Order #{o.order_number || o.id.slice(0, 8).toUpperCase()}
+                        </button>
+                      ))}
                     </div>
-
-                    {/* Quick Pick Recent Orders */}
-                    {orders.length > 0 && (
-                      <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-2 overflow-x-auto text-xs">
-                        <span className="text-gray-500 font-medium whitespace-nowrap">Recent Orders:</span>
-                        {orders.slice(0, 4).map((o) => (
-                          <button
-                            key={o.id}
-                            onClick={() => {
-                              setActiveTrackOrder(o);
-                              setTrackSearchId(o.id.slice(0, 8));
-                            }}
-                            className={`px-3 py-1 rounded-full border transition-all whitespace-nowrap font-medium ${
-                              activeTrackOrder?.id === o.id
-                                ? 'bg-[#698156] text-white border-[#698156]'
-                                : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-[#698156]'
-                            }`}
-                          >
-                            Order #{o.order_number || o.id.slice(0, 8)}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  )}
 
                   {/* Active Tracked Order Display */}
                   {activeTrackOrder ? (
@@ -1094,7 +1048,7 @@ export function ProfilePage() {
                       </div>
 
                       {/* Delivery Details Recap Grid */}
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-5 rounded-2xl bg-[#FDFBF7] border border-gray-100 text-xs">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-5 rounded-2xl bg-[#FDFBF7] border border-gray-100 text-xs">
                         <div>
                           <p className="text-gray-500 font-semibold mb-1">Estimated Delivery</p>
                           <p className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
@@ -1106,13 +1060,6 @@ export function ProfilePage() {
                                   year: 'numeric',
                                 })
                               : 'Within 3 - 5 Business Days'}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-gray-500 font-semibold mb-1">Courier Partner</p>
-                          <p className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
-                            <Truck className="w-4 h-4 text-[#698156]" />
-                            {activeTrackOrder.courier_name || 'BlueDart Express / Delhivery'}
                           </p>
                         </div>
                         <div>
