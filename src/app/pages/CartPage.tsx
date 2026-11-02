@@ -15,6 +15,14 @@ export function CartPage() {
   const { isAuthenticated, requireAuth, openAuthModal } = useCustomerAuth();
   const navigate = useNavigate();
 
+  // Format currency without rounding off paise/decimals
+  const formatPrice = (amt: number) => {
+    return amt.toLocaleString('en-IN', {
+      minimumFractionDigits: amt % 1 === 0 ? 0 : 2,
+      maximumFractionDigits: 2,
+    });
+  };
+
   // Price calculations
   const mrpTotal = cartItems.reduce((total, item) => {
     const mrp = item.compare_at_price || item.originalPrice || Math.round(item.price * 1.4);
@@ -23,9 +31,11 @@ export function CartPage() {
   const sellingTotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
   const discount = mrpTotal - sellingTotal;
   const platformFee = 0; // Free
-  const deliveryFee = sellingTotal > 2000 ? 0 : 99;
-  const totalAmount = sellingTotal + platformFee + deliveryFee;
-  const youSave = discount + (deliveryFee === 0 ? 99 : 0);
+  const deliveryFee = 0; // Free delivery
+  const gstRate = 0.05;
+  const gstAmount = Number((sellingTotal * gstRate).toFixed(2));
+  const totalAmount = Number((sellingTotal + gstAmount + platformFee + deliveryFee).toFixed(2));
+  const youSave = discount;
 
   const handleMoveToWishlist = async (item: any) => {
     requireAuth(async () => {
@@ -200,15 +210,20 @@ export function CartPage() {
                   <div className="space-y-3 text-sm">
                     <div className="flex justify-between text-gray-600">
                       <span>Total MRP</span>
-                      <span className="font-medium text-gray-900">₹{mrpTotal.toLocaleString('en-IN')}</span>
+                      <span className="font-medium text-gray-900">₹{formatPrice(mrpTotal)}</span>
                     </div>
                     
                     {discount > 0 && (
                       <div className="flex justify-between text-emerald-600">
                         <span>Discount on MRP</span>
-                        <span className="font-semibold">−₹{discount.toLocaleString('en-IN')}</span>
+                        <span className="font-semibold">−₹{formatPrice(discount)}</span>
                       </div>
                     )}
+
+                    <div className="flex justify-between text-gray-600">
+                      <span>Estimated GST (5%)</span>
+                      <span className="font-medium text-gray-900">+₹{formatPrice(gstAmount)}</span>
+                    </div>
 
                     <div className="flex justify-between text-gray-600">
                       <span>Platform Fee</span>
@@ -217,30 +232,23 @@ export function CartPage() {
 
                     <div className="flex justify-between text-gray-600">
                       <span>Delivery Fee</span>
-                      <span className={`font-medium ${deliveryFee === 0 ? 'text-emerald-600' : 'text-gray-900'}`}>
-                        {deliveryFee === 0 ? 'FREE' : `₹${deliveryFee}`}
-                      </span>
+                      <span className="font-medium text-emerald-600">FREE</span>
                     </div>
-
-                    {deliveryFee > 0 && (
-                      <p className="text-xs text-[#698156] bg-[#F4F6F2] px-3 py-2 rounded-lg">
-                        Add ₹{(2000 - sellingTotal).toLocaleString('en-IN')} more for free delivery!
-                      </p>
-                    )}
                   </div>
                   
                   <div className="border-t border-dashed border-gray-200 mt-4 pt-4">
                     <div className="flex justify-between items-center">
                       <span className="text-base font-bold text-gray-900">Total Amount</span>
-                      <span className="text-xl font-bold text-gray-900">₹{totalAmount.toLocaleString('en-IN')}</span>
+                      <span className="text-xl font-bold text-gray-900">₹{formatPrice(totalAmount)}</span>
                     </div>
+                    <p className="text-[11px] text-gray-400 mt-1 text-right">(Inclusive of 5% GST & Free Shipping)</p>
                   </div>
 
                   {youSave > 0 && (
                     <div className="mt-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5 flex items-center gap-2">
                       <Tag className="w-4 h-4 text-emerald-600" />
                       <span className="text-xs font-bold text-emerald-700">
-                        You'll save ₹{youSave.toLocaleString('en-IN')} on this order
+                        You'll save ₹{formatPrice(youSave)} on this order
                       </span>
                     </div>
                   )}

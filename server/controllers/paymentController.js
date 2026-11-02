@@ -15,7 +15,7 @@ const envPath = path.resolve(__dirname, '../../.env');
 const refreshEnv = () => {
   try {
     dotenv.config({ path: envPath, override: true });
-  } catch {}
+  } catch { }
 };
 
 /**
@@ -148,7 +148,7 @@ export const createRazorpayOrder = async (req, res) => {
               if (coupon) {
                 const discVal = Number(coupon.discount_value);
                 discount = coupon.discount_type === 'Percentage'
-                  ? Math.round(serverSubtotal * (discVal / 100))
+                  ? Number((serverSubtotal * (discVal / 100)).toFixed(2))
                   : Math.min(discVal, serverSubtotal);
               } else {
                 for (const p of dbProducts) {
@@ -156,7 +156,7 @@ export const createRazorpayOrder = async (req, res) => {
                     const details = typeof p.offer_details === 'string' ? JSON.parse(p.offer_details) : p.offer_details;
                     if (details?.coupon_code?.toUpperCase() === codeUpper) {
                       const discVal = Number(details.coupon_discount || 0);
-                      discount = Math.round(serverSubtotal * (discVal / 100));
+                      discount = Number((serverSubtotal * (discVal / 100)).toFixed(2));
                       break;
                     }
                   }
@@ -165,7 +165,9 @@ export const createRazorpayOrder = async (req, res) => {
             }
 
             if (serverSubtotal > 0) {
-              authoritativeRupees = Math.max(1, serverSubtotal - discount);
+              const taxable = Math.max(1, Number((serverSubtotal - discount).toFixed(2)));
+              const gst = Number((taxable * 0.05).toFixed(2)); // Exact 5% Garment GST without rounding off
+              authoritativeRupees = Number((taxable + gst).toFixed(2));
             }
           }
         }
@@ -174,16 +176,15 @@ export const createRazorpayOrder = async (req, res) => {
       }
     }
 
-    // STEP B2: If client supplied amountInRupees and it is lower than Step B server total,
-    // trust the client's discounted total (MRP/offer discount already applied on frontend).
-    // The client always sends the final checkout total (sellingTotal - couponDiscount).
+    // STEP B2: If client supplied amountInRupees and it matches or is lower than Step B server total,
+    // trust the client's discounted total (MRP/offer discount + 5% GST already applied on frontend).
     const clientRupees = amountInRupees != null && Number(amountInRupees) > 0
       ? Number(amountInRupees)
       : (explicitAmountInPaise != null && Number(explicitAmountInPaise) >= 100
-          ? Number(explicitAmountInPaise) / 100
-          : (amount != null && Number(amount) > 0 ? Number(amount) : null));
-    if (authoritativeRupees !== null && clientRupees !== null && clientRupees < authoritativeRupees) {
-      // Client's total is less — legitimate MRP/offer discount applied on the frontend
+        ? Number(explicitAmountInPaise) / 100
+        : (amount != null && Number(amount) > 0 ? Number(amount) : null));
+    if (authoritativeRupees !== null && clientRupees !== null && (clientRupees < authoritativeRupees || Math.abs(clientRupees - authoritativeRupees) <= 2)) {
+      // Client's total is within rounding or legitimate MRP/offer discount applied on the frontend
       authoritativeRupees = clientRupees;
     }
 
@@ -493,7 +494,7 @@ export const verifyRazorpayPayment = async (req, res) => {
           } else {
             await supabase.from('payments').insert([payData]);
           }
-        } catch {}
+        } catch { }
 
         if (!updatedOrder?.stock_decremented) {
           try {
@@ -509,7 +510,7 @@ export const verifyRazorpayPayment = async (req, res) => {
               }
               await supabase.from('orders').update({ stock_decremented: true }).eq('id', finalOrderId);
             }
-          } catch {}
+          } catch { }
         }
       } catch (err) {
         console.warn('Database recording warning:', err);
@@ -658,7 +659,7 @@ export const handleRazorpayWebhook = async (req, res) => {
               payer_vpa: payment?.vpa || payment?.email || '',
               created_at: new Date().toISOString()
             }]);
-          } catch {}
+          } catch { }
         }
       }
     }

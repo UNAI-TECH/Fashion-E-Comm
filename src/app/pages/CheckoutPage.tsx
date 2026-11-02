@@ -179,6 +179,14 @@ export function CheckoutPage() {
         category: item.category,
       }));
 
+  // Format currency without rounding off paise/decimals
+  const formatPrice = (amt: number) => {
+    return amt.toLocaleString('en-IN', {
+      minimumFractionDigits: amt % 1 === 0 ? 0 : 2,
+      maximumFractionDigits: 2,
+    });
+  };
+
   // Price calculations
   const mrpTotal = checkoutItems.reduce((sum, item) => {
     const mrp = item.compare_at_price || Math.round(item.price * 1.4);
@@ -189,14 +197,19 @@ export function CheckoutPage() {
   const platformFee = 0;
   const deliveryFee = 0; // Free delivery
 
-  // Calculate coupon discount
+  // Calculate coupon discount without rounding off percentages
   const couponDiscount = couponApplied
     ? couponApplied.discount_type === 'Percentage'
-      ? Math.round(sellingTotal * (couponApplied.discount_value / 100))
-      : Math.min(couponApplied.discount_value, sellingTotal)
+      ? Number((sellingTotal * (couponApplied.discount_value / 100)).toFixed(2))
+      : Number(Math.min(couponApplied.discount_value, sellingTotal).toFixed(2))
     : 0;
-  const totalAmount = Math.max(0, sellingTotal + platformFee + deliveryFee - couponDiscount);
-  const youSave = discount;
+
+  // 5% Garment GST calculation (exact unrounded amount)
+  const gstRate = 0.05;
+  const taxableAmount = Math.max(0, Number((sellingTotal - couponDiscount).toFixed(2)));
+  const gstAmount = Number((taxableAmount * gstRate).toFixed(2));
+  const totalAmount = Number((taxableAmount + gstAmount + platformFee + deliveryFee).toFixed(2));
+  const youSave = Number((discount + couponDiscount).toFixed(2));
 
   // Delivery date (7 days from now)
   const deliveryDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
@@ -265,11 +278,11 @@ export function CheckoutPage() {
         }
         const discValue = Number(data.discount_value);
         const saving = data.discount_type === 'Percentage'
-          ? Math.round(sellingTotal * (discValue / 100))
-          : Math.min(discValue, sellingTotal);
+          ? Number((sellingTotal * (discValue / 100)).toFixed(2))
+          : Number(Math.min(discValue, sellingTotal).toFixed(2));
         setCouponApplied({ code: data.code, discount_type: data.discount_type, discount_value: discValue });
         setCouponError('');
-        toast.success(`Coupon ${data.code} applied! You save ₹${saving.toLocaleString('en-IN')}`);
+        toast.success(`Coupon ${data.code} applied! You save ₹${formatPrice(saving)}`);
         return;
       }
 
@@ -286,10 +299,10 @@ export function CheckoutPage() {
           const details = typeof prod.offer_details === 'string' ? JSON.parse(prod.offer_details) : prod.offer_details;
           if (details?.coupon_code?.toUpperCase() === codeUpper) {
             const discValue = Number(details.coupon_discount || 0);
-            const saving = Math.round(sellingTotal * (discValue / 100));
+            const saving = Number((sellingTotal * (discValue / 100)).toFixed(2));
             setCouponApplied({ code: codeUpper, discount_type: 'Percentage', discount_value: discValue });
             setCouponError('');
-            toast.success(`Coupon ${codeUpper} applied! You save ₹${saving.toLocaleString('en-IN')}`);
+            toast.success(`Coupon ${codeUpper} applied! You save ₹${formatPrice(saving)}`);
             return;
           }
         }
@@ -380,7 +393,7 @@ export function CheckoutPage() {
       payment_status: initialPaymentStatus,
       subtotal: sellingTotal,
       discount_amount: couponDiscount,
-      tax_amount: 0,
+      tax_amount: gstAmount,
       shipping_fee: deliveryFee,
       total_amount: totalAmount,
       total_price: totalAmount,
@@ -1183,7 +1196,7 @@ export function CheckoutPage() {
                             )
                           ) : (
                             <>
-                              <Lock className="w-4 h-4" /> PAY WITH RAZORPAY • ₹{totalAmount.toLocaleString('en-IN')}
+                              <Lock className="w-4 h-4" /> PAY WITH RAZORPAY • ₹{formatPrice(totalAmount)}
                             </>
                           )}
                         </motion.button>
@@ -1204,12 +1217,12 @@ export function CheckoutPage() {
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between text-gray-600">
                     <span>Total MRP</span>
-                    <span className="font-medium text-gray-900">₹{mrpTotal.toLocaleString('en-IN')}</span>
+                    <span className="font-medium text-gray-900">₹{formatPrice(mrpTotal)}</span>
                   </div>
                   {discount > 0 && (
                     <div className="flex justify-between text-emerald-600">
                       <span>Discount on MRP</span>
-                      <span className="font-semibold">−₹{discount.toLocaleString('en-IN')}</span>
+                      <span className="font-semibold">−₹{formatPrice(discount)}</span>
                     </div>
                   )}
                   {couponDiscount > 0 && (
@@ -1218,9 +1231,13 @@ export function CheckoutPage() {
                         <Tag className="w-3 h-3" />
                         Coupon ({couponApplied?.code})
                       </span>
-                      <span className="font-semibold">−₹{couponDiscount.toLocaleString('en-IN')}</span>
+                      <span className="font-semibold">−₹{formatPrice(couponDiscount)}</span>
                     </div>
                   )}
+                  <div className="flex justify-between text-gray-600">
+                    <span>Estimated GST (5%)</span>
+                    <span className="font-medium text-gray-900">+₹{formatPrice(gstAmount)}</span>
+                  </div>
                   <div className="flex justify-between text-gray-600">
                     <span>Platform Fee</span>
                     <span className="font-medium text-emerald-600">FREE</span>
@@ -1234,15 +1251,16 @@ export function CheckoutPage() {
                 <div className="border-t border-dashed border-gray-200 pt-3">
                   <div className="flex justify-between items-center">
                     <span className="text-base font-bold text-gray-900">Total Amount</span>
-                    <span className="text-xl font-bold text-gray-900">₹{totalAmount.toLocaleString('en-IN')}</span>
+                    <span className="text-xl font-bold text-gray-900">₹{formatPrice(totalAmount)}</span>
                   </div>
+                  <p className="text-[11px] text-gray-400 mt-0.5 text-right">(Inclusive of 5% GST & Free Shipping)</p>
                 </div>
 
                 {youSave > 0 && (
                   <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5 flex items-center gap-2">
                     <Tag className="w-4 h-4 text-emerald-600 flex-shrink-0" />
                     <span className="text-xs font-bold text-emerald-700">
-                      You'll save ₹{youSave.toLocaleString('en-IN')} on this order
+                      You'll save ₹{formatPrice(youSave)} on this order
                     </span>
                   </div>
                 )}
