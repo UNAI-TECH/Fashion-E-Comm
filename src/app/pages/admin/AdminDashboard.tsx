@@ -69,8 +69,12 @@ export function AdminDashboard() {
       ]);
 
       // Calculate total revenue strictly from verified paid orders (no mock or pending revenue)
+      const isPaid = (s?: string) => {
+        const lower = String(s || '').toLowerCase().trim();
+        return lower === 'paid' || lower === 'completed' || lower === 'success' || lower === 'captured';
+      };
       const paidOrders = (orders || []).filter(
-        (o: any) => o.payment_status === 'Completed' || o.payment_status === 'Success'
+        (o: any) => isPaid(o.payment_status)
       );
       const totalRevenue = paidOrders.reduce((acc, item) => acc + Number(item.total_amount || 0), 0);
 

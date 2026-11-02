@@ -7,7 +7,8 @@ import {
   ClipboardList, Menu, ChevronLeft, CreditCard, LogOut,
   Award, Camera, Shirt, Upload, Star, Receipt,
   Minus, ShoppingCart, ArrowRight, Tags, Boxes, Compass, Bell,
-  CheckCircle2, XCircle, Clock, Edit, Ban, Tag, Check
+  CheckCircle2, XCircle, Clock, Edit, Ban, Tag, Check,
+  Download, FileSpreadsheet
 } from 'lucide-react';
 import { AdminBannersSection } from './AdminBannersSection';
 import { AdminNotificationsSection } from './AdminNotificationsSection';
@@ -702,12 +703,29 @@ export function AdminAanyaPage() {
       loadData();
     };
     window.addEventListener('orders_updated', handleOrdersUpdated);
+
+    // Auto-refresh fallback every 30 seconds
     const refreshInterval = setInterval(() => {
       loadData();
-    }, 30000); // 30 seconds auto-refresh for real-time order tracking
+    }, 30000);
+
+    // Supabase Real-time listener for orders and payments
+    const realtimeChannel = supabase
+      .channel('admin-dashboard-realtime-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
+        console.log('[Admin Dashboard Realtime] Order changed:', payload);
+        loadData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, (payload) => {
+        console.log('[Admin Dashboard Realtime] Payment changed:', payload);
+        loadData();
+      })
+      .subscribe();
+
     return () => {
       clearInterval(refreshInterval);
       window.removeEventListener('orders_updated', handleOrdersUpdated);
+      supabase.removeChannel(realtimeChannel);
     };
   }, [loadData]);
 
@@ -1277,42 +1295,216 @@ export function AdminAanyaPage() {
     } finally { setAdding(false); }
   };
 
-  /* ─── Derived metrics: Only verified completed payments & paid orders (no mock revenue) ─── */
-  const paidOrders = orders.filter(o => o.payment_status === 'Completed' || o.payment_status === 'Success');
-  const paidPayments = payments.filter(p => p.status === 'Completed' || p.status === 'Success');
+  /* ─── Derived metrics: authoritatively synced with Payments collected amounts ─── */
+  const isPaidStatus = (status?: string) => {
+    if (!status) return false;
+    const s = String(status).toLowerCase().trim();
+    return s === 'paid' || s === 'success' || s === 'completed' || s === 'captured';
+  };
 
-  const totalRevenue = paidPayments.length > 0
-    ? paidPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0)
-    : paidOrders.reduce((s, o) => s + (Number(o.total_amount) || 0), 0);
+  const isFailedOrRefunded = (status?: string) => {
+    if (!status) return false;
+    const s = String(status).toLowerCase().trim();
+    return s === 'failed' || s === 'refunded' || s === 'cancelled' || s === 'canceled';
+  };
 
-  /* Weekly revenue from real paid order dates */
-  const weeklyData = (() => {
+  const paidPayments = useMemo(() => {
+    return payments.filter(p => {
+      const s = String(p.status || '').toLowerCase().trim();
+      return isPaidStatus(p.status) || (!isFailedOrRefunded(p.status) && (Number(p.amount) || 0) > 0);
+    });
+  }, [payments]);
+
+  const paidOrders = useMemo(() => {
+    return orders.filter(o => {
+      const ps = String(o.payment_status || '').toLowerCase().trim();
+      const st = String(o.status || '').toLowerCase().trim();
+      return isPaidStatus(o.payment_status) || (st === 'delivered' && o.payment_method === 'COD');
+    });
+  }, [orders]);
+
+  /* Total Revenue: authoritatively calculated from payments page total collected amount */
+  const totalRevenue = useMemo(() => {
+    // 1. Calculate verified collected amount from payments table (matching Payments page)
+    const paymentsCollected = payments.reduce((sum, p) => {
+      if (isFailedOrRefunded(p.status)) return sum;
+      return sum + (Number(p.amount) || 0);
+    }, 0);
+
+    // 2. Add any paid orders that don't have a payments row yet (e.g. COD orders or legacy)
+    const seenPaymentOrderIds = new Set(
+      payments.map(p => String(p.order_id || '')).filter(Boolean)
+    );
+    const extraPaidOrders = orders
+      .filter(o => isPaidStatus(o.payment_status) && !seenPaymentOrderIds.has(String(o.id)))
+      .reduce((sum, o) => sum + (Number(o.total_amount) || 0), 0);
+
+    const combined = paymentsCollected + extraPaidOrders;
+    if (combined > 0) return combined;
+
+    // Fallback: If payments table has items
+    if (payments.length > 0) {
+      return payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+    }
+    // Fallback: Sum of paid orders
+    return paidOrders.reduce((sum, o) => sum + (Number(o.total_amount) || 0), 0);
+  }, [payments, orders, paidOrders]);
+
+  /* Weekly revenue works in realtime with live data fetching from payments & orders */
+  const weeklyData = useMemo(() => {
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const map: Record<string, number> = Object.fromEntries(days.map(d => [d, 0]));
-    paidOrders.forEach(o => { const d = days[new Date(o.created_at).getDay()]; map[d] += (Number(o.total_amount) || 0); });
-    return days.map(d => ({ day: d, revenue: map[d] }));
-  })();
+    const trackedOrderIds = new Set<string>();
+
+    // A. Plot from real payments records
+    payments.forEach(p => {
+      if (!isFailedOrRefunded(p.status) && p.created_at) {
+        const d = days[new Date(p.created_at).getDay()];
+        if (d) {
+          map[d] += (Number(p.amount) || 0);
+        }
+        if (p.order_id) {
+          trackedOrderIds.add(String(p.order_id));
+        }
+      }
+    });
+
+    // B. Plot from paid orders not already accounted in payments
+    orders.forEach(o => {
+      if (isPaidStatus(o.payment_status) && !trackedOrderIds.has(String(o.id)) && o.created_at) {
+        const d = days[new Date(o.created_at).getDay()];
+        if (d) {
+          map[d] += (Number(o.total_amount) || 0);
+        }
+      }
+    });
+
+    return days.map(d => ({ day: d, revenue: Math.round(map[d]) }));
+  }, [payments, orders]);
 
   /* Category split from real products */
-  const catData = (() => {
+  const catData = useMemo(() => {
     const map: Record<string, number> = {};
     dbProducts.forEach(p => { map[p.category] = (map[p.category] || 0) + 1; });
     const total = dbProducts.length || 1;
     return Object.entries(map).map(([name, count]) => ({
       name, value: Math.round((count / total) * 100), color: CAT_COLORS[name] || '#aaa',
     }));
-  })();
+  }, [dbProducts]);
 
-  /* Monthly revenue (last 6 months) from verified paid orders */
-  const monthlyData = (() => {
+  /* Monthly revenue (last 6 months) from verified payments & paid orders */
+  const monthlyData = useMemo(() => {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const map: Record<string, number> = {};
-    paidOrders.forEach(o => {
-      const m = months[new Date(o.created_at).getMonth()];
-      map[m] = (map[m] || 0) + (Number(o.total_amount) || 0);
+    const trackedOrderIds = new Set<string>();
+
+    payments.forEach(p => {
+      if (!isFailedOrRefunded(p.status) && p.created_at) {
+        const m = months[new Date(p.created_at).getMonth()];
+        map[m] = (map[m] || 0) + (Number(p.amount) || 0);
+        if (p.order_id) trackedOrderIds.add(String(p.order_id));
+      }
     });
-    return months.filter(m => (map[m] || 0) > 0).map(m => ({ month: m, revenue: map[m] }));
-  })();
+
+    orders.forEach(o => {
+      if (isPaidStatus(o.payment_status) && !trackedOrderIds.has(String(o.id)) && o.created_at) {
+        const m = months[new Date(o.created_at).getMonth()];
+        map[m] = (map[m] || 0) + (Number(o.total_amount) || 0);
+      }
+    });
+
+    return months.filter(m => (map[m] || 0) > 0).map(m => ({ month: m, revenue: Math.round(map[m]) }));
+  }, [payments, orders]);
+
+  /* ─── Export Orders to Excel (.xlsx / .csv) ─── */
+  const handleExportOrdersExcel = () => {
+    if (!orders || orders.length === 0) {
+      toast.error('No orders available to export');
+      return;
+    }
+
+    try {
+      const headers = [
+        'Order ID',
+        'Date & Time',
+        'Customer Name',
+        'Phone',
+        'Email',
+        'Delivery Address',
+        'City',
+        'State',
+        'Pincode',
+        'Product SKU / Code',
+        'Product Name',
+        'Amount (INR)',
+        'Payment Method',
+        'Payment Status',
+        'Order Status',
+        'Razorpay Payment ID',
+        'Razorpay Order ID'
+      ];
+
+      const escapeCell = (val: any) => {
+        if (val === null || val === undefined) return '""';
+        const str = String(val).replace(/"/g, '""');
+        return `"${str}"`;
+      };
+
+      const rows = orders.map(order => {
+        const addr = order.shipping_address || {};
+        const name = getFormattedCustomerName(addr, order);
+        const addressLine = [
+          addr.address,
+          addr.city,
+          addr.state,
+          addr.pincode
+        ].filter(Boolean).join(', ');
+
+        const productId = order.product_id || order.order_items?.[0]?.product_id || order.order_items?.[0]?.products?.id || '';
+        const skuCode = productId ? '#' + String(productId).slice(0, 8).toUpperCase() : '—';
+        const productName = order.products?.name || order.order_items?.[0]?.products?.name || order.order_items?.[0]?.product_name || '—';
+        const dateStr = order.created_at ? new Date(order.created_at).toLocaleString('en-IN') : '—';
+
+        return [
+          escapeCell(order.id),
+          escapeCell(dateStr),
+          escapeCell(name),
+          escapeCell(addr.phone || '—'),
+          escapeCell(addr.email || '—'),
+          escapeCell(addressLine || '—'),
+          escapeCell(addr.city || '—'),
+          escapeCell(addr.state || '—'),
+          escapeCell(addr.pincode || '—'),
+          escapeCell(skuCode),
+          escapeCell(productName),
+          escapeCell(Number(order.total_amount || 0)),
+          escapeCell(order.payment_method || '—'),
+          escapeCell(order.payment_status || 'Pending'),
+          escapeCell(order.status || 'Pending'),
+          escapeCell(order.razorpay_payment_id || '—'),
+          escapeCell(order.razorpay_order_id || '—')
+        ].join(',');
+      });
+
+      // UTF-8 BOM (\uFEFF) ensures Excel correctly formats characters, currency and Hindi/English names
+      const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\r\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const today = new Date().toISOString().split('T')[0];
+      a.download = `Aanya_Fashion_Orders_${today}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast.success(`Successfully exported ${orders.length} orders to Excel!`);
+    } catch (err: any) {
+      console.error('Failed to export orders:', err);
+      toast.error('Failed to export orders: ' + (err.message || 'Unknown error'));
+    }
+  };
 
   /* Status badge */
   const badge = (status: string) => {
@@ -1800,7 +1992,7 @@ export function AdminAanyaPage() {
                   <div className="flex items-center justify-between mb-5">
                     <div>
                       <h3 className="font-serif text-base font-bold text-gray-900">Weekly Revenue</h3>
-                      <p className="text-xs text-gray-400">Live from orders table</p>
+                      <p className="text-xs text-gray-400">Live real-time from payments & orders</p>
                     </div>
                     <span className="text-xs font-bold text-[#698156] bg-[#F4F6F2] px-3 py-1 rounded-full">INR ₹</span>
                   </div>
@@ -2845,18 +3037,30 @@ export function AdminAanyaPage() {
                       </div>
                       <p className="text-xs text-gray-400 mt-0.5">Auto-refreshes every 30s • Synced from Razorpay & Supabase</p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        loadData();
-                        toast.info('Orders refreshed');
-                      }}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition-all cursor-pointer self-start sm:self-auto shadow-xs active:scale-95"
-                      title="Refresh Orders"
-                    >
-                      <RefreshCw className="w-3.5 h-3.5" />
-                      Refresh Orders
-                    </button>
+                    <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          loadData();
+                          toast.info('Orders refreshed');
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95"
+                        title="Refresh Orders"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        <span>Refresh Orders</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleExportOrdersExcel}
+                        disabled={orders.length === 0}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#698156] hover:bg-[#546944] text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Download Orders Excel (.xlsx / .csv)"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Download Excel</span>
+                      </button>
+                    </div>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm text-gray-700">
