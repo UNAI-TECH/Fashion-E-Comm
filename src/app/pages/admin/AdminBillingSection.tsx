@@ -150,7 +150,7 @@ export function AdminBillingSection({
           }));
         }
       }
-    } catch (e) {}
+    } catch (e) { }
     return [];
   });
 
@@ -160,7 +160,7 @@ export function AdminBillingSection({
       if (billItems.length > 0) {
         localStorage.setItem('admin_billing_items', JSON.stringify(billItems));
       }
-    } catch (e) {}
+    } catch (e) { }
   }, [billItems]);
 
   // Listen for direct broadcast events from catalog products tab
@@ -189,7 +189,7 @@ export function AdminBillingSection({
           });
           try {
             localStorage.setItem('admin_billing_items', JSON.stringify(next));
-          } catch (err) {}
+          } catch (err) { }
           return next;
         });
       }
@@ -215,7 +215,7 @@ export function AdminBillingSection({
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) return parsed.length;
       }
-    } catch (e) {}
+    } catch (e) { }
     return 0;
   });
 
@@ -229,7 +229,7 @@ export function AdminBillingSection({
           return;
         }
       }
-    } catch (e) {}
+    } catch (e) { }
     setCartCount(0);
   };
 
@@ -362,7 +362,7 @@ export function AdminBillingSection({
         } else {
           localStorage.setItem('admin_billing_items', JSON.stringify(next));
         }
-      } catch (e) {}
+      } catch (e) { }
       return next;
     });
   };
@@ -379,7 +379,7 @@ export function AdminBillingSection({
     setDiscountAmount(0);
     try {
       localStorage.removeItem('admin_billing_items');
-    } catch (e) {}
+    } catch (e) { }
     toast.info('Bill cleared.');
   };
 
@@ -541,7 +541,7 @@ export function AdminBillingSection({
                 <div style="text-align: right; line-height: 1.6; color: #475569;">
                   <div><span style="font-weight: 700; color: #0F172A;">Document Date:</span> ${formattedDate}</div>
                   <div><span style="font-weight: 700; color: #0F172A;">Payment Mode:</span> ${paymentMode} (${paymentStatus})</div>
-                  <div><span style="font-weight: 700; color: #0F172A;">GSTIN:</span> 36AAHCA9482L1Z4</div>
+                  <div><span style="font-weight: 700; color: #0F172A;">GSTIN:</span> 33THXPS7636R1ZH</div>
                 </div>
               </div>
 
@@ -570,9 +570,9 @@ export function AdminBillingSection({
                     <div style="font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: #1E293B; margin-bottom: 4px; font-size: 9px;">
                       PAYMENT METHOD
                     </div>
-                    <div>Bank Account: <span style="font-weight: 700; color: #0F172A;">06410100042434</span></div>
-                    <div>Bank: <span style="font-weight: 700; color: #0F172A;">HDFC Bank (IFSC: HDFC0001245)</span></div>
-                    <div>UPI ID: <span style="font-weight: 700; color: #698156;">aanyafashions@okhdfcbank</span></div>
+                    <div>Bank Account: <span style="font-weight: 700; color: #0F172A;">24680200004266</span></div>
+                    <div>Bank: <span style="font-weight: 700; color: #0F172A;">Federal Bank (IFSC: FDRL0002468)</span></div>
+                    <div>UPI ID: <span style="font-weight: 700; color: #698156;">storyseedstudio471110.rzp@rxairtel</span></div>
                   </div>
 
                   <div style="margin-top: 14px; font-size: 10px; color: #64748B; line-height: 1.5;">
@@ -711,7 +711,7 @@ export function AdminBillingSection({
 
       try {
         localStorage.removeItem('admin_billing_items');
-      } catch (e) {}
+      } catch (e) { }
 
       toast.success(`Bill ${invoiceNo} recorded successfully!`);
     } catch (err: any) {
@@ -731,7 +731,7 @@ export function AdminBillingSection({
 
   return (
     <div className="space-y-6">
-      
+
       {/* ── TOP HEADER ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-gray-100 shadow-xs">
         <div className="flex items-center gap-3">
@@ -774,10 +774,10 @@ export function AdminBillingSection({
 
       {/* ── TWO-COLUMN BILLING INTERFACE ── */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-        
+
         {/* ══ LEFT COLUMN: Input Form & Product Selector (5 cols) ══ */}
         <div className="xl:col-span-5 space-y-5">
-          
+
           {/* 1. Customer Information Card */}
           <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-xs space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
@@ -1081,11 +1081,10 @@ export function AdminBillingSection({
                 <button
                   type="button"
                   onClick={() => setIncludeGst(!includeGst)}
-                  className={`w-full py-1.5 px-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                    includeGst
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                      : 'bg-gray-100 text-gray-600 border-gray-200'
-                  }`}
+                  className={`w-full py-1.5 px-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${includeGst
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : 'bg-gray-100 text-gray-600 border-gray-200'
+                    }`}
                 >
                   {includeGst ? '✓ GST Included' : '+ Add 5% GST'}
                 </button>
@@ -1096,7 +1095,7 @@ export function AdminBillingSection({
 
         {/* ══ RIGHT COLUMN: Live Exact Template Preview with Centered Watermark (7 cols) ══ */}
         <div className="xl:col-span-7 space-y-4">
-          
+
           {/* Action Bar */}
           <div className="bg-white p-3 rounded-2xl border border-gray-100 shadow-xs flex items-center justify-between flex-wrap gap-2 text-xs">
             <div className="flex items-center gap-2">
@@ -1120,13 +1119,13 @@ export function AdminBillingSection({
               LIVE SCREEN PREVIEW MATCHING THE USER'S INSPIRATION TEMPLATE
               ══════════════════════════════════════════════════════════════════ */}
           <div className="relative shadow-xl rounded-2xl overflow-hidden bg-white border border-gray-200/80">
-            
+
             <div
               id="printable-invoice"
               className="relative p-7 sm:p-10 bg-white min-h-[820px] flex flex-col justify-between overflow-hidden"
               style={{ minHeight: '840px' }}
             >
-              
+
               {/* 
                 ════════════════════════════════════════════════════════════
                 STRICTLY CENTERED LOGO WATERMARK IN THE MIDDLE OF THE BILL
@@ -1155,7 +1154,7 @@ export function AdminBillingSection({
 
               {/* ── Bill Content (relative z-10 for sharp readability) ── */}
               <div className="relative z-10 space-y-6">
-                
+
                 {/* 1. TOP HEADER: INVOICE title with 2 modern accent circles & logo + contact */}
                 <div className="flex items-start justify-between pb-2">
                   <div>
@@ -1215,7 +1214,7 @@ export function AdminBillingSection({
                       <span className="font-bold text-gray-900">Payment Mode:</span> {paymentMode} ({paymentStatus})
                     </div>
                     <div>
-                      <span className="font-bold text-gray-900">GSTIN:</span> 36AAHCA9482L1Z4
+                      <span className="font-bold text-gray-900">GSTIN:</span> 33THXPS7636R1ZH
                     </div>
                   </div>
                 </div>
@@ -1266,18 +1265,18 @@ export function AdminBillingSection({
 
                 {/* 4. BOTTOM SECTION SPLIT */}
                 <div className="flex flex-col sm:flex-row justify-between items-start gap-8 pt-2">
-                  
+
                   {/* LEFT: Payment details, Terms, Amount in Words */}
                   <div className="flex-1 max-w-sm space-y-3.5">
-                    
+
                     {/* Payment Method Card */}
                     <div className="bg-[#F8FAFC] border border-gray-200/80 rounded-xl p-3.5 text-[11px] text-gray-600 leading-snug space-y-0.5">
                       <div className="font-extrabold uppercase tracking-wider text-gray-900 text-[9px] mb-1">
                         PAYMENT METHOD
                       </div>
-                      <div>Bank Account: <span className="font-bold text-gray-900">06410100042434</span></div>
-                      <div>Bank: <span className="font-bold text-gray-900">HDFC Bank (IFSC: HDFC0001245)</span></div>
-                      <div>UPI ID: <span className="font-bold text-[#698156]">aanyafashions@okhdfcbank</span></div>
+                      <div>Bank Account: <span className="font-bold text-gray-900">24680200004266</span></div>
+                      <div>Bank: <span className="font-bold text-gray-900">Federal Bank (IFSC: FDRL0002468)</span></div>
+                      <div>UPI ID: <span className="font-bold text-[#698156]">storyseedstudio471110.rzp@rxairtel</span></div>
                     </div>
 
                     {/* Terms */}
@@ -1297,7 +1296,7 @@ export function AdminBillingSection({
 
                   {/* RIGHT: Totals & Signature */}
                   <div className="w-full sm:w-64 space-y-6">
-                    
+
                     {/* Totals Table */}
                     <div className="text-xs space-y-1.5">
                       <div className="flex justify-between py-1 text-gray-600 border-b border-gray-100">
@@ -1367,7 +1366,7 @@ export function AdminBillingSection({
       {isCatalogModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-            
+
             {/* Modal Header */}
             <div className="p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
               <div className="flex items-center gap-3">
@@ -1456,11 +1455,10 @@ export function AdminBillingSection({
                       key={cat}
                       type="button"
                       onClick={() => setModalCategory(cat)}
-                      className={`px-3 py-1.5 rounded-lg font-bold whitespace-nowrap transition-all cursor-pointer ${
-                        isActive
-                          ? 'bg-[#698156] text-white shadow-2xs'
-                          : 'bg-white hover:bg-gray-100 text-gray-600 border border-gray-200'
-                      }`}
+                      className={`px-3 py-1.5 rounded-lg font-bold whitespace-nowrap transition-all cursor-pointer ${isActive
+                        ? 'bg-[#698156] text-white shadow-2xs'
+                        : 'bg-white hover:bg-gray-100 text-gray-600 border border-gray-200'
+                        }`}
                     >
                       {cat}
                     </button>
@@ -1487,9 +1485,8 @@ export function AdminBillingSection({
                     return (
                       <div
                         key={p.id}
-                        className={`bg-white rounded-2xl border transition-all p-3 flex flex-col justify-between gap-3 shadow-2xs ${
-                          inBillQty > 0 ? 'border-[#698156] ring-1 ring-[#698156]/20 bg-[#F4F6F2]/30' : 'border-gray-200 hover:border-[#698156]/40 hover:shadow-xs'
-                        }`}
+                        className={`bg-white rounded-2xl border transition-all p-3 flex flex-col justify-between gap-3 shadow-2xs ${inBillQty > 0 ? 'border-[#698156] ring-1 ring-[#698156]/20 bg-[#F4F6F2]/30' : 'border-gray-200 hover:border-[#698156]/40 hover:shadow-xs'
+                          }`}
                       >
                         <div className="flex gap-3 items-start">
                           <div className="w-16 h-20 rounded-xl overflow-hidden bg-gray-100 border border-gray-200 shrink-0">
