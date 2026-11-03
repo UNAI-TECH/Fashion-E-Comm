@@ -14,12 +14,12 @@ const PRESET_FILTERS = [
   { id: 'kanchicotton', label: 'Kanchi Cotton' },
   { id: 'viscose', label: 'Viscose Sarees' },
   { id: 'fancy', label: 'Fancy Sarees' },
-  { id: 'checks', label: 'checks pedding Fancy Sarees' },
+  { id: 'checks', label: 'Checks Pending Fancy Sarees' },
   { id: 'banarasi', label: 'Banarasi Fashion silk sarees' },
 ];
 
 export function TrendingCollection({ products, isLoading }: TrendingCollectionProps) {
-  const [activeFilter, setActiveFilter] = useState<string>('all');
+  const [activeFilter, setActiveFilter] = useState<string>(PRESET_FILTERS[0].id);
   const [sortBy, setSortBy] = useState<'featured' | 'priceLow' | 'priceHigh'>('featured');
 
   // Compute all available filter options in the requested exact order:
@@ -75,7 +75,7 @@ export function TrendingCollection({ products, isLoading }: TrendingCollectionPr
     } else if (activeFilter === 'fancy') {
       list = list.filter(p => matchProductByMaterial(p, 'fancy'));
     } else if (activeFilter === 'checks') {
-      list = list.filter(p => matchProductByMaterial(p, 'checks pedding Fancy Sarees'));
+      list = list.filter(p => matchProductByMaterial(p, 'Checks Pending Fancy Sarees'));
     } else if (activeFilter === 'banarasi') {
       list = list.filter(p => matchProductByMaterial(p, 'Banarasi Fashion silk sarees'));
     } else if (activeFilter.startsWith('mat_')) {
