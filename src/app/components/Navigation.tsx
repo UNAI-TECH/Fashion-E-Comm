@@ -154,44 +154,50 @@ export function Navigation() {
     const queryTrimmed = searchQuery.trim();
     if (queryTrimmed.length === 0) {
       setSearchResults([]);
+      setSearchSuggestions([]);
       setIsSearching(false);
       return;
     }
 
-    const runSearch = (items: Product[]) => {
-      let results = intelligentSearch(queryTrimmed, items);
-      if (results.length === 0) {
-        results = getRecommendedFallback(items);
-        setIsFallbackSearch(true);
-        setSearchSuggestions([]);
+    const timer = setTimeout(() => {
+      const runSearch = (items: Product[]) => {
+        let results = intelligentSearch(queryTrimmed, items);
+        if (results.length === 0) {
+          results = getRecommendedFallback(items);
+          setIsFallbackSearch(true);
+          setSearchSuggestions([]);
+        } else {
+          setIsFallbackSearch(false);
+          setSearchSuggestions(getSearchSuggestions(queryTrimmed, items));
+        }
+
+        setSearchResults(
+          results.map((p: any) => ({
+            ...p,
+            material: p.material_type || p.material || p.specifications?.material,
+            image: (p.images && p.images.length > 0) ? p.images[0] : (p.image_url || p.image || ''),
+          }))
+        );
+        setIsSearching(false);
+      };
+
+      if (allProducts.length > 0) {
+        runSearch(allProducts);
       } else {
-        setIsFallbackSearch(false);
-        setSearchSuggestions(getSearchSuggestions(queryTrimmed, items));
+        setIsSearching(true);
+        fetchProducts()
+          .then((products) => {
+            setAllProducts(products);
+            runSearch(products);
+          })
+          .catch((err) => {
+            console.error('Search error:', err);
+            setIsSearching(false);
+          });
       }
+    }, 60);
 
-      setSearchResults(
-        results.map((p: any) => ({
-          ...p,
-          image: (p.images && p.images.length > 0) ? p.images[0] : (p.image_url || p.image || ''),
-        }))
-      );
-      setIsSearching(false);
-    };
-
-    if (allProducts.length > 0) {
-      runSearch(allProducts);
-    } else {
-      setIsSearching(true);
-      fetchProducts()
-        .then((products) => {
-          setAllProducts(products);
-          runSearch(products);
-        })
-        .catch((err) => {
-          console.error('Search error:', err);
-          setIsSearching(false);
-        });
-    }
+    return () => clearTimeout(timer);
   }, [searchQuery, allProducts]);
 
 
@@ -222,12 +228,28 @@ export function Navigation() {
                 type="text"
                 placeholder="Try Saree, Silk, Banarasi or Search by Product..."
                 value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
+                onChange={e => {
+                  setSearchQuery(e.target.value);
+                  setIsSearchDropdownOpen(true);
+                }}
                 onFocus={() => setIsSearchDropdownOpen(true)}
-                onBlur={() => setTimeout(() => setIsSearchDropdownOpen(false), 200)}
+                onBlur={() => setTimeout(() => setIsSearchDropdownOpen(false), 250)}
                 onKeyDown={e => { if (e.key === 'Enter') handleSearchSubmit(searchQuery); }}
-                className="w-full pl-11 pr-4 py-2.5 text-xs sm:text-sm border border-gray-300 rounded-full bg-[#F9FAF8] hover:bg-white focus:bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#698156] focus:ring-2 focus:ring-[#698156]/20 transition-all shadow-2xs"
+                className="w-full pl-11 pr-10 py-2.5 text-xs sm:text-sm border border-gray-300 rounded-full bg-[#F9FAF8] hover:bg-white focus:bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#698156] focus:ring-2 focus:ring-[#698156]/20 transition-all shadow-2xs"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setIsSearchDropdownOpen(false);
+                  }}
+                  className="absolute right-3.5 w-5 h-5 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 text-gray-600 transition-colors"
+                  aria-label="Clear search"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
             </div>
 
             {/* Desktop Search Dropdown */}
@@ -237,11 +259,13 @@ export function Navigation() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 10 }}
+                  onMouseDown={(e) => e.preventDefault()}
                   className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-100 max-h-[80vh] overflow-y-auto z-50 p-3"
                 >
                   {isSearching ? (
-                    <div className="flex justify-center py-6">
-                      <div className="w-6 h-6 rounded-full border-2 border-[#698156]/20 border-t-[#698156] animate-spin" />
+                    <div className="flex items-center justify-center gap-2 py-8 text-xs text-gray-500 font-medium">
+                      <div className="w-5 h-5 rounded-full border-2 border-[#698156]/20 border-t-[#698156] animate-spin" />
+                      <span>Searching catalog...</span>
                     </div>
                   ) : searchResults.length > 0 ? (
                     <div className="space-y-4">
@@ -252,8 +276,9 @@ export function Navigation() {
                             {searchSuggestions.map(suggestion => (
                               <button
                                 key={suggestion}
+                                type="button"
                                 onClick={() => handleSearchSubmit(suggestion)}
-                                className="w-full flex items-center gap-2 py-1.5 px-2 rounded-lg hover:bg-[#F4F6F2] transition-colors group text-left"
+                                className="w-full flex items-center gap-2 py-1.5 px-2 rounded-lg hover:bg-[#F4F6F2] transition-colors group text-left cursor-pointer"
                               >
                                 <Search className="w-3.5 h-3.5 text-gray-300 flex-shrink-0" />
                                 <span className="flex-1 text-xs font-medium text-gray-700 group-hover:text-[#698156] capitalize">
@@ -266,54 +291,88 @@ export function Navigation() {
                       )}
 
                       <div>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-1">Products</p>
+                        <div className="flex items-center justify-between mb-2 px-1">
+                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                            {isFallbackSearch ? 'Recommended Sarees' : `Matching Sarees (${searchResults.length})`}
+                          </p>
+                          <span className="text-[10px] font-medium text-[#698156]">
+                            Press Enter for all
+                          </span>
+                        </div>
+
                         {isFallbackSearch && (
                           <div className="px-2 py-1.5 text-[10px] font-semibold text-gray-500 bg-gray-50 rounded-lg mb-2 border border-gray-100">
                             No exact matches found. Showing recommendations:
                           </div>
                         )}
                         <div className="space-y-1">
-                          {searchResults.map((product) => (
-                            <Link
-                              key={product.id}
-                              to={`/product/${product.id}`}
-                              onClick={() => { addToHistory(product.name); setIsSearchDropdownOpen(false); setSearchQuery(''); }}
-                              className="flex items-center gap-3 p-2 rounded-xl hover:bg-[#F4F6F2] transition-colors group cursor-pointer"
-                            >
-                              <div className="w-10 h-12 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0 border border-gray-200/60 shadow-2xs">
-                                {product.image ? (
-                                  <img src={sanitizeImageUrl(product.image)} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center text-gray-400 text-[10px] font-bold">AF</div>
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1.5 mb-0.5">
-                                  <span className="text-[9px] font-bold uppercase tracking-wider text-[#698156] bg-[#698156]/10 px-1.5 py-0.5 rounded">
-                                    {product.category || 'Saree'}
-                                  </span>
-                                  {product.material && (
-                                    <span className="text-[9px] font-medium text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded truncate max-w-[90px]">
-                                      {product.material}
-                                    </span>
+                          {searchResults.slice(0, 8).map((product) => {
+                            const materialLabel = product.material || product.material_type;
+                            return (
+                              <Link
+                                key={product.id}
+                                to={`/product/${product.id}`}
+                                onClick={() => { addToHistory(product.name); setIsSearchDropdownOpen(false); setSearchQuery(''); }}
+                                className="flex items-center gap-3 p-2 rounded-xl hover:bg-[#F4F6F2] transition-colors group cursor-pointer"
+                              >
+                                <div className="w-10 h-12 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0 border border-gray-200/60 shadow-2xs">
+                                  {product.image ? (
+                                    <img src={sanitizeImageUrl(product.image)} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-[10px] font-bold">AF</div>
                                   )}
                                 </div>
-                                <p className="text-xs font-semibold text-gray-800 group-hover:text-[#698156] transition-colors truncate">
-                                  <HighlightText text={product.name} highlight={searchQuery} />
-                                </p>
-                                <p className="text-xs font-bold text-gray-900 mt-0.5">
-                                  ₹{(product.price || 0).toLocaleString('en-IN')}
-                                </p>
-                              </div>
-                              <ArrowRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-[#698156] transition-transform group-hover:translate-x-0.5 flex-shrink-0" />
-                            </Link>
-                          ))}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-1.5 mb-0.5">
+                                    <span className="text-[9px] font-bold uppercase tracking-wider text-[#698156] bg-[#698156]/10 px-1.5 py-0.5 rounded">
+                                      {product.category || 'Saree'}
+                                    </span>
+                                    {materialLabel && (
+                                      <span className="text-[9px] font-medium text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded truncate max-w-[130px]">
+                                        {materialLabel}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-xs font-semibold text-gray-800 group-hover:text-[#698156] transition-colors truncate">
+                                    <HighlightText text={product.name} highlight={searchQuery} />
+                                  </p>
+                                  <div className="flex items-center gap-1.5 mt-0.5">
+                                    <p className="text-xs font-bold text-gray-900">
+                                      ₹{(product.price || 0).toLocaleString('en-IN')}
+                                    </p>
+                                    {product.compare_at_price && product.compare_at_price > product.price && (
+                                      <>
+                                        <span className="text-[10px] text-gray-400 line-through font-normal">
+                                          ₹{product.compare_at_price.toLocaleString('en-IN')}
+                                        </span>
+                                        <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1 py-0.2 rounded">
+                                          {Math.round(((product.compare_at_price - product.price) / product.compare_at_price) * 100)}% off
+                                        </span>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                                <ArrowRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-[#698156] transition-transform group-hover:translate-x-0.5 flex-shrink-0" />
+                              </Link>
+                            );
+                          })}
                         </div>
+
+                        {/* View all button */}
+                        <button
+                          type="button"
+                          onClick={() => handleSearchSubmit(searchQuery)}
+                          className="w-full mt-3 pt-2.5 pb-1 border-t border-gray-100 flex items-center justify-between text-xs font-bold text-[#698156] hover:text-[#556945] transition-colors cursor-pointer group"
+                        >
+                          <span>View all {searchResults.length} sarees for &ldquo;{searchQuery}&rdquo;</span>
+                          <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
+                        </button>
                       </div>
                     </div>
                   ) : (
                     <div className="text-center py-6">
                       <p className="text-xs text-gray-400">No results for &ldquo;{searchQuery}&rdquo;</p>
+                      <p className="text-[11px] text-gray-400 mt-1">Try Kanchi Cotton, Checks, Fancy Sarees or Silk</p>
                     </div>
                   )}
                 </motion.div>
@@ -921,49 +980,86 @@ export function Navigation() {
 
                   {/* Product Results Section */}
                   <div>
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-1">Products</p>
+                    <div className="flex items-center justify-between mb-2 px-1">
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                        {isFallbackSearch ? 'Recommended Sarees' : `Matching Sarees (${searchResults.length})`}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => handleSearchSubmit(searchQuery)}
+                        className="text-xs font-bold text-[#698156] hover:underline"
+                      >
+                        View all
+                      </button>
+                    </div>
+
                     {isFallbackSearch && (
                       <div className="px-3 py-2 text-xs font-semibold text-gray-500 bg-gray-50 rounded-lg mb-2 border border-gray-100">
                         No exact matches found. Showing recommendations:
                       </div>
                     )}
-                    <div className="space-y-1">
-                      {searchResults.map((product) => (
-                        <Link
-                          key={product.id}
-                          to={`/product/${product.id}`}
-                          onClick={() => { addToHistory(product.name); setIsSearchOpen(false); setSearchQuery(''); }}
-                          className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-[#F4F6F2] transition-colors group cursor-pointer"
-                        >
-                          <div className="w-12 h-14 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0 border border-gray-200/60 shadow-2xs">
-                            {product.image ? (
-                              <img src={sanitizeImageUrl(product.image)} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs font-bold">AF</div>
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5 mb-0.5">
-                              <span className="text-[9px] font-bold uppercase tracking-wider text-[#698156] bg-[#698156]/10 px-1.5 py-0.5 rounded">
-                                {product.category || 'Saree'}
-                              </span>
-                              {product.material && (
-                                <span className="text-[9px] font-medium text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded truncate max-w-[100px]">
-                                  {product.material}
-                                </span>
+                    <div className="space-y-1.5">
+                      {searchResults.map((product) => {
+                        const materialLabel = product.material || product.material_type;
+                        return (
+                          <Link
+                            key={product.id}
+                            to={`/product/${product.id}`}
+                            onClick={() => { addToHistory(product.name); setIsSearchOpen(false); setSearchQuery(''); }}
+                            className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-[#F4F6F2] transition-colors group cursor-pointer border border-gray-50"
+                          >
+                            <div className="w-12 h-14 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0 border border-gray-200/60 shadow-2xs">
+                              {product.image ? (
+                                <img src={sanitizeImageUrl(product.image)} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs font-bold">AF</div>
                               )}
                             </div>
-                            <p className="text-sm font-semibold text-gray-800 group-hover:text-[#698156] transition-colors truncate">
-                              <HighlightText text={product.name} highlight={searchQuery} />
-                            </p>
-                            <p className="text-xs font-bold text-gray-900 mt-0.5">
-                              ₹{(product.price || 0).toLocaleString('en-IN')}
-                            </p>
-                          </div>
-                          <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-[#698156] transition-transform group-hover:translate-x-0.5 flex-shrink-0" />
-                        </Link>
-                      ))}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5 mb-0.5">
+                                <span className="text-[9px] font-bold uppercase tracking-wider text-[#698156] bg-[#698156]/10 px-1.5 py-0.5 rounded">
+                                  {product.category || 'Saree'}
+                                </span>
+                                {materialLabel && (
+                                  <span className="text-[9px] font-medium text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded truncate max-w-[130px]">
+                                    {materialLabel}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-sm font-semibold text-gray-800 group-hover:text-[#698156] transition-colors truncate">
+                                <HighlightText text={product.name} highlight={searchQuery} />
+                              </p>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <p className="text-xs font-bold text-gray-900">
+                                  ₹{(product.price || 0).toLocaleString('en-IN')}
+                                </p>
+                                {product.compare_at_price && product.compare_at_price > product.price && (
+                                  <>
+                                    <span className="text-[10px] text-gray-400 line-through font-normal">
+                                      ₹{product.compare_at_price.toLocaleString('en-IN')}
+                                    </span>
+                                    <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1 py-0.2 rounded">
+                                      {Math.round(((product.compare_at_price - product.price) / product.compare_at_price) * 100)}% off
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                            <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-[#698156] transition-transform group-hover:translate-x-0.5 flex-shrink-0" />
+                          </Link>
+                        );
+                      })}
                     </div>
+
+                    {/* View all button at bottom of mobile list */}
+                    <button
+                      type="button"
+                      onClick={() => handleSearchSubmit(searchQuery)}
+                      className="w-full mt-4 py-3 bg-[#698156] text-white rounded-xl text-xs font-bold shadow-sm hover:bg-[#586d48] transition-colors flex items-center justify-center gap-2"
+                    >
+                      <span>View all {searchResults.length} sarees for &ldquo;{searchQuery}&rdquo;</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
               ) : (

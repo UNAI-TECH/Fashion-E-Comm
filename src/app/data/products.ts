@@ -9,6 +9,8 @@ export interface Product {
   compare_at_price?: number;
   category: string;
   material?: string;
+  material_type?: string;
+  specifications?: any;
   images: string[];
   image: string;
   rating: number;
@@ -17,6 +19,10 @@ export interface Product {
   colors: string[];
   created_at?: string;
   badge?: string;
+  tags?: string[];
+  color?: string;
+  pattern?: string;
+  occasion?: string;
 }
 
 const PLACEHOLDER_IMAGE = 'https://images.unsplash.com/photo-1604176354204-926873ff34b0?q=80&w=1000&auto=format&fit=crop';
@@ -329,6 +335,8 @@ export async function fetchProducts(category?: string): Promise<Product[]> {
           originalPrice: p.compare_at_price ? Number(p.compare_at_price) : undefined,
           category: p.category || 'Sarees',
           material: (p.material_type || p.specifications?.material || p.material || undefined),
+          material_type: (p.material_type || p.specifications?.material || p.material || undefined),
+          specifications: p.specifications || {},
           images: imgs,
           image: imgs[0],
           rating: p.rating ? Number(p.rating) : 4.5,
@@ -363,6 +371,8 @@ export async function fetchProducts(category?: string): Promise<Product[]> {
                 originalPrice: p.compare_at_price ? Number(p.compare_at_price) : undefined,
                 category: p.category || 'Sarees',
                 material: (p.material_type || p.specifications?.material || p.material || undefined),
+                material_type: (p.material_type || p.specifications?.material || p.material || undefined),
+                specifications: p.specifications || {},
                 images: imgs,
                 image: imgs[0],
                 rating: p.rating ? Number(p.rating) : 4.5,
