@@ -67,7 +67,7 @@ export function CartPage() {
       <AnnouncementBar />
       <Navigation />
       
-      <div className="pt-20 sm:pt-24 lg:pt-6 pb-20 px-4">
+      <div className="pt-3 sm:pt-4 lg:pt-6 pb-16 px-3 sm:px-4">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-8">
             <h1 className="font-serif text-3xl sm:text-4xl text-[#1A1A1A] mb-2">Your Shopping Bag</h1>

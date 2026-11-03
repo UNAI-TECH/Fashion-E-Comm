@@ -65,9 +65,9 @@ export function SearchPage() {
       <AnnouncementBar />
       <Navigation />
       
-      <main className="pt-20 sm:pt-24 lg:pt-6 pb-20 px-4 max-w-7xl mx-auto">
+      <main className="pt-3 sm:pt-4 lg:pt-6 pb-16 px-3 sm:px-4 max-w-7xl mx-auto">
         {/* Breadcrumbs */}
-        <div className="flex items-center gap-2 text-sm text-gray-500 mb-8">
+        <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 mb-3 sm:mb-6">
           <Link to="/" className="hover:text-[#698156]">Home</Link>
           <span>/</span>
           <span className="text-gray-900 font-medium">Search Results</span>

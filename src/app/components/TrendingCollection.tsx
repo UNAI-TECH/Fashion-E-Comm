@@ -1,9 +1,9 @@
 import { useState, useMemo } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { ProductCard } from './ProductCard';
 import { ProductSkeleton } from './Skeleton';
 import { Product, matchProductByMaterial } from '../data/products';
-import { Crown, PackageSearch } from 'lucide-react';
+import { Crown, PackageSearch, ArrowUpDown, Sparkles } from 'lucide-react';
 
 interface TrendingCollectionProps {
   products: Product[];
@@ -20,28 +20,26 @@ const PRESET_FILTERS = [
 
 export function TrendingCollection({ products, isLoading }: TrendingCollectionProps) {
   const [activeFilter, setActiveFilter] = useState<string>(PRESET_FILTERS[0].id);
-  const [sortBy, setSortBy] = useState<'featured' | 'priceLow' | 'priceHigh'>('featured');
+  const [sortBy, setSortBy] = useState<'featured' | 'priceLow' | 'priceHigh' | 'rating' | 'discount'>('featured');
 
   // Compute all available filter options in the requested exact order:
   // 1. Kanchi Cotton
   // 2. Viscose Sarees
   // 3. Fancy Sarees
-  // 4. Checks Pedding
+  // 4. Checks Pending
   // 5. Banarasi Fashion silk sarees
   // 6. Dynamic custom materials from products (if any)
-  // 7. At last: All Sarees ({products.length})
+  // 7. At last: All Sarees
   const filterTabs = useMemo(() => {
     const presetLabelsLower = new Set(
       PRESET_FILTERS.map(f => f.label.toLowerCase())
     );
 
-    // Collect any other unique materials present on products
     const customMaterials: { id: string; label: string }[] = [];
     products.forEach(p => {
       const mat = (p.material || '').trim();
       if (!mat) return;
       const lower = mat.toLowerCase();
-      // Skip if covered by presets
       if (
         lower.includes('kanchi') ||
         lower.includes('viscose') ||
@@ -60,11 +58,30 @@ export function TrendingCollection({ products, isLoading }: TrendingCollectionPr
     return [
       ...PRESET_FILTERS,
       ...customMaterials,
-      { id: 'all', label: `All Sarees (${products.length})` },
+      { id: 'all', label: 'All Sarees' },
     ];
   }, [products]);
 
-  // Filter and sort the sarees
+  // Pre-calculate realtime counts for each material filter
+  const tabCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    counts['all'] = products.length;
+    counts['kanchicotton'] = products.filter(p => matchProductByMaterial(p, 'kanchicotton')).length;
+    counts['viscose'] = products.filter(p => matchProductByMaterial(p, 'viscose')).length;
+    counts['fancy'] = products.filter(p => matchProductByMaterial(p, 'fancy')).length;
+    counts['checks'] = products.filter(p => matchProductByMaterial(p, 'Checks Pending Fancy Sarees')).length;
+    counts['banarasi'] = products.filter(p => matchProductByMaterial(p, 'Banarasi Fashion silk sarees')).length;
+
+    filterTabs.forEach(t => {
+      if (t.id.startsWith('mat_')) {
+        counts[t.id] = products.filter(p => matchProductByMaterial(p, t.label)).length;
+      }
+    });
+
+    return counts;
+  }, [products, filterTabs]);
+
+  // Filter and sort the sarees in real-time
   const filteredProducts = useMemo(() => {
     let list = [...products];
 
@@ -83,11 +100,19 @@ export function TrendingCollection({ products, isLoading }: TrendingCollectionPr
       list = list.filter(p => matchProductByMaterial(p, targetLabel));
     }
 
-    // Sort
+    // Real-time sorting
     if (sortBy === 'priceLow') {
       list.sort((a, b) => a.price - b.price);
     } else if (sortBy === 'priceHigh') {
       list.sort((a, b) => b.price - a.price);
+    } else if (sortBy === 'rating') {
+      list.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    } else if (sortBy === 'discount') {
+      list.sort((a, b) => {
+        const discA = a.compare_at_price && a.compare_at_price > a.price ? (a.compare_at_price - a.price) / a.compare_at_price : 0;
+        const discB = b.compare_at_price && b.compare_at_price > b.price ? (b.compare_at_price - b.price) / b.compare_at_price : 0;
+        return discB - discA;
+      });
     } else {
       // Featured / Newly added first
       list.sort((a: any, b: any) => {
@@ -124,39 +149,66 @@ export function TrendingCollection({ products, isLoading }: TrendingCollectionPr
           </p>
         </motion.div>
 
-        {/* Filter & Sorting Controls Bar */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6 sm:mb-8 pb-4 border-b border-gray-200/80">
-          {/* Material Filter Pills: Kanchi Cotton -> Viscose Sarees -> Fancy Sarees -> Checks Pedding -> Banarasi Fashion silk sarees -> custom -> All Sarees at last */}
-          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 w-full sm:w-auto">
-            {filterTabs.map((tab) => {
-              const isActive = activeFilter === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveFilter(tab.id)}
-                  className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95 duration-150 cursor-pointer ${isActive
-                      ? 'bg-[#698156] text-white shadow-xs'
-                      : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+        {/* Enhanced Modern Filter & Sorting Bar */}
+        <div className="mb-6 sm:mb-8 pb-4 border-b border-gray-200/80">
+          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 sm:gap-4">
+            
+            {/* Material Filter Pills (Scrollable with no scrollbar on mobile) */}
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar scrollbar-none py-1 px-0.5">
+              {filterTabs.map((tab) => {
+                const isActive = activeFilter === tab.id;
+                const count = tabCounts[tab.id] ?? 0;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveFilter(tab.id)}
+                    className={`inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-150 cursor-pointer ${
+                      isActive
+                        ? 'bg-[#698156] text-white shadow-md shadow-[#698156]/20 ring-2 ring-[#698156]/30'
+                        : 'bg-white hover:bg-[#F4F6F2] text-gray-700 border border-gray-200/90 shadow-2xs hover:border-[#698156]/40'
                     }`}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
+                  >
+                    <span>{tab.label}</span>
+                    <span
+                      className={`text-[10px] font-black px-1.5 py-0.2 rounded-full ${
+                        isActive
+                          ? 'bg-white/20 text-white'
+                          : 'bg-gray-100 text-gray-600'
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
 
-          {/* Sort By Dropdown */}
-          <div className="flex items-center gap-2 self-end sm:self-auto">
-            <span className="text-xs text-gray-500 font-medium hidden sm:inline">Sort by:</span>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
-              className="text-xs font-bold bg-white border border-gray-200 rounded-xl px-3 py-1.5 text-gray-700 focus:outline-none focus:border-[#698156] shadow-2xs cursor-pointer active:scale-95 transition-all"
-            >
-              <option value="featured">Featured / Newest</option>
-              <option value="priceLow">Price: Low to High</option>
-              <option value="priceHigh">Price: High to Low</option>
-            </select>
+            {/* Live Count & Realtime Sort Control */}
+            <div className="flex items-center justify-between lg:justify-end gap-3 pt-2 lg:pt-0 flex-shrink-0">
+              <span className="text-xs font-semibold text-gray-500">
+                Showing <strong className="text-gray-900 font-bold">{filteredProducts.length}</strong> sarees
+              </span>
+
+              {/* Styled Sort Dropdown */}
+              <div className="relative inline-flex items-center">
+                <div className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 rounded-xl shadow-2xs hover:border-[#698156]/50 focus-within:border-[#698156] focus-within:ring-2 focus-within:ring-[#698156]/20 transition-all">
+                  <ArrowUpDown className="w-3.5 h-3.5 text-[#698156] flex-shrink-0" />
+                  <span className="text-xs text-gray-500 font-medium hidden sm:inline">Sort:</span>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as any)}
+                    className="text-xs font-bold bg-transparent text-gray-800 focus:outline-none cursor-pointer pr-1"
+                  >
+                    <option value="featured">Featured / Newest</option>
+                    <option value="priceLow">Price: Low to High</option>
+                    <option value="priceHigh">Price: High to Low</option>
+                    <option value="rating">Top Customer Rated</option>
+                    <option value="discount">Biggest Discount (% Off)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
 

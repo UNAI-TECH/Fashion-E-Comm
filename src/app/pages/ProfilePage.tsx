@@ -150,7 +150,7 @@ export function ProfilePage() {
     setAvatarImage(getUserProfileImage());
   }, [user, profile]);
 
-  // Fetch orders from Supabase
+  // Fetch orders from Supabase (Paid / Completed orders only)
   const fetchOrders = async () => {
     if (!user?.id) return;
     setOrdersLoading(true);
@@ -165,12 +165,18 @@ export function ProfilePage() {
           )
         `)
         .eq('user_id', user.id)
+        .in('payment_status', ['Paid', 'paid', 'Completed', 'completed', 'PAID', 'COMPLETED'])
         .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching orders:', error);
       } else {
-        setOrders(data || []);
+        // Strictly filter to ensure only paid orders are displayed
+        const paidOnly = (data || []).filter((o: any) => {
+          const pStatus = (o.payment_status || '').toLowerCase().trim();
+          return pStatus === 'paid' || pStatus === 'completed' || pStatus === 'success';
+        });
+        setOrders(paidOnly);
       }
     } catch (err) {
       console.error('Exception fetching orders:', err);
@@ -569,7 +575,7 @@ export function ProfilePage() {
       <Navigation />
 
       {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 lg:pt-8 pb-20">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 pt-3 sm:pt-4 lg:pt-6 pb-16">
         
         {/* Unauthenticated State */}
         {!authLoading && !isAuthenticated && (
@@ -658,35 +664,35 @@ export function ProfilePage() {
                   </div>
                 </div>
 
-                {/* Quick Stats Badges */}
-                <div className="flex items-center gap-3 sm:gap-4 overflow-x-auto pb-1 md:pb-0">
+                {/* Quick Stats Badges - Responsive Grid without horizontal scrollbar */}
+                <div className="grid grid-cols-3 gap-2 sm:gap-3 w-full md:w-auto md:flex md:items-center">
                   <div
                     onClick={() => setActiveTab('orders')}
-                    className="flex-1 md:flex-initial px-4 py-3 bg-white/80 backdrop-blur-xs border border-gray-200/80 rounded-2xl cursor-pointer hover:border-[#698156]/40 transition-all shadow-xs min-w-[95px] text-center"
+                    className="px-2.5 sm:px-4 py-2 sm:py-3 bg-white/90 backdrop-blur-xs border border-gray-200/80 rounded-2xl cursor-pointer hover:border-[#698156]/40 transition-all shadow-xs text-center"
                   >
-                    <p className="text-xs text-gray-500 font-medium">Orders</p>
-                    <p className="text-lg font-bold text-gray-900">{orders.length}</p>
+                    <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Orders</p>
+                    <p className="text-base sm:text-lg font-bold text-gray-900">{orders.length}</p>
                   </div>
                   <div
                     onClick={() => setActiveTab('wishlist')}
-                    className="flex-1 md:flex-initial px-4 py-3 bg-white/80 backdrop-blur-xs border border-gray-200/80 rounded-2xl cursor-pointer hover:border-[#698156]/40 transition-all shadow-xs min-w-[95px] text-center"
+                    className="px-2.5 sm:px-4 py-2 sm:py-3 bg-white/90 backdrop-blur-xs border border-gray-200/80 rounded-2xl cursor-pointer hover:border-[#698156]/40 transition-all shadow-xs text-center"
                   >
-                    <p className="text-xs text-gray-500 font-medium">Wishlist</p>
-                    <p className="text-lg font-bold text-[#698156]">{wishlistItems.length}</p>
+                    <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Wishlist</p>
+                    <p className="text-base sm:text-lg font-bold text-[#698156]">{wishlistItems.length}</p>
                   </div>
                   <div
                     onClick={() => setActiveTab('addresses')}
-                    className="flex-1 md:flex-initial px-4 py-3 bg-white/80 backdrop-blur-xs border border-gray-200/80 rounded-2xl cursor-pointer hover:border-[#698156]/40 transition-all shadow-xs min-w-[95px] text-center"
+                    className="px-2.5 sm:px-4 py-2 sm:py-3 bg-white/90 backdrop-blur-xs border border-gray-200/80 rounded-2xl cursor-pointer hover:border-[#698156]/40 transition-all shadow-xs text-center"
                   >
-                    <p className="text-xs text-gray-500 font-medium">Addresses</p>
-                    <p className="text-lg font-bold text-gray-900">{addresses.length}</p>
+                    <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Addresses</p>
+                    <p className="text-base sm:text-lg font-bold text-gray-900">{addresses.length}</p>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Navigation Tabs Bar */}
-            <div className="flex items-center justify-between border-b border-gray-200 overflow-x-auto scrollbar-none gap-2">
+            <div className="flex items-center justify-between border-b border-gray-200 overflow-x-auto no-scrollbar scrollbar-none gap-2">
               <div className="flex items-center gap-1 sm:gap-2">
                 {[
                   { id: 'profile', label: 'Profile Details', icon: User },
@@ -755,9 +761,6 @@ export function ProfilePage() {
                         Manage your profile details, contact information, and shipping preferences.
                       </p>
                     </div>
-                    <span className="text-[11px] font-bold text-gray-500 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-full">
-                      User ID: {user?.id.slice(0, 8)}...
-                    </span>
                   </div>
 
                   <form onSubmit={handleSaveProfile} className="space-y-6">
@@ -934,7 +937,7 @@ export function ProfilePage() {
                 >
                   {/* Order Selector if multiple orders exist */}
                   {orders.length > 1 && (
-                    <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
+                    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar scrollbar-none pb-1 text-xs">
                       <span className="text-gray-500 font-semibold whitespace-nowrap">Switch Order:</span>
                       {orders.map((o) => (
                         <button
@@ -1145,7 +1148,7 @@ export function ProfilePage() {
                   {/* Filters & Search */}
                   <div className="bg-white rounded-3xl border border-gray-100 p-6 shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
                     {/* Status Pill Filters */}
-                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+                    <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scrollbar-none pb-1 sm:pb-0">
                       {['All', 'Processing', 'Shipped', 'Delivered', 'Cancelled'].map((st) => (
                         <button
                           key={st}

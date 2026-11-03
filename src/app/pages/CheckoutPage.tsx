@@ -630,10 +630,17 @@ export function CheckoutPage() {
             setIsProcessing(false);
           }
         },
-        onError: (err: any) => {
+        onError: async (err: any) => {
           console.error('[Checkout] Razorpay onError fired:', err?.message || err);
           setPaymentState('FAILED');
           setIsProcessing(false);
+          try {
+            await supabase.from('orders').update({
+              payment_status: 'Failed',
+              status: 'Failed',
+              updated_at: new Date().toISOString()
+            }).eq('id', orderId);
+          } catch (_) {}
           toast.error(err?.message || 'Payment was unsuccessful or cancelled');
         },
         onDismiss: async () => {
@@ -661,9 +668,18 @@ export function CheckoutPage() {
             console.warn('[Checkout] Post-dismiss status check note:', chkErr);
           }
 
+          // If not confirmed paid upon dismiss, mark order as cancelled
+          try {
+            await supabase.from('orders').update({
+              payment_status: 'Cancelled',
+              status: 'Cancelled',
+              updated_at: new Date().toISOString()
+            }).eq('id', orderId);
+          } catch (_) {}
+
           setPaymentState('IDLE');
           setIsProcessing(false);
-          toast.info('Payment window closed. If you paid via UPI QR, you can view your order in Order History.');
+          toast.info('Payment was not completed. No charge was made.');
         }
       });
 

@@ -91,7 +91,7 @@ export function OrdersPage() {
         return;
       }
 
-      // Query database for this authenticated customer's orders
+      // Query database for this authenticated customer's orders (Paid / Completed only)
       const { data: dbData, error } = await supabase
         .from('orders')
         .select(`
@@ -102,6 +102,7 @@ export function OrdersPage() {
           )
         `)
         .eq('user_id', activeUser.id)
+        .in('payment_status', ['Paid', 'paid', 'Completed', 'completed', 'PAID', 'COMPLETED'])
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -109,7 +110,11 @@ export function OrdersPage() {
         if (manual) toast.error('Could not sync latest orders.');
         setOrders([]);
       } else {
-        setOrders(dbData || []);
+        const paidOnly = (dbData || []).filter((o: any) => {
+          const pStatus = (o.payment_status || '').toLowerCase().trim();
+          return pStatus === 'paid' || pStatus === 'completed' || pStatus === 'success';
+        });
+        setOrders(paidOnly);
         if (manual) toast.success('Orders refreshed');
       }
     } catch (error: any) {

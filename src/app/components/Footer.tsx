@@ -132,11 +132,11 @@ export function Footer() {
                 <span className="truncate text-gray-700">owner@aanyafashions.com</span>
               </a>
 
-              <div className="flex items-start gap-2 text-gray-600">
-                <div className="w-6 h-6 rounded-full bg-white border border-gray-200 flex items-center justify-center flex-shrink-0 text-[#698156] mt-0.5">
+              <div className="flex items-center gap-2 text-gray-700">
+                <div className="w-6 h-6 rounded-full bg-white border border-gray-200 flex items-center justify-center flex-shrink-0 text-[#698156]">
                   <MapPin className="w-3 h-3 stroke-[2.2]" />
                 </div>
-                <span className="text-gray-600 leading-tight">Chennai, Tamil Nadu</span>
+                <span className="text-gray-700 font-medium">Chennai, Tamil Nadu</span>
               </div>
             </div>
           </div>

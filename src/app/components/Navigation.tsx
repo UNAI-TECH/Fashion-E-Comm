@@ -716,18 +716,45 @@ export function Navigation() {
                       </span>
                     </Link>
 
+                    {/* Material Quick Links */}
+                    <div className="pt-1.5 pb-1 space-y-0.5">
+                      {[
+                        { label: 'Kanchi Cotton Sarees', route: '/category/kanchicotton', tag: 'Handloom' },
+                        { label: 'Checks Pending Fancy Sarees', route: '/category/Checks Pending Fancy Sarees', tag: 'Popular' },
+                        { label: 'Viscose Sarees', route: '/category/viscose', tag: 'Trending' },
+                        { label: 'Fancy Sarees', route: '/category/fancy-sarees', tag: 'Designer' },
+                        { label: 'Banarasi Fashion Silk', route: '/category/Banarasi Fashion silk sarees', tag: 'Zari' },
+                        { label: 'Crush Silk Sarees', route: '/category/Crush Silk Saree', tag: 'Festive' },
+                      ].map((item) => (
+                        <Link
+                          key={item.label}
+                          to={item.route}
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          className="flex items-center justify-between px-3.5 py-2 rounded-xl text-gray-700 hover:bg-[#F4F6F2] hover:text-[#698156] text-xs font-semibold transition-colors"
+                        >
+                          <span className="flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#698156]/50" />
+                            <span>{item.label}</span>
+                          </span>
+                          <span className="text-[9px] font-bold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
+                            {item.tag}
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+
                     <button
                       onClick={() => {
                         setIsMobileMenuOpen(false);
                         setIsSearchOpen(true);
                       }}
-                      className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-gray-700 hover:bg-gray-50 text-xs font-semibold transition-colors cursor-pointer"
+                      className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-gray-50 text-gray-700 hover:bg-gray-100 text-xs font-semibold transition-colors cursor-pointer border border-gray-100"
                     >
-                      <span className="flex items-center gap-3">
-                        <Search className="w-4 h-4 text-gray-400" />
-                        <span>Search Sarees by Fabric / Color</span>
+                      <span className="flex items-center gap-2.5">
+                        <Search className="w-4 h-4 text-[#698156]" />
+                        <span>Search by Fabric / Color / Price</span>
                       </span>
-                      <ArrowRight className="w-3.5 h-3.5 text-gray-300" />
+                      <ArrowRight className="w-3.5 h-3.5 text-gray-400" />
                     </button>
                   </div>
                 </div>
@@ -897,25 +924,34 @@ export function Navigation() {
 
               {searchQuery.trim().length === 0 ? (
                 <>
-                  {/* Suggestions */}
+                  {/* Material Types Suggestions */}
                   <div className="mb-6">
-                    <p className="text-sm font-semibold text-gray-800 mb-3">Suggestions</p>
-                    <div className="flex flex-wrap gap-2.5">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-sm font-semibold text-gray-800">Popular Saree Weaves</p>
+                      <span className="text-[11px] text-[#698156] font-medium">Browse by Material</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
                       {[
-                        { label: 'Sarees',       bg: '#FEF2F2', color: '#991B1B' },
-                        { label: 'Kurtis',       bg: '#FFFBEB', color: '#92400E' },
-                        { label: 'Lehengas',     bg: '#F5F3FF', color: '#5B21B6' },
-                        { label: 'Salwar Set',   bg: '#ECFDF5', color: '#065F46' },
-                        { label: 'Western',      bg: '#EFF6FF', color: '#1D4ED8' },
-                        { label: 'Maxi',         bg: '#FDF2F8', color: '#9D174D' },
-                      ].map(({ label, bg, color }) => (
+                        { label: 'Kanchi Cotton', route: '/category/kanchicotton', bg: '#FEF3C7', color: '#92400E' },
+                        { label: 'Checks Pending Fancy Sarees', route: '/category/Checks Pending Fancy Sarees', bg: '#ECFDF5', color: '#065F46' },
+                        { label: 'Viscose Sarees', route: '/category/viscose', bg: '#EFF6FF', color: '#1D4ED8' },
+                        { label: 'Fancy Sarees', route: '/category/fancy-sarees', bg: '#FDF2F8', color: '#9D174D' },
+                        { label: 'Banarasi Fashion Silk', route: '/category/Banarasi Fashion silk sarees', bg: '#F5F3FF', color: '#5B21B6' },
+                        { label: 'Crush Silk Saree', route: '/category/Crush Silk Saree', bg: '#FFF1F2', color: '#9F1239' },
+                      ].map(({ label, route, bg, color }) => (
                         <button
                           key={label}
-                          onClick={() => handleSearchSubmit(label)}
-                          className="px-5 py-2 rounded-2xl text-sm font-semibold transition-all hover:opacity-80 active:scale-95 shadow-sm"
+                          type="button"
+                          onClick={() => {
+                            setIsSearchOpen(false);
+                            setSearchQuery('');
+                            navigate(route);
+                          }}
+                          className="px-3.5 py-2 rounded-2xl text-xs sm:text-sm font-semibold transition-all hover:opacity-85 active:scale-95 shadow-xs cursor-pointer flex items-center gap-1.5"
                           style={{ background: bg, color }}
                         >
-                          {label}
+                          <span>{label}</span>
+                          <span className="text-[10px] opacity-60">→</span>
                         </button>
                       ))}
                     </div>

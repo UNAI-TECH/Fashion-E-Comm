@@ -221,7 +221,7 @@ export function ProductPage() {
       <div className="min-h-screen bg-white">
         <AnnouncementBar />
         <Navigation />
-        <div className="pt-20 sm:pt-24 lg:pt-6 flex justify-center items-center min-h-[400px]">
+        <div className="pt-6 lg:pt-8 flex justify-center items-center min-h-[400px]">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#698156]"></div>
         </div>
         <Footer />
@@ -234,7 +234,7 @@ export function ProductPage() {
       <div className="min-h-screen bg-white">
         <AnnouncementBar />
         <Navigation />
-        <div className="pt-20 sm:pt-24 lg:pt-6 text-center min-h-[400px] flex flex-col items-center justify-center">
+        <div className="pt-6 lg:pt-8 text-center min-h-[400px] flex flex-col items-center justify-center">
           <h1 className="text-2xl font-serif">Product not found</h1>
           <Link to="/" className="text-[#698156] hover:underline mt-4 inline-block">Return to Home</Link>
         </div>
@@ -343,10 +343,10 @@ export function ProductPage() {
       <AnnouncementBar />
       <Navigation />
 
-      <div className="pt-24 sm:pt-28 lg:pt-14 pb-20 px-4">
+      <div className="pt-3 sm:pt-4 lg:pt-8 pb-16 px-3 sm:px-4">
         <div className="max-w-7xl mx-auto">
           {/* Breadcrumb */}
-          <div className="text-[#698156] uppercase tracking-wider text-xs font-bold flex items-center gap-1.5 mb-6 flex-wrap">
+          <div className="text-[#698156] uppercase tracking-wider text-xs font-bold flex items-center gap-1.5 mb-3 sm:mb-5 flex-wrap">
             <Link to="/" className="hover:underline">Home</Link>
             <span>/</span>
             <Link to={`/category/${(product.category || 'all').toLowerCase()}`} className="hover:underline">{product.category || 'Product'}</Link>

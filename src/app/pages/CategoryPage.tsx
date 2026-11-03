@@ -224,29 +224,29 @@ export function CategoryPage() {
       <AnnouncementBar />
       <Navigation />
 
-      <main className="pt-20 sm:pt-24 lg:pt-6 pb-20 px-4 max-w-7xl mx-auto">
+      <main className="pt-3 sm:pt-4 lg:pt-6 pb-16 px-3 sm:px-4 max-w-7xl mx-auto">
         {/* Breadcrumbs */}
-        <div className="flex items-center gap-2 text-sm text-gray-500 mb-8">
+        <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 mb-3 sm:mb-5">
           <Link to="/" className="hover:text-[#698156]">Home</Link>
           <span>/</span>
-          <span className="text-gray-900 font-medium">{categoryTitle}</span>
+          <span className="text-gray-900 font-medium capitalize">{categoryTitle}</span>
         </div>
 
         {/* Header */}
-        <div className="mb-12">
+        <div className="mb-6 sm:mb-8">
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="font-serif text-4xl sm:text-5xl text-[#1A1A1A] mb-4"
+            className="font-serif text-2xl sm:text-4xl lg:text-5xl text-[#1A1A1A] font-bold mb-1.5 sm:mb-2 capitalize"
           >
             {categoryTitle}
           </motion.h1>
-          <p className="text-gray-600">Discover our curated selection of premium {categoryTitle.toLowerCase()}.</p>
+          <p className="text-xs sm:text-sm text-gray-600">Discover our curated selection of premium {categoryTitle.toLowerCase()}.</p>
         </div>
 
         {/* Grid */}
         {isLoading ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5 lg:gap-6">
             {[...Array(8)].map((_, i) => (
               <ProductSkeleton key={i} />
             ))}

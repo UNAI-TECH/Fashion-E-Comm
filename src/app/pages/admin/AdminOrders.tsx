@@ -52,6 +52,7 @@ export function AdminOrders() {
 
   const loadOrders = async () => {
     try {
+      // Query database for Paid / Completed orders only (exclude unpaid, pending payment, failed orders)
       const { data, error } = await supabase
         .from('orders')
         .select(`
@@ -62,21 +63,22 @@ export function AdminOrders() {
             products (id, name, images, price)
           )
         `)
+        .in('payment_status', ['Paid', 'paid', 'Completed', 'completed', 'PAID', 'COMPLETED', 'success', 'Success'])
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      const formatted: Order[] = (data || []).map((o: any) => {
+      // Ensure strictly paid orders only
+      const paidData = (data || []).filter((o: any) => {
+        const pStatus = (o.payment_status || '').toLowerCase().trim();
+        return pStatus === 'paid' || pStatus === 'completed' || pStatus === 'success';
+      });
+
+      const formatted: Order[] = paidData.map((o: any) => {
         const addr = o.shipping_address || {};
         const customerName = o.profiles?.full_name || addr.full_name || [addr.first_name, addr.last_name].filter(Boolean).join(' ') || 'Customer';
         const customerEmail = o.profiles?.email || addr.email || '';
         const firstProduct = o.order_items?.[0]?.products?.name || 'N/A';
-
-        // Standardize payment status
-        let stdPayStatus = o.payment_status || 'Pending';
-        if (stdPayStatus.toLowerCase() === 'paid' || stdPayStatus.toLowerCase() === 'completed' || stdPayStatus.toLowerCase() === 'success') {
-          stdPayStatus = 'Paid';
-        }
 
         return {
           id: o.id,
@@ -85,9 +87,9 @@ export function AdminOrders() {
           product_name: firstProduct,
           date: new Date(o.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
           amount: Number(o.total_amount || 0),
-          status: o.status || 'Pending',
-          payment_method: o.payment_method || 'N/A',
-          payment_status: stdPayStatus,
+          status: o.status || 'Processing',
+          payment_method: o.payment_method || 'Online Payment',
+          payment_status: 'Paid',
           razorpay_order_id: o.razorpay_order_id || undefined,
           razorpay_payment_id: o.razorpay_payment_id || undefined,
           shipping_address: addr,
@@ -236,7 +238,7 @@ export function AdminOrders() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Orders Management</h1>
-          <p className="text-xs text-gray-500 mt-0.5">Real-time sync • Auto-refreshes every 30 seconds</p>
+          <p className="text-xs text-gray-500 mt-0.5">Showing verified paid orders • Real-time sync</p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
           <button

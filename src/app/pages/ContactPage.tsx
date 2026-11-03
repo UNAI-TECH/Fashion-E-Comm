@@ -62,7 +62,7 @@ export function ContactPage() {
       <AnnouncementBar />
       <Navigation />
       
-      <div className="pt-20 sm:pt-24 lg:pt-6 pb-20 px-4">
+      <div className="pt-3 sm:pt-4 lg:pt-6 pb-16 px-3 sm:px-4">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="text-center mb-16">
