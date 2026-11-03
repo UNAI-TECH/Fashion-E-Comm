@@ -35,10 +35,10 @@ const SAREE_CATEGORIES: CategoryCardItem[] = [
   },
   {
     id: 'checks-pending-fancy-sarees',
-    name: 'Checks Pending Fancy Sarees',
+    name: 'checks pedding Fancy Sarees',
     discount: '40-80% OFF',
     image: '/cat_checks_pedding.jpg',
-    link: '/category/Checks Pending Fancy Sarees',
+    link: '/category/checks pedding Fancy Sarees',
   },
 ];
 
@@ -46,7 +46,7 @@ export function ShopByCategory() {
   return (
     <section className="relative w-full py-10 sm:py-14 bg-gradient-to-b from-[#FFF5EC] via-[#FFFBF7] to-white overflow-hidden select-none">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
+
         {/* Section Title — Matching UI in User Reference Image 1 */}
         <motion.div
           initial={{ opacity: 0, y: 15 }}

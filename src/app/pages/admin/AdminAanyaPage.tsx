@@ -548,7 +548,7 @@ export function AdminAanyaPage() {
     'Kanchi Cotton',
     'Viscose Sarees',
     'Fancy Sarees',
-    'Checks Pending Fancy Sarees',
+    'checks pedding Fancy Sarees',
     'Checks Pedding',
     'Banarasi Fashion silk sarees',
   ];
@@ -1010,7 +1010,7 @@ export function AdminAanyaPage() {
         const bc = new BroadcastChannel('products_channel');
         bc.postMessage({ type: 'STOCK_UPDATED', id: product.id, stock_quantity: newStock });
         bc.close();
-      } catch {}
+      } catch { }
       window.dispatchEvent(new Event('products_updated'));
       window.dispatchEvent(new Event('storage'));
 
@@ -1120,7 +1120,7 @@ export function AdminAanyaPage() {
           const bc = new BroadcastChannel('products_channel');
           bc.postMessage({ type: 'PRODUCT_UPDATED', product: updatedItem });
           bc.close();
-        } catch {}
+        } catch { }
         window.dispatchEvent(new Event('products_updated'));
         window.dispatchEvent(new Event('storage'));
 
@@ -1577,8 +1577,8 @@ export function AdminAanyaPage() {
                 onClick={() => setActiveTab(item.id)}
                 title={!sidebarOpen ? item.label : undefined}
                 className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all cursor-pointer ${isActive
-                    ? 'bg-[#698156]/15 text-gray-900 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-900 hover:bg-[#F4F6F2]'
+                  ? 'bg-[#698156]/15 text-gray-900 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-900 hover:bg-[#F4F6F2]'
                   }`}
               >
                 <span className={`flex-shrink-0 ${isActive ? 'text-[#698156]' : ''}`}>{item.icon}</span>
@@ -1680,8 +1680,8 @@ export function AdminAanyaPage() {
               type="button"
               onClick={() => setActiveTab(activeTab === 'billing' ? 'overview' : 'billing')}
               className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2 rounded-full text-xs font-bold shadow-md transition-all cursor-pointer active:scale-95 ${activeTab === 'billing'
-                  ? 'bg-[#546944] text-white ring-2 ring-[#698156]/30'
-                  : 'bg-[#698156] hover:bg-[#546944] text-white'
+                ? 'bg-[#546944] text-white ring-2 ring-[#698156]/30'
+                : 'bg-[#698156] hover:bg-[#546944] text-white'
                 }`}
               title={activeTab === 'billing' ? "Exit Manual Billing" : "Open Manual Billing & POS"}
             >
@@ -1723,8 +1723,8 @@ export function AdminAanyaPage() {
                     type="button"
                     onClick={() => setActiveTab(item.id)}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap flex-shrink-0 transition-all cursor-pointer active:scale-95 ${isActive
-                        ? 'bg-[#698156]/15 text-[#546944] border border-[#698156]/30 shadow-2xs'
-                        : 'bg-[#F9FAF7] text-gray-600 border border-gray-200/60 hover:bg-[#F4F6F2]'
+                      ? 'bg-[#698156]/15 text-[#546944] border border-[#698156]/30 shadow-2xs'
+                      : 'bg-[#F9FAF7] text-gray-600 border border-gray-200/60 hover:bg-[#F4F6F2]'
                       }`}
                   >
                     <span className="w-3.5 h-3.5 flex items-center justify-center">{item.icon}</span>
@@ -1865,8 +1865,8 @@ export function AdminAanyaPage() {
                         <Boxes className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       </div>
                       <span className={`text-[9.5px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${dbProducts.filter(p => (p.stock_quantity ?? 0) <= (p.low_stock_threshold ?? 5)).length > 0
-                          ? 'text-rose-700 bg-rose-50 border-rose-200 animate-pulse'
-                          : 'text-amber-700 bg-amber-50 border-amber-200'
+                        ? 'text-rose-700 bg-rose-50 border-rose-200 animate-pulse'
+                        : 'text-amber-700 bg-amber-50 border-amber-200'
                         }`}>
                         {dbProducts.filter(p => (p.stock_quantity ?? 0) <= (p.low_stock_threshold ?? 5)).length > 0
                           ? `${dbProducts.filter(p => (p.stock_quantity ?? 0) <= (p.low_stock_threshold ?? 5)).length} Low`
@@ -2286,50 +2286,50 @@ export function AdminAanyaPage() {
                                 />
                               </div>
                               <div className="col-span-2 sm:col-span-1">
-                                  <label className="block text-[10px] sm:text-[11px] uppercase tracking-wider font-bold text-gray-500 mb-1">
-                                    Material *
-                                  </label>
-                                  <select
-                                    value={
-                                      isCustomMaterial
-                                        ? 'other'
-                                        : (availableMaterials.find(m => m.toLowerCase() === (form.spec_material || '').toLowerCase()) || (form.spec_material ? 'other' : ''))
+                                <label className="block text-[10px] sm:text-[11px] uppercase tracking-wider font-bold text-gray-500 mb-1">
+                                  Material *
+                                </label>
+                                <select
+                                  value={
+                                    isCustomMaterial
+                                      ? 'other'
+                                      : (availableMaterials.find(m => m.toLowerCase() === (form.spec_material || '').toLowerCase()) || (form.spec_material ? 'other' : ''))
+                                  }
+                                  onChange={e => {
+                                    const val = e.target.value;
+                                    if (val === 'other') {
+                                      setIsCustomMaterial(true);
+                                      setForm({ ...form, spec_material: '' });
+                                    } else {
+                                      setIsCustomMaterial(false);
+                                      setForm({ ...form, spec_material: val });
                                     }
-                                    onChange={e => {
-                                      const val = e.target.value;
-                                      if (val === 'other') {
-                                        setIsCustomMaterial(true);
-                                        setForm({ ...form, spec_material: '' });
-                                      } else {
-                                        setIsCustomMaterial(false);
-                                        setForm({ ...form, spec_material: val });
-                                      }
-                                    }}
-                                    className="w-full px-3 py-2 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20 cursor-pointer font-medium"
-                                  >
-                                    <option value="">Select Material...</option>
-                                    {availableMaterials.map(m => (
-                                      <option key={m} value={m}>{m}</option>
-                                    ))}
-                                    <option value="other">+ Other (Add New Material)...</option>
-                                  </select>
+                                  }}
+                                  className="w-full px-3 py-2 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:ring-2 focus:ring-[#698156]/20 cursor-pointer font-medium"
+                                >
+                                  <option value="">Select Material...</option>
+                                  {availableMaterials.map(m => (
+                                    <option key={m} value={m}>{m}</option>
+                                  ))}
+                                  <option value="other">+ Other (Add New Material)...</option>
+                                </select>
 
-                                  {isCustomMaterial && (
-                                    <div className="mt-2">
-                                      <input
-                                        type="text"
-                                        required
-                                        placeholder="Enter new material name (e.g. Banarasi Fashion silk sarees, Organza...)"
-                                        value={form.spec_material}
-                                        onChange={e => setForm({ ...form, spec_material: e.target.value })}
-                                        className="w-full px-3 py-2 bg-[#F4F6F2] rounded-xl text-sm border border-[#DCE4D7] outline-none focus:ring-2 focus:ring-[#698156]/20 font-medium"
-                                      />
-                                      <p className="text-[10px] text-[#698156] font-medium mt-1">
-                                        * This new material will immediately appear in the filter options on the main site.
-                                      </p>
-                                    </div>
-                                  )}
-                                </div>
+                                {isCustomMaterial && (
+                                  <div className="mt-2">
+                                    <input
+                                      type="text"
+                                      required
+                                      placeholder="Enter new material name (e.g. Banarasi Fashion silk sarees, Organza...)"
+                                      value={form.spec_material}
+                                      onChange={e => setForm({ ...form, spec_material: e.target.value })}
+                                      className="w-full px-3 py-2 bg-[#F4F6F2] rounded-xl text-sm border border-[#DCE4D7] outline-none focus:ring-2 focus:ring-[#698156]/20 font-medium"
+                                    />
+                                    <p className="text-[10px] text-[#698156] font-medium mt-1">
+                                      * This new material will immediately appear in the filter options on the main site.
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
                               <div>
                                 <label className="block text-[10px] sm:text-[11px] uppercase tracking-wider font-bold text-gray-500 mb-1">Design</label>
                                 <input
@@ -2474,8 +2474,8 @@ export function AdminAanyaPage() {
                                         type="button"
                                         onClick={() => setForm({ ...form, material_type: mat })}
                                         className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${form.material_type === mat
-                                            ? 'bg-purple-600 text-white border-purple-600'
-                                            : 'bg-white text-gray-700 border-gray-200 hover:border-purple-300'
+                                          ? 'bg-purple-600 text-white border-purple-600'
+                                          : 'bg-white text-gray-700 border-gray-200 hover:border-purple-300'
                                           }`}
                                       >
                                         {mat}
@@ -2829,8 +2829,8 @@ export function AdminAanyaPage() {
                   ) : (
                     /*  ── Clean, Non-overlapping Responsive Product Grid ── */
                     <div className={`grid gap-4 ${isCheckoutDrawerOpen
-                        ? 'grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4'
-                        : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'
+                      ? 'grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4'
+                      : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'
                       }`}>
                       {filtered.map(product => {
                         const img = prodImg(product);
@@ -2854,10 +2854,10 @@ export function AdminAanyaPage() {
                               </div>
                               {/* Stock quantity badge */}
                               <div className={`absolute top-2 right-9 px-2 py-0.5 rounded text-[10px] font-bold shadow-2xs ${(product.stock_quantity ?? 25) === 0
-                                  ? 'bg-rose-600 text-white'
-                                  : (product.stock_quantity ?? 25) <= 10
-                                    ? 'bg-amber-600 text-white'
-                                    : 'bg-black/60 text-white backdrop-blur-xs'
+                                ? 'bg-rose-600 text-white'
+                                : (product.stock_quantity ?? 25) <= 10
+                                  ? 'bg-amber-600 text-white'
+                                  : 'bg-black/60 text-white backdrop-blur-xs'
                                 }`}>
                                 {(product.stock_quantity ?? 25) === 0 ? 'Out of Stock' : `Stock: ${product.stock_quantity ?? 25}`}
                               </div>
@@ -3246,16 +3246,14 @@ export function AdminAanyaPage() {
                       <button
                         key={st}
                         onClick={() => setCancelFilterStatus(st)}
-                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                          cancelFilterStatus === st
+                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${cancelFilterStatus === st
                             ? 'bg-[#698156] text-white shadow-xs'
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }`}
+                          }`}
                       >
                         <span>{st}</span>
-                        <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                          cancelFilterStatus === st ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-700'
-                        }`}>
+                        <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${cancelFilterStatus === st ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-700'
+                          }`}>
                           {count}
                         </span>
                       </button>
@@ -3385,11 +3383,10 @@ export function AdminAanyaPage() {
                                   <p className="text-[10px] text-gray-500 mt-0.5">
                                     {req.payment_method || 'Online'}
                                   </p>
-                                  <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                    req.payment_status?.toLowerCase() === 'paid' || req.payment_status?.toLowerCase() === 'completed'
+                                  <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${req.payment_status?.toLowerCase() === 'paid' || req.payment_status?.toLowerCase() === 'completed'
                                       ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                       : 'bg-amber-50 text-amber-700 border border-amber-200'
-                                  }`}>
+                                    }`}>
                                     {req.payment_status || 'Paid'}
                                   </span>
                                 </td>

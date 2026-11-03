@@ -156,7 +156,7 @@ export function buildComplementaryAngles(primary: string, category: string = '',
 
 export function ensureProductImages(prod: any): string[] {
   if (!prod) return [PLACEHOLDER_IMAGE];
-  
+
   let list: string[] = [];
   if (Array.isArray(prod.images) && prod.images.length > 0) {
     list = prod.images.filter((x: any) => typeof x === 'string' && x.trim().length > 0);
@@ -217,7 +217,7 @@ export function isStandardApparelCategory(target?: string): boolean {
 /**
  * Universal matcher for product materials and material types.
  * Matches by exact material_type, normalized aliases (e.g. kanchicotton <-> Kanchi Cotton),
- * Checks Pending Fancy Sarees, Viscose, and custom material names.
+ * checks pedding Fancy Sarees, Viscose, and custom material names.
  */
 export function matchProductByMaterial(product: Product | any, target: string): boolean {
   if (!target) return false;
@@ -229,63 +229,60 @@ export function matchProductByMaterial(product: Product | any, target: string): 
   const rawMat = mat.toLowerCase();
   const normMat = normalizeKey(mat);
   const name = (product.name || '').toLowerCase();
-  const desc = (product.description || '').toLowerCase();
-  const pattern = (product.specifications?.pattern || '').toLowerCase();
-  const design = (product.specifications?.design || '').toLowerCase();
-  const fullText = `${rawMat} ${name} ${pattern} ${design} ${desc}`.toLowerCase();
 
-  // 1. Direct or normalized match on material_type / material
-  if (rawMat && (rawMat === rawTarget || normMat === normTarget)) return true;
+  // 1. Direct or normalized match on material_type
+  if (normMat && (normMat === normTarget || rawMat === rawTarget)) {
+    return true;
+  }
 
-  // 2. Checks Pending Fancy Sarees / Checks Pedding Sarees / Checks Sarees
-  if (normTarget.includes('check')) {
-    if (normMat.includes('check') || normMat.includes('pedd') || normMat.includes('pend')) {
-      return true;
-    }
-    if (name.includes('check') || name.includes('checked')) {
+  // 2. checks pedding Fancy Sarees (checks-pending-fancy-sarees, checks-pending, checks-pedding, etc.)
+  if (normTarget.includes('check') && (normTarget.includes('pend') || normTarget.includes('pedd') || normTarget.includes('fancy'))) {
+    if (normMat.includes('check') && (normMat.includes('pend') || normMat.includes('pedd') || normMat.includes('fancy'))) {
       return true;
     }
     return false;
   }
 
-  // 3. Kanchi Cotton Sarees
-  if (normTarget.includes('kanchi')) {
-    const hasKanchi = normMat.includes('kanchi') || name.includes('kanchi') || fullText.includes('kanchi');
-    if (!hasKanchi) return false;
-    if (normTarget.includes('cotton')) {
-      return normMat.includes('cotton') || name.includes('cotton') || fullText.includes('cotton');
+  // 3. Fancy Sarees (fancy-sarees, fancy)
+  if (normTarget === 'fancysarees' || normTarget === 'fancy' || rawTarget === 'fancy sarees' || rawTarget === 'fancy-sarees') {
+    // If the material is checks pedding, it must NOT show in generic fancy sarees
+    if (normMat.includes('check') || normMat.includes('pend') || normMat.includes('pedd')) {
+      return false;
     }
-    return true;
+    if (normMat === 'fancysarees' || normMat === 'fancy') {
+      return true;
+    }
+    return false;
   }
 
-  // 4. Viscose Sarees
+  // 4. Kanchi Cotton aliases
+  if (normTarget.includes('kanchi')) {
+    if (normMat.includes('kanchi')) return true;
+    if (!normMat && name.includes('kanchi')) return true;
+    return false;
+  }
+
+  // 5. Viscose aliases
   if (normTarget.includes('viscose')) {
-    return normMat.includes('viscose') || name.includes('viscose') || fullText.includes('viscose');
+    if (normMat.includes('viscose')) return true;
+    if (!normMat && name.includes('viscose')) return true;
+    return false;
   }
 
-  // 5. Fancy Sarees (when target is fancy and not checks)
-  if (normTarget.includes('fancy') && !normTarget.includes('check')) {
-    const isFancy = normMat.includes('fancy') || name.includes('fancy');
-    const isChecks = normMat.includes('check') || name.includes('check');
-    return isFancy && !isChecks;
-  }
-
-  // 6. Direct substring match on material_type
+  // 6. Substring match on material_type
   if (normMat && normTarget.length >= 4 && (normMat.includes(normTarget) || normTarget.includes(normMat))) {
     return true;
   }
 
   // 7. General Token-based matching: for any custom material type (e.g. 'Pure Mulberry Silk', 'Banarasi Fashion silk sarees')
   const targetWords = rawTarget
-    .replace(/-/g, ' ')
+    .replace(/[-_]+/g, ' ')
     .replace(/[^a-z0-9\s]/g, '')
     .split(/\s+/)
     .filter(w => w.length > 2 && w !== 'saree' && w !== 'sarees');
 
-  if (targetWords.length > 0) {
-    const allWordsMatch = targetWords.every(w => {
-      return normMat.includes(w) || name.includes(w) || fullText.includes(w);
-    });
+  if (targetWords.length > 0 && normMat) {
+    const allWordsMatch = targetWords.every(w => normMat.includes(w) || rawMat.includes(w));
     if (allWordsMatch) return true;
   }
 
@@ -436,7 +433,7 @@ export async function fetchProductById(id: string): Promise<Product | null> {
         if (res.ok) {
           productData = await res.json();
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     if (!productData) {

@@ -14,7 +14,7 @@ const PRESET_FILTERS = [
   { id: 'kanchicotton', label: 'Kanchi Cotton' },
   { id: 'viscose', label: 'Viscose Sarees' },
   { id: 'fancy', label: 'Fancy Sarees' },
-  { id: 'checks', label: 'Checks Pending Fancy Sarees' },
+  { id: 'checks', label: 'checks pedding Fancy Sarees' },
   { id: 'banarasi', label: 'Banarasi Fashion silk sarees' },
 ];
 
@@ -75,7 +75,7 @@ export function TrendingCollection({ products, isLoading }: TrendingCollectionPr
     } else if (activeFilter === 'fancy') {
       list = list.filter(p => matchProductByMaterial(p, 'fancy'));
     } else if (activeFilter === 'checks') {
-      list = list.filter(p => matchProductByMaterial(p, 'Checks Pending Fancy Sarees'));
+      list = list.filter(p => matchProductByMaterial(p, 'checks pedding Fancy Sarees'));
     } else if (activeFilter === 'banarasi') {
       list = list.filter(p => matchProductByMaterial(p, 'Banarasi Fashion silk sarees'));
     } else if (activeFilter.startsWith('mat_')) {
@@ -134,11 +134,10 @@ export function TrendingCollection({ products, isLoading }: TrendingCollectionPr
                 <button
                   key={tab.id}
                   onClick={() => setActiveFilter(tab.id)}
-                  className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95 duration-150 cursor-pointer ${
-                    isActive
+                  className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95 duration-150 cursor-pointer ${isActive
                       ? 'bg-[#698156] text-white shadow-xs'
                       : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
-                  }`}
+                    }`}
                 >
                   {tab.label}
                 </button>

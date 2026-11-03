@@ -17,12 +17,12 @@ const PRESET_IMAGES = [
   { label: 'Kanchi Cotton Saree', url: '/cat_kanchi_cotton.jpg' },
   { label: 'Viscose Saree', url: '/cat_viscose.jpg' },
   { label: 'Fancy Saree', url: '/cat_fancy.jpg' },
-  { label: 'Checks Pending Fancy Saree', url: '/cat_checks_pedding.jpg' },
+  { label: 'checks pedding Fancy Saree', url: '/cat_checks_pedding.jpg' },
   { label: 'Royal Maroon Saree', url: '/saree_royal_maroon.jpg' },
 ];
 
 const TARGET_PRESETS = [
-  { label: 'Checks Pending Fancy Sarees (/category/Checks Pending Fancy Sarees)', link: '/category/Checks Pending Fancy Sarees', material: 'Checks Pending Fancy Sarees' },
+  { label: 'checks pedding Fancy Sarees (/category/checks pedding Fancy Sarees)', link: '/category/checks pedding Fancy Sarees', material: 'checks pedding Fancy Sarees' },
   { label: 'Kanchi Cotton Sarees (/category/kanchicotton)', link: '/category/kanchicotton', material: 'Kanchi Cotton' },
   { label: 'Viscose Sarees (/category/viscose)', link: '/category/viscose', material: 'Viscose Sarees' },
   { label: 'Fancy Sarees (/category/fancy-sarees)', link: '/category/fancy-sarees', material: 'Fancy Sarees' },
@@ -190,11 +190,10 @@ export function AdminNotificationsSection() {
                     className="w-full h-full object-cover object-center"
                   />
                   <span
-                    className={`absolute top-2 right-2 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase shadow-xs ${
-                      notif.status === 'Active'
+                    className={`absolute top-2 right-2 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase shadow-xs ${notif.status === 'Active'
                         ? 'bg-emerald-500 text-white'
                         : 'bg-gray-400 text-white'
-                    }`}
+                      }`}
                   >
                     {notif.status}
                   </span>
@@ -223,11 +222,10 @@ export function AdminNotificationsSection() {
                 <button
                   type="button"
                   onClick={() => toggleStatus(notif)}
-                  className={`text-xs font-bold px-3 py-1 rounded-lg transition-colors cursor-pointer ${
-                    notif.status === 'Active'
+                  className={`text-xs font-bold px-3 py-1 rounded-lg transition-colors cursor-pointer ${notif.status === 'Active'
                       ? 'text-amber-700 bg-amber-50 hover:bg-amber-100'
                       : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
-                  }`}
+                    }`}
                 >
                   {notif.status === 'Active' ? 'Deactivate' : 'Activate'}
                 </button>
@@ -367,7 +365,7 @@ export function AdminNotificationsSection() {
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
                     Offer Thumbnail Image *
                   </label>
-                  
+
                   {/* Preview */}
                   <div className="w-full h-28 rounded-xl border border-gray-200 bg-gray-50 overflow-hidden mb-2 relative">
                     <img
@@ -384,11 +382,10 @@ export function AdminNotificationsSection() {
                         key={img.url}
                         type="button"
                         onClick={() => setForm(prev => ({ ...prev, image_url: img.url }))}
-                        className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer ${
-                          form.image_url === img.url
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer ${form.image_url === img.url
                             ? 'bg-[#0873F7] text-white border-[#0873F7]'
                             : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
-                        }`}
+                          }`}
                       >
                         {img.label}
                       </button>

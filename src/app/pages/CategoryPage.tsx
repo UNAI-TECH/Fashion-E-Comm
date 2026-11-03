@@ -82,19 +82,19 @@ const CATEGORY_SEO: Record<string, { title: string; description: string; keyword
     keywords: 'fancy sarees, buy fancy sarees, party wear fancy saree, designer fancy sarees online, aanya fashions fancy sarees',
   },
   'checks-pending-fancy-sarees': {
-    title: 'Buy Checks Pending Fancy Sarees Online',
-    description: 'Shop authentic Checks Pending Fancy Sarees featuring delicate checkered patterns and rich zari borders at Aanya Fashions. Authentic handloom quality with free delivery across India.',
-    keywords: 'checks pending fancy sarees, checks pending saree, checks fancy saree, buy checks saree online, aanya fashions checks pending',
+    title: 'Buy checks pedding Fancy Sarees Online',
+    description: 'Shop authentic checks pedding Fancy Sarees featuring delicate checkered patterns and rich zari borders at Aanya Fashions. Authentic handloom quality with free delivery across India.',
+    keywords: 'checks pedding fancy sarees, checks pedding saree, checks fancy saree, buy checks saree online, aanya fashions checks pedding',
   },
   'checks-pedding': {
-    title: 'Buy Checks Pending Fancy Sarees Online',
-    description: 'Shop traditional Checks Pending Fancy sarees featuring classic checkered patterns and rich zari borders at Aanya Fashions. Authentic handloom quality with free delivery.',
-    keywords: 'checks pending fancy sarees, checks pedding sarees, check pedding saree, checks saree, handloom checks saree, aanya fashions checks pedding',
+    title: 'Buy checks pedding Fancy Sarees Online',
+    description: 'Shop traditional checks pedding Fancy sarees featuring classic checkered patterns and rich zari borders at Aanya Fashions. Authentic handloom quality with free delivery.',
+    keywords: 'checks pedding fancy sarees, checks pedding sarees, check pedding saree, checks saree, handloom checks saree, aanya fashions checks pedding',
   },
   'checks-pedding-sarees': {
-    title: 'Buy Checks Pending Fancy Sarees Online',
-    description: 'Shop traditional Checks Pending Fancy sarees featuring classic checkered patterns and rich zari borders at Aanya Fashions. Authentic handloom quality with free delivery.',
-    keywords: 'checks pending fancy sarees, checks pedding sarees, check pedding saree, checks saree, handloom checks saree, aanya fashions checks pedding',
+    title: 'Buy checks pedding Fancy Sarees Online',
+    description: 'Shop traditional checks pedding Fancy sarees featuring classic checkered patterns and rich zari borders at Aanya Fashions. Authentic handloom quality with free delivery.',
+    keywords: 'checks pedding fancy sarees, checks pedding sarees, check pedding saree, checks saree, handloom checks saree, aanya fashions checks pedding',
   },
 };
 
@@ -118,7 +118,7 @@ export function CategoryPage() {
 
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   const getCategoryTitle = (cat?: string) => {
     if (!cat) return 'All Collections';
     const raw = cat.trim();
@@ -127,10 +127,10 @@ export function CategoryPage() {
     if (c === 'viscose' || c === 'viscose sarees') return 'Viscose Sarees';
     if (c === 'fancy' || c === 'fancy sarees') return 'Fancy Sarees';
     if (c.includes('check') && (c.includes('pend') || c.includes('pedd') || c.includes('fancy'))) {
-      return 'Checks Pending Fancy Sarees';
+      return 'checks pedding Fancy Sarees';
     }
     if (c === 'checks pedding' || c === 'checks pedding sarees' || c === 'check pedding') {
-      return 'Checks Pending Fancy Sarees';
+      return 'checks pedding Fancy Sarees';
     }
     if (c === 'banarasi' || c === 'banarasi silk') return 'Banarasi Fashion Silk Sarees';
     if (c === 'sarees') return 'Sarees Collection';
@@ -184,14 +184,14 @@ export function CategoryPage() {
       bc.onmessage = (event) => {
         if (event.data?.type === 'PRODUCT_DELETED') {
           const { id, name } = event.data;
-          setProducts(prev => prev.filter(p => 
-            String(p.id).toLowerCase() !== String(id).toLowerCase() && 
+          setProducts(prev => prev.filter(p =>
+            String(p.id).toLowerCase() !== String(id).toLowerCase() &&
             (!name || p.name.trim().toLowerCase() !== name.trim().toLowerCase())
           ));
         }
         loadProducts();
       };
-    } catch (e) {}
+    } catch (e) { }
 
     window.addEventListener('storage', handleUpdate);
     window.addEventListener('products_updated', handleUpdate);
@@ -223,7 +223,7 @@ export function CategoryPage() {
       />
       <AnnouncementBar />
       <Navigation />
-      
+
       <main className="pt-20 sm:pt-24 lg:pt-6 pb-20 px-4 max-w-7xl mx-auto">
         {/* Breadcrumbs */}
         <div className="flex items-center gap-2 text-sm text-gray-500 mb-8">
@@ -234,7 +234,7 @@ export function CategoryPage() {
 
         {/* Header */}
         <div className="mb-12">
-          <motion.h1 
+          <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="font-serif text-4xl sm:text-5xl text-[#1A1A1A] mb-4"
