@@ -190,17 +190,107 @@ export function ensureProductImages(prod: any): string[] {
  * All products come exclusively from the database — no mock data, no localStorage fallbacks.
  * Admin uploads products via the admin dashboard → Supabase → they appear here.
  */
-const MATERIAL_KEYWORDS: Record<string, string[]> = {
-  kanchicotton: ['kanchi', 'cotton'],
-  'kanchi-cotton': ['kanchi', 'cotton'],
-  viscose: ['viscose'],
-  'viscose-sarees': ['viscose'],
-  'fancy-sarees': ['fancy', 'georgette', 'chiffon', 'net', 'designer', 'party'],
-  fancy: ['fancy', 'georgette', 'chiffon', 'net', 'designer', 'party'],
-  'checks-pedding': ['check', 'pedding', 'checks', 'jamdani'],
-  'checks-pedding-sarees': ['check', 'pedding', 'checks', 'jamdani'],
-  'check-pedding': ['check', 'pedding', 'checks', 'jamdani'],
-};
+export function normalizeKey(s: string): string {
+  return (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+export const STANDARD_APPAREL_CATEGORIES = new Set([
+  'sarees',
+  'kurtis',
+  'lehengas',
+  'salwar-sets',
+  'salwar sets',
+  'salwar',
+  'western',
+  'tradition',
+  'maxi',
+]);
+
+export function isStandardApparelCategory(target?: string): boolean {
+  if (!target) return false;
+  const raw = target.toLowerCase().trim();
+  const clean = raw.replace(/-/g, ' ');
+  const norm = normalizeKey(target);
+  return STANDARD_APPAREL_CATEGORIES.has(raw) || STANDARD_APPAREL_CATEGORIES.has(clean) || STANDARD_APPAREL_CATEGORIES.has(norm);
+}
+
+/**
+ * Universal matcher for product materials and material types.
+ * Matches by exact material_type, normalized aliases (e.g. kanchicotton <-> Kanchi Cotton),
+ * Checks Pending Fancy Sarees, Viscose, and custom material names.
+ */
+export function matchProductByMaterial(product: Product | any, target: string): boolean {
+  if (!target) return false;
+  const rawTarget = target.trim().toLowerCase();
+  const normTarget = normalizeKey(target);
+  if (!normTarget) return false;
+
+  const mat = (product.material || product.material_type || product.specifications?.material || '').trim();
+  const rawMat = mat.toLowerCase();
+  const normMat = normalizeKey(mat);
+  const name = (product.name || '').toLowerCase();
+  const desc = (product.description || '').toLowerCase();
+  const pattern = (product.specifications?.pattern || '').toLowerCase();
+  const design = (product.specifications?.design || '').toLowerCase();
+  const fullText = `${rawMat} ${name} ${pattern} ${design} ${desc}`.toLowerCase();
+
+  // 1. Direct or normalized match on material_type / material
+  if (rawMat && (rawMat === rawTarget || normMat === normTarget)) return true;
+
+  // 2. Checks Pending Fancy Sarees / Checks Pedding Sarees / Checks Sarees
+  if (normTarget.includes('check')) {
+    if (normMat.includes('check') || normMat.includes('pedd') || normMat.includes('pend')) {
+      return true;
+    }
+    if (name.includes('check') || name.includes('checked')) {
+      return true;
+    }
+    return false;
+  }
+
+  // 3. Kanchi Cotton Sarees
+  if (normTarget.includes('kanchi')) {
+    const hasKanchi = normMat.includes('kanchi') || name.includes('kanchi') || fullText.includes('kanchi');
+    if (!hasKanchi) return false;
+    if (normTarget.includes('cotton')) {
+      return normMat.includes('cotton') || name.includes('cotton') || fullText.includes('cotton');
+    }
+    return true;
+  }
+
+  // 4. Viscose Sarees
+  if (normTarget.includes('viscose')) {
+    return normMat.includes('viscose') || name.includes('viscose') || fullText.includes('viscose');
+  }
+
+  // 5. Fancy Sarees (when target is fancy and not checks)
+  if (normTarget.includes('fancy') && !normTarget.includes('check')) {
+    const isFancy = normMat.includes('fancy') || name.includes('fancy');
+    const isChecks = normMat.includes('check') || name.includes('check');
+    return isFancy && !isChecks;
+  }
+
+  // 6. Direct substring match on material_type
+  if (normMat && normTarget.length >= 4 && (normMat.includes(normTarget) || normTarget.includes(normMat))) {
+    return true;
+  }
+
+  // 7. General Token-based matching: for any custom material type (e.g. 'Pure Mulberry Silk', 'Banarasi Fashion silk sarees')
+  const targetWords = rawTarget
+    .replace(/-/g, ' ')
+    .replace(/[^a-z0-9\s]/g, '')
+    .split(/\s+/)
+    .filter(w => w.length > 2 && w !== 'saree' && w !== 'sarees');
+
+  if (targetWords.length > 0) {
+    const allWordsMatch = targetWords.every(w => {
+      return normMat.includes(w) || name.includes(w) || fullText.includes(w);
+    });
+    if (allWordsMatch) return true;
+  }
+
+  return false;
+}
 
 /**
  * Fetch products from Supabase database with material-level filtering support.
@@ -209,7 +299,8 @@ const MATERIAL_KEYWORDS: Record<string, string[]> = {
 export async function fetchProducts(category?: string): Promise<Product[]> {
   let dbProducts: Product[] = [];
   const cleanCat = (category || '').toLowerCase().trim();
-  const isMaterialQuery = !!MATERIAL_KEYWORDS[cleanCat];
+  const isStdCategory = isStandardApparelCategory(category);
+  const isSpecialFilter = cleanCat === 'all' || cleanCat === 'trending' || cleanCat === 'new-arrivals' || !cleanCat;
 
   try {
     let query = supabase
@@ -218,8 +309,8 @@ export async function fetchProducts(category?: string): Promise<Product[]> {
       .eq('status', 'Published')
       .order('created_at', { ascending: false });
 
-    // Apply standard category filter if not a material-specific sub-route
-    if (category && category !== 'all' && category !== 'trending' && !isMaterialQuery) {
+    // Apply standard category filter at DB level ONLY if it is an actual apparel category
+    if (category && isStdCategory) {
       const rawTarget = category.toLowerCase().replace(/-/g, ' ').trim();
       query = query.ilike('category', `%${rawTarget}%`);
     }
@@ -256,7 +347,7 @@ export async function fetchProducts(category?: string): Promise<Product[]> {
     // Resilient Fallback: If Supabase returned error or 0 items (e.g. egress quota 402), query backend API
     if (dbProducts.length === 0) {
       try {
-        const catParam = category && category !== 'all' && category !== 'trending' && !isMaterialQuery
+        const catParam = category && isStdCategory
           ? `&category=${encodeURIComponent(category.replace(/-/g, ' '))}`
           : '';
         const res = await fetch(`/api/products?pageSize=200${catParam}`);
@@ -295,12 +386,14 @@ export async function fetchProducts(category?: string): Promise<Product[]> {
     console.error('Failed to fetch products:', err);
   }
 
-  // Handle Material-specific filter exclusively from real database products
-  if (isMaterialQuery) {
-    const terms = MATERIAL_KEYWORDS[cleanCat] || [];
-    return dbProducts.filter(p => {
-      const text = `${p.name} ${p.category} ${p.material || ''} ${p.description || ''}`.toLowerCase();
-      return terms.some(t => text.includes(t));
+  // Handle Material-specific filter: If not a standard apparel category or special filter, filter by material
+  if (category && !isStdCategory && !isSpecialFilter) {
+    const matched = dbProducts.filter(p => matchProductByMaterial(p, category));
+    return matched.sort((a, b) => {
+      const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
+      if (aTime !== bTime) return bTime - aTime;
+      return (b.rating ?? 0) - (a.rating ?? 0);
     });
   }
 
@@ -360,7 +453,7 @@ export async function fetchProductById(id: string): Promise<Product | null> {
       compare_at_price: productData.compare_at_price ? Number(productData.compare_at_price) : undefined,
       originalPrice: productData.compare_at_price ? Number(productData.compare_at_price) : undefined,
       category: productData.category || 'Sarees',
-      material: productData.material || productData.material_type || undefined,
+      material: productData.material || productData.material_type || productData.specifications?.material || undefined,
       images: imgs,
       image: imgs[0],
       rating: productData.rating ? Number(productData.rating) : 4.5,

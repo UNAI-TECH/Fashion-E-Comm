@@ -17,15 +17,15 @@ const PRESET_IMAGES = [
   { label: 'Kanchi Cotton Saree', url: '/cat_kanchi_cotton.jpg' },
   { label: 'Viscose Saree', url: '/cat_viscose.jpg' },
   { label: 'Fancy Saree', url: '/cat_fancy.jpg' },
-  { label: 'Checks Pedding Saree', url: '/cat_checks_pedding.jpg' },
+  { label: 'Checks Pending Fancy Saree', url: '/cat_checks_pedding.jpg' },
   { label: 'Royal Maroon Saree', url: '/saree_royal_maroon.jpg' },
 ];
 
 const TARGET_PRESETS = [
-  { label: 'Kanchi Cotton Sarees (/kanchicotton)', link: '/kanchicotton', material: 'Kanchi Cotton' },
-  { label: 'Viscose Sarees (/viscose)', link: '/viscose', material: 'Viscose Sarees' },
-  { label: 'Fancy Sarees (/fancy-sarees)', link: '/fancy-sarees', material: 'Fancy Sarees' },
-  { label: 'Checks Pedding Sarees (/checks-pedding)', link: '/checks-pedding', material: 'Checks Pedding' },
+  { label: 'Checks Pending Fancy Sarees (/category/Checks Pending Fancy Sarees)', link: '/category/Checks Pending Fancy Sarees', material: 'Checks Pending Fancy Sarees' },
+  { label: 'Kanchi Cotton Sarees (/category/kanchicotton)', link: '/category/kanchicotton', material: 'Kanchi Cotton' },
+  { label: 'Viscose Sarees (/category/viscose)', link: '/category/viscose', material: 'Viscose Sarees' },
+  { label: 'Fancy Sarees (/category/fancy-sarees)', link: '/category/fancy-sarees', material: 'Fancy Sarees' },
   { label: 'All Sarees Collection (/category/sarees)', link: '/category/sarees', material: 'Sarees' },
 ];
 

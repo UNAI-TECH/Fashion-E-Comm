@@ -253,10 +253,12 @@ export function ProductPage() {
     ? Math.round(((product.compare_at_price - product.price) / product.compare_at_price) * 100) 
     : null;
 
+  const productMaterial = (product.material || (product as any).material_type || specs.material || '').trim();
+
   const specAttributes = [
     { label: 'Brand', value: specs.brand || 'Aanya Fashions' },
     ...(specs.color ? [{ label: 'Color', value: specs.color }] : []),
-    ...(specs.material ? [{ label: 'Material', value: specs.material }] : []),
+    ...(productMaterial ? [{ label: 'Material', value: productMaterial, link: `/category/${encodeURIComponent(productMaterial)}` }] : []),
     ...(specs.design ? [{ label: 'Design', value: specs.design }] : []),
     ...(specs.pattern ? [{ label: 'Pattern', value: specs.pattern }] : []),
     { label: 'Wash Care', value: specs.wash_care || 'Dry Clean Only' },
@@ -333,6 +335,7 @@ export function ProductPage() {
           getBreadcrumbSchema([
             { name: 'Home', url: '/' },
             { name: product.category || 'Products', url: `/category/${(product.category || 'all').toLowerCase()}` },
+            ...(productMaterial ? [{ name: productMaterial, url: `/category/${encodeURIComponent(productMaterial)}` }] : []),
             { name: product.name, url: `/product/${product.id}` },
           ]),
         ]}
@@ -347,6 +350,12 @@ export function ProductPage() {
             <Link to="/" className="hover:underline">Home</Link>
             <span>/</span>
             <Link to={`/category/${(product.category || 'all').toLowerCase()}`} className="hover:underline">{product.category || 'Product'}</Link>
+            {productMaterial && (
+              <>
+                <span>/</span>
+                <Link to={`/category/${encodeURIComponent(productMaterial)}`} className="hover:underline font-semibold text-[#B3541E]">{productMaterial}</Link>
+              </>
+            )}
             <span>/</span>
             <span className="truncate max-w-[200px] sm:max-w-xs">{product.name}</span>
           </div>
@@ -623,10 +632,16 @@ export function ProductPage() {
                 <div className="pt-1">
                   <h4 className="text-xs font-black uppercase tracking-wider text-gray-800 mb-2.5">SPECIFICATIONS</h4>
                   <div className="grid grid-cols-2 gap-2 text-xs">
-                    {specAttributes.map((attr, aIdx) => (
+                    {specAttributes.map((attr: any, aIdx) => (
                       <div key={aIdx} className="p-2.5 rounded-xl bg-gray-50 border border-gray-100">
                         <span className="text-[10px] uppercase font-bold text-gray-400 block">{attr.label}</span>
-                        <span className="font-semibold text-gray-800">{attr.value}</span>
+                        {attr.link ? (
+                          <Link to={attr.link} className="font-semibold text-[#B3541E] hover:underline cursor-pointer block truncate" title={`View all ${attr.value} sarees`}>
+                            {attr.value} →
+                          </Link>
+                        ) : (
+                          <span className="font-semibold text-gray-800">{attr.value}</span>
+                        )}
                       </div>
                     ))}
                   </div>

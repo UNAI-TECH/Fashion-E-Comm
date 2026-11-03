@@ -81,42 +81,82 @@ const CATEGORY_SEO: Record<string, { title: string; description: string; keyword
     description: 'Shop contemporary fancy sarees, party wear georgette, chiffon, and shimmer designer sarees at Aanya Fashions. Glamorous ethnic wear with free shipping.',
     keywords: 'fancy sarees, buy fancy sarees, party wear fancy saree, designer fancy sarees online, aanya fashions fancy sarees',
   },
+  'checks-pending-fancy-sarees': {
+    title: 'Buy Checks Pending Fancy Sarees Online',
+    description: 'Shop authentic Checks Pending Fancy Sarees featuring delicate checkered patterns and rich zari borders at Aanya Fashions. Authentic handloom quality with free delivery across India.',
+    keywords: 'checks pending fancy sarees, checks pending saree, checks fancy saree, buy checks saree online, aanya fashions checks pending',
+  },
   'checks-pedding': {
-    title: 'Buy Checks Pedding Sarees Online',
-    description: 'Shop traditional Checks Pedding sarees featuring classic checkered patterns and rich zari borders at Aanya Fashions. Authentic handloom quality with free delivery.',
-    keywords: 'checks pedding sarees, check pedding saree, checks saree, handloom checks saree, aanya fashions checks pedding',
+    title: 'Buy Checks Pending Fancy Sarees Online',
+    description: 'Shop traditional Checks Pending Fancy sarees featuring classic checkered patterns and rich zari borders at Aanya Fashions. Authentic handloom quality with free delivery.',
+    keywords: 'checks pending fancy sarees, checks pedding sarees, check pedding saree, checks saree, handloom checks saree, aanya fashions checks pedding',
   },
   'checks-pedding-sarees': {
-    title: 'Buy Checks Pedding Sarees Online',
-    description: 'Shop traditional Checks Pedding sarees featuring classic checkered patterns and rich zari borders at Aanya Fashions. Authentic handloom quality with free delivery.',
-    keywords: 'checks pedding sarees, check pedding saree, checks saree, handloom checks saree, aanya fashions checks pedding',
+    title: 'Buy Checks Pending Fancy Sarees Online',
+    description: 'Shop traditional Checks Pending Fancy sarees featuring classic checkered patterns and rich zari borders at Aanya Fashions. Authentic handloom quality with free delivery.',
+    keywords: 'checks pending fancy sarees, checks pedding sarees, check pedding saree, checks saree, handloom checks saree, aanya fashions checks pedding',
   },
 };
 
 export function CategoryPage() {
   const { category: rawCategoryParam } = useParams<{ category: string }>();
   const location = useLocation();
-  const category = rawCategoryParam || location.pathname.replace(/^\/category\//, '').replace(/^\//, '').split('/')[0] || undefined;
+
+  const category = useMemo(() => {
+    let raw = rawCategoryParam;
+    if (!raw) {
+      const cleanPath = location.pathname.replace(/^\/category\//i, '').replace(/^\/material\//i, '').replace(/^\//, '');
+      raw = cleanPath.split('/')[0] || '';
+    }
+    if (!raw) return undefined;
+    try {
+      return decodeURIComponent(raw).trim();
+    } catch {
+      return raw.trim();
+    }
+  }, [rawCategoryParam, location.pathname]);
+
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   const getCategoryTitle = (cat?: string) => {
     if (!cat) return 'All Collections';
-    const c = cat.toLowerCase().replace(/-/g, ' ').trim();
+    const raw = cat.trim();
+    const c = raw.toLowerCase().replace(/-/g, ' ').trim();
     if (c === 'kanchicotton' || c === 'kanchi cotton') return 'Kanchi Cotton Sarees';
     if (c === 'viscose' || c === 'viscose sarees') return 'Viscose Sarees';
     if (c === 'fancy' || c === 'fancy sarees') return 'Fancy Sarees';
-    if (c === 'checks pedding' || c === 'checks pedding sarees' || c === 'check pedding') return 'Checks Pedding Sarees';
-    return c.charAt(0).toUpperCase() + c.slice(1);
+    if (c.includes('check') && (c.includes('pend') || c.includes('pedd') || c.includes('fancy'))) {
+      return 'Checks Pending Fancy Sarees';
+    }
+    if (c === 'checks pedding' || c === 'checks pedding sarees' || c === 'check pedding') {
+      return 'Checks Pending Fancy Sarees';
+    }
+    if (c === 'banarasi' || c === 'banarasi silk') return 'Banarasi Fashion Silk Sarees';
+    if (c === 'sarees') return 'Sarees Collection';
+    if (c === 'kurtis') return 'Kurtis Collection';
+    if (c === 'lehengas') return 'Lehengas Collection';
+    if (c === 'salwar sets' || c === 'salwar-sets') return 'Salwar Sets Collection';
+    if (c === 'western') return 'Western Wear Collection';
+    if (c === 'tradition') return 'Traditional Wear Collection';
+    if (c === 'maxi') return 'Maxi Dresses Collection';
+    if (c === 'trending') return 'Trending Sarees';
+    if (c === 'new-arrivals' || c === 'new arrivals') return 'New Arrivals';
+
+    return raw
+      .replace(/[-_]+/g, ' ')
+      .split(/\s+/)
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(' ');
   };
 
   const categoryTitle = getCategoryTitle(category);
 
   const categorySlug = (category || 'all').toLowerCase().replace(/\s+/g, '-');
-  const seo = CATEGORY_SEO[categorySlug] || {
-    title: `${categoryTitle} Collection`,
-    description: `Shop premium ${categoryTitle.toLowerCase()} at Aanya Fashions. Discover our curated collection of elegant women's fashion. Free shipping across India.`,
-    keywords: `${categoryTitle.toLowerCase()}, buy ${categoryTitle.toLowerCase()} online, aanya fashions ${categoryTitle.toLowerCase()}, women ${categoryTitle.toLowerCase()} india`,
+  const seo = CATEGORY_SEO[categorySlug] || CATEGORY_SEO[(category || '').toLowerCase()] || {
+    title: `Buy ${categoryTitle} Online | Aanya Fashions`,
+    description: `Shop authentic ${categoryTitle.toLowerCase()} at Aanya Fashions. Handcrafted with premium fabrics, exquisite designs, best prices & free shipping across India.`,
+    keywords: `${categoryTitle.toLowerCase()}, buy ${categoryTitle.toLowerCase()} online, ${categoryTitle.toLowerCase()} sarees, aanya fashions ${categoryTitle.toLowerCase()}`,
   };
 
   useEffect(() => {
@@ -167,17 +207,17 @@ export function CategoryPage() {
       <SEOHead
         title={seo.title}
         description={seo.description}
-        canonicalUrl={`/${categorySlug}`}
+        canonicalUrl={`/category/${categorySlug}`}
         keywords={seo.keywords}
         structuredData={[
           getCategorySchema({
             name: categoryTitle,
             description: seo.description,
-            url: `/${categorySlug}`,
+            url: `/category/${categorySlug}`,
           }),
           getBreadcrumbSchema([
             { name: 'Home', url: '/' },
-            { name: categoryTitle, url: `/${categorySlug}` },
+            { name: categoryTitle, url: `/category/${categorySlug}` },
           ]),
         ]}
       />

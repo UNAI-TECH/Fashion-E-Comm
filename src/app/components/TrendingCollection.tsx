@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { ProductCard } from './ProductCard';
 import { ProductSkeleton } from './Skeleton';
-import { Product } from '../data/products';
+import { Product, matchProductByMaterial } from '../data/products';
 import { Crown, PackageSearch } from 'lucide-react';
 
 interface TrendingCollectionProps {
@@ -14,7 +14,7 @@ const PRESET_FILTERS = [
   { id: 'kanchicotton', label: 'Kanchi Cotton' },
   { id: 'viscose', label: 'Viscose Sarees' },
   { id: 'fancy', label: 'Fancy Sarees' },
-  { id: 'checks', label: 'Checks Pedding' },
+  { id: 'checks', label: 'Checks Pending Fancy Sarees' },
   { id: 'banarasi', label: 'Banarasi Fashion silk sarees' },
 ];
 
@@ -69,36 +69,18 @@ export function TrendingCollection({ products, isLoading }: TrendingCollectionPr
     let list = [...products];
 
     if (activeFilter === 'kanchicotton') {
-      list = list.filter(p => {
-        const str = `${p.material || ''} ${p.name} ${p.category} ${p.description || ''}`.toLowerCase();
-        return str.includes('kanchi') || str.includes('cotton');
-      });
+      list = list.filter(p => matchProductByMaterial(p, 'kanchicotton'));
     } else if (activeFilter === 'viscose') {
-      list = list.filter(p => {
-        const str = `${p.material || ''} ${p.name} ${p.category} ${p.description || ''}`.toLowerCase();
-        return str.includes('viscose');
-      });
+      list = list.filter(p => matchProductByMaterial(p, 'viscose'));
     } else if (activeFilter === 'fancy') {
-      list = list.filter(p => {
-        const str = `${p.material || ''} ${p.name} ${p.category} ${p.description || ''}`.toLowerCase();
-        return str.includes('fancy') || str.includes('georgette') || str.includes('chiffon') || str.includes('net') || str.includes('designer') || str.includes('party');
-      });
+      list = list.filter(p => matchProductByMaterial(p, 'fancy'));
     } else if (activeFilter === 'checks') {
-      list = list.filter(p => {
-        const str = `${p.material || ''} ${p.name} ${p.category} ${p.description || ''}`.toLowerCase();
-        return str.includes('check') || str.includes('pedding') || str.includes('jamdani');
-      });
+      list = list.filter(p => matchProductByMaterial(p, 'Checks Pending Fancy Sarees'));
     } else if (activeFilter === 'banarasi') {
-      list = list.filter(p => {
-        const str = `${p.material || ''} ${p.name} ${p.category} ${p.description || ''}`.toLowerCase();
-        return str.includes('banarasi') || str.includes('silk') || str.includes('kanchipuram') || str.includes('zari');
-      });
+      list = list.filter(p => matchProductByMaterial(p, 'Banarasi Fashion silk sarees'));
     } else if (activeFilter.startsWith('mat_')) {
-      const targetLabel = filterTabs.find(t => t.id === activeFilter)?.label.toLowerCase() || '';
-      list = list.filter(p => {
-        const str = `${p.material || ''} ${p.name}`.toLowerCase();
-        return str.includes(targetLabel);
-      });
+      const targetLabel = filterTabs.find(t => t.id === activeFilter)?.label || '';
+      list = list.filter(p => matchProductByMaterial(p, targetLabel));
     }
 
     // Sort

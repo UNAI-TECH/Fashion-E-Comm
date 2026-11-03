@@ -14,6 +14,79 @@ let lastSupabaseHealthCheck = 0;
 let isSupabaseHealthy = false;
 let lastEgressWarning = null;
 
+function normalizeKey(s) {
+  return (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function matchProductByMaterial(product, target) {
+  if (!target) return false;
+  const rawTarget = target.trim().toLowerCase();
+  const normTarget = normalizeKey(target);
+  if (!normTarget) return false;
+
+  const mat = (product.material || product.material_type || product.specifications?.material || '').trim();
+  const rawMat = mat.toLowerCase();
+  const normMat = normalizeKey(mat);
+  const name = (product.name || '').toLowerCase();
+  const desc = (product.description || '').toLowerCase();
+  const pattern = (product.specifications?.pattern || '').toLowerCase();
+  const design = (product.specifications?.design || '').toLowerCase();
+  const fullText = `${rawMat} ${name} ${pattern} ${design} ${desc}`.toLowerCase();
+
+  // 1. Direct or normalized match on material_type / material
+  if (rawMat && (rawMat === rawTarget || normMat === normTarget)) return true;
+
+  // 2. Checks Pending Fancy Sarees / Checks Pedding Sarees / Checks Sarees
+  if (normTarget.includes('check')) {
+    if (normMat.includes('check') || normMat.includes('pedd') || normMat.includes('pend')) return true;
+    if (name.includes('check') || name.includes('checked')) return true;
+    return false;
+  }
+
+  // 3. Kanchi Cotton Sarees
+  if (normTarget.includes('kanchi')) {
+    const hasKanchi = normMat.includes('kanchi') || name.includes('kanchi') || fullText.includes('kanchi');
+    if (!hasKanchi) return false;
+    if (normTarget.includes('cotton')) {
+      return normMat.includes('cotton') || name.includes('cotton') || fullText.includes('cotton');
+    }
+    return true;
+  }
+
+  // 4. Viscose Sarees
+  if (normTarget.includes('viscose')) {
+    return normMat.includes('viscose') || name.includes('viscose') || fullText.includes('viscose');
+  }
+
+  // 5. Fancy Sarees (when target is fancy and not checks)
+  if (normTarget.includes('fancy') && !normTarget.includes('check')) {
+    const isFancy = normMat.includes('fancy') || name.includes('fancy');
+    const isChecks = normMat.includes('check') || name.includes('check');
+    return isFancy && !isChecks;
+  }
+
+  // 6. Direct substring match on material_type
+  if (normMat && normTarget.length >= 4 && (normMat.includes(normTarget) || normTarget.includes(normMat))) {
+    return true;
+  }
+
+  // 7. General Token-based matching: for any custom material type
+  const targetWords = rawTarget
+    .replace(/-/g, ' ')
+    .replace(/[^a-z0-9\s]/g, '')
+    .split(/\s+/)
+    .filter(w => w.length > 2 && w !== 'saree' && w !== 'sarees');
+
+  if (targetWords.length > 0) {
+    const allWordsMatch = targetWords.every(w => {
+      return normMat.includes(w) || name.includes(w) || fullText.includes(w);
+    });
+    if (allWordsMatch) return true;
+  }
+
+  return false;
+}
+
 /**
  * Load local products from disk
  */
@@ -122,7 +195,12 @@ export async function getProducts({
         query = query.or(`name.ilike.%${keyword}%,description.ilike.%${keyword}%,category.ilike.%${keyword}%`);
       }
       if (category && category !== 'All') {
-        query = query.ilike('category', `%${category}%`);
+        const isStd = ['sarees', 'kurtis', 'lehengas', 'salwar-sets', 'salwar sets', 'salwar', 'western', 'tradition', 'maxi'].includes(category.toLowerCase().replace(/-/g, ' ').trim());
+        if (isStd) {
+          query = query.ilike('category', `%${category.replace(/-/g, ' ')}%`);
+        } else {
+          query = query.or(`material_type.ilike.%${category}%,name.ilike.%${category}%`);
+        }
       }
       if (minPrice !== null && !isNaN(minPrice)) query = query.gte('price', minPrice);
       if (maxPrice !== null && !isNaN(maxPrice)) query = query.lte('price', maxPrice);
@@ -163,8 +241,13 @@ export async function getProducts({
     );
   }
   if (category && category !== 'All') {
-    const c = category.toLowerCase();
-    list = list.filter(p => p.category && p.category.toLowerCase().includes(c));
+    const isStd = ['sarees', 'kurtis', 'lehengas', 'salwar-sets', 'salwar sets', 'salwar', 'western', 'tradition', 'maxi'].includes(category.toLowerCase().replace(/-/g, ' ').trim());
+    if (isStd) {
+      const c = category.toLowerCase();
+      list = list.filter(p => p.category && p.category.toLowerCase().includes(c));
+    } else {
+      list = list.filter(p => matchProductByMaterial(p, category));
+    }
   }
   if (minPrice !== null && !isNaN(minPrice)) {
     list = list.filter(p => Number(p.price) >= minPrice);

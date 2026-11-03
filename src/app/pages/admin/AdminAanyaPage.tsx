@@ -548,6 +548,7 @@ export function AdminAanyaPage() {
     'Kanchi Cotton',
     'Viscose Sarees',
     'Fancy Sarees',
+    'Checks Pending Fancy Sarees',
     'Checks Pedding',
     'Banarasi Fashion silk sarees',
   ];
