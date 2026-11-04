@@ -552,7 +552,7 @@ export function AdminBillingSection({
                 <img src="/logo.png" style="height: 52px; width: auto; object-fit: contain; margin-left: auto; display: block;" />
                 <div style="margin-top: 6px; font-size: 10px; color: #475569; line-height: 1.45; text-align: right;">
                   <div style="font-weight: 600;">36/11 Bose Street, Kodungaiyur,</div>
-                  <div>Vyasarbadi, Chennai - 600 118.</div>
+                  <div>Vyasarpadi, Chennai - 600 118.</div>
                   <div style="font-weight: 700; color: #0F172A; margin-top: 2px;">Ph: +91 90430 88697</div>
                 </div>
               </div>
@@ -1275,8 +1275,8 @@ export function AdminBillingSection({
                         Sheet {pageNum} of {totalPages}
                       </span>
                       <span className="text-[11px] font-normal text-gray-400">
-                        {isLastPage 
-                          ? `Items ${pageIdx * ITEMS_PER_PAGE + 1} - ${billItems.length} & Final Summary` 
+                        {isLastPage
+                          ? `Items ${pageIdx * ITEMS_PER_PAGE + 1} - ${billItems.length} & Final Summary`
                           : `Items ${pageIdx * ITEMS_PER_PAGE + 1} - ${pageIdx * ITEMS_PER_PAGE + chunk.length} (Continued on Sheet ${pageNum + 1})`}
                       </span>
                     </div>
@@ -1347,7 +1347,7 @@ export function AdminBillingSection({
                             />
                             <div className="mt-1.5 text-[10.5px] text-gray-600 leading-tight">
                               <div className="font-semibold">36/11 Bose Street, Kodungaiyur,</div>
-                              <div>Vyasarbadi, Chennai - 600 118.</div>
+                              <div>Vyasarpadi, Chennai - 600 118.</div>
                               <div className="font-bold text-gray-900 mt-0.5">Ph: +91 90430 88697</div>
                             </div>
                           </div>
@@ -1448,7 +1448,7 @@ export function AdminBillingSection({
                         {/* 4. TOTALS & SEAL (Only on Last Page) */}
                         {isLastPage && (
                           <div className="flex flex-col sm:flex-row justify-between items-start gap-8 pt-1">
-                            
+
                             {/* Left: Amount in Words */}
                             <div className="flex-1 max-w-sm">
                               <div className="bg-[#F8FAFC] border border-gray-200/90 rounded-xl p-3 text-[11px] text-gray-700">
