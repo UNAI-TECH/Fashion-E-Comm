@@ -18,10 +18,12 @@ const SignatureSVG = ({ className = "w-28 h-9" }: { className?: string }) => (
   </svg>
 );
 
-// Number to Words Converter (INR)
+// Number to Words Converter (INR) with Paisa support
 function numberToWordsINR(amount: number): string {
-  const rounded = Math.round(amount);
-  if (rounded <= 0) return 'Zero Rupees Only';
+  if (!amount || amount <= 0) return 'Zero Rupees Only';
+
+  const rupees = Math.floor(amount);
+  const paise = Math.round((amount - rupees) * 100);
 
   const ones = [
     '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
@@ -45,7 +47,7 @@ function numberToWordsINR(amount: number): string {
     return str.trim();
   }
 
-  let num = rounded;
+  let num = rupees;
   let result = '';
 
   const crores = Math.floor(num / 10000000);
@@ -61,7 +63,11 @@ function numberToWordsINR(amount: number): string {
   if (thousands > 0) result += convertLessThanOneThousand(thousands) + ' Thousand ';
   if (remainder > 0) result += convertLessThanOneThousand(remainder);
 
-  return 'Rupees ' + result.trim() + ' Only';
+  let finalStr = 'Rupees ' + (result.trim() || 'Zero');
+  if (paise > 0) {
+    finalStr += ' and ' + convertLessThanOneThousand(paise) + ' Paise';
+  }
+  return finalStr + ' Only';
 }
 
 export interface BillItem {
@@ -200,7 +206,7 @@ export function AdminBillingSection({
   }, []);
 
   const [discountAmount, setDiscountAmount] = useState<number>(0);
-  const [includeGst, setIncludeGst] = useState<boolean>(true);
+  const [includeGst, setIncludeGst] = useState<boolean>(false);
 
   // UI States
   const [productSearch, setProductSearch] = useState('');
@@ -309,13 +315,44 @@ export function AdminBillingSection({
     }
   }, [initialProducts]);
 
-  // Calculations
-  const subtotal = billItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-  const calculatedDiscount = Math.min(discountAmount, subtotal);
-  const taxableAmount = Math.max(0, subtotal - calculatedDiscount);
-  const gstRate = 0.05;
-  const gstAmount = taxableAmount > 0 ? (includeGst ? (taxableAmount * gstRate) / (1 + gstRate) : taxableAmount * gstRate) : 0;
-  const grandTotal = taxableAmount > 0 ? (includeGst ? taxableAmount : taxableAmount + gstAmount) : 0;
+  // Calculations (Real-time GST addition on saree total)
+  const grossTotal = billItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  const calculatedDiscount = Math.min(discountAmount, grossTotal);
+  const taxableSubtotal = Math.max(0, grossTotal - calculatedDiscount);
+
+  let cgstAmount = 0;
+  let sgstAmount = 0;
+  let totalGstAmount = 0;
+  let grandTotal = taxableSubtotal;
+
+  if (taxableSubtotal > 0 && includeGst) {
+    // When "+ Add 5% GST" is clicked: calculate 5% GST (2.5% CGST + 2.5% SGST) for the saree total amount and add to total
+    cgstAmount = Number((taxableSubtotal * 0.025).toFixed(2));
+    sgstAmount = Number((taxableSubtotal * 0.025).toFixed(2));
+    totalGstAmount = Number((cgstAmount + sgstAmount).toFixed(2));
+    grandTotal = Number((taxableSubtotal + totalGstAmount).toFixed(2));
+  } else {
+    // When GST is OFF: do not add GST, GST shown as 0.00, total amount is the saree total amount
+    cgstAmount = 0;
+    sgstAmount = 0;
+    totalGstAmount = 0;
+    grandTotal = taxableSubtotal;
+  }
+
+  // Aliases for compatibility
+  const subtotal = taxableSubtotal;
+  const gstAmount = totalGstAmount;
+
+  // Split bill items into pages of max 10 items per page
+  const ITEMS_PER_PAGE = 10;
+  const previewPages = useMemo(() => {
+    if (billItems.length === 0) return [[] as BillItem[]];
+    const pages: BillItem[][] = [];
+    for (let i = 0; i < billItems.length; i += ITEMS_PER_PAGE) {
+      pages.push(billItems.slice(i, i + ITEMS_PER_PAGE));
+    }
+    return pages;
+  }, [billItems]);
 
   // Add Item
   const handleAddItem = (prod: any) => {
@@ -433,18 +470,259 @@ export function AdminBillingSection({
       return;
     }
 
-    // Build the exact HTML layout from the inspiration image
-    const rowsHtml = billItems.length === 0
-      ? `<tr><td colspan="5" style="text-align: center; padding: 24px; color: #94A3B8; font-style: italic;">No items added to invoice yet</td></tr>`
-      : billItems.map((item, idx) => `
-        <tr style="border-bottom: 1px solid #F1F5F9;">
-          <td style="padding: 10px 14px; font-weight: 700; color: #64748B; font-size: 11px;">${String(idx + 1).padStart(2, '0')}</td>
-          <td style="padding: 10px 14px; font-weight: 700; color: #1E293B; font-size: 11px; text-transform: uppercase;">${item.name}</td>
-          <td style="padding: 10px 14px; text-align: right; color: #334155; font-size: 11px;">${item.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-          <td style="padding: 10px 14px; text-align: center; font-weight: 700; color: #1E293B; font-size: 11px;">${String(item.quantity).padStart(2, '0')}</td>
-          <td style="padding: 10px 14px; text-align: right; font-weight: 800; color: #0F172A; font-size: 11px;">${(item.price * item.quantity).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+    // Split items into pages with maximum 10 items per page
+    const ITEMS_PER_PAGE = 10;
+    const pageChunks: BillItem[][] = [];
+    if (billItems.length === 0) {
+      pageChunks.push([]);
+    } else {
+      for (let i = 0; i < billItems.length; i += ITEMS_PER_PAGE) {
+        pageChunks.push(billItems.slice(i, i + ITEMS_PER_PAGE));
+      }
+    }
+    const totalPrintPages = pageChunks.length;
+
+    // Generate HTML for each discrete A4 page
+    const pagesHtml = pageChunks.map((chunk, pageIdx) => {
+      const isLastPage = pageIdx === totalPrintPages - 1;
+      const pageNum = pageIdx + 1;
+
+      const pageRowsHtml = chunk.length === 0 ? `
+        <tr>
+          <td colspan="5" style="text-align: center; padding: 36px; color: #94A3B8; font-style: italic;">
+            No items added to invoice yet
+          </td>
         </tr>
-      `).join('');
+      ` : chunk.map((item, idx) => {
+        const globalIdx = pageIdx * ITEMS_PER_PAGE + idx + 1;
+        const itemTotal = (item.price * item.quantity).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        return `
+          <tr style="border-bottom: 1px solid #F1F5F9;">
+            <td style="padding: 7px 12px; font-weight: 700; color: #64748B; font-family: monospace; font-size: 11px;">
+              ${String(globalIdx).padStart(2, '0')}
+            </td>
+            <td style="padding: 7px 12px; font-weight: 700; color: #0F172A; text-transform: uppercase; font-size: 11px;">
+              ${item.name}
+            </td>
+            <td style="padding: 7px 12px; text-align: right; color: #334155; font-size: 11px;">
+              ${item.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </td>
+            <td style="padding: 7px 12px; text-align: center; font-weight: 700; color: #0F172A; font-size: 11px;">
+              ${String(item.quantity).padStart(2, '0')}
+            </td>
+            <td style="padding: 7px 12px; text-align: right; font-weight: 800; color: #0F172A; font-size: 11px;">
+              ${itemTotal}
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      return `
+        <div class="page-container">
+          
+          <!-- Official Centered Brand Logo Watermark -->
+          <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 360px; max-width: 80%; opacity: 0.08; pointer-events: none; text-align: center; z-index: 0;">
+            <img src="/logo.png" alt="Aanya Fashions Watermark" style="width: 100%; height: auto; object-fit: contain; margin: 0 auto; display: block;" />
+          </div>
+
+          <div style="position: relative; z-index: 1;">
+            
+            <!-- Top Header -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 20px;">
+              <div>
+                <div style="font-size: 9px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: #698156; margin-bottom: 3px;">
+                  TAX INVOICE
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <h1 style="font-size: 32px; font-weight: 900; letter-spacing: 0.02em; color: #0F172A; text-transform: uppercase; line-height: 1;">
+                    INVOICE
+                  </h1>
+                  <div style="display: flex; align-items: center; gap: 3px; margin-left: 4px;">
+                    <div style="width: 14px; height: 14px; border-radius: 50%; background: #698156;"></div>
+                    <div style="width: 10px; height: 10px; border-radius: 50%; background: #849E70; margin-left: -5px;"></div>
+                  </div>
+                </div>
+                <div style="margin-top: 6px; font-size: 11px; font-weight: 700; color: #475569;">
+                  Invoice No : <span style="color: #698156; font-weight: 800;">${invoiceNo}</span>
+                  ${totalPrintPages > 1 ? `<span style="margin-left: 10px; font-size: 10px; color: #94A3B8; font-weight: 600;">(Page ${pageNum} of ${totalPrintPages})</span>` : ''}
+                </div>
+              </div>
+
+              <div style="text-align: right;">
+                <img src="/logo.png" style="height: 52px; width: auto; object-fit: contain; margin-left: auto; display: block;" />
+                <div style="margin-top: 6px; font-size: 10px; color: #475569; line-height: 1.45; text-align: right;">
+                  <div style="font-weight: 600;">36/11 Bose Street, Kodungaiyur,</div>
+                  <div>Vyasarbadi, Chennai - 600 118.</div>
+                  <div style="font-weight: 700; color: #0F172A; margin-top: 2px;">Ph: +91 90430 88697</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Client & Invoice Metadata -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 18px; font-size: 11px;">
+              <div>
+                <div style="font-size: 9px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #94A3B8; margin-bottom: 4px;">
+                  INVOICE TO:
+                </div>
+                <div style="font-size: 13px; font-weight: 800; color: #0F172A;">
+                  ${customerName.trim() || '—'}
+                </div>
+                ${customerAddress.trim() ? `<div style="color: #475569; margin-top: 2px;">${customerAddress.trim()}</div>` : ''}
+                ${customerState.trim() ? `<div style="color: #475569; margin-top: 1px;">${customerState.trim()}</div>` : ''}
+                ${customerPhone.trim() ? `<div style="color: #64748B; margin-top: 2px;">Phone: ${customerPhone.trim()}</div>` : ''}
+              </div>
+
+              <div style="text-align: right; line-height: 1.6; color: #475569;">
+                <div><span style="font-weight: 700; color: #0F172A;">Invoice Date:</span> ${formattedDate}</div>
+                <div><span style="font-weight: 700; color: #0F172A;">Payment Mode:</span> ${paymentMode} (${paymentStatus})</div>
+                <div><span style="font-weight: 700; color: #0F172A;">GSTIN:</span> 33THXPS7636R1ZH</div>
+              </div>
+            </div>
+
+            <!-- Products Table -->
+            <div style="border-radius: 8px; overflow: hidden; border: 1px solid #E2E8F0; margin-bottom: ${isLastPage ? '16px' : '20px'};">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="text-align: left; width: 44px;">NO.</th>
+                    <th style="text-align: left;">PRODUCT DESCRIPTION</th>
+                    <th style="text-align: right; width: 110px;">PRICE (₹)</th>
+                    <th style="text-align: center; width: 60px;">QTY</th>
+                    <th style="text-align: right; width: 120px;">TOTAL (₹)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${pageRowsHtml}
+                </tbody>
+              </table>
+            </div>
+
+            ${!isLastPage ? `
+              <!-- Intermediate page continuation note -->
+              <div style="background: #F8FAFC; border: 1px dashed #CBD5E1; border-radius: 8px; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #64748B; margin-top: 12px;">
+                <span style="font-weight: 600;">Items ${pageIdx * ITEMS_PER_PAGE + 1} to ${pageIdx * ITEMS_PER_PAGE + chunk.length} of ${billItems.length}</span>
+                <span style="font-weight: 700; color: #698156;">Page ${pageNum} of ${totalPrintPages} &bull; Continued on next page &rarr;</span>
+              </div>
+            ` : `
+              <!-- Last page Totals & Seal section -->
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 30px;">
+                
+                <div style="flex: 1.1; max-width: 360px;">
+                  <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 12px 14px; font-size: 11px;">
+                    <div style="font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: #94A3B8; font-size: 9px; margin-bottom: 4px;">
+                      Amount in Words
+                    </div>
+                    <div style="font-weight: 800; color: #0F172A; font-size: 11px; line-height: 1.4;">
+                      ${billItems.length > 0 ? numberToWordsINR(grandTotal) : '—'}
+                    </div>
+                  </div>
+                </div>
+
+                <div style="width: 260px;">
+                  <div style="background: #FFFFFF; font-size: 11px;">
+                    <div style="display: flex; justify-content: space-between; padding: 4px 0; color: #64748B; border-bottom: 1px solid #F1F5F9;">
+                      <span>Sub Total (Taxable)</span>
+                      <span style="font-weight: 700; color: #1E293B;">₹${taxableSubtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+
+                    ${calculatedDiscount > 0 ? `
+                      <div style="display: flex; justify-content: space-between; padding: 4px 0; color: #059669; border-bottom: 1px solid #F1F5F9;">
+                        <span>Discount</span>
+                        <span style="font-weight: 700;">- ₹${calculatedDiscount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+                    ` : ''}
+
+                    <div style="display: flex; justify-content: space-between; padding: 4px 0; color: #64748B; border-bottom: 1px solid #F1F5F9;">
+                      <span>CGST (2.5%)</span>
+                      <span style="font-weight: 700; color: #1E293B;">₹${cgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; padding: 4px 0; color: #64748B; border-bottom: 1px solid #F1F5F9;">
+                      <span>SGST (2.5%)</span>
+                      <span style="font-weight: 700; color: #1E293B;">₹${sgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0 2px 0;">
+                      <span style="font-size: 13px; font-weight: 800; color: #0F172A;">Total</span>
+                      <span style="font-size: 18px; font-weight: 900; color: #698156;">₹${grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                  </div>
+
+                  <!-- Authorized Signatory Seal (Bigger) -->
+                  <div style="margin-top: 10px; text-align: center;">
+                    <div style="display: flex; justify-content: center; align-items: center; min-height: 96px;">
+                      <img src="/Fashions%20(1).webp" alt="Aanya Fashions Seal" style="height: 96px; width: 96px; max-height: 96px; object-fit: contain; margin: 0 auto; display: block;" />
+                    </div>
+                    <div style="font-size: 11px; font-weight: 800; color: #0F172A; text-transform: uppercase; margin-top: 4px; letter-spacing: 0.04em;">
+                      AANYA FASHIONS PVT LTD
+                    </div>
+                    <div style="font-size: 9px; color: #94A3B8; text-transform: capitalize;">
+                      Authorized Signatory
+                    </div>
+                  </div>
+
+                </div>
+
+              </div>
+            `}
+
+          </div>
+
+          <!-- Bottom Section: On last page Account Details & Terms & Conditions, plus Footer Bar on every page -->
+          <div style="position: relative; z-index: 1;">
+            
+            ${isLastPage ? `
+              <div style="display: flex; justify-content: space-between; align-items: stretch; gap: 16px; margin-bottom: 14px;">
+                
+                <!-- Account Details -->
+                <div style="flex: 1; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 10px 14px; font-size: 10.5px; color: #475569; line-height: 1.5;">
+                  <div style="font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: #1E293B; margin-bottom: 4px; font-size: 9px; display: flex; align-items: center; gap: 5px;">
+                    <span style="width: 6px; height: 6px; border-radius: 50%; background: #698156; display: inline-block;"></span>
+                    ACCOUNT DETAILS
+                  </div>
+                  <div>Bank Account: <span style="font-weight: 700; color: #0F172A; font-family: monospace;">24680200004266</span></div>
+                  <div>Bank: <span style="font-weight: 700; color: #0F172A;">Federal Bank</span> <span style="color: #64748B; font-size: 10px;">(IFSC: FDRL0002468)</span></div>
+                  <div>UPI ID: <span style="font-weight: 700; color: #698156;">storyseedstudio471110.rzp@rxairtel</span></div>
+                </div>
+
+                <!-- Terms & Conditions Point Wise -->
+                <div style="flex: 1; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 10px 14px; font-size: 10px; color: #64748B; line-height: 1.5; display: flex; flex-direction: column; justify-content: flex-start;">
+                  <div style="font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: #1E293B; font-size: 9px; margin-bottom: 4px; display: flex; align-items: center; gap: 5px;">
+                    <span style="width: 6px; height: 6px; border-radius: 50%; background: #849E70; display: inline-block;"></span>
+                    TERMS & CONDITIONS
+                  </div>
+                  <ul style="margin: 0; padding-left: 15px; color: #475569; font-size: 9.5px; line-height: 1.55;">
+                    <li>Goods once sold can be exchanged within 7 days of invoice date.</li>
+                    <li>Original invoice and intact tags are mandatory for exchange.</li>
+                  </ul>
+                </div>
+
+              </div>
+            ` : ''}
+
+            <!-- Footer Bar -->
+            <div style="padding-top: 12px; border-top: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center;">
+              <div style="font-size: 10px; font-weight: 600; color: #64748B; font-style: italic;">
+                This is a computer Generated Invoice
+              </div>
+
+              ${totalPrintPages > 1 ? `
+                <div style="font-size: 10px; font-weight: 700; color: #64748B;">
+                  Page ${pageNum} of ${totalPrintPages}
+                </div>
+              ` : ''}
+
+              <div style="display: flex; align-items: center; gap: 6px; background: #698156; color: #FFFFFF; font-weight: 700; padding: 5px 16px; border-radius: 999px; font-size: 10px;">
+                <span>Thank you for your Business!</span>
+                <div style="width: 6px; height: 6px; border-radius: 50%; background: #A8BFA0;"></div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      `;
+    }).join('');
 
     doc.open();
     doc.write(`
@@ -452,33 +730,52 @@ export function AdminBillingSection({
       <html lang="en">
         <head>
           <meta charset="UTF-8">
-          <title>${documentTitle}</title>
+          <title></title>
           <link rel="preconnect" href="https://fonts.googleapis.com">
           <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
           <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
           <style>
             * { box-sizing: border-box; margin: 0; padding: 0; }
+            @page {
+              size: A4 portrait;
+              margin: 0mm; /* Completely removes browser default header (date, title) & footer (URL, page numbers) */
+            }
             body {
               font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
               background: #FFFFFF;
               color: #0F172A;
-              padding: 24px 30px;
+              margin: 0;
+              padding: 0;
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
             }
-            @page {
-              size: A4 portrait;
-              margin: 10mm 12mm;
+            .page-container {
+              width: 210mm;
+              height: 296mm;
+              min-height: 296mm;
+              max-height: 296mm;
+              padding: 10mm 12mm;
+              margin: 0 auto;
+              box-sizing: border-box;
+              position: relative;
+              display: flex;
+              flex-direction: column;
+              justify-content: space-between;
+              overflow: hidden;
+              page-break-after: always;
+              break-after: page;
+              background: #FFFFFF;
             }
-            @media print {
-              body { padding: 0; }
+            .page-container:last-child {
+              page-break-after: auto;
+              break-after: auto;
             }
             table {
               width: 100%;
               border-collapse: collapse;
             }
             th {
-              padding: 9px 14px;
+              padding: 8px 12px;
               font-size: 10px;
               font-weight: 800;
               letter-spacing: 0.06em;
@@ -490,162 +787,7 @@ export function AdminBillingSection({
           </style>
         </head>
         <body>
-          <div style="position: relative; min-height: 980px; display: flex; flex-direction: column; justify-content: space-between;">
-            
-            <!-- Official Centered Brand Logo Watermark -->
-            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 360px; max-width: 80%; opacity: 0.08; pointer-events: none; text-align: center; z-index: 0;">
-              <img src="/logo.png" alt="Aanya Fashions Watermark" style="width: 100%; height: auto; object-fit: contain; margin: 0 auto; display: block;" />
-            </div>
-
-            <div style="position: relative; z-index: 1;">
-              
-              <div style="display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 24px;">
-                <div>
-                  <div style="display: flex; align-items: center; gap: 8px;">
-                    <h1 style="font-size: 32px; font-weight: 900; letter-spacing: 0.02em; color: #0F172A; text-transform: uppercase; line-height: 1;">
-                      INVOICE
-                    </h1>
-                    <div style="display: flex; align-items: center; gap: 3px; margin-left: 4px;">
-                      <div style="width: 14px; height: 14px; border-radius: 50%; background: #698156;"></div>
-                      <div style="width: 10px; height: 10px; border-radius: 50%; background: #849E70; margin-left: -5px;"></div>
-                    </div>
-                  </div>
-                  <div style="margin-top: 6px; font-size: 11px; font-weight: 700; color: #475569;">
-                    Invoice No : <span style="color: #698156; font-weight: 800;">${invoiceNo}</span>
-                  </div>
-                </div>
-
-                <div style="text-align: right;">
-                  <img src="/logo.png" style="height: 38px; width: auto; object-fit: contain; margin-left: auto; display: block;" />
-                  <div style="margin-top: 6px; font-size: 10px; color: #64748B; line-height: 1.4;">
-                    <div>+91 91234 56789</div>
-                    <div>care@aanyafashions.com</div>
-                    <div>https://www.aanyafashions.com/</div>
-                  </div>
-                </div>
-              </div>
-
-              <div style="display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 22px; font-size: 11px;">
-                <div>
-                  <div style="font-size: 9px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #94A3B8; margin-bottom: 4px;">
-                    INVOICE TO:
-                  </div>
-                  <div style="font-size: 13px; font-weight: 800; color: #0F172A;">
-                    ${customerName.trim() || '—'}
-                  </div>
-                  ${customerAddress.trim() ? `<div style="color: #475569; margin-top: 2px;">${customerAddress.trim()}</div>` : ''}
-                  ${customerState.trim() ? `<div style="color: #475569; margin-top: 1px;">${customerState.trim()}</div>` : ''}
-                  ${customerPhone.trim() ? `<div style="color: #64748B; margin-top: 2px;">Phone: ${customerPhone.trim()}</div>` : ''}
-                </div>
-
-                <div style="text-align: right; line-height: 1.6; color: #475569;">
-                  <div><span style="font-weight: 700; color: #0F172A;">Document Date:</span> ${formattedDate}</div>
-                  <div><span style="font-weight: 700; color: #0F172A;">Payment Mode:</span> ${paymentMode} (${paymentStatus})</div>
-                  <div><span style="font-weight: 700; color: #0F172A;">GSTIN:</span> 33THXPS7636R1ZH</div>
-                </div>
-              </div>
-
-              <div style="border-radius: 8px; overflow: hidden; border: 1px solid #E2E8F0; margin-bottom: 24px;">
-                <table>
-                  <thead>
-                    <tr>
-                      <th style="text-align: left; width: 44px;">NO.</th>
-                      <th style="text-align: left;">PRODUCT DESCRIPTION</th>
-                      <th style="text-align: right; width: 110px;">PRICE (₹)</th>
-                      <th style="text-align: center; width: 60px;">QTY</th>
-                      <th style="text-align: right; width: 120px;">TOTAL (₹)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${rowsHtml}
-                  </tbody>
-                </table>
-              </div>
-
-              <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 30px;">
-                
-                <div style="flex: 1.1;">
-                  
-                  <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 12px 16px; font-size: 11px; color: #475569; line-height: 1.6;">
-                    <div style="font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: #1E293B; margin-bottom: 4px; font-size: 9px;">
-                      PAYMENT METHOD
-                    </div>
-                    <div>Bank Account: <span style="font-weight: 700; color: #0F172A;">24680200004266</span></div>
-                    <div>Bank: <span style="font-weight: 700; color: #0F172A;">Federal Bank (IFSC: FDRL0002468)</span></div>
-                    <div>UPI ID: <span style="font-weight: 700; color: #698156;">storyseedstudio471110.rzp@rxairtel</span></div>
-                  </div>
-
-                  <div style="margin-top: 14px; font-size: 10px; color: #64748B; line-height: 1.5;">
-                    <div style="font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: #1E293B; font-size: 9px; margin-bottom: 3px;">
-                      TERMS & CONDITION
-                    </div>
-                    <div>Payment completed. Goods once sold can be exchanged within 7 days of invoice date with intact tags.</div>
-                  </div>
-
-                  <div style="margin-top: 12px; display: inline-block; background: #F1F5F9; border: 1px solid #E2E8F0; border-radius: 6px; padding: 6px 14px; font-size: 10px; color: #334155;">
-                    Amount in Words: <span style="font-weight: 800; color: #0F172A;">${billItems.length > 0 ? numberToWordsINR(grandTotal) : '—'}</span>
-                  </div>
-
-                </div>
-
-                <div style="width: 250px;">
-                  
-                  <div style="background: #FFFFFF; font-size: 11px;">
-                    <div style="display: flex; justify-content: space-between; padding: 6px 0; color: #64748B; border-bottom: 1px solid #F1F5F9;">
-                      <span>Sub Total</span>
-                      <span style="font-weight: 700; color: #1E293B;">₹${subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                    </div>
-
-                    ${calculatedDiscount > 0 ? `
-                      <div style="display: flex; justify-content: space-between; padding: 6px 0; color: #059669; border-bottom: 1px solid #F1F5F9;">
-                        <span>Discount</span>
-                        <span style="font-weight: 700;">- ₹${calculatedDiscount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                      </div>
-                    ` : ''}
-
-                    <div style="display: flex; justify-content: space-between; padding: 6px 0; color: #64748B; border-bottom: 1px solid #F1F5F9;">
-                      <span>GST (5%)</span>
-                      <span style="font-weight: 700; color: #1E293B;">₹${gstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                    </div>
-
-                    <div style="display: flex; justify-content: space-between; align-items: baseline; padding: 10px 0 6px 0;">
-                      <span style="font-size: 13px; font-weight: 800; color: #0F172A;">Total</span>
-                      <span style="font-size: 18px; font-weight: 900; color: #698156;">₹${Math.round(grandTotal).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                    </div>
-                  </div>
-
-                  <div style="margin-top: 34px; text-align: center;">
-                    <div style="display: flex; justify-content: center; height: 38px;">
-                      <svg viewBox="0 0 160 50" style="width: 120px; height: 100%;" fill="none" stroke="#1E293B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 36 C 26 14, 32 4, 42 24 C 47 34, 57 40, 72 20 C 86 6, 96 28, 112 24 C 126 20, 136 14, 152 17 M66 26 Q 92 23 132 21 M36 34 Q 56 38 88 31" />
-                      </svg>
-                    </div>
-                    <div style="font-size: 11px; font-weight: 800; color: #0F172A; text-transform: uppercase; margin-top: 4px;">
-                      AANYA FASHIONS PVT LTD
-                    </div>
-                    <div style="font-size: 9px; color: #94A3B8; text-transform: capitalize;">
-                      Authorized Signatory
-                    </div>
-                  </div>
-
-                </div>
-
-              </div>
-
-            </div>
-
-            <div style="position: relative; z-index: 1; padding-top: 24px; border-top: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center; font-size: 9px; color: #94A3B8;">
-              <div>
-                +91 91234 56789 | care@aanyafashions.com | Page 1 of 1
-              </div>
-
-              <div style="display: flex; align-items: center; gap: 6px; background: #698156; color: #FFFFFF; font-weight: 700; padding: 6px 14px; border-radius: 999px;">
-                <span>Thank you for your Business!</span>
-                <div style="width: 6px; height: 6px; border-radius: 50%; background: #A8BFA0;"></div>
-              </div>
-            </div>
-
-          </div>
+          ${pagesHtml}
         </body>
       </html>
     `);
@@ -1082,11 +1224,11 @@ export function AdminBillingSection({
                   type="button"
                   onClick={() => setIncludeGst(!includeGst)}
                   className={`w-full py-1.5 px-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${includeGst
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                    : 'bg-gray-100 text-gray-600 border-gray-200'
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-200'
                     }`}
                 >
-                  {includeGst ? '✓ GST Included' : '+ Add 5% GST'}
+                  {includeGst ? '✓ 5% GST Added' : '+ Add 5% GST'}
                 </button>
               </div>
             </div>
@@ -1118,244 +1260,323 @@ export function AdminBillingSection({
           {/* ══════════════════════════════════════════════════════════════════
               LIVE SCREEN PREVIEW MATCHING THE USER'S INSPIRATION TEMPLATE
               ══════════════════════════════════════════════════════════════════ */}
-          <div className="relative shadow-xl rounded-2xl overflow-hidden bg-white border border-gray-200/80">
+          <div className="space-y-6">
+            {previewPages.map((chunk, pageIdx) => {
+              const isLastPage = pageIdx === previewPages.length - 1;
+              const pageNum = pageIdx + 1;
+              const totalPages = previewPages.length;
 
-            <div
-              id="printable-invoice"
-              className="relative p-7 sm:p-10 bg-white min-h-[820px] flex flex-col justify-between overflow-hidden"
-              style={{ minHeight: '840px' }}
-            >
-
-              {/* 
-                ════════════════════════════════════════════════════════════
-                STRICTLY CENTERED LOGO WATERMARK IN THE MIDDLE OF THE BILL
-                ════════════════════════════════════════════════════════════
-              */}
-              <div
-                className="watermark-wrapper absolute pointer-events-none select-none z-0 flex items-center justify-center text-center"
-                style={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  width: '360px',
-                  maxWidth: '80%',
-                  opacity: 0.08,
-                  pointerEvents: 'none'
-                }}
-              >
-                <img
-                  src="/logo.png"
-                  alt="Aanya Fashions Watermark"
-                  className="w-full h-auto object-contain"
-                  style={{ width: '100%', height: 'auto', display: 'block', margin: '0 auto' }}
-                />
-              </div>
-
-              {/* ── Bill Content (relative z-10 for sharp readability) ── */}
-              <div className="relative z-10 space-y-6">
-
-                {/* 1. TOP HEADER: INVOICE title with 2 modern accent circles & logo + contact */}
-                <div className="flex items-start justify-between pb-2">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h1 className="text-3xl font-black tracking-wide text-gray-900 uppercase leading-none font-sans">
-                        INVOICE
-                      </h1>
-                      <div className="flex items-center gap-0.5 ml-1">
-                        <div className="w-3.5 h-3.5 rounded-full bg-[#698156]" />
-                        <div className="w-2.5 h-2.5 rounded-full bg-[#849E70] -ml-1.5" />
-                      </div>
+              return (
+                <div key={pageIdx} className="space-y-2">
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-between px-2 text-xs text-gray-500 font-bold">
+                      <span className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-[#698156]" />
+                        Sheet {pageNum} of {totalPages}
+                      </span>
+                      <span className="text-[11px] font-normal text-gray-400">
+                        {isLastPage 
+                          ? `Items ${pageIdx * ITEMS_PER_PAGE + 1} - ${billItems.length} & Final Summary` 
+                          : `Items ${pageIdx * ITEMS_PER_PAGE + 1} - ${pageIdx * ITEMS_PER_PAGE + chunk.length} (Continued on Sheet ${pageNum + 1})`}
+                      </span>
                     </div>
-                    <div className="mt-1.5 text-xs font-bold text-gray-600">
-                      Invoice No : <span className="text-[#698156] font-extrabold">{invoiceNo}</span>
-                    </div>
-                  </div>
+                  )}
 
-                  <div className="text-right">
-                    <img
-                      src="/logo.png"
-                      alt="Aanya Fashions"
-                      className="h-10 w-auto object-contain ml-auto"
-                    />
-                    <div className="mt-1.5 text-[10px] text-gray-500 leading-tight">
-                      <div>+91 91234 56789</div>
-                      <div>care@aanyafashions.com</div>
-                      <div>https://www.aanyafashions.com/</div>
-                    </div>
-                  </div>
-                </div>
+                  <div className="relative shadow-xl rounded-2xl overflow-hidden bg-white border border-gray-200/80">
+                    <div
+                      id={pageIdx === 0 ? "printable-invoice" : undefined}
+                      className="relative p-7 sm:p-10 bg-white min-h-[820px] flex flex-col justify-between overflow-hidden"
+                      style={{ minHeight: '840px' }}
+                    >
 
-                {/* 2. CLIENT & INVOICE METADATA ROW */}
-                <div className="flex justify-between items-start pt-1 text-xs">
-                  <div>
-                    <span className="text-[9px] font-extrabold uppercase tracking-widest text-gray-400 block mb-1">
-                      INVOICE TO:
-                    </span>
-                    <div className="font-extrabold text-gray-900 text-sm">
-                      {customerName.trim() || <span className="text-gray-300 font-normal italic">—</span>}
-                    </div>
-                    {customerAddress.trim() && (
-                      <div className="text-gray-600 mt-0.5">{customerAddress.trim()}</div>
-                    )}
-                    {customerState.trim() && (
-                      <div className="text-gray-600">{customerState.trim()}</div>
-                    )}
-                    {customerPhone.trim() && (
-                      <div className="text-gray-500 mt-0.5">Phone: {customerPhone.trim()}</div>
-                    )}
-                  </div>
-
-                  <div className="text-right text-gray-600 leading-relaxed">
-                    <div>
-                      <span className="font-bold text-gray-900">Document Date:</span> {formattedScreenDate}
-                    </div>
-                    <div>
-                      <span className="font-bold text-gray-900">Payment Mode:</span> {paymentMode} ({paymentStatus})
-                    </div>
-                    <div>
-                      <span className="font-bold text-gray-900">GSTIN:</span> 33THXPS7636R1ZH
-                    </div>
-                  </div>
-                </div>
-
-                {/* 3. TABLE */}
-                <div className="overflow-hidden border border-gray-200 rounded-lg">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-[#F8FAFC] border-b-2 border-gray-200 text-gray-500 font-bold uppercase text-[10px] tracking-wider">
-                      <tr>
-                        <th className="py-2.5 px-3.5 w-12 text-left">NO.</th>
-                        <th className="py-2.5 px-3.5 text-left">PRODUCT DESCRIPTION</th>
-                        <th className="py-2.5 px-3.5 text-right w-28">PRICE (₹)</th>
-                        <th className="py-2.5 px-3.5 text-center w-16">QTY</th>
-                        <th className="py-2.5 px-3.5 text-right w-32">TOTAL (₹)</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {billItems.length === 0 ? (
-                        <tr>
-                          <td colSpan={5} className="text-center py-10 text-gray-400 italic">
-                            No items added to invoice yet
-                          </td>
-                        </tr>
-                      ) : (
-                        billItems.map((item, i) => (
-                          <tr key={i} className="hover:bg-gray-50/50">
-                            <td className="py-2.5 px-3.5 text-gray-500 font-bold font-mono text-[11px]">
-                              {String(i + 1).padStart(2, '0')}
-                            </td>
-                            <td className="py-2.5 px-3.5 font-bold text-gray-900 uppercase text-[11px]">
-                              {item.name}
-                            </td>
-                            <td className="py-2.5 px-3.5 text-right text-gray-700 text-[11px]">
-                              {item.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </td>
-                            <td className="py-2.5 px-3.5 text-center font-bold text-gray-900 text-[11px]">
-                              {String(item.quantity).padStart(2, '0')}
-                            </td>
-                            <td className="py-2.5 px-3.5 text-right font-extrabold text-gray-900 text-[11px]">
-                              {(item.price * item.quantity).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* 4. BOTTOM SECTION SPLIT */}
-                <div className="flex flex-col sm:flex-row justify-between items-start gap-8 pt-2">
-
-                  {/* LEFT: Payment details, Terms, Amount in Words */}
-                  <div className="flex-1 max-w-sm space-y-3.5">
-
-                    {/* Payment Method Card */}
-                    <div className="bg-[#F8FAFC] border border-gray-200/80 rounded-xl p-3.5 text-[11px] text-gray-600 leading-snug space-y-0.5">
-                      <div className="font-extrabold uppercase tracking-wider text-gray-900 text-[9px] mb-1">
-                        PAYMENT METHOD
-                      </div>
-                      <div>Bank Account: <span className="font-bold text-gray-900">24680200004266</span></div>
-                      <div>Bank: <span className="font-bold text-gray-900">Federal Bank (IFSC: FDRL0002468)</span></div>
-                      <div>UPI ID: <span className="font-bold text-[#698156]">storyseedstudio471110.rzp@rxairtel</span></div>
-                    </div>
-
-                    {/* Terms */}
-                    <div className="text-[10px] text-gray-500 leading-normal">
-                      <div className="font-extrabold uppercase tracking-wider text-gray-900 text-[9px] mb-0.5">
-                        TERMS & CONDITION
-                      </div>
-                      <div>Payment completed. Goods once sold can be exchanged within 7 days of invoice date with intact tags.</div>
-                    </div>
-
-                    {/* Amount in words badge */}
-                    <div className="inline-block bg-gray-100 border border-gray-200 rounded-lg px-3 py-1.5 text-[10px] text-gray-700">
-                      Amount in Words: <span className="font-extrabold text-gray-900">{billItems.length > 0 ? numberToWordsINR(grandTotal) : '—'}</span>
-                    </div>
-
-                  </div>
-
-                  {/* RIGHT: Totals & Signature */}
-                  <div className="w-full sm:w-64 space-y-6">
-
-                    {/* Totals Table */}
-                    <div className="text-xs space-y-1.5">
-                      <div className="flex justify-between py-1 text-gray-600 border-b border-gray-100">
-                        <span>Sub Total</span>
-                        <span className="font-bold text-gray-900">₹{subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      {/* Official Centered Brand Logo Watermark */}
+                      <div
+                        className="watermark-wrapper absolute pointer-events-none select-none z-0 flex items-center justify-center text-center"
+                        style={{
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          transform: 'translate(-50%, -50%)',
+                          width: '360px',
+                          maxWidth: '80%',
+                          opacity: 0.08,
+                          pointerEvents: 'none'
+                        }}
+                      >
+                        <img
+                          src="/logo.png"
+                          alt="Aanya Fashions Watermark"
+                          className="w-full h-auto object-contain"
+                          style={{ width: '100%', height: 'auto', display: 'block', margin: '0 auto' }}
+                        />
                       </div>
 
-                      {calculatedDiscount > 0 && (
-                        <div className="flex justify-between py-1 text-emerald-600 border-b border-gray-100 font-bold">
-                          <span>Discount</span>
-                          <span>- ₹{calculatedDiscount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      {/* Bill Content */}
+                      <div className="relative z-10 space-y-6">
+
+                        {/* 1. TOP HEADER */}
+                        <div className="flex items-start justify-between pb-2">
+                          <div>
+                            <div className="text-[9px] font-extrabold uppercase tracking-widest text-[#698156] mb-1">
+                              TAX INVOICE
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <h1 className="text-3xl font-black tracking-wide text-gray-900 uppercase leading-none font-sans">
+                                INVOICE
+                              </h1>
+                              <div className="flex items-center gap-0.5 ml-1">
+                                <div className="w-3.5 h-3.5 rounded-full bg-[#698156]" />
+                                <div className="w-2.5 h-2.5 rounded-full bg-[#849E70] -ml-1.5" />
+                              </div>
+                            </div>
+                            <div className="mt-1.5 text-xs font-bold text-gray-600">
+                              Invoice No : <span className="text-[#698156] font-extrabold">{invoiceNo}</span>
+                              {totalPages > 1 && (
+                                <span className="ml-2 text-gray-400 font-semibold text-[11px]">
+                                  (Page {pageNum} of {totalPages})
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="text-right">
+                            <img
+                              src="/logo.png"
+                              alt="Aanya Fashions"
+                              className="h-14 w-auto object-contain ml-auto"
+                            />
+                            <div className="mt-1.5 text-[10.5px] text-gray-600 leading-tight">
+                              <div className="font-semibold">36/11 Bose Street, Kodungaiyur,</div>
+                              <div>Vyasarbadi, Chennai - 600 118.</div>
+                              <div className="font-bold text-gray-900 mt-0.5">Ph: +91 90430 88697</div>
+                            </div>
+                          </div>
                         </div>
-                      )}
 
-                      <div className="flex justify-between py-1 text-gray-600 border-b border-gray-100">
-                        <span>GST (5%)</span>
-                        <span className="font-bold text-gray-900">₹{gstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        {/* 2. CLIENT & INVOICE METADATA ROW */}
+                        <div className="flex justify-between items-start pt-1 text-xs">
+                          <div>
+                            <span className="text-[9px] font-extrabold uppercase tracking-widest text-gray-400 block mb-1">
+                              INVOICE TO:
+                            </span>
+                            <div className="font-extrabold text-gray-900 text-sm">
+                              {customerName.trim() || <span className="text-gray-300 font-normal italic">—</span>}
+                            </div>
+                            {customerAddress.trim() && (
+                              <div className="text-gray-600 mt-0.5">{customerAddress.trim()}</div>
+                            )}
+                            {customerState.trim() && (
+                              <div className="text-gray-600">{customerState.trim()}</div>
+                            )}
+                            {customerPhone.trim() && (
+                              <div className="text-gray-500 mt-0.5">Phone: {customerPhone.trim()}</div>
+                            )}
+                          </div>
+
+                          <div className="text-right text-gray-600 leading-relaxed">
+                            <div>
+                              <span className="font-bold text-gray-900">Invoice Date:</span> {formattedScreenDate}
+                            </div>
+                            <div>
+                              <span className="font-bold text-gray-900">Payment Mode:</span> {paymentMode} ({paymentStatus})
+                            </div>
+                            <div>
+                              <span className="font-bold text-gray-900">GSTIN:</span> 33THXPS7636R1ZH
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 3. TABLE */}
+                        <div className="overflow-hidden border border-gray-200 rounded-lg">
+                          <table className="w-full text-left text-xs">
+                            <thead className="bg-[#F8FAFC] border-b-2 border-gray-200 text-gray-500 font-bold uppercase text-[10px] tracking-wider">
+                              <tr>
+                                <th className="py-2.5 px-3.5 w-12 text-left">NO.</th>
+                                <th className="py-2.5 px-3.5 text-left">PRODUCT DESCRIPTION</th>
+                                <th className="py-2.5 px-3.5 text-right w-28">PRICE (₹)</th>
+                                <th className="py-2.5 px-3.5 text-center w-16">QTY</th>
+                                <th className="py-2.5 px-3.5 text-right w-32">TOTAL (₹)</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                              {chunk.length === 0 ? (
+                                <tr>
+                                  <td colSpan={5} className="text-center py-10 text-gray-400 italic">
+                                    No items added to invoice yet
+                                  </td>
+                                </tr>
+                              ) : (
+                                chunk.map((item, i) => {
+                                  const globalIdx = pageIdx * ITEMS_PER_PAGE + i + 1;
+                                  return (
+                                    <tr key={i} className="hover:bg-gray-50/50">
+                                      <td className="py-2.5 px-3.5 text-gray-500 font-bold font-mono text-[11px]">
+                                        {String(globalIdx).padStart(2, '0')}
+                                      </td>
+                                      <td className="py-2.5 px-3.5 font-bold text-gray-900 uppercase text-[11px]">
+                                        {item.name}
+                                      </td>
+                                      <td className="py-2.5 px-3.5 text-right text-gray-700 text-[11px]">
+                                        {item.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                      </td>
+                                      <td className="py-2.5 px-3.5 text-center font-bold text-gray-900 text-[11px]">
+                                        {String(item.quantity).padStart(2, '0')}
+                                      </td>
+                                      <td className="py-2.5 px-3.5 text-right font-extrabold text-gray-900 text-[11px]">
+                                        {(item.price * item.quantity).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                      </td>
+                                    </tr>
+                                  );
+                                })
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Intermediate Page Continuation Banner */}
+                        {!isLastPage && (
+                          <div className="bg-[#F8FAFC] border border-dashed border-gray-300 rounded-xl p-3.5 flex justify-between items-center text-xs text-gray-600">
+                            <span className="font-semibold text-gray-700">
+                              Showing items {pageIdx * ITEMS_PER_PAGE + 1} to {pageIdx * ITEMS_PER_PAGE + chunk.length} of {billItems.length}
+                            </span>
+                            <span className="font-bold text-[#698156] flex items-center gap-1">
+                              Page {pageNum} of {totalPages} · Continued on next page &rarr;
+                            </span>
+                          </div>
+                        )}
+
+                        {/* 4. TOTALS & SEAL (Only on Last Page) */}
+                        {isLastPage && (
+                          <div className="flex flex-col sm:flex-row justify-between items-start gap-8 pt-1">
+                            
+                            {/* Left: Amount in Words */}
+                            <div className="flex-1 max-w-sm">
+                              <div className="bg-[#F8FAFC] border border-gray-200/90 rounded-xl p-3 text-[11px] text-gray-700">
+                                <div className="text-[9px] font-extrabold text-gray-400 uppercase tracking-wider mb-1">
+                                  Amount in Words
+                                </div>
+                                <div className="font-extrabold text-gray-900 text-xs leading-snug">
+                                  {billItems.length > 0 ? numberToWordsINR(grandTotal) : '—'}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Right: Totals Table & Authorized Seal */}
+                            <div className="w-full sm:w-64 space-y-4">
+                              <div className="text-xs space-y-1.5">
+                                <div className="flex justify-between py-1 text-gray-600 border-b border-gray-100">
+                                  <span>Sub Total (Taxable)</span>
+                                  <span className="font-bold text-gray-900">₹{taxableSubtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+
+                                {calculatedDiscount > 0 && (
+                                  <div className="flex justify-between py-1 text-emerald-600 border-b border-gray-100 font-bold">
+                                    <span>Discount</span>
+                                    <span>- ₹{calculatedDiscount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                  </div>
+                                )}
+
+                                <div className="flex justify-between py-1 text-gray-600 border-b border-gray-100">
+                                  <span>CGST (2.5%)</span>
+                                  <span className="font-bold text-gray-900">₹{cgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+
+                                <div className="flex justify-between py-1 text-gray-600 border-b border-gray-100">
+                                  <span>SGST (2.5%)</span>
+                                  <span className="font-bold text-gray-900">₹{sgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+
+                                <div className="flex justify-between items-baseline pt-2">
+                                  <span className="text-sm font-extrabold text-gray-900">Total</span>
+                                  <span className="text-lg font-black text-[#698156]">
+                                    ₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Authorized Signatory Seal (Bigger) */}
+                              <div className="pt-1 text-center">
+                                <div className="flex justify-center items-center min-h-[96px]">
+                                  <img
+                                    src="/Fashions%20(1).webp"
+                                    alt="Aanya Fashions Seal"
+                                    className="h-24 w-24 object-contain mx-auto"
+                                  />
+                                </div>
+                                <div className="text-[11px] font-extrabold text-gray-900 uppercase mt-1 tracking-wider">
+                                  AANYA FASHIONS PVT LTD
+                                </div>
+                                <div className="text-[9px] text-gray-400 capitalize">
+                                  Authorized Signatory
+                                </div>
+                              </div>
+                            </div>
+
+                          </div>
+                        )}
+
                       </div>
 
-                      <div className="flex justify-between items-baseline pt-2">
-                        <span className="text-sm font-extrabold text-gray-900">Total</span>
-                        <span className="text-lg font-black text-[#698156]">
-                          ₹{Math.round(grandTotal).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </span>
+                      {/* ── BOTTOM SECTION ── */}
+                      <div className="relative z-10 space-y-4 pt-6">
+
+                        {/* Account Details & Terms only on Last Page */}
+                        {isLastPage && (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+                            {/* Account Details Card */}
+                            <div className="bg-[#F8FAFC] border border-gray-200/90 rounded-xl p-3.5 text-[11px] text-gray-600 leading-snug space-y-0.5">
+                              <div className="font-extrabold uppercase tracking-wider text-gray-900 text-[9px] mb-1.5 flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#698156]" />
+                                ACCOUNT DETAILS
+                              </div>
+                              <div>Bank Account: <span className="font-bold text-gray-900 font-mono">24680200004266</span></div>
+                              <div>Bank: <span className="font-bold text-gray-900">Federal Bank</span> <span className="text-gray-400 text-[10px]">(IFSC: FDRL0002468)</span></div>
+                              <div>UPI ID: <span className="font-bold text-[#698156]">storyseedstudio471110.rzp@rxairtel</span></div>
+                            </div>
+
+                            {/* Terms & Conditions Card (Point-wise) */}
+                            <div className="bg-[#F8FAFC] border border-gray-200/90 rounded-xl p-3.5 text-[10px] text-gray-500 leading-normal flex flex-col justify-between">
+                              <div>
+                                <div className="font-extrabold uppercase tracking-wider text-gray-900 text-[9px] mb-1.5 flex items-center gap-1.5">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-[#849E70]" />
+                                  TERMS & CONDITIONS
+                                </div>
+                                <ul className="text-gray-600 text-[10.5px] leading-relaxed list-disc list-inside space-y-1">
+                                  <li>Goods once sold can be exchanged within 7 days of invoice date.</li>
+                                  <li>Original invoice & intact tags are mandatory for exchange.</li>
+                                </ul>
+                              </div>
+                            </div>
+
+                          </div>
+                        )}
+
+                        {/* FOOTER BAR AT BOTTOM */}
+                        <div className="pt-3 border-t border-gray-200 flex items-center justify-between gap-4">
+                          <div className="text-[11px] font-semibold text-gray-500 italic">
+                            This is a computer Generated Invoice
+                          </div>
+
+                          {totalPages > 1 && (
+                            <div className="text-xs font-bold text-gray-500">
+                              Page {pageNum} of {totalPages}
+                            </div>
+                          )}
+
+                          <div className="flex items-center gap-1.5 bg-[#698156] text-white font-bold px-4 py-1.5 rounded-full text-[11px] shadow-xs shrink-0">
+                            <span>Thank you for your Business!</span>
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#A8BFA0]" />
+                          </div>
+                        </div>
+
                       </div>
+
                     </div>
-
-                    {/* Authorized Signatory */}
-                    <div className="pt-2 text-center">
-                      <div className="flex justify-center h-9">
-                        <SignatureSVG className="w-28 h-full" />
-                      </div>
-                      <div className="text-[11px] font-extrabold text-gray-900 uppercase mt-1">
-                        AANYA FASHIONS PVT LTD
-                      </div>
-                      <div className="text-[9px] text-gray-400 capitalize">
-                        Authorized Signatory
-                      </div>
-                    </div>
-
                   </div>
-
                 </div>
-
-              </div>
-
-              {/* ── FOOTER BAR AT BOTTOM ── */}
-              <div className="relative z-10 pt-4 border-t border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-2 text-[10px] text-gray-400">
-                <div>
-                  +91 91234 56789 | care@aanyafashions.com | Page 1 of 1
-                </div>
-
-                <div className="flex items-center gap-1.5 bg-[#698156] text-white font-bold px-3.5 py-1 rounded-full text-[10px] shadow-2xs">
-                  <span>Thank you for your Business!</span>
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#A8BFA0]" />
-                </div>
-              </div>
-
-            </div>
+              );
+            })}
           </div>
 
         </div>
