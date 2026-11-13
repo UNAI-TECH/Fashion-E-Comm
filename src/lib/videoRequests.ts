@@ -19,48 +19,22 @@ export interface VideoRequest {
 
 const STORAGE_KEY = 'aanya_video_requests_cache_v1';
 
-// Seed demo requests if empty
-const INITIAL_DEMO_REQUESTS: VideoRequest[] = [
-  {
-    id: 'vid_req_sample_1',
-    product_id: '1',
-    product_name: 'Dark Teal Green Kanchi Cotton Elephant Zari Border Saree',
-    product_image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=600&q=80',
-    product_price: 1499,
-    customer_name: 'Madhan Kumar',
-    whatsapp_number: '9342745299',
-    scheduled_date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-    scheduled_time: '04:30 PM',
-    reason: 'Inspect Fabric Quality & Border Zari Shine',
-    status: 'Pending',
-    created_at: new Date(Date.now() - 3600000).toISOString(),
-  },
-  {
-    id: 'vid_req_sample_2',
-    product_id: '2',
-    product_name: 'Royal Magenta Soft Silk Banarasi Festive Saree',
-    product_image: 'https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=600&q=80',
-    product_price: 2499,
-    customer_name: 'Sridevi Jaganathan',
-    whatsapp_number: '9790846574',
-    scheduled_date: new Date(Date.now() + 172800000).toISOString().split('T')[0],
-    scheduled_time: '11:00 AM',
-    reason: 'Full Pallu & Draping View',
-    status: 'Accepted',
-    created_at: new Date(Date.now() - 7200000).toISOString(),
-  }
-];
-
 function getCachedRequests(): VideoRequest[] {
   if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) {
+        // Strip out any legacy mock/demo samples
+        const realOnly = parsed.filter(
+          (r: any) => r && r.id && !String(r.id).startsWith('vid_req_sample_')
+        );
+        return realOnly;
+      }
     }
   } catch {}
-  return INITIAL_DEMO_REQUESTS;
+  return [];
 }
 
 function saveCachedRequests(list: VideoRequest[]) {
@@ -80,11 +54,12 @@ export async function fetchVideoRequests(): Promise<VideoRequest[]> {
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (!error && Array.isArray(data) && data.length > 0) {
-      // Merge with cache to preserve offline additions
+    if (!error && Array.isArray(data)) {
+      // Filter out any mock samples
+      const realDbData = data.filter((r: any) => r && !String(r.id).startsWith('vid_req_sample_'));
       const cached = getCachedRequests();
       const dbMap = new Map<string, VideoRequest>();
-      data.forEach((r: any) => dbMap.set(r.id, r));
+      realDbData.forEach((r: any) => dbMap.set(r.id, r));
       cached.forEach(c => {
         if (!dbMap.has(c.id)) dbMap.set(c.id, c);
       });

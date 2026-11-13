@@ -41,8 +41,20 @@ export function AdminVideoRequests() {
     else setIsRefreshing(true);
 
     try {
+      // Purge any legacy mock demo samples from localStorage
+      try {
+        const raw = localStorage.getItem('aanya_video_requests_cache_v1');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            const clean = parsed.filter((r: any) => r && r.id && !String(r.id).startsWith('vid_req_sample_'));
+            localStorage.setItem('aanya_video_requests_cache_v1', JSON.stringify(clean));
+          }
+        }
+      } catch {}
+
       const data = await fetchVideoRequests();
-      setRequests(data);
+      setRequests(data.filter((r: any) => r && !String(r.id).startsWith('vid_req_sample_')));
     } catch (err: any) {
       console.error('Failed to load video requests:', err);
       toast.error('Failed to load video requests');
