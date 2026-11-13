@@ -33,7 +33,6 @@ import {
   RealAnalyticsEvent,
   getStoredEvents,
   clearAnalyticsLog,
-  analyticsChannel,
   fetchPureRealAnalytics
 } from '../../../lib/analytics';
 import { toast } from 'sonner';
@@ -45,8 +44,6 @@ export function AdminAnalytics() {
   const [profiles, setProfiles] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
-  const [livePresenceCount, setLivePresenceCount] = useState<number>(1);
-  const [presenceUsers, setPresenceUsers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<AnalyticsTab>('all');
@@ -91,23 +88,22 @@ export function AdminAnalytics() {
     window.addEventListener('aanya:real_analytics_event', handleLocalEvent);
 
     // 2. Real-time Supabase Broadcast channel across all devices & sessions
-    const subChannel = analyticsChannel
+    // Ensure any existing channel with this topic is cleaned up first
+    const existing = supabase.getChannels().find(c => c.topic === 'realtime:aanya-live-analytics-stream');
+    if (existing) {
+      supabase.removeChannel(existing);
+    }
+
+    const liveChannel = supabase.channel('aanya-live-analytics-stream', {
+      config: { broadcast: { self: true } }
+    });
+
+    liveChannel
       .on('broadcast', { event: 'real_analytics_event' }, ({ payload }) => {
         if (payload) {
           setEvents(prev => [payload, ...prev.filter(x => x.id !== payload.id)].slice(0, 500));
           setLastUpdated(new Date());
         }
-      })
-      .on('presence', { event: 'sync' }, () => {
-        try {
-          const state = analyticsChannel.presenceState();
-          const activePresences: any[] = [];
-          Object.values(state).forEach((presences: any) => {
-            presences.forEach((p: any) => activePresences.push(p));
-          });
-          setPresenceUsers(activePresences);
-          setLivePresenceCount(Math.max(1, activePresences.length));
-        } catch {}
       })
       .subscribe();
 
@@ -130,6 +126,7 @@ export function AdminAnalytics() {
     return () => {
       window.removeEventListener('aanya:real_analytics_event', handleLocalEvent);
       clearInterval(interval);
+      supabase.removeChannel(liveChannel);
       supabase.removeChannel(dbChannel);
     };
   }, []);
@@ -225,6 +222,18 @@ export function AdminAnalytics() {
       .filter(p => p.status === 'Paid' || p.status === 'Completed' || p.status === 'success')
       .reduce((sum, p) => sum + Number(p.amount || 0), 0);
   }, [payments]);
+
+  // Real active visitors in the last 15 minutes (minimum 1 for current admin session)
+  const activeRecentVisitorsCount = useMemo(() => {
+    const cutoff = Date.now() - 15 * 60 * 1000;
+    const recentSessionIds = new Set<string>();
+    events.forEach(e => {
+      if (e.rawTime && e.rawTime >= cutoff && e.client?.sessionId) {
+        recentSessionIds.add(e.client.sessionId);
+      }
+    });
+    return Math.max(1, recentSessionIds.size);
+  }, [events]);
 
   // Export pure real data to Excel CSV
   const handleExportCSV = () => {
@@ -430,7 +439,7 @@ export function AdminAnalytics() {
             <span className="text-[11px] font-semibold text-emerald-700 uppercase tracking-wider">Active Visitors</span>
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
           </div>
-          <div className="mt-2 text-2xl font-bold text-emerald-600">{livePresenceCount}</div>
+          <div className="mt-2 text-2xl font-bold text-emerald-600">{activeRecentVisitorsCount}</div>
           <p className="text-[10px] text-emerald-700/80 mt-0.5">Online right now</p>
         </div>
 

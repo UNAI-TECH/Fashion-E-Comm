@@ -606,7 +606,7 @@ export function CheckoutPage() {
 
             setPaymentState('PAID');
             setPurchasedItems([...checkoutItems]);
-            trackPurchase({ id: orderId, value: totalAmount, paymentMethod: 'Online Payment (Razorpay)', items: checkoutItems });
+            trackPurchase({ id: orderId, amount: totalAmount, paymentMethod: 'Online Payment (Razorpay)', items: checkoutItems });
             setOrderPlaced({
               orderId,
               trackingNumber,
@@ -658,7 +658,7 @@ export function CheckoutPage() {
             if (statusCheck && (statusCheck.success || statusCheck.status === 'PAID')) {
               setPaymentState('PAID');
               setPurchasedItems([...checkoutItems]);
-              trackPurchase({ id: orderId, value: totalAmount, paymentMethod: 'Online Payment (Razorpay)', items: checkoutItems });
+              trackPurchase({ id: orderId, amount: totalAmount, paymentMethod: 'Online Payment (Razorpay)', items: checkoutItems });
               setOrderPlaced({
                 orderId,
                 trackingNumber,
@@ -770,20 +770,26 @@ export function CheckoutPage() {
   if (orderPlaced) {
     const handleDownloadInvoice = () => {
       const finalItems = purchasedItems.length > 0 ? purchasedItems : checkoutItems;
+      const activeAddress = selectedAddress || newAddress;
+      const customerFullName = (activeAddress?.full_name || user?.user_metadata?.full_name || 'Valued Customer').trim();
+      const customerPhone = activeAddress?.phone?.trim() || '';
+      const customerEmail = user?.email || '';
+      const streetAddress = `${activeAddress?.address_line_1 || ''}${activeAddress?.address_line_2 ? ', ' + activeAddress.address_line_2 : ''}`.trim();
+
       generateCustomerInvoicePDF({
         orderId: orderPlaced.orderId,
         trackingNumber: orderPlaced.trackingNumber,
         date: new Date(),
-        customerName: formData.name || user?.user_metadata?.full_name || 'Customer',
-        customerPhone: formData.phone || '',
-        customerEmail: formData.email || user?.email || '',
+        customerName: customerFullName,
+        customerPhone: customerPhone,
+        customerEmail: customerEmail,
         shippingAddress: {
-          address: formData.address,
-          city: formData.city,
-          state: formData.state,
-          pincode: formData.pincode,
-          full_name: formData.name,
-          phone: formData.phone,
+          address: streetAddress,
+          city: activeAddress?.city || '',
+          state: activeAddress?.state || '',
+          pincode: activeAddress?.postal_code || '',
+          full_name: customerFullName,
+          phone: customerPhone,
         },
         paymentMethod: orderPlaced.method || paymentMethod,
         paymentStatus: orderPlaced.status === 'Completed' ? 'PAID' : (orderPlaced.status || 'PAID'),
@@ -793,12 +799,12 @@ export function CheckoutPage() {
           name: item.name,
           price: item.price,
           quantity: item.quantity,
-          size: item.size,
-          color: item.color,
+          size: (item as any).size || (item as any).selectedSize || 'Free Size',
+          color: (item as any).color || (item as any).selectedColor || 'Default',
         })),
-        subtotal: subtotal,
-        discount: discount,
-        deliveryCharge: shippingFee,
+        subtotal: sellingTotal,
+        discount: discount + couponDiscount,
+        deliveryCharge: deliveryFee,
         totalAmount: orderPlaced.amount || totalAmount,
       });
     };
@@ -1161,16 +1167,7 @@ export function CheckoutPage() {
                     </div>
 
                     {/* Buttons */}
-                    {/* ─── Official Customer Tax Invoice Download Button ─── */}
-            <button
-              onClick={handleDownloadInvoice}
-              className="w-full mb-3.5 py-3.5 px-4 bg-[#698156] hover:bg-[#546944] text-white rounded-xl font-bold text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
-            >
-              <Download className="w-4 h-4" />
-              <span>Download Official Tax Invoice (PDF)</span>
-            </button>
-
-            <div className="flex gap-3">
+                    <div className="flex gap-3">
                       <button
                         onClick={() => setStep(1)}
                         className="flex-1 py-3.5 border-2 border-gray-200 text-gray-700 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors cursor-pointer"

@@ -187,28 +187,21 @@ export function getCurrentUserSnapshot(): RealAnalyticsEvent['user'] {
   };
 }
 
-// ─── Supabase Realtime Broadcast & Presence Channel ───────────────────────────
+// ─── Supabase Realtime Broadcast ──────────────────────────────────────────────
 
-export const analyticsChannel = supabase.channel('aanya-live-analytics-stream', {
-  config: { broadcast: { self: true }, presence: { key: getSessionId() } },
-});
+let broadcastChannelInstance: any = null;
 
-analyticsChannel.subscribe((status) => {
-  if (status === 'SUBSCRIBED') {
-    // Announce presence
+function getBroadcastChannel() {
+  if (!broadcastChannelInstance) {
     try {
-      const user = getCurrentUserSnapshot();
-      analyticsChannel.track({
-        sessionId: getSessionId(),
-        userName: user.name,
-        userEmail: user.email,
-        path: window.location.pathname,
-        device: detectDevice(),
-        onlineAt: new Date().toISOString(),
+      broadcastChannelInstance = supabase.channel('aanya-live-analytics-stream', {
+        config: { broadcast: { self: true } },
       });
+      broadcastChannelInstance.subscribe().catch(() => {});
     } catch {}
   }
-});
+  return broadcastChannelInstance;
+}
 
 // ─── Local Persistent Event Log (FIFO max 500 records) ─────────────────────────
 
@@ -245,11 +238,14 @@ function broadcastEvent(event: RealAnalyticsEvent) {
 
   // 3. Supabase Realtime broadcast across all tabs and admin panels
   try {
-    analyticsChannel.send({
-      type: 'broadcast',
-      event: 'real_analytics_event',
-      payload: event,
-    }).catch(() => {});
+    const ch = getBroadcastChannel();
+    if (ch) {
+      ch.send({
+        type: 'broadcast',
+        event: 'real_analytics_event',
+        payload: event,
+      }).catch(() => {});
+    }
   } catch {}
 }
 
@@ -360,19 +356,6 @@ export function trackPageView(path = window.location.pathname, title = document.
       page_location: window.location.href,
     });
   }
-
-  // Update presence path
-  try {
-    const user = customUser || getCurrentUserSnapshot();
-    analyticsChannel.track({
-      sessionId: getSessionId(),
-      userName: user.name,
-      userEmail: user.email,
-      path,
-      device: detectDevice(),
-      onlineAt: new Date().toISOString(),
-    });
-  } catch {}
 }
 
 /**
@@ -516,16 +499,19 @@ export function trackBeginCheckout(amount: number, itemsCount: number, customUse
  */
 export function trackPurchase(order: {
   id: string;
-  amount: number;
+  amount?: number;
+  value?: number;
   items?: any[];
   paymentMethod?: string;
 }, customUser?: RealAnalyticsEvent['user']) {
   if (typeof window === 'undefined') return;
 
+  const actualAmount = order.amount !== undefined ? order.amount : (order.value !== undefined ? order.value : 0);
+
   const event = createBaseEvent('purchase', customUser);
   event.details = {
     orderId: order.id,
-    amount: order.amount,
+    amount: actualAmount,
     method: order.paymentMethod,
     path: window.location.pathname,
     meta: { items: order.items || [] },
@@ -536,7 +522,7 @@ export function trackPurchase(order: {
   if (typeof window.gtag === 'function') {
     window.gtag('event', 'purchase', {
       transaction_id: order.id,
-      value: order.amount,
+      value: actualAmount,
       currency: 'INR',
       payment_type: order.paymentMethod,
     });
