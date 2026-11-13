@@ -7,6 +7,7 @@ interface AdminUser {
   email: string;
   role: string;
   token?: string;
+  refreshToken?: string;
 }
 
 interface AdminAuthContextType {
@@ -61,31 +62,77 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  // Background session validation on mount (non-blocking)
+  // Background session restoration & validation on mount
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        supabase
-          .from('profiles')
-          .select('role, full_name')
-          .eq('id', session.user.id)
-          .maybeSingle()
-          .then(({ data: profile }) => {
+    let isMounted = true;
+
+    async function syncAdminSession() {
+      try {
+        const raw = localStorage.getItem('admin_info');
+        let parsed: (AdminUser & { refreshToken?: string }) | null = raw ? JSON.parse(raw) : null;
+
+        // 1. If admin_info has saved tokens, ensure the Supabase client session is active
+        if (parsed?.role === 'admin' && parsed?.token && parsed?.refreshToken) {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session?.user || session.user.email !== parsed.email) {
+            await supabase.auth.setSession({
+              access_token: parsed.token,
+              refresh_token: parsed.refreshToken,
+            });
+          }
+        }
+
+        // 2. Validate session with Supabase
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user && isMounted) {
+          const email = session.user.email || '';
+          const knownAdmins = ['admin@aanyafashion.com'];
+
+          let isAdmin = knownAdmins.includes(email.toLowerCase()) || session.user.user_metadata?.role === 'admin';
+          let name = session.user.user_metadata?.full_name || parsed?.name || 'Admin';
+
+          if (!isAdmin) {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('role, full_name')
+              .eq('id', session.user.id)
+              .maybeSingle();
+
             if (profile?.role === 'admin') {
-              const name = profile.full_name || session.user.user_metadata?.full_name || 'Admin';
-              setIsAuthenticated(true);
-              setAdminName(name);
-              setAdminEmail(session.user.email || '');
-              localStorage.setItem('admin_info', JSON.stringify({
-                id: session.user.id,
-                name,
-                email: session.user.email,
-                role: 'admin'
-              }));
+              isAdmin = true;
+              if (profile.full_name) name = profile.full_name;
             }
-          });
+          }
+
+          if (isAdmin) {
+            setIsAuthenticated(true);
+            setAdminName(name);
+            setAdminEmail(email);
+
+            // Preserve token & refreshToken in localStorage so sessions remain active across tabs and reloads
+            const currentRaw = localStorage.getItem('admin_info');
+            const currentParsed = currentRaw ? JSON.parse(currentRaw) : {};
+            localStorage.setItem('admin_info', JSON.stringify({
+              ...currentParsed,
+              id: session.user.id,
+              name,
+              email,
+              role: 'admin',
+              token: session.access_token || currentParsed.token,
+              refreshToken: session.refresh_token || currentParsed.refreshToken,
+            }));
+          }
+        }
+      } catch (err) {
+        console.warn('[AdminAuth] syncAdminSession warning:', err);
       }
-    }).catch(() => {});
+    }
+
+    syncAdminSession();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -172,6 +219,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
         email: authData.user.email || cleanEmail,
         role: 'admin',
         token: authData.access_token,
+        refreshToken: authData.refresh_token,
       };
 
       localStorage.setItem('admin_info', JSON.stringify(userObj));
@@ -180,13 +228,16 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       setAdminEmail(userObj.email);
       setIsLoading(false);
 
-      // 4. Persist session into supabase client in BACKGROUND (non-blocking)
-      //    This is fire-and-forget — the UI is already authenticated via localStorage
+      // 4. Persist session into supabase client so RLS allows reading admin-protected tables
       if (authData.access_token && authData.refresh_token) {
-        supabase.auth.setSession({
-          access_token: authData.access_token,
-          refresh_token: authData.refresh_token,
-        }).catch(() => {});
+        try {
+          await supabase.auth.setSession({
+            access_token: authData.access_token,
+            refresh_token: authData.refresh_token,
+          });
+        } catch (setErr) {
+          console.warn('[AdminAuth] setSession warning:', setErr);
+        }
       }
 
       return true;

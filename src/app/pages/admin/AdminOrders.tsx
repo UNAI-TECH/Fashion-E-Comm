@@ -52,42 +52,94 @@ export function AdminOrders() {
 
   const loadOrders = async () => {
     try {
-      // Query database for Paid / Completed orders only (exclude unpaid, pending payment, failed orders)
-      const { data, error } = await supabase
-        .from('orders')
-        .select(`
-          *,
-          profiles:user_id (full_name, email, phone),
-          order_items (
+      // 1. Ensure admin session is restored from stored admin_info if present
+      try {
+        const rawAdmin = localStorage.getItem('admin_info');
+        if (rawAdmin) {
+          const admin = JSON.parse(rawAdmin);
+          if (admin?.token && admin?.refreshToken) {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.user) {
+              await supabase.auth.setSession({
+                access_token: admin.token,
+                refresh_token: admin.refreshToken,
+              });
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('[AdminOrders] Session check note:', e);
+      }
+
+      // 2. Fetch payments (accessible across all connections) & orders in parallel
+      const [paymentsRes, ordersRes] = await Promise.all([
+        supabase.from('payments').select('*').order('created_at', { ascending: false }),
+        supabase
+          .from('orders')
+          .select(`
             *,
-            products (id, name, images, price)
-          )
-        `)
-        .in('payment_status', ['Paid', 'paid', 'Completed', 'completed', 'PAID', 'COMPLETED', 'success', 'Success'])
-        .order('created_at', { ascending: false });
+            profiles:user_id (full_name, email, phone),
+            order_items (
+              *,
+              products (id, name, images, price)
+            )
+          `)
+          .order('created_at', { ascending: false })
+      ]);
 
-      if (error) throw error;
+      const paymentsData = paymentsRes.data || [];
+      let rawOrders = ordersRes.data || [];
 
-      // Ensure strictly paid orders only
-      const paidData = (data || []).filter((o: any) => {
-        const pStatus = (o.payment_status || '').toLowerCase().trim();
-        return pStatus === 'paid' || pStatus === 'completed' || pStatus === 'success';
-      });
+      // 3. If orders query returned empty, attempt REST fallback with stored admin Bearer token
+      if (rawOrders.length === 0) {
+        try {
+          const rawAdmin = localStorage.getItem('admin_info');
+          if (rawAdmin) {
+            const admin = JSON.parse(rawAdmin);
+            if (admin?.token) {
+              const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://zofmwjuakybpuoiqzktm.supabase.co';
+              const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+              const restRes = await fetch(
+                `${supabaseUrl}/rest/v1/orders?select=*,profiles:user_id(full_name,email,phone),order_items(*,products(id,name,images,price))&order=created_at.desc`,
+                {
+                  headers: {
+                    apikey: anonKey,
+                    Authorization: `Bearer ${admin.token}`,
+                    'Content-Type': 'application/json',
+                  },
+                }
+              );
+              if (restRes.ok) {
+                const restData = await restRes.json();
+                if (Array.isArray(restData) && restData.length > 0) {
+                  rawOrders = restData;
+                }
+              }
+            }
+          }
+        } catch (restErr) {
+          console.warn('[AdminOrders] REST orders fetch note:', restErr);
+        }
+      }
 
-      const formatted: Order[] = paidData.map((o: any) => {
+      // 4. Build unified orders map reconciling payments table
+      const orderMap = new Map<string, Order>();
+
+      // A. Populate from DB orders
+      rawOrders.forEach((o: any) => {
         const addr = o.shipping_address || {};
         const customerName = o.profiles?.full_name || addr.full_name || [addr.first_name, addr.last_name].filter(Boolean).join(' ') || 'Customer';
         const customerEmail = o.profiles?.email || addr.email || '';
-        const firstProduct = o.order_items?.[0]?.products?.name || 'N/A';
+        const firstProduct = o.order_items?.[0]?.products?.name || 'Handloom Apparel';
 
-        return {
+        const ordObj: Order = {
           id: o.id,
           customer_name: customerName,
           customer_email: customerEmail,
           product_name: firstProduct,
           date: new Date(o.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
           amount: Number(o.total_amount || 0),
-          status: o.status || 'Processing',
+          status: o.status || 'Confirmed',
           payment_method: o.payment_method || 'Online Payment',
           payment_status: 'Paid',
           razorpay_order_id: o.razorpay_order_id || undefined,
@@ -95,9 +147,57 @@ export function AdminOrders() {
           shipping_address: addr,
           order_items: o.order_items || [],
         };
+
+        orderMap.set(o.id, ordObj);
+        if (o.razorpay_order_id) orderMap.set(o.razorpay_order_id, ordObj);
       });
 
-      setOrders(formatted);
+      // B. Reconcile with verified payments
+      paymentsData.forEach((p: any) => {
+        const orderKey = p.order_id;
+        if (!orderMap.has(orderKey)) {
+          const meta = p.metadata || {};
+          const shipAddr = meta.shipping_address || {
+            full_name: p.customer_name || 'Customer',
+            customer_name: p.customer_name || 'Customer',
+            phone: p.customer_phone || '',
+            email: meta.customer_email || p.customer_email || '',
+            address: meta.address || '',
+            city: meta.city || '',
+            state: meta.state || '',
+            pincode: meta.pincode || '',
+          };
+
+          const ordObj: Order = {
+            id: p.order_id,
+            customer_name: p.customer_name || shipAddr.full_name || 'Customer',
+            customer_email: shipAddr.email || '',
+            product_name: meta.items?.[0]?.name || 'Traditional Handcrafted Saree',
+            date: new Date(p.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+            amount: Number(p.amount || 0),
+            status: p.status === 'Paid' ? 'Confirmed' : 'Pending',
+            payment_method: p.payment_method || p.method || 'UPI',
+            payment_status: 'Paid',
+            razorpay_order_id: p.razorpay_order_id || p.order_id,
+            razorpay_payment_id: p.gateway_txn_id || p.payer_vpa,
+            shipping_address: shipAddr,
+            order_items: meta.items || [],
+          };
+          orderMap.set(orderKey, ordObj);
+        }
+      });
+
+      // Get unique orders list
+      const uniqueList: Order[] = [];
+      const seen = new Set<string>();
+      orderMap.forEach(o => {
+        if (!seen.has(o.id)) {
+          seen.add(o.id);
+          uniqueList.push(o);
+        }
+      });
+
+      setOrders(uniqueList);
     } catch (error) {
       console.error('Error loading orders:', error);
     } finally {

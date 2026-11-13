@@ -587,11 +587,30 @@ export function AdminAanyaPage() {
   const [variants, setVariants] = useState<VariantEntry[]>([{ ...emptyVariant, id: crypto.randomUUID() }]);
   const [variantUploading, setVariantUploading] = useState<string | null>(null);
 
-  /* ─── Load Supabase data using service-role client (bypasses RLS) ─── */
+  /* ─── Load Supabase data with automatic session check & reconciliation ─── */
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Use supabase (service role) to bypass RLS policies
+      // 1. Ensure Supabase auth session is restored if admin is logged in
+      try {
+        const rawAdmin = localStorage.getItem('admin_info');
+        if (rawAdmin) {
+          const admin = JSON.parse(rawAdmin);
+          if (admin?.token && admin?.refreshToken) {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.user) {
+              await supabase.auth.setSession({
+                access_token: admin.token,
+                refresh_token: admin.refreshToken,
+              });
+            }
+          }
+        }
+      } catch (sessErr) {
+        console.warn('[Admin] Session restore check note:', sessErr);
+      }
+
+      // 2. Fetch all collections in parallel
       const [prodsRes, ordersRes, paymentsRes, cancelOrdersRes] = await Promise.all([
         supabase.from('products').select('*').order('created_at', { ascending: false }),
         supabase.from('orders').select('*, products:product_id(*), order_items(*, products(*))').order('created_at', { ascending: false }),
@@ -599,24 +618,21 @@ export function AdminAanyaPage() {
         supabase.from('cancel_orders').select('*').order('created_at', { ascending: false }),
       ]);
 
-      // Log & toast detailed errors for each table
+      // Log errors if any
       if (prodsRes.error) {
         console.error('[Admin] Products error:', prodsRes.error);
-        toast.error('Products: ' + prodsRes.error.message);
       }
       if (ordersRes.error) {
         console.error('[Admin] Orders error:', ordersRes.error);
-        toast.error('Orders: ' + ordersRes.error.message);
       }
       if (paymentsRes.error) {
         console.error('[Admin] Payments error:', paymentsRes.error);
-        toast.error('Payments: ' + paymentsRes.error.message);
       }
       if (cancelOrdersRes.error) {
         console.error('[Admin] Cancel orders error:', cancelOrdersRes.error);
       }
 
-      // --- Products: merge Supabase DB products + local mock catalog ---
+      // --- Products: merge Supabase DB products + local catalog ---
       const dbProdsRaw = prodsRes.data || [];
       let mockProds: any[] = [];
       try {
@@ -640,21 +656,105 @@ export function AdminAanyaPage() {
       const finalProds = dbProdsRaw.length > 0 ? dbProdsRaw : normalizedMock;
       setDbProducts(finalProds);
 
-      // --- Orders ---
-      const ordersData: Order[] = ordersRes.data || [];
-      setOrders(ordersData);
-
       // --- Payments ---
-      setPayments(paymentsRes.data || []);
+      const paymentsData: Payment[] = paymentsRes.data || [];
+      setPayments(paymentsData);
 
       // --- Cancel Orders ---
       if (!cancelOrdersRes.error && cancelOrdersRes.data) {
         setCancelOrders(cancelOrdersRes.data as CancelOrderRequest[]);
       }
 
+      // --- Orders with Authoritative Fallback & Reconciliation ---
+      let rawOrders: Order[] = ordersRes.data || [];
 
+      // If orders query returned empty (e.g. RLS on unauthenticated anon connection),
+      // attempt REST fallback with stored admin Bearer token
+      if (rawOrders.length === 0) {
+        try {
+          const rawAdmin = localStorage.getItem('admin_info');
+          if (rawAdmin) {
+            const admin = JSON.parse(rawAdmin);
+            if (admin?.token) {
+              const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://zofmwjuakybpuoiqzktm.supabase.co';
+              const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+              const restRes = await fetch(
+                `${supabaseUrl}/rest/v1/orders?select=*,products:product_id(*),order_items(*,products(*))&order=created_at.desc`,
+                {
+                  headers: {
+                    apikey: anonKey,
+                    Authorization: `Bearer ${admin.token}`,
+                    'Content-Type': 'application/json',
+                  },
+                }
+              );
+              if (restRes.ok) {
+                const restData = await restRes.json();
+                if (Array.isArray(restData) && restData.length > 0) {
+                  rawOrders = restData;
+                }
+              }
+            }
+          }
+        } catch (restErr) {
+          console.warn('[Admin] Direct REST orders fetch note:', restErr);
+        }
+      }
+
+      // Reconcile with payments: Every paid payment transaction represents an authentic order
+      const ordersMap = new Map<string, Order>();
+      rawOrders.forEach(o => {
+        ordersMap.set(o.id, o);
+        if (o.razorpay_order_id) ordersMap.set(o.razorpay_order_id, o);
+      });
+
+      paymentsData.forEach(p => {
+        if (!ordersMap.has(p.order_id)) {
+          const meta = (p as any).metadata || {};
+          const shipAddr: ShippingAddress = meta.shipping_address || {
+            full_name: p.customer_name || 'Customer',
+            customer_name: p.customer_name || 'Customer',
+            phone: p.customer_phone || '',
+            email: meta.customer_email || (p as any).customer_email || '',
+            address: meta.address || '',
+            city: meta.city || '',
+            state: meta.state || '',
+            pincode: meta.pincode || '',
+          };
+
+          const synthOrder: Order = {
+            id: p.order_id,
+            user_id: p.user_id || `usr_${p.customer_phone || 'guest'}`,
+            total_amount: Number(p.amount) || 0,
+            status: p.status === 'Paid' ? 'Confirmed' : 'Pending',
+            payment_method: p.payment_method || p.method || 'UPI',
+            payment_status: p.status || 'Paid',
+            customer_name: p.customer_name || shipAddr.full_name || 'Customer',
+            shipping_address: shipAddr,
+            created_at: p.created_at,
+            order_items: meta.items || [],
+          };
+          ordersMap.set(p.order_id, synthOrder);
+        }
+      });
+
+      // Filter to unique orders by id
+      const uniqueOrdersList: Order[] = [];
+      const seenOrderIds = new Set<string>();
+      ordersMap.forEach(ord => {
+        if (!seenOrderIds.has(ord.id)) {
+          seenOrderIds.add(ord.id);
+          uniqueOrdersList.push(ord);
+        }
+      });
+
+      // Sort descending by created_at
+      uniqueOrdersList.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      setOrders(uniqueOrdersList);
+
+      // --- Customers derivation from reconciled orders ---
       const customerMap = new Map<string, DerivedUser>();
-      ordersData.forEach((o: Order) => {
+      uniqueOrdersList.forEach((o: Order) => {
         const addr = o.shipping_address || {};
         const key = o.user_id || addr.phone || addr.email || o.id;
         const custName = getFormattedCustomerName(addr, o);
@@ -690,10 +790,10 @@ export function AdminAanyaPage() {
       });
       setCustomers(Array.from(customerMap.values()));
 
-      console.log('[Admin] Loaded:', {
-        products: dbProdsRaw.length,
-        orders: ordersData.length,
-        payments: (paymentsRes.data || []).length,
+      console.log('[Admin] Reconciled Data Loaded:', {
+        products: finalProds.length,
+        orders: uniqueOrdersList.length,
+        payments: paymentsData.length,
         customers: customerMap.size,
       });
 

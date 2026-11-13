@@ -107,7 +107,7 @@ export function AdminAnalytics() {
       })
       .subscribe();
 
-    // 3. PostgreSQL database changes on profiles and payments
+    // 3. PostgreSQL database changes on profiles, payments, and orders
     const dbChannel = supabase
       .channel('admin-analytics-db-sync')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
@@ -116,12 +116,15 @@ export function AdminAnalytics() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => {
         loadRealData(false);
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        loadRealData(false);
+      })
       .subscribe();
 
-    // 4. Auto-refresh every 20 seconds
+    // 4. Auto-refresh every 10 seconds for crisp real-time synchronization
     const interval = setInterval(() => {
       loadRealData(false);
-    }, 20000);
+    }, 10000);
 
     return () => {
       window.removeEventListener('aanya:real_analytics_event', handleLocalEvent);

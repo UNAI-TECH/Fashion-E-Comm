@@ -534,7 +534,24 @@ export function trackPurchase(order: {
 export async function fetchPureRealAnalytics() {
   const events = getStoredEvents();
 
-  // Fetch real registered profiles from Supabase
+  // 1. Ensure admin session is restored if admin_info is in localStorage
+  try {
+    const rawAdmin = localStorage.getItem('admin_info');
+    if (rawAdmin) {
+      const admin = JSON.parse(rawAdmin);
+      if (admin?.token && admin?.refreshToken) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) {
+          await supabase.auth.setSession({
+            access_token: admin.token,
+            refresh_token: admin.refreshToken,
+          });
+        }
+      }
+    }
+  } catch {}
+
+  // 2. Fetch real registered profiles from Supabase
   let profiles: any[] = [];
   try {
     const { data: profData } = await supabase
@@ -544,7 +561,7 @@ export async function fetchPureRealAnalytics() {
     if (profData) profiles = profData;
   } catch {}
 
-  // Fetch real payment records
+  // 3. Fetch real payment records
   let payments: any[] = [];
   try {
     const { data: payData } = await supabase
@@ -554,14 +571,28 @@ export async function fetchPureRealAnalytics() {
     if (payData) payments = payData;
   } catch {}
 
-  // Fetch real orders
+  // 4. Fetch real orders with fallback & payment reconciliation
   let orders: any[] = [];
   try {
     const { data: ordData } = await supabase
       .from('orders')
       .select('*')
       .order('created_at', { ascending: false });
-    if (ordData) orders = ordData;
+    if (ordData && ordData.length > 0) {
+      orders = ordData;
+    } else if (payments.length > 0) {
+      // Reconcile from payments if orders table read is blocked by RLS
+      orders = payments.map(p => ({
+        id: p.order_id,
+        user_id: p.user_id,
+        total_amount: p.amount,
+        status: p.status === 'Paid' ? 'Confirmed' : 'Pending',
+        payment_method: p.payment_method || 'UPI',
+        payment_status: p.status || 'Paid',
+        customer_name: p.customer_name,
+        created_at: p.created_at,
+      }));
+    }
   } catch {}
 
   return {
