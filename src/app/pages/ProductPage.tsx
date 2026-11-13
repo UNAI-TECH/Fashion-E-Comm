@@ -5,7 +5,7 @@ import {
   Star, Heart, ShoppingBag, Share2, Truck, RotateCcw, Shield, 
   ChevronLeft, ChevronRight, ZoomIn, CreditCard, 
   Award, X, Tag, 
-  Copy, Check, FileText, Layers, Camera, Maximize2, MessageSquarePlus
+  Copy, Check, FileText, Layers, Camera, Maximize2
 } from 'lucide-react';
 import { Navigation } from '../components/Navigation';
 import { AnnouncementBar } from '../components/AnnouncementBar';
@@ -18,17 +18,8 @@ import { fetchProducts, Product, ensureProductImages } from '../data/products';
 import { toast } from 'sonner';
 import { SEOHead, getProductSchema, getBreadcrumbSchema } from '../components/SEOHead';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
-
-
-/* ─── Review type for real DB reviews ─── */
-interface Review {
-  id: string;
-  user_name: string;
-  rating: number;
-  comment: string;
-  verified: boolean;
-  created_at: string;
-}
+import { CustomerReviewsSection } from '../components/CustomerReviewsSection';
+import { Review } from '../../lib/reviews';
 
 export function ProductPage() {
   const { id } = useParams();
@@ -172,15 +163,8 @@ export function ProductPage() {
       if (!id) return;
       setReviewsLoading(true);
       try {
-        const { data, error } = await supabase
-          .from('reviews')
-          .select('*')
-          .eq('product_id', id)
-          .order('created_at', { ascending: false });
-
-        if (!error && data) {
-          setReviews(data);
-        }
+        const data = await getProductReviews(id);
+        setReviews(data);
       } catch (err) {
         console.warn('Reviews load notice:', err);
       } finally {
@@ -652,63 +636,18 @@ export function ProductPage() {
           </div>
 
           {/* ═══════════════════════════════════════════════════════════
-              FULL-WIDTH BOTTOM SECTION: Customer Reviews (centered)
+              FULL-WIDTH BOTTOM SECTION: Customer Reviews (Realtime + Photo Uploads)
               ═══════════════════════════════════════════════════════════ */}
-          <div className="max-w-4xl mx-auto mt-12 space-y-5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <MessageSquarePlus className="w-5 h-5 text-[#698156]" />
-                <h3 className="font-serif text-xl font-bold text-[#1A1A1A]">CUSTOMER REVIEWS</h3>
-              </div>
-              {reviews.length > 0 && (
-                <span className="text-sm font-bold text-[#698156] bg-[#F4F6F2] px-3 py-1 rounded-full border border-[#DCE4D7]">
-                  {avgRating} ★ ({reviews.length})
-                </span>
-              )}
-            </div>
-
-            {reviewsLoading ? (
-              <div className="flex justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#698156]"></div>
-              </div>
-            ) : reviews.length === 0 ? (
-              <div className="text-center py-10 bg-gray-50 rounded-2xl border border-gray-100">
-                <Star className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-                <p className="text-base font-semibold text-gray-600">No reviews yet</p>
-                <p className="text-sm text-gray-400 mt-1">Be the first to review this product!</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {reviews.map((review) => (
-                  <div key={review.id} className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-[#698156]/15 flex items-center justify-center text-[#698156] text-sm font-bold">
-                          {review.user_name.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <span className="text-sm font-bold text-gray-800">{review.user_name}</span>
-                          {review.verified && (
-                            <span className="ml-1.5 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">✓ Verified</span>
-                          )}
-                        </div>
-                      </div>
-                      <span className="text-xs text-gray-400">{new Date(review.created_at).toLocaleDateString('en-IN')}</span>
-                    </div>
-                    <div className="flex items-center gap-0.5">
-                      {[1, 2, 3, 4, 5].map(s => (
-                        <Star key={s} className={`w-3.5 h-3.5 ${s <= review.rating ? 'fill-[#698156] text-[#698156]' : 'text-gray-300 fill-gray-200'}`} />
-                      ))}
-                      <span className="text-xs font-bold text-[#698156] ml-1">{review.rating}</span>
-                    </div>
-                    {review.comment && (
-                      <p className="text-sm text-gray-600 leading-relaxed">{review.comment}</p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          {id && (
+            <CustomerReviewsSection
+              productId={id}
+              productName={product?.name}
+              onReviewsChange={(updatedReviews) => {
+                setReviews(updatedReviews);
+                setReviewsLoading(false);
+              }}
+            />
+          )}
 
           {/* ═══ RELATED PRODUCTS — Mobile only (below reviews) ═══ */}
           {relatedProducts.length > 0 && (
