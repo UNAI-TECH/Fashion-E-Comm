@@ -20,6 +20,7 @@ import { SEOHead, getProductSchema, getBreadcrumbSchema } from '../components/SE
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import { CustomerReviewsSection } from '../components/CustomerReviewsSection';
 import { Review } from '../../lib/reviews';
+import { trackProductView } from '../../lib/analytics';
 
 export function ProductPage() {
   const { id } = useParams();
@@ -98,13 +99,15 @@ export function ProductPage() {
         if (error) throw error;
         if (data) {
           const itemImages = ensureProductImages(data);
-          setProduct({
+          const pObj = {
             ...data,
             image: itemImages[0],
             images: itemImages,
             colors: data.colors || ['#698156'],
             rating: data.rating || 4.8,
-          });
+          };
+          setProduct(pObj);
+          trackProductView(pObj);
         } else {
           throw new Error('No data found');
         }

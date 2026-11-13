@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { useCustomerAuth } from '../contexts/CustomerAuthContext';
 import { AuthModal } from '../components/AuthModal';
 import { SEOHead } from '../components/SEOHead';
+import { generateCustomerInvoicePDF } from '../../lib/invoiceGenerator';
 
 type OrderStatus = 'Order Placed' | 'Confirmed' | 'Packed' | 'Shipped' | 'Out for Delivery' | 'Delivered' | 'Cancelled' | 'Returned' | 'Refunded';
 import React from 'react';
@@ -240,6 +241,40 @@ export function OrdersPage() {
       return <span className="px-3 py-1 bg-red-50 text-red-700 border border-red-200 rounded-full text-xs font-bold flex items-center gap-1.5"><Ban className="w-3.5 h-3.5" /> Cancelled</span>;
     }
     return <span className="px-3 py-1 bg-gray-50 text-gray-700 border border-gray-200 rounded-full text-xs font-bold flex items-center gap-1.5"><RotateCcw className="w-3.5 h-3.5" /> {s}</span>;
+  };
+
+  const handleDownloadOrderInvoice = (order: any) => {
+    const shipAddr = order.shipping_address || {};
+    const items = (order.order_items || []).map((oi: any) => ({
+      name: oi.products?.name || oi.product_name || 'Apparel Item',
+      price: Number(oi.unit_price || oi.price || (order.total_amount / (oi.quantity || 1))),
+      quantity: Number(oi.quantity || 1),
+      size: oi.size || '',
+      color: oi.color || '',
+    }));
+
+    generateCustomerInvoicePDF({
+      orderId: order.id,
+      trackingNumber: order.tracking_number || order.trackingNumber,
+      date: order.created_at,
+      customerName: shipAddr.full_name || [shipAddr.first_name, shipAddr.last_name].filter(Boolean).join(' ') || user?.user_metadata?.full_name || 'Customer',
+      customerPhone: shipAddr.phone || '',
+      customerEmail: shipAddr.email || user?.email || '',
+      shippingAddress: {
+        address: shipAddr.address_line_1 || shipAddr.address || '',
+        city: shipAddr.city || '',
+        state: shipAddr.state || '',
+        pincode: shipAddr.postal_code || shipAddr.pincode || '',
+      },
+      paymentMethod: order.payment_method || 'Online',
+      paymentStatus: (order.payment_status || 'Paid').toUpperCase(),
+      transactionId: order.razorpay_payment_id || order.payment_id,
+      items: items.length > 0 ? items : [{ name: 'Aanya Fashions Order', price: Number(order.total_amount || 0), quantity: 1 }],
+      subtotal: Number(order.total_amount || 0),
+      discount: Number(order.discount_amount || 0),
+      deliveryCharge: 0,
+      totalAmount: Number(order.total_amount || 0),
+    });
   };
 
   return (
@@ -583,6 +618,14 @@ export function OrdersPage() {
                       </div>
 
                       <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={() => handleDownloadOrderInvoice(order)}
+                          className="px-3 py-1.5 text-[#698156] hover:bg-[#698156]/10 border border-[#698156]/30 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+                          title="Download Official Tax Invoice"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          <span>Download Invoice</span>
+                        </button>
                         {status === 'Cancellation Requested' ? (
                           <button
                             disabled

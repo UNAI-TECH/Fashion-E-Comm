@@ -5,6 +5,7 @@ import { useCart } from '../contexts/CartContext';
 import { useWishlist } from '../contexts/WishlistContext';
 import { useCustomerAuth } from '../contexts/CustomerAuthContext';
 import { toast } from 'sonner';
+import { trackProductClick, trackAddToCart } from '../../lib/analytics';
 
 interface ProductCardProps {
   id: string;
@@ -65,6 +66,7 @@ export function ProductCard({
       openAuthModal('signin');
       return;
     }
+    trackAddToCart(product);
     await addToCart(product, 1);
   };
 
@@ -114,7 +116,7 @@ export function ProductCard({
       </div>
 
       {/* Image Container */}
-      <Link to={`/product/${id}`} className="block relative">
+      <Link to={`/product/${id}`} onClick={() => trackProductClick(product)} className="block relative">
         <div className="relative aspect-[3/4] overflow-hidden bg-gray-50 rounded-[1.75rem] sm:rounded-[2rem] group/img shadow-sm group-hover:shadow-md transition-shadow">
           <motion.img
             whileHover={{ scale: 1.05 }}
@@ -129,7 +131,7 @@ export function ProductCard({
       {/* Product Info */}
       <div className="pt-3 pb-2 px-1 flex flex-col flex-1 justify-between gap-2">
         <div className="space-y-1.5">
-          <Link to={`/product/${id}`}>
+          <Link to={`/product/${id}`} onClick={() => trackProductClick(product)}>
             <h3 className="text-sm sm:text-base font-medium text-gray-800 line-clamp-2 hover:text-[#698156] transition-colors leading-tight min-h-[2.4rem]">
               {name}
             </h3>

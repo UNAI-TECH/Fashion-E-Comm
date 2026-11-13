@@ -3,8 +3,11 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate, useSearchParams, Link } from 'react-router';
 import {
   MapPin, Package, CreditCard, Check, ChevronLeft, ChevronRight,
-  Plus, Truck, Shield, Tag, Wallet, Landmark, Banknote, ShieldCheck, Lock, ExternalLink
+  Plus, Truck, Shield, Tag, Wallet, Landmark, Banknote, ShieldCheck, Lock, ExternalLink,
+  Download, FileText
 } from 'lucide-react';
+import { generateCustomerInvoicePDF } from '../../lib/invoiceGenerator';
+import { trackPurchase } from '../../lib/analytics';
 import { Navigation } from '../components/Navigation';
 import { AnnouncementBar } from '../components/AnnouncementBar';
 import { Footer } from '../components/Footer';
@@ -50,6 +53,7 @@ export function CheckoutPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentState, setPaymentState] = useState<'IDLE' | 'CREATING_ORDER' | 'CHECKOUT_OPEN' | 'VERIFYING' | 'PAID' | 'FAILED' | 'PENDING_RECONCILIATION'>('IDLE');
   const [orderPlaced, setOrderPlaced] = useState<{ orderId: string; trackingNumber: string; method?: string; status?: string; txnId?: string; amount?: number } | null>(null);
+  const [purchasedItems, setPurchasedItems] = useState<CheckoutItem[]>([]);
 
   // Buy Now mode
   const buyNowProductId = searchParams.get('buyNow');
@@ -601,6 +605,8 @@ export function CheckoutPage() {
             }
 
             setPaymentState('PAID');
+            setPurchasedItems([...checkoutItems]);
+            trackPurchase({ id: orderId, value: totalAmount, paymentMethod: 'Online Payment (Razorpay)', items: checkoutItems });
             setOrderPlaced({
               orderId,
               trackingNumber,
@@ -616,6 +622,7 @@ export function CheckoutPage() {
           } catch (verifyErr: any) {
             console.error('[Checkout] Payment verification warning:', verifyErr);
             setPaymentState('PENDING_RECONCILIATION');
+            setPurchasedItems([...checkoutItems]);
             setOrderPlaced({
               orderId,
               trackingNumber,
@@ -650,6 +657,8 @@ export function CheckoutPage() {
             const statusCheck = await api.payments.checkPaymentStatus(orderId);
             if (statusCheck && (statusCheck.success || statusCheck.status === 'PAID')) {
               setPaymentState('PAID');
+              setPurchasedItems([...checkoutItems]);
+              trackPurchase({ id: orderId, value: totalAmount, paymentMethod: 'Online Payment (Razorpay)', items: checkoutItems });
               setOrderPlaced({
                 orderId,
                 trackingNumber,
@@ -759,6 +768,41 @@ export function CheckoutPage() {
 
   // Order Success Screen
   if (orderPlaced) {
+    const handleDownloadInvoice = () => {
+      const finalItems = purchasedItems.length > 0 ? purchasedItems : checkoutItems;
+      generateCustomerInvoicePDF({
+        orderId: orderPlaced.orderId,
+        trackingNumber: orderPlaced.trackingNumber,
+        date: new Date(),
+        customerName: formData.name || user?.user_metadata?.full_name || 'Customer',
+        customerPhone: formData.phone || '',
+        customerEmail: formData.email || user?.email || '',
+        shippingAddress: {
+          address: formData.address,
+          city: formData.city,
+          state: formData.state,
+          pincode: formData.pincode,
+          full_name: formData.name,
+          phone: formData.phone,
+        },
+        paymentMethod: orderPlaced.method || paymentMethod,
+        paymentStatus: orderPlaced.status === 'Completed' ? 'PAID' : (orderPlaced.status || 'PAID'),
+        transactionId: orderPlaced.txnId,
+        items: finalItems.map(item => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          size: item.size,
+          color: item.color,
+        })),
+        subtotal: subtotal,
+        discount: discount,
+        deliveryCharge: shippingFee,
+        totalAmount: orderPlaced.amount || totalAmount,
+      });
+    };
+
     return (
       <div className="min-h-screen bg-[#F9FAF7]">
         <SEOHead title="Order Confirmed" canonicalUrl="/checkout" noIndex={true} />
@@ -816,6 +860,15 @@ export function CheckoutPage() {
                 <span className="font-bold text-emerald-600">{deliveryDateStr}</span>
               </div>
             </div>
+
+            {/* ─── Official Customer Tax Invoice Download Button ─── */}
+            <button
+              onClick={handleDownloadInvoice}
+              className="w-full mb-3.5 py-3.5 px-4 bg-[#698156] hover:bg-[#546944] text-white rounded-xl font-bold text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+            >
+              <Download className="w-4 h-4" />
+              <span>Download Official Tax Invoice (PDF)</span>
+            </button>
 
             <div className="flex gap-3">
               <button
@@ -1108,7 +1161,16 @@ export function CheckoutPage() {
                     </div>
 
                     {/* Buttons */}
-                    <div className="flex gap-3">
+                    {/* ─── Official Customer Tax Invoice Download Button ─── */}
+            <button
+              onClick={handleDownloadInvoice}
+              className="w-full mb-3.5 py-3.5 px-4 bg-[#698156] hover:bg-[#546944] text-white rounded-xl font-bold text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+            >
+              <Download className="w-4 h-4" />
+              <span>Download Official Tax Invoice (PDF)</span>
+            </button>
+
+            <div className="flex gap-3">
                       <button
                         onClick={() => setStep(1)}
                         className="flex-1 py-3.5 border-2 border-gray-200 text-gray-700 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors cursor-pointer"

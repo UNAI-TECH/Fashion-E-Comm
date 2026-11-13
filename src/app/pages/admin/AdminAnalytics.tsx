@@ -1,162 +1,1109 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import {
+  Users,
+  Eye,
+  ShoppingBag,
+  LogIn,
+  Activity,
+  Smartphone,
+  Laptop,
+  Globe,
+  Search,
+  RefreshCw,
+  FileSpreadsheet,
+  Trash2,
+  Clock,
+  CheckCircle2,
+  ArrowUpRight,
+  ShieldCheck,
+  Tag,
+  CreditCard,
+  Compass,
+  Filter,
+  Calendar,
+  Layers,
+  ChevronRight,
+  ExternalLink,
+  Sparkles,
+  AlertCircle
+} from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
+import {
+  RealAnalyticsEvent,
+  getStoredEvents,
+  clearAnalyticsLog,
+  analyticsChannel,
+  fetchPureRealAnalytics
+} from '../../../lib/analytics';
+import { toast } from 'sonner';
+
+type AnalyticsTab = 'all' | 'signins' | 'visitors' | 'pageviews' | 'product_clicks' | 'registered_users';
 
 export function AdminAnalytics() {
-  const [monthlyData, setMonthlyData] = useState<{ name: string; revenue: number; orders: number }[]>([]);
-  const [categoryData, setCategoryData] = useState<{ name: string; sales: number }[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [events, setEvents] = useState<RealAnalyticsEvent[]>([]);
+  const [profiles, setProfiles] = useState<any[]>([]);
+  const [payments, setPayments] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [livePresenceCount, setLivePresenceCount] = useState<number>(1);
+  const [presenceUsers, setPresenceUsers] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<AnalyticsTab>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [deviceFilter, setDeviceFilter] = useState<string>('all');
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
-  useEffect(() => {
-    loadAnalytics();
-  }, []);
+  // Load all real data from local log + Supabase
+  const loadRealData = async (showLoading = false) => {
+    if (showLoading) setIsLoading(true);
+    else setIsRefreshing(true);
 
-  const loadAnalytics = async () => {
     try {
-      const [
-        { data: orders },
-        { data: orderItems }
-      ] = await Promise.all([
-        supabase.from('orders').select('total_amount, created_at, status'),
-        supabase.from('order_items').select('quantity, product_id, products(category)')
-      ]);
-
-      // Monthly revenue & order count
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      const revenueByMonth = Array(12).fill(0);
-      const ordersByMonth = Array(12).fill(0);
-      
-      if (orders) {
-        for (const order of orders) {
-          const m = new Date(order.created_at).getMonth();
-          revenueByMonth[m] += Number(order.total_amount || 0);
-          ordersByMonth[m] += 1;
-        }
-      }
-
-      setMonthlyData(months.map((name, i) => ({
-        name,
-        revenue: revenueByMonth[i],
-        orders: ordersByMonth[i]
-      })));
-
-      // Category sales distribution
-      if (orderItems) {
-        const catMap: Record<string, number> = {};
-        for (const item of orderItems) {
-          const cat = (item as any).products?.category || 'Other';
-          catMap[cat] = (catMap[cat] || 0) + (item.quantity || 1);
-        }
-        setCategoryData(
-          Object.entries(catMap)
-            .map(([name, sales]) => ({ name, sales }))
-            .sort((a, b) => b.sales - a.sales)
-        );
-      }
-    } catch (error) {
-      console.error('Error loading analytics:', error);
+      const data = await fetchPureRealAnalytics();
+      setEvents(data.events || []);
+      setProfiles(data.profiles || []);
+      setPayments(data.payments || []);
+      setOrders(data.orders || []);
+      setLastUpdated(new Date());
+    } catch (err: any) {
+      console.error('Failed to load real analytics:', err);
+      toast.error('Failed to load real analytics data');
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <Loader2 className="w-8 h-8 animate-spin text-[#698156]" />
-      </div>
-    );
-  }
+  useEffect(() => {
+    loadRealData(true);
 
-  const hasRevenue = monthlyData.some(d => d.revenue > 0);
-  const hasCategories = categoryData.length > 0;
+    // 1. Listen for local custom events (same window)
+    const handleLocalEvent = (e: any) => {
+      if (e.detail) {
+        setEvents(prev => [e.detail, ...prev.filter(x => x.id !== e.detail.id)].slice(0, 500));
+        setLastUpdated(new Date());
+      } else {
+        // Cleared
+        setEvents([]);
+      }
+    };
+    window.addEventListener('aanya:real_analytics_event', handleLocalEvent);
+
+    // 2. Real-time Supabase Broadcast channel across all devices & sessions
+    const subChannel = analyticsChannel
+      .on('broadcast', { event: 'real_analytics_event' }, ({ payload }) => {
+        if (payload) {
+          setEvents(prev => [payload, ...prev.filter(x => x.id !== payload.id)].slice(0, 500));
+          setLastUpdated(new Date());
+        }
+      })
+      .on('presence', { event: 'sync' }, () => {
+        try {
+          const state = analyticsChannel.presenceState();
+          const activePresences: any[] = [];
+          Object.values(state).forEach((presences: any) => {
+            presences.forEach((p: any) => activePresences.push(p));
+          });
+          setPresenceUsers(activePresences);
+          setLivePresenceCount(Math.max(1, activePresences.length));
+        } catch {}
+      })
+      .subscribe();
+
+    // 3. PostgreSQL database changes on profiles and payments
+    const dbChannel = supabase
+      .channel('admin-analytics-db-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
+        loadRealData(false);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => {
+        loadRealData(false);
+      })
+      .subscribe();
+
+    // 4. Auto-refresh every 20 seconds
+    const interval = setInterval(() => {
+      loadRealData(false);
+    }, 20000);
+
+    return () => {
+      window.removeEventListener('aanya:real_analytics_event', handleLocalEvent);
+      clearInterval(interval);
+      supabase.removeChannel(dbChannel);
+    };
+  }, []);
+
+  // Filter events based on active subtab, search query, and device
+  const filteredEvents = useMemo(() => {
+    return events.filter(e => {
+      // 1. Tab filter
+      if (activeTab === 'signins' && e.type !== 'signin') return false;
+      if (activeTab === 'visitors' && e.type !== 'visit') return false;
+      if (activeTab === 'pageviews' && e.type !== 'pageview') return false;
+      if (activeTab === 'product_clicks' && e.type !== 'product_click') return false;
+
+      // 2. Device filter
+      if (deviceFilter !== 'all' && e.client?.device?.toLowerCase() !== deviceFilter.toLowerCase()) {
+        return false;
+      }
+
+      // 3. Search query filter
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase().trim();
+
+      const userName = (e.user?.name || '').toLowerCase();
+      const userEmail = (e.user?.email || '').toLowerCase();
+      const userPhone = (e.user?.phone || '').toLowerCase();
+      const path = (e.details?.path || '').toLowerCase();
+      const pageTitle = (e.details?.pageTitle || '').toLowerCase();
+      const prodName = (e.details?.productName || '').toLowerCase();
+      const prodCat = (e.details?.productCategory || '').toLowerCase();
+
+      return (
+        userName.includes(q) ||
+        userEmail.includes(q) ||
+        userPhone.includes(q) ||
+        path.includes(q) ||
+        pageTitle.includes(q) ||
+        prodName.includes(q) ||
+        prodCat.includes(q)
+      );
+    });
+  }, [events, activeTab, searchQuery, deviceFilter]);
+
+  // Specific event slices
+  const signinEvents = useMemo(() => events.filter(e => e.type === 'signin'), [events]);
+  const visitEvents = useMemo(() => events.filter(e => e.type === 'visit'), [events]);
+  const pageviewEvents = useMemo(() => events.filter(e => e.type === 'pageview'), [events]);
+  const productClickEvents = useMemo(() => events.filter(e => e.type === 'product_click'), [events]);
+
+  // Product click aggregate ranking from pure real data
+  const productClickRankings = useMemo(() => {
+    const map = new Map<string, { id: string; name: string; category: string; price: number; image?: string; clicks: number; lastClicked: string }>();
+    productClickEvents.forEach(e => {
+      const pId = e.details?.productId || e.details?.productName || 'unknown';
+      if (!map.has(pId)) {
+        map.set(pId, {
+          id: pId,
+          name: e.details?.productName || 'Unnamed Product',
+          category: e.details?.productCategory || 'Apparel',
+          price: e.details?.productPrice || 0,
+          image: e.details?.productImage,
+          clicks: 0,
+          lastClicked: e.timestamp,
+        });
+      }
+      const item = map.get(pId)!;
+      item.clicks += 1;
+    });
+    return Array.from(map.values()).sort((a, b) => b.clicks - a.clicks);
+  }, [productClickEvents]);
+
+  // Page view aggregate ranking from pure real data
+  const pageViewRankings = useMemo(() => {
+    const map = new Map<string, { path: string; title: string; count: number; lastViewed: string }>();
+    pageviewEvents.forEach(e => {
+      const p = e.details?.path || '/';
+      if (!map.has(p)) {
+        map.set(p, {
+          path: p,
+          title: e.details?.pageTitle || p,
+          count: 0,
+          lastViewed: e.timestamp,
+        });
+      }
+      const item = map.get(p)!;
+      item.count += 1;
+    });
+    return Array.from(map.values()).sort((a, b) => b.count - a.count);
+  }, [pageviewEvents]);
+
+  // Total verified collected revenue from real payments
+  const totalVerifiedRevenue = useMemo(() => {
+    return payments
+      .filter(p => p.status === 'Paid' || p.status === 'Completed' || p.status === 'success')
+      .reduce((sum, p) => sum + Number(p.amount || 0), 0);
+  }, [payments]);
+
+  // Export pure real data to Excel CSV
+  const handleExportCSV = () => {
+    try {
+      const records = filteredEvents.length > 0 ? filteredEvents : events;
+      if (records.length === 0 && profiles.length === 0) {
+        toast.error('No analytics events recorded yet to export');
+        return;
+      }
+
+      const headers = [
+        'Event ID',
+        'Event Type',
+        'Timestamp',
+        'Customer / Visitor Name',
+        'Email Address',
+        'Phone Number',
+        'User Role',
+        'Is Authenticated',
+        'Device',
+        'Browser',
+        'Traffic Source',
+        'Referrer URL',
+        'Page Path Opened',
+        'Page Title',
+        'Product Name Clicked',
+        'Product Category',
+        'Product Price (INR)',
+        'Session ID'
+      ];
+
+      const csvRows = records.map(e => [
+        e.id,
+        e.type.toUpperCase(),
+        e.timestamp,
+        e.user?.name || 'Guest Visitor',
+        e.user?.email || '—',
+        e.user?.phone || '—',
+        e.user?.role || 'guest',
+        e.user?.isAuthenticated ? 'YES' : 'NO',
+        e.client?.device || '—',
+        e.client?.browser || '—',
+        e.client?.trafficSource || 'Direct',
+        e.client?.referrer || '—',
+        e.details?.path || '—',
+        e.details?.pageTitle || '—',
+        e.details?.productName || '—',
+        e.details?.productCategory || '—',
+        e.details?.productPrice !== undefined ? e.details.productPrice : '—',
+        e.client?.sessionId || '—'
+      ]);
+
+      const csvContent = '\uFEFF' + [
+        headers.join(','),
+        ...csvRows.map(r => r.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
+      ].join('\r\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Aanya_Fashions_Real_Analytics_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success(`Exported ${records.length} real analytics records to Excel!`);
+    } catch (e: any) {
+      console.error(e);
+      toast.error('Failed to export real analytics');
+    }
+  };
+
+  const handleClearLog = () => {
+    if (confirm('Are you sure you want to clear the local activity log? Database records will remain intact.')) {
+      clearAnalyticsLog();
+      setEvents([]);
+      toast.success('Local activity log cleared.');
+    }
+  };
+
+  const getEventBadge = (type: AnalyticsEventType) => {
+    switch (type) {
+      case 'signin':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200">
+            <LogIn className="w-3 h-3 text-purple-600" />
+            Sign In
+          </span>
+        );
+      case 'visit':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+            <Globe className="w-3 h-3 text-blue-600" />
+            Site Visit
+          </span>
+        );
+      case 'pageview':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-50 text-teal-700 border border-teal-200">
+            <Eye className="w-3 h-3 text-teal-600" />
+            Page Open
+          </span>
+        );
+      case 'product_click':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <Tag className="w-3 h-3 text-emerald-600" />
+            Product Click
+          </span>
+        );
+      case 'cart_add':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+            <ShoppingBag className="w-3 h-3 text-amber-600" />
+            Add To Cart
+          </span>
+        );
+      case 'checkout':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200">
+            <CreditCard className="w-3 h-3 text-orange-600" />
+            Checkout
+          </span>
+        );
+      case 'purchase':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+            Purchase
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-gray-100 text-gray-700">
+            {type}
+          </span>
+        );
+    }
+  };
+
+  const getDeviceIcon = (device: string) => {
+    if (device?.toLowerCase() === 'mobile') return <Smartphone className="w-3.5 h-3.5 text-[#698156]" />;
+    return <Laptop className="w-3.5 h-3.5 text-blue-500" />;
+  };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Advanced Analytics</h1>
+    <div className="space-y-6 max-w-7xl mx-auto pb-16 px-4 sm:px-6">
+      {/* ─── Top Header & Controls ─── */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-gray-100 pb-5">
+        <div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-2xl font-serif font-bold text-gray-900 tracking-tight">Real-Time Website Analytics</h1>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+              Live Real-Time Stream
+            </span>
+            <span className="text-[11px] font-semibold text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-full">
+              Zero Mock Data
+            </span>
+          </div>
+          <p className="text-xs sm:text-sm text-gray-500 mt-1">
+            Live audit of who signs in, who opens the website, which pages they browse, and what products they click.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={handleExportCSV}
+            className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-white bg-[#698156] hover:bg-[#586e48] rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer"
+            title="Download full analytics data to Excel CSV"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            <span>Download Excel</span>
+          </button>
+
+          <button
+            onClick={() => loadRealData(false)}
+            disabled={isRefreshing}
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 shadow-xs transition-all active:scale-95 cursor-pointer"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-[#698156]' : ''}`} />
+            <span>Refresh</span>
+          </button>
+
+          <button
+            onClick={handleClearLog}
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl transition-all cursor-pointer"
+            title="Clear local event logs"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>Clear Log</span>
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <motion.div
-           initial={{ opacity: 0, y: 20 }}
-           animate={{ opacity: 1, y: 0 }}
-           className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100"
-        >
-          <h2 className="text-lg font-bold text-gray-900 mb-6">Revenue Growth (Monthly)</h2>
-          <div className="h-80">
-            {hasRevenue ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={monthlyData}>
-                  <defs>
-                    <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10B981" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                  <YAxis axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ borderRadius: '12px' }} />
-                  <Area type="monotone" dataKey="revenue" stroke="#10B981" fillOpacity={1} fill="url(#colorRev)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-full text-gray-400">No revenue data yet.</div>
-            )}
+      {/* ─── 6 Authoritative Real-Time KPI Cards ─── */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+        {/* Active Visitors Now */}
+        <div className="bg-white p-4 rounded-2xl shadow-xs border border-emerald-100 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold text-emerald-700 uppercase tracking-wider">Active Visitors</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
           </div>
-        </motion.div>
+          <div className="mt-2 text-2xl font-bold text-emerald-600">{livePresenceCount}</div>
+          <p className="text-[10px] text-emerald-700/80 mt-0.5">Online right now</p>
+        </div>
 
-        <motion.div
-           initial={{ opacity: 0, y: 20 }}
-           animate={{ opacity: 1, y: 0 }}
-           transition={{ delay: 0.1 }}
-           className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100"
-        >
-          <h2 className="text-lg font-bold text-gray-900 mb-6">Orders per Month</h2>
-          <div className="h-80">
-            {hasRevenue ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={monthlyData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                  <YAxis axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ borderRadius: '12px' }} />
-                  <Line type="monotone" dataKey="orders" stroke="#3B82F6" strokeWidth={3} />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-full text-gray-400">No order data yet.</div>
-            )}
+        {/* Real User Sign-Ins */}
+        <div className="bg-white p-4 rounded-2xl shadow-xs border border-purple-100 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold text-purple-700 uppercase tracking-wider">Sign-Ins Logged</span>
+            <LogIn className="w-4 h-4 text-purple-600" />
           </div>
-        </motion.div>
-        
-        <motion.div
-           initial={{ opacity: 0, y: 20 }}
-           animate={{ opacity: 1, y: 0 }}
-           transition={{ delay: 0.2 }}
-           className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 lg:col-span-2"
-        >
-          <h2 className="text-lg font-bold text-gray-900 mb-6">Sales Distribution by Category</h2>
-          <div className="h-80">
-            {hasCategories ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={categoryData} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E5E7EB" />
-                  <XAxis type="number" axisLine={false} tickLine={false} />
-                  <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} width={80} />
-                  <Tooltip contentStyle={{ borderRadius: '12px' }} />
-                  <Bar dataKey="sales" fill="#1A1A1A" radius={[0, 4, 4, 0]} barSize={30} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-full text-gray-400">No sales data yet.</div>
-            )}
+          <div className="mt-2 text-2xl font-bold text-purple-700">{signinEvents.length}</div>
+          <p className="text-[10px] text-purple-600/80 mt-0.5">Authenticated sessions</p>
+        </div>
+
+        {/* Registered DB Profiles */}
+        <div className="bg-white p-4 rounded-2xl shadow-xs border border-blue-100 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold text-blue-700 uppercase tracking-wider">Registered Users</span>
+            <Users className="w-4 h-4 text-blue-600" />
           </div>
-        </motion.div>
+          <div className="mt-2 text-2xl font-bold text-blue-700">{profiles.length}</div>
+          <p className="text-[10px] text-blue-600/80 mt-0.5">Real DB accounts</p>
+        </div>
+
+        {/* Page Views Logged */}
+        <div className="bg-white p-4 rounded-2xl shadow-xs border border-gray-100 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Pages Opened</span>
+            <Eye className="w-4 h-4 text-teal-600" />
+          </div>
+          <div className="mt-2 text-2xl font-bold text-gray-900">{pageviewEvents.length}</div>
+          <p className="text-[10px] text-gray-400 mt-0.5">Route views recorded</p>
+        </div>
+
+        {/* Product Clicks Logged */}
+        <div className="bg-white p-4 rounded-2xl shadow-xs border border-gray-100 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Products Clicked</span>
+            <Tag className="w-4 h-4 text-[#698156]" />
+          </div>
+          <div className="mt-2 text-2xl font-bold text-[#698156]">{productClickEvents.length}</div>
+          <p className="text-[10px] text-gray-400 mt-0.5">Customer clicks</p>
+        </div>
+
+        {/* Real Payments Collected */}
+        <div className="bg-white p-4 rounded-2xl shadow-xs border border-gray-100 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Real Revenue</span>
+            <CreditCard className="w-4 h-4 text-amber-600" />
+          </div>
+          <div className="mt-2 text-xl font-bold text-gray-900">₹{totalVerifiedRevenue.toLocaleString('en-IN')}</div>
+          <p className="text-[10px] text-gray-400 mt-0.5">{payments.length} verified transactions</p>
+        </div>
       </div>
+
+      {/* ─── Navigation Tabs & Filters Bar ─── */}
+      <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-xs space-y-3">
+        {/* Navigation Tabs Pill Bar */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none border-b border-gray-100">
+          <button
+            onClick={() => setActiveTab('all')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+              activeTab === 'all'
+                ? 'bg-[#698156] text-white shadow-xs'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+            }`}
+          >
+            All Live Events ({events.length})
+          </button>
+
+          <button
+            onClick={() => setActiveTab('signins')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+              activeTab === 'signins'
+                ? 'bg-purple-600 text-white shadow-xs'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+            }`}
+          >
+            <LogIn className="w-3.5 h-3.5" />
+            <span>Who Signed In ({signinEvents.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('visitors')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+              activeTab === 'visitors'
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+            }`}
+          >
+            <Globe className="w-3.5 h-3.5" />
+            <span>Who Opened Website ({visitEvents.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('pageviews')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+              activeTab === 'pageviews'
+                ? 'bg-teal-600 text-white shadow-xs'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+            }`}
+          >
+            <Eye className="w-3.5 h-3.5" />
+            <span>Which Pages Opened ({pageviewEvents.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('product_clicks')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+              activeTab === 'product_clicks'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+            }`}
+          >
+            <Tag className="w-3.5 h-3.5" />
+            <span>What Products Clicked ({productClickEvents.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('registered_users')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+              activeTab === 'registered_users'
+                ? 'bg-gray-800 text-white shadow-xs'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5" />
+            <span>Registered Customers DB ({profiles.length})</span>
+          </button>
+        </div>
+
+        {/* Search and Filters Row */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
+          <div className="relative w-full sm:w-80">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by customer, email, page or product..."
+              className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#698156]/30 focus:border-[#698156]"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <select
+              value={deviceFilter}
+              onChange={(e) => setDeviceFilter(e.target.value)}
+              className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#698156]/30"
+            >
+              <option value="all">All Devices</option>
+              <option value="mobile">Mobile Devices</option>
+              <option value="desktop">Desktop Web</option>
+            </select>
+
+            <span className="text-xs text-gray-400 font-mono hidden md:inline">
+              Updated {lastUpdated.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── TAB 1: LIVE ACTIVITY FEED (ALL EVENTS) ─── */}
+      {activeTab === 'all' && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-xs overflow-hidden">
+          <div className="p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-bold text-gray-900">Live Customer Activity Audit Trail</h2>
+              <p className="text-xs text-gray-500">Real-time log of every customer action streaming from the storefront</p>
+            </div>
+            <span className="text-xs font-mono font-bold text-gray-500 bg-gray-100 px-2.5 py-1 rounded-lg">
+              {filteredEvents.length} Events Logged
+            </span>
+          </div>
+
+          {filteredEvents.length === 0 ? (
+            <div className="p-12 text-center space-y-3">
+              <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
+                <Activity className="w-6 h-6 animate-pulse" />
+              </div>
+              <h3 className="text-sm font-bold text-gray-800">Listening for real-time customer actions...</h3>
+              <p className="text-xs text-gray-500 max-w-md mx-auto">
+                No mock data is displayed. When visitors sign in, browse pages, or click products in the store, events will immediately appear in this live feed.
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {filteredEvents.map(evt => (
+                <div key={evt.id} className="p-4 hover:bg-gray-50/70 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5">{getEventBadge(evt.type)}</div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-bold text-gray-900">
+                          {evt.user?.name || 'Guest Visitor'}
+                        </span>
+                        {evt.user?.email && (
+                          <span className="text-[11px] text-gray-500 font-mono">
+                            ({evt.user.email})
+                          </span>
+                        )}
+                        {evt.user?.isAuthenticated && (
+                          <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            Verified User
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Event Context Description */}
+                      <p className="text-xs text-gray-600 mt-0.5">
+                        {evt.type === 'signin' && (
+                          <span>Signed in to customer account.</span>
+                        )}
+                        {evt.type === 'visit' && (
+                          <span>Opened store website via <strong>{evt.client?.trafficSource}</strong>.</span>
+                        )}
+                        {evt.type === 'pageview' && (
+                          <span>
+                            Opened page <code className="bg-gray-100 px-1 py-0.5 rounded text-[11px] text-gray-800">{evt.details?.path}</code>
+                            {evt.details?.pageTitle && ` — "${evt.details.pageTitle}"`}
+                          </span>
+                        )}
+                        {evt.type === 'product_click' && (
+                          <span>
+                            Clicked product <strong>{evt.details?.productName}</strong>
+                            {evt.details?.productPrice ? ` (₹${evt.details.productPrice})` : ''} in category {evt.details?.productCategory}.
+                          </span>
+                        )}
+                        {evt.type === 'cart_add' && (
+                          <span>Added <strong>{evt.details?.productName}</strong> to shopping cart.</span>
+                        )}
+                        {evt.type === 'checkout' && (
+                          <span>Initiated checkout with order amount ₹{evt.details?.amount || 0}.</span>
+                        )}
+                        {evt.type === 'purchase' && (
+                          <span>Completed purchase order <strong>#{evt.details?.orderId}</strong> for ₹{evt.details?.amount || 0}.</span>
+                        )}
+                      </p>
+
+                      <div className="flex items-center gap-3 mt-1 text-[11px] text-gray-400">
+                        <span className="flex items-center gap-1">
+                          {getDeviceIcon(evt.client?.device)} {evt.client?.device} • {evt.client?.browser}
+                        </span>
+                        {evt.client?.trafficSource && (
+                          <span>Source: {evt.client.trafficSource}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-right sm:self-center shrink-0">
+                    <span className="text-xs font-mono text-gray-500 block">{evt.timestamp}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── TAB 2: WHO SIGNED IN (USER LOGINS) ─── */}
+      {activeTab === 'signins' && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-xs overflow-hidden">
+          <div className="p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-bold text-gray-900">Who Signed In (User Logins)</h2>
+              <p className="text-xs text-gray-500">Real-time audit log of customer and administrator sign-in events</p>
+            </div>
+            <span className="text-xs font-mono font-bold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-lg border border-purple-200">
+              {signinEvents.length} Sign-In Events
+            </span>
+          </div>
+
+          {signinEvents.length === 0 ? (
+            <div className="p-12 text-center space-y-3">
+              <div className="w-12 h-12 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center mx-auto">
+                <LogIn className="w-6 h-6" />
+              </div>
+              <h3 className="text-sm font-bold text-gray-800">No sign-in events recorded in this active stream</h3>
+              <p className="text-xs text-gray-500 max-w-md mx-auto">
+                Whenever a customer or admin signs in via email/password, their exact identity, email, phone, timestamp, and device appear here in real-time.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-gray-700">
+                <thead className="bg-gray-50 text-[10px] uppercase font-bold text-gray-400 tracking-wider">
+                  <tr>
+                    <th className="p-4 text-left">Customer Name</th>
+                    <th className="p-4 text-left">Email Address</th>
+                    <th className="p-4 text-left">Phone</th>
+                    <th className="p-4 text-left">Role</th>
+                    <th className="p-4 text-left">Device & Browser</th>
+                    <th className="p-4 text-right">Sign-In Timestamp</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {signinEvents.map(evt => (
+                    <tr key={evt.id} className="hover:bg-gray-50/70 transition-colors">
+                      <td className="p-4 font-bold text-gray-900 flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-xs uppercase shrink-0">
+                          {(evt.user?.name || 'U').charAt(0)}
+                        </div>
+                        <span>{evt.user?.name || 'Customer'}</span>
+                      </td>
+                      <td className="p-4 font-mono text-gray-700">{evt.user?.email || '—'}</td>
+                      <td className="p-4 font-mono text-gray-500">{evt.user?.phone || '—'}</td>
+                      <td className="p-4">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          evt.user?.role === 'admin'
+                            ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                            : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        }`}>
+                          {evt.user?.role?.toUpperCase() || 'CUSTOMER'}
+                        </span>
+                      </td>
+                      <td className="p-4 text-gray-600">
+                        <span className="flex items-center gap-1.5">
+                          {getDeviceIcon(evt.client?.device)} {evt.client?.device} • {evt.client?.browser}
+                        </span>
+                      </td>
+                      <td className="p-4 text-right font-mono text-gray-500">{evt.timestamp}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── TAB 3: WHO OPENED WEBSITE (VISITOR SESSIONS) ─── */}
+      {activeTab === 'visitors' && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-xs overflow-hidden">
+          <div className="p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-bold text-gray-900">Who Opened the Website (Visitor Sessions)</h2>
+              <p className="text-xs text-gray-500">Real-time log of customer site visits, entry sources, and hardware</p>
+            </div>
+            <span className="text-xs font-mono font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200">
+              {visitEvents.length} Visits Logged
+            </span>
+          </div>
+
+          {visitEvents.length === 0 ? (
+            <div className="p-12 text-center space-y-3">
+              <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
+                <Globe className="w-6 h-6" />
+              </div>
+              <h3 className="text-sm font-bold text-gray-800">No site visits captured in this session yet</h3>
+              <p className="text-xs text-gray-500 max-w-md mx-auto">
+                When a user opens the store, their session origin (Google Organic, Instagram/FB, Direct) and hardware details are captured and shown here in real time.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-gray-700">
+                <thead className="bg-gray-50 text-[10px] uppercase font-bold text-gray-400 tracking-wider">
+                  <tr>
+                    <th className="p-4 text-left">Visitor Identity</th>
+                    <th className="p-4 text-left">Discovery Traffic Source</th>
+                    <th className="p-4 text-left">Device</th>
+                    <th className="p-4 text-left">Browser</th>
+                    <th className="p-4 text-left">Landing Page</th>
+                    <th className="p-4 text-right">Visit Timestamp</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {visitEvents.map(evt => (
+                    <tr key={evt.id} className="hover:bg-gray-50/70 transition-colors">
+                      <td className="p-4 font-medium text-gray-900">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                          <div>
+                            <span className="font-bold">{evt.user?.name || 'Guest Visitor'}</span>
+                            {evt.user?.email && <div className="text-[10px] font-mono text-gray-400">{evt.user.email}</div>}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                          {evt.client?.trafficSource}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <span className="flex items-center gap-1.5 font-medium">
+                          {getDeviceIcon(evt.client?.device)} {evt.client?.device}
+                        </span>
+                      </td>
+                      <td className="p-4 text-gray-600">{evt.client?.browser}</td>
+                      <td className="p-4 font-mono text-gray-600">
+                        <code className="bg-gray-50 px-1 py-0.5 rounded text-[11px]">{evt.details?.path || '/'}</code>
+                      </td>
+                      <td className="p-4 text-right font-mono text-gray-500">{evt.timestamp}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── TAB 4: WHICH PAGES THEY OPEN (PAGE VIEWS) ─── */}
+      {activeTab === 'pageviews' && (
+        <div className="space-y-6">
+          {/* Page Rankings Card */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-xs">
+            <h3 className="text-base font-bold text-gray-900 mb-1">Most Opened Pages (Real Traffic Ranking)</h3>
+            <p className="text-xs text-gray-500 mb-4">Frequency ranking calculated directly from real visitor page opens</p>
+
+            {pageViewRankings.length === 0 ? (
+              <p className="text-xs text-gray-400">No page views recorded yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {pageViewRankings.slice(0, 8).map((p, idx) => (
+                  <div key={p.path} className="flex items-center justify-between text-xs p-2.5 rounded-xl bg-gray-50 border border-gray-100">
+                    <div className="flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full bg-white border border-gray-200 text-gray-700 flex items-center justify-center font-bold text-[10px]">
+                        {idx + 1}
+                      </span>
+                      <div>
+                        <code className="font-bold text-gray-900">{p.path}</code>
+                        <span className="text-[11px] text-gray-400 ml-2 hidden sm:inline">({p.title})</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-mono font-bold text-[#698156] bg-white px-2 py-0.5 rounded-md border border-gray-200">
+                        {p.count} views
+                      </span>
+                      <span className="text-[10px] text-gray-400 font-mono hidden md:inline">{p.lastViewed}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Detailed Stream of Page Views */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-xs overflow-hidden">
+            <div className="p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-gray-900">Individual Page Opens Audit</h3>
+                <p className="text-xs text-gray-500">Every single page opened by real visitors and customers</p>
+              </div>
+              <span className="text-xs font-mono font-bold text-teal-700 bg-teal-50 px-2.5 py-1 rounded-lg border border-teal-200">
+                {pageviewEvents.length} Pageviews
+              </span>
+            </div>
+
+            {pageviewEvents.length === 0 ? (
+              <div className="p-12 text-center text-xs text-gray-500">
+                No page views recorded yet. Navigate between pages in the storefront to see them appear here.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-gray-700">
+                  <thead className="bg-gray-50 text-[10px] uppercase font-bold text-gray-400 tracking-wider">
+                    <tr>
+                      <th className="p-4 text-left">Page Path</th>
+                      <th className="p-4 text-left">Page Title</th>
+                      <th className="p-4 text-left">Visitor / Customer</th>
+                      <th className="p-4 text-left">Device</th>
+                      <th className="p-4 text-right">Opened At</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {pageviewEvents.map(evt => (
+                      <tr key={evt.id} className="hover:bg-gray-50/70 transition-colors">
+                        <td className="p-4 font-mono font-bold text-gray-900">
+                          <code className="bg-gray-50 px-1.5 py-0.5 rounded text-xs border border-gray-100">{evt.details?.path}</code>
+                        </td>
+                        <td className="p-4 text-gray-600 truncate max-w-xs">{evt.details?.pageTitle || '—'}</td>
+                        <td className="p-4">
+                          <span className="font-semibold text-gray-800">{evt.user?.name || 'Guest Visitor'}</span>
+                          {evt.user?.email && <div className="text-[10px] font-mono text-gray-400">{evt.user.email}</div>}
+                        </td>
+                        <td className="p-4 text-gray-600">
+                          <span className="flex items-center gap-1.5">
+                            {getDeviceIcon(evt.client?.device)} {evt.client?.device}
+                          </span>
+                        </td>
+                        <td className="p-4 text-right font-mono text-gray-500">{evt.timestamp}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 5: WHAT PRODUCTS THEY CLICK ─── */}
+      {activeTab === 'product_clicks' && (
+        <div className="space-y-6">
+          {/* Product Click Ranking */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-xs">
+            <h3 className="text-base font-bold text-gray-900 mb-1">Most Clicked Products (Real Customer Demand)</h3>
+            <p className="text-xs text-gray-500 mb-4">Rankings derived directly from real user clicks on storefront product cards</p>
+
+            {productClickRankings.length === 0 ? (
+              <p className="text-xs text-gray-400">No product clicks recorded yet in this stream.</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {productClickRankings.slice(0, 6).map((prod, idx) => (
+                  <div key={prod.id} className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center gap-3">
+                    {prod.image ? (
+                      <img src={prod.image} alt={prod.name} className="w-12 h-14 rounded-lg object-cover object-top border border-gray-200 shrink-0" />
+                    ) : (
+                      <div className="w-12 h-14 rounded-lg bg-gray-200 flex items-center justify-center text-gray-400 shrink-0">
+                        <Tag className="w-5 h-5" />
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-[10px] font-bold text-[#698156] uppercase tracking-wider">{prod.category}</span>
+                        <span className="text-xs font-bold font-mono text-[#698156] bg-white px-2 py-0.5 rounded border border-gray-200">
+                          {prod.clicks} clicks
+                        </span>
+                      </div>
+                      <h4 className="text-xs font-bold text-gray-900 truncate mt-0.5">{prod.name}</h4>
+                      <div className="text-[11px] font-bold text-gray-700 mt-0.5">₹{prod.price}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Detailed Click Log */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-xs overflow-hidden">
+            <div className="p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-gray-900">Live Product Clicks Audit Stream</h3>
+                <p className="text-xs text-gray-500">Log of every product clicked by store customers</p>
+              </div>
+              <span className="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                {productClickEvents.length} Product Clicks
+              </span>
+            </div>
+
+            {productClickEvents.length === 0 ? (
+              <div className="p-12 text-center text-xs text-gray-500">
+                No product clicks captured yet. Click on any product in the store catalog to see it register here in real-time.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-gray-700">
+                  <thead className="bg-gray-50 text-[10px] uppercase font-bold text-gray-400 tracking-wider">
+                    <tr>
+                      <th className="p-4 text-left">Product</th>
+                      <th className="p-4 text-left">Category</th>
+                      <th className="p-4 text-left">Price</th>
+                      <th className="p-4 text-left">Clicked By</th>
+                      <th className="p-4 text-left">Device</th>
+                      <th className="p-4 text-right">Click Timestamp</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {productClickEvents.map(evt => (
+                      <tr key={evt.id} className="hover:bg-gray-50/70 transition-colors">
+                        <td className="p-4 font-bold text-gray-900 flex items-center gap-2.5">
+                          {evt.details?.productImage ? (
+                            <img src={evt.details.productImage} alt="" className="w-8 h-10 rounded object-cover object-top border border-gray-200 shrink-0" />
+                          ) : (
+                            <div className="w-8 h-10 rounded bg-gray-100 flex items-center justify-center shrink-0">
+                              <Tag className="w-4 h-4 text-gray-400" />
+                            </div>
+                          )}
+                          <span className="truncate max-w-xs">{evt.details?.productName || 'Product'}</span>
+                        </td>
+                        <td className="p-4">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-700">
+                            {evt.details?.productCategory || 'Apparel'}
+                          </span>
+                        </td>
+                        <td className="p-4 font-bold text-gray-900">
+                          ₹{evt.details?.productPrice !== undefined ? evt.details.productPrice : '—'}
+                        </td>
+                        <td className="p-4">
+                          <span className="font-semibold text-gray-800">{evt.user?.name || 'Guest Visitor'}</span>
+                          {evt.user?.email && <div className="text-[10px] font-mono text-gray-400">{evt.user.email}</div>}
+                        </td>
+                        <td className="p-4 text-gray-600">
+                          <span className="flex items-center gap-1.5">
+                            {getDeviceIcon(evt.client?.device)} {evt.client?.device}
+                          </span>
+                        </td>
+                        <td className="p-4 text-right font-mono text-gray-500">{evt.timestamp}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 6: REGISTERED CUSTOMERS DATABASE (12 REAL PROFILES) ─── */}
+      {activeTab === 'registered_users' && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-xs overflow-hidden">
+          <div className="p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-bold text-gray-900">Registered Customers Database ({profiles.length})</h2>
+              <p className="text-xs text-gray-500">Real customer accounts registered in Supabase database</p>
+            </div>
+            <span className="text-xs font-mono font-bold text-gray-700 bg-gray-100 px-2.5 py-1 rounded-lg">
+              Supabase Verified
+            </span>
+          </div>
+
+          {profiles.length === 0 ? (
+            <div className="p-12 text-center text-xs text-gray-500">
+              No registered profiles found in database.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-gray-700">
+                <thead className="bg-gray-50 text-[10px] uppercase font-bold text-gray-400 tracking-wider">
+                  <tr>
+                    <th className="p-4 text-left">Customer Name</th>
+                    <th className="p-4 text-left">Email Address</th>
+                    <th className="p-4 text-left">Phone Number</th>
+                    <th className="p-4 text-left">Role</th>
+                    <th className="p-4 text-left">Status</th>
+                    <th className="p-4 text-right">Account Created</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {profiles.map(prof => (
+                    <tr key={prof.id} className="hover:bg-gray-50/70 transition-colors">
+                      <td className="p-4 font-bold text-gray-900 flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-[#698156]/10 text-[#698156] flex items-center justify-center font-bold text-xs uppercase shrink-0">
+                          {(prof.full_name || prof.email || 'U').charAt(0)}
+                        </div>
+                        <span>{prof.full_name || 'Customer'}</span>
+                      </td>
+                      <td className="p-4 font-mono text-gray-700">{prof.email || '—'}</td>
+                      <td className="p-4 font-mono text-gray-600">{prof.phone || '—'}</td>
+                      <td className="p-4">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          prof.role === 'admin'
+                            ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                            : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        }`}>
+                          {prof.role?.toUpperCase() || 'CUSTOMER'}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-50 text-green-700 border border-green-200">
+                          {prof.status || 'Active'}
+                        </span>
+                      </td>
+                      <td className="p-4 text-right font-mono text-gray-500 whitespace-nowrap">
+                        {prof.created_at ? new Date(prof.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

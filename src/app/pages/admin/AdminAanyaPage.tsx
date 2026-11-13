@@ -8,7 +8,7 @@ import {
   Award, Camera, Shirt, Upload, Star, Receipt,
   Minus, ShoppingCart, ArrowRight, Tags, Boxes, Compass, Bell,
   CheckCircle2, XCircle, Clock, Edit, Ban, Tag, Check,
-  Download, FileSpreadsheet
+  Download, FileSpreadsheet, TrendingUp
 } from 'lucide-react';
 import { AdminBannersSection } from './AdminBannersSection';
 import { AdminNotificationsSection } from './AdminNotificationsSection';
@@ -16,6 +16,8 @@ import { AdminBillingSection } from './AdminBillingSection';
 import { AdminCategories } from './AdminCategories';
 import { AdminInventorySection } from './AdminInventorySection';
 import { AdminReviews } from './AdminReviews';
+import { AdminPayments } from './AdminPayments';
+import { AdminAnalytics } from './AdminAnalytics';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar
@@ -141,9 +143,9 @@ const CAT_COLORS: Record<string, string> = {
 };
 
 /* ─── Nav items ─── */
-export type NavTab = 'overview' | 'notifications' | 'banners' | 'hero-models' | 'products' | 'inventory' | 'categories' | 'billing' | 'orders' | 'canceled-orders' | 'customers' | 'reviews' | 'payments';
+export type NavTab = 'overview' | 'notifications' | 'banners' | 'hero-models' | 'products' | 'inventory' | 'categories' | 'billing' | 'orders' | 'canceled-orders' | 'customers' | 'reviews' | 'payments' | 'analytics';
 export const VALID_TABS: readonly NavTab[] = [
-  'overview', 'notifications', 'banners', 'hero-models', 'products', 'inventory', 'categories', 'billing', 'orders', 'canceled-orders', 'customers', 'reviews', 'payments'
+  'overview', 'notifications', 'banners', 'hero-models', 'products', 'inventory', 'categories', 'billing', 'orders', 'canceled-orders', 'customers', 'reviews', 'payments', 'analytics'
 ] as const;
 export const isValidTab = (tab: any): tab is NavTab => VALID_TABS.includes(tab);
 
@@ -159,6 +161,7 @@ const NAV_ITEMS: { id: NavTab; label: string; icon: React.ReactNode }[] = [
   { id: 'customers', label: 'Customers', icon: <Users className="w-5 h-5" /> },
   { id: 'reviews', label: 'Customer Reviews', icon: <Star className="w-5 h-5 text-amber-500 fill-amber-400" /> },
   { id: 'payments', label: 'Payments', icon: <CreditCard className="w-5 h-5" /> },
+  { id: 'analytics', label: 'Website Analytics', icon: <TrendingUp className="w-5 h-5 text-emerald-600" /> },
 ];
 
 /* ─── Customer name extraction helper ─── */
@@ -224,6 +227,7 @@ export function AdminAanyaPage() {
     if (path.endsWith('/customers')) return 'customers';
     if (path.endsWith('/reviews')) return 'reviews';
     if (path.endsWith('/payments')) return 'payments';
+    if (path.endsWith('/analytics')) return 'analytics';
     if (path.endsWith('/dashboard') || path.endsWith('/overview')) return 'overview';
 
     // 3. Saved localStorage state so reloading always lands back on the exact same page
@@ -3530,73 +3534,12 @@ export function AdminAanyaPage() {
 
           {/* ─── TAB: PAYMENTS ─── */}
           {activeTab === 'payments' && (
-            <div className="space-y-5">
-              {payments.length === 0 ? (
-                <EmptyCard icon={<CreditCard />} title="No payment records" sub="Payment records saved during checkout will appear here from Supabase." />
-              ) : (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                  <div className="p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div>
-                      <h3 className="font-serif text-base font-bold text-gray-900">Payment Records ({payments.length})</h3>
-                      <p className="text-xs text-gray-400 mt-0.5">Total collected: <span className="text-[#698156] font-bold">₹{payments.reduce((s, p) => s + (p.amount || 0), 0).toLocaleString('en-IN')}</span></p>
-                    </div>
-                    <Link
-                      to="/admin/payments"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#698156] bg-[#698156]/10 rounded-xl hover:bg-[#698156]/20 transition-all self-start sm:self-auto"
-                    >
-                      <span>Settlements & Bank Payouts</span>
-                      <ArrowUpRight className="w-3.5 h-3.5" />
-                    </Link>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-gray-700">
-                      <thead className="bg-gray-50 text-xs uppercase font-bold text-gray-400 tracking-wider">
-                        <tr>
-                          {['Payment ID', 'Order ID', 'Customer', 'Method', 'Gateway / UTR', 'Amount', 'Status', 'Date'].map(h => (
-                            <th key={h} className="p-4 text-left whitespace-nowrap">{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {payments.map(p => {
-                          const methodName = p.payment_method || p.method || '—';
-                          const isGPay = methodName.toLowerCase().includes('google pay');
-                          return (
-                            <tr key={p.id} className="hover:bg-gray-50/60 transition-colors">
-                              <td className="p-4 font-mono text-xs font-bold text-gray-800">#{String(p.id).slice(0, 8)}</td>
-                              <td className="p-4 font-mono text-xs text-gray-500">#{String(p.order_id).slice(0, 8)}</td>
-                              <td className="p-4 text-xs font-medium text-gray-900">
-                                {p.customer_name || 'Customer'}
-                                {p.customer_phone && <div className="text-[10px] text-gray-400 font-mono">{p.customer_phone}</div>}
-                              </td>
-                              <td className="p-4">
-                                {isGPay ? (
-                                  <span className="px-2.5 py-1 bg-blue-50 text-[#1a73e8] border border-blue-100 rounded-lg text-xs font-bold inline-flex items-center gap-1">
-                                    Google Pay
-                                  </span>
-                                ) : (
-                                  <span className="px-2.5 py-1 bg-gray-100 text-gray-700 rounded-lg text-xs font-bold">{methodName}</span>
-                                )}
-                              </td>
-                              <td className="p-4 font-mono text-xs text-gray-600">
-                                {p.gateway_txn_id ? (
-                                  <span className="bg-gray-100 px-2 py-0.5 rounded text-[11px] font-medium text-gray-800">{p.gateway_txn_id}</span>
-                                ) : (
-                                  <span className="text-gray-400 text-xs">—</span>
-                                )}
-                              </td>
-                              <td className="p-4 font-bold text-[#698156]">₹{(p.amount || 0).toLocaleString('en-IN')}</td>
-                              <td className="p-4"><span className={`px-2.5 py-1 rounded-full text-xs font-bold ${badge(p.status)}`}>{p.status || 'Pending'}</span></td>
-                              <td className="p-4 text-xs text-gray-400 whitespace-nowrap">{new Date(p.created_at).toLocaleDateString('en-IN')}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </div>
+            <AdminPayments />
+          )}
+
+          {/* ─── TAB: WEBSITE ANALYTICS & REPORTING ─── */}
+          {activeTab === 'analytics' && (
+            <AdminAnalytics />
           )}
 
           {/* ─── TAB: NOTIFICATIONS & OFFERS ─── */}

@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { saveUserProfileDetails, getUserProfileDetails } from '../../lib/userProfile';
 import { AuthModal } from '../components/AuthModal';
 import { getCanonicalUrl } from '../../lib/urls';
+import { trackUserSignIn } from '../../lib/analytics';
 
 export interface CustomerProfile {
   id: string;
@@ -266,6 +267,13 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
         setUser(data.user);
         setSession(data.session);
         fetchProfile(data.user.id, data.user.email, data.user.user_metadata).catch(() => {});
+        trackUserSignIn({
+          id: data.user.id,
+          email: data.user.email,
+          name: data.user.user_metadata?.full_name,
+          phone: data.user.user_metadata?.phone,
+          role: 'customer'
+        });
         toast.success(`Welcome back, ${data.user.user_metadata?.full_name || 'Customer'}!`);
         return { success: true };
       }
@@ -340,6 +348,13 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
               setSession(signInData.session);
               setProfile(customerProfile);
               localStorage.setItem('customer_profile_cache', JSON.stringify(customerProfile));
+              trackUserSignIn({
+                id: signInData.user.id,
+                email: cleanEmail,
+                name: cleanName,
+                phone: cleanPhone,
+                role: 'customer'
+              });
               toast.success(`Welcome to Aanya Fashions, ${cleanName}!`);
               return { success: true, needsEmailVerification: false };
             }

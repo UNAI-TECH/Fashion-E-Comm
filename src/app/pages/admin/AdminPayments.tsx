@@ -22,7 +22,9 @@ import {
   ChevronRight,
   ShieldCheck,
   XCircle,
-  RotateCcw
+  RotateCcw,
+  Download,
+  FileSpreadsheet
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { toast } from 'sonner';
@@ -247,6 +249,74 @@ export function AdminPayments() {
     toast.info('Refreshing payment records...');
   };
 
+  const handleExportPaymentsExcel = () => {
+    try {
+      const recordsToExport = filteredTransactions.length > 0 ? filteredTransactions : transactions;
+      if (recordsToExport.length === 0) {
+        toast.error('No payment records to export');
+        return;
+      }
+
+      const headers = [
+        'Internal Order ID',
+        'Razorpay Order ID',
+        'Payment ID / Gateway Ref',
+        'Customer Name',
+        'Customer Phone',
+        'Customer Email',
+        'Payment Method',
+        'Amount (INR)',
+        'Currency',
+        'Payment Status',
+        'Transaction Date',
+        'Transaction Time',
+        'Customer City',
+        'Pincode'
+      ];
+
+      const csvRows = recordsToExport.map(txn => {
+        const city = txn.shipping_address?.city || '—';
+        const pincode = txn.shipping_address?.pincode || txn.shipping_address?.postal_code || '—';
+
+        const row = [
+          txn.order_id || '—',
+          txn.razorpay_order_id || '—',
+          txn.razorpay_payment_id || txn.gateway_txn_id || '—',
+          txn.customer_name || 'Guest Customer',
+          txn.customer_phone || '—',
+          txn.customer_email || '—',
+          txn.payment_method || '—',
+          txn.amount,
+          txn.currency || 'INR',
+          txn.status || '—',
+          txn.date || '—',
+          txn.time || '—',
+          city,
+          pincode
+        ];
+
+        return row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(',');
+      });
+
+      const csvContent = '\uFEFF' + [headers.join(','), ...csvRows].join('\r\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const timestamp = new Date().toISOString().slice(0, 10);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Aanya_Fashions_Payment_Records_${timestamp}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success(`Exported ${recordsToExport.length} payment records to Excel format!`);
+    } catch (err: any) {
+      console.error('Failed to export payment records:', err);
+      toast.error('Failed to export payment records');
+    }
+  };
+
   // Filter calculations
   const filteredTransactions = transactions.filter(t => {
     // 1. Search Query Filter
@@ -383,6 +453,14 @@ export function AdminPayments() {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={handleExportPaymentsExcel}
+            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-[#698156] hover:bg-[#586e48] rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer"
+            title="Download full payment records as Excel CSV"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            <span>Download Excel Sheet</span>
+          </button>
           <button
             onClick={handleRefresh}
             disabled={isRefreshing}
