@@ -809,15 +809,7 @@ export function AdminPayments() {
                   </div>
                 )}
 
-                {/* Raw Gateway Response Preview if available */}
-                {selectedTxn.gateway_response && (
-                  <div className="pt-3 border-t border-gray-100">
-                    <h4 className="font-bold text-gray-800 mb-1">Gateway Metadata</h4>
-                    <pre className="bg-gray-900 text-gray-200 p-3 rounded-xl text-[10px] overflow-x-auto max-h-36">
-                      {JSON.stringify(selectedTxn.gateway_response, null, 2)}
-                    </pre>
-                  </div>
-                )}
+
               </div>
             </motion.div>
           </div>
