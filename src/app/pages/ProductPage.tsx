@@ -5,7 +5,8 @@ import {
   Star, Heart, ShoppingBag, Share2, Truck, RotateCcw, Shield, 
   ChevronLeft, ChevronRight, ZoomIn, CreditCard, 
   Award, X, Tag, 
-  Copy, Check, FileText, Layers, Camera, Maximize2
+  Copy, Check, FileText, Layers, Camera, Maximize2,
+  Video, Calendar, Clock, Phone, User, CheckCircle2, MessageCircle, Sparkles
 } from 'lucide-react';
 import { Navigation } from '../components/Navigation';
 import { AnnouncementBar } from '../components/AnnouncementBar';
@@ -21,6 +22,7 @@ import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import { CustomerReviewsSection } from '../components/CustomerReviewsSection';
 import { Review } from '../../lib/reviews';
 import { trackProductView } from '../../lib/analytics';
+import { createVideoRequest } from '../../lib/videoRequests';
 
 export function ProductPage() {
   const { id } = useParams();
@@ -51,6 +53,83 @@ export function ProductPage() {
 
   // Color variants (products sharing same variant_group_id)
   const [colorVariants, setColorVariants] = useState<any[]>([]);
+
+  // Video call request states
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const [videoName, setVideoName] = useState('');
+  const [videoPhone, setVideoPhone] = useState('');
+  const [videoReason, setVideoReason] = useState('Inspect Fabric Quality & Border Zari');
+  const [videoDate, setVideoDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split('T')[0];
+  });
+  const [videoTime, setVideoTime] = useState('11:30 AM');
+  const [isSubmittingVideo, setIsSubmittingVideo] = useState(false);
+  const [videoSuccessData, setVideoSuccessData] = useState<any | null>(null);
+
+  // Auto-fill customer profile details if available
+  useEffect(() => {
+    try {
+      const rawUser = localStorage.getItem('user_profile_details') || localStorage.getItem('customer_profile_cache');
+      if (rawUser) {
+        const u = JSON.parse(rawUser);
+        if (u.name) setVideoName(u.name);
+        if (u.phone) setVideoPhone(u.phone);
+      }
+    } catch {}
+  }, []);
+
+  const handleSubmitVideoRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!product) return;
+
+    const trimmedName = videoName.trim();
+    const cleanPhone = videoPhone.replace(/\D/g, '');
+
+    if (!trimmedName) {
+      toast.error('Please enter your full name');
+      return;
+    }
+
+    if (cleanPhone.length < 10) {
+      toast.error('Please enter a valid 10-digit WhatsApp phone number');
+      return;
+    }
+
+    if (!videoDate) {
+      toast.error('Please select a scheduled date from the calendar');
+      return;
+    }
+
+    if (!videoTime) {
+      toast.error('Please select a scheduled time from the clock');
+      return;
+    }
+
+    setIsSubmittingVideo(true);
+    try {
+      const newReq = await createVideoRequest({
+        product_id: String(product.id),
+        product_name: product.name,
+        product_image: product.image || (product.images && product.images[0]) || '',
+        product_price: Number(product.price || 0),
+        customer_name: trimmedName,
+        whatsapp_number: cleanPhone.slice(-10),
+        scheduled_date: videoDate,
+        scheduled_time: videoTime,
+        reason: videoReason,
+      });
+
+      setVideoSuccessData(newReq);
+      toast.success('Live Video Call requested successfully!');
+    } catch (err: any) {
+      console.error('Failed to submit video request:', err);
+      toast.error('Failed to submit request: ' + (err.message || 'Please try again'));
+    } finally {
+      setIsSubmittingVideo(false);
+    }
+  };
 
   const handleBuyNow = () => {
     if (!product) return;
@@ -555,6 +634,21 @@ export function ProductPage() {
                 >
                   <CreditCard className="w-4 h-4" /> {isOutOfStock ? 'OUT OF STOCK' : 'Buy Now'}
                 </motion.button>
+
+                {/* Live Video Call Request Button */}
+                <motion.button
+                  type="button"
+                  onClick={() => {
+                    setVideoSuccessData(null);
+                    setIsVideoModalOpen(true);
+                  }}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                  className="w-full h-12.5 rounded-2xl font-bold text-xs uppercase tracking-wider bg-[#F4F6F2] hover:bg-[#ebf0e8] text-[#546944] border-2 border-[#849E70]/50 shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+                >
+                  <Video className="w-4 h-4 text-[#698156]" />
+                  <span>Request Video Call (Live Saree Demo)</span>
+                </motion.button>
               </div>
 
               {/* Best Offers — only when admin enabled */}
@@ -668,6 +762,317 @@ export function ProductPage() {
           )}
         </div>
       </div>
+
+      {/* ═══ LIVE VIDEO CALL REQUEST MODAL ═══ */}
+      <AnimatePresence>
+        {isVideoModalOpen && product && (
+          <div className="fixed inset-0 z-[125] flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsVideoModalOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            />
+
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 15 }}
+              className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-gray-100 z-10 overflow-hidden my-auto"
+            >
+              {/* Modal Header */}
+              <div className="bg-gradient-to-r from-[#698156]/10 via-[#849E70]/10 to-emerald-50/50 p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-[#698156] text-white flex items-center justify-center shadow-xs">
+                    <Video className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-serif font-bold text-gray-900 leading-tight">
+                      Schedule a Live Video Call
+                    </h3>
+                    <p className="text-[11px] text-gray-500 mt-0.5">
+                      Inspect zari shine, draping & real daylight fabric texture
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsVideoModalOpen(false)}
+                  className="p-1.5 rounded-full hover:bg-white text-gray-400 hover:text-gray-700 transition-all cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-4 sm:p-6 max-h-[82vh] overflow-y-auto">
+                {videoSuccessData ? (
+                  /* Success Confirmation Screen */
+                  <div className="text-center py-4 space-y-4">
+                    <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-inner">
+                      <CheckCircle2 className="w-9 h-9" />
+                    </div>
+
+                    <div>
+                      <h4 className="text-xl font-serif font-bold text-gray-900">
+                        Video Call Requested!
+                      </h4>
+                      <p className="text-xs text-gray-500 mt-1 max-w-xs mx-auto">
+                        Thank you, <strong className="text-gray-900">{videoSuccessData.customer_name}</strong>. Our drapery specialist will review your request and message you on WhatsApp before calling.
+                      </p>
+                    </div>
+
+                    {/* Booking Details Card */}
+                    <div className="bg-[#F4F6F2] p-4 rounded-2xl text-left border border-[#DCE4D7] space-y-2 text-xs">
+                      <div className="flex justify-between items-center pb-2 border-b border-gray-200/60">
+                        <span className="text-gray-500">Product:</span>
+                        <span className="font-bold text-gray-900 truncate max-w-[220px]">{videoSuccessData.product_name}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-500">Scheduled Date:</span>
+                        <span className="font-bold text-gray-900 flex items-center gap-1">
+                          <Calendar className="w-3.5 h-3.5 text-purple-600" />
+                          {videoSuccessData.scheduled_date}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-500">Scheduled Time:</span>
+                        <span className="font-bold text-gray-900 flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5 text-purple-600" />
+                          {videoSuccessData.scheduled_time}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-500">WhatsApp:</span>
+                        <span className="font-mono font-bold text-emerald-700 flex items-center gap-1">
+                          <Phone className="w-3.5 h-3.5" />
+                          +91 {videoSuccessData.whatsapp_number}
+                        </span>
+                      </div>
+                      {videoSuccessData.reason && (
+                        <div className="flex justify-between items-center pt-1 border-t border-gray-200/60">
+                          <span className="text-gray-500">Reason:</span>
+                          <span className="text-gray-700 italic">{videoSuccessData.reason}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsVideoModalOpen(false)}
+                        className="w-full h-11 bg-[#698156] hover:bg-[#546944] text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow-sm"
+                      >
+                        Done & Continue Browsing
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  /* Form View */
+                  <form onSubmit={handleSubmitVideoRequest} className="space-y-4">
+                    {/* Selected Product Pill */}
+                    <div className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-2xl border border-gray-100">
+                      <div className="w-12 h-14 rounded-lg overflow-hidden bg-white border border-gray-200 shrink-0">
+                        <img
+                          src={product.image || (product.images && product.images[0]) || ''}
+                          alt={product.name}
+                          className="w-full h-full object-cover object-top"
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-xs font-bold text-gray-900 truncate">{product.name}</h4>
+                        <div className="text-[11px] font-semibold text-[#698156]">
+                          ₹{Number(product.price).toLocaleString('en-IN')}
+                        </div>
+                        <span className="text-[10px] text-gray-400">Personalized 1-on-1 Video Session</span>
+                      </div>
+                    </div>
+
+                    {/* Customer Full Name */}
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-gray-700 uppercase tracking-wider block">
+                        Full Name <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <User className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          required
+                          value={videoName}
+                          onChange={e => setVideoName(e.target.value)}
+                          placeholder="e.g. Priya Sharma"
+                          className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#698156]/20 focus:border-[#698156]"
+                        />
+                      </div>
+                    </div>
+
+                    {/* WhatsApp Mobile Number */}
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-gray-700 uppercase tracking-wider block">
+                        WhatsApp Number <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="flex items-center">
+                        <span className="inline-flex items-center gap-1 px-3 py-2.5 bg-gray-100 border border-r-0 border-gray-200 rounded-l-xl text-xs sm:text-sm font-bold text-gray-600">
+                          <Phone className="w-3.5 h-3.5 text-emerald-600" />
+                          +91
+                        </span>
+                        <input
+                          type="tel"
+                          required
+                          maxLength={10}
+                          value={videoPhone}
+                          onChange={e => setVideoPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                          placeholder="9876543210"
+                          className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-r-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#698156]/20 focus:border-[#698156]"
+                        />
+                      </div>
+                      <span className="text-[10px] text-gray-400">Our stylist will initiate the video call on this WhatsApp number.</span>
+                    </div>
+
+                    {/* Reason for Video Request */}
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-gray-700 uppercase tracking-wider block">
+                        Reason for Video Request
+                      </label>
+                      <select
+                        value={videoReason}
+                        onChange={e => setVideoReason(e.target.value)}
+                        className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#698156]/20 focus:border-[#698156]"
+                      >
+                        <option value="Inspect Fabric Quality & Border Zari">Inspect Fabric Quality & Border Zari</option>
+                        <option value="View Complete Saree Draping & Pallu">View Complete Saree Draping & Pallu</option>
+                        <option value="Check Real Daylight Color & Shine">Check Real Daylight Color & Shine</option>
+                        <option value="Blouse Piece & Border Verification">Blouse Piece & Border Verification</option>
+                        <option value="Matching Jewelry & Occasion Styling">Matching Jewelry & Occasion Styling</option>
+                        <option value="General Questions & Sizing">General Questions & Sizing</option>
+                      </select>
+                    </div>
+
+                    {/* Date Picker (Calendar) */}
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 text-purple-600" />
+                          <span>Select Date from Calendar</span>
+                          <span className="text-rose-500">*</span>
+                        </label>
+                        <span className="text-[10px] text-purple-700 font-semibold bg-purple-50 px-2 py-0.5 rounded-md">
+                          Calendar Picker
+                        </span>
+                      </div>
+
+                      <input
+                        type="date"
+                        required
+                        min={new Date().toISOString().split('T')[0]}
+                        value={videoDate}
+                        onChange={e => setVideoDate(e.target.value)}
+                        className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#698156]/20 focus:border-[#698156] font-medium"
+                      />
+
+                      {/* Quick Date Chips */}
+                      <div className="flex items-center gap-1.5 pt-1 overflow-x-auto scrollbar-none">
+                        {[
+                          { label: 'Today', days: 0 },
+                          { label: 'Tomorrow', days: 1 },
+                          { label: 'In 2 Days', days: 2 },
+                          { label: 'In 3 Days', days: 3 },
+                        ].map(chip => {
+                          const targetDate = new Date();
+                          targetDate.setDate(targetDate.getDate() + chip.days);
+                          const dateString = targetDate.toISOString().split('T')[0];
+                          const isSelected = videoDate === dateString;
+
+                          return (
+                            <button
+                              key={chip.label}
+                              type="button"
+                              onClick={() => setVideoDate(dateString)}
+                              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap transition-all cursor-pointer ${
+                                isSelected
+                                  ? 'bg-[#698156] text-white shadow-2xs'
+                                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                              }`}
+                            >
+                              {chip.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Time Picker (Clock) */}
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5 text-purple-600" />
+                          <span>Select Time from Clock</span>
+                          <span className="text-rose-500">*</span>
+                        </label>
+                        <span className="text-[10px] text-purple-700 font-semibold bg-purple-50 px-2 py-0.5 rounded-md">
+                          Clock Picker
+                        </span>
+                      </div>
+
+                      <input
+                        type="time"
+                        required
+                        value={videoTime.includes(':') ? videoTime.replace(/ [AP]M/, '') : '11:30'}
+                        onChange={e => {
+                          const val = e.target.value;
+                          if (val) {
+                            const [h, m] = val.split(':');
+                            const hourNum = parseInt(h, 10);
+                            const period = hourNum >= 12 ? 'PM' : 'AM';
+                            const displayHour = hourNum % 12 || 12;
+                            setVideoTime(`${String(displayHour).padStart(2, '0')}:${m} ${period}`);
+                          }
+                        }}
+                        className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#698156]/20 focus:border-[#698156] font-medium"
+                      />
+
+                      {/* Quick Slot Pills */}
+                      <div className="flex items-center gap-1.5 pt-1 overflow-x-auto scrollbar-none">
+                        {['11:00 AM', '02:00 PM', '04:00 PM', '05:30 PM', '07:00 PM'].map(slot => (
+                          <button
+                            key={slot}
+                            type="button"
+                            onClick={() => setVideoTime(slot)}
+                            className={`px-2.5 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap transition-all cursor-pointer ${
+                              videoTime === slot
+                                ? 'bg-purple-600 text-white shadow-2xs'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            }`}
+                          >
+                            {slot}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Submit Button */}
+                    <div className="pt-2">
+                      <button
+                        type="submit"
+                        disabled={isSubmittingVideo}
+                        className="w-full h-12 bg-[#698156] hover:bg-[#546944] text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow-md flex items-center justify-center gap-2 disabled:opacity-60"
+                      >
+                        <Video className="w-4 h-4" />
+                        <span>{isSubmittingVideo ? 'Submitting Request...' : 'Confirm Video Request'}</span>
+                      </button>
+                      <p className="text-[10px] text-gray-400 text-center mt-2">
+                        100% Free Service • No Purchase Obligation • Live 1-on-1 WhatsApp Call
+                      </p>
+                    </div>
+                  </form>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* ═══ FULLSCREEN LIGHTBOX ═══ */}
       <AnimatePresence>

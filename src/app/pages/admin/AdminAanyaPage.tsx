@@ -8,7 +8,7 @@ import {
   Award, Camera, Shirt, Upload, Star, Receipt,
   Minus, ShoppingCart, ArrowRight, Tags, Boxes, Compass, Bell,
   CheckCircle2, XCircle, Clock, Edit, Ban, Tag, Check,
-  Download, FileSpreadsheet, TrendingUp
+  Download, FileSpreadsheet, TrendingUp, Video, MessageSquareQuote, BarChart3
 } from 'lucide-react';
 import { AdminBannersSection } from './AdminBannersSection';
 import { AdminNotificationsSection } from './AdminNotificationsSection';
@@ -18,6 +18,7 @@ import { AdminInventorySection } from './AdminInventorySection';
 import { AdminReviews } from './AdminReviews';
 import { AdminPayments } from './AdminPayments';
 import { AdminAnalytics } from './AdminAnalytics';
+import { AdminVideoRequests } from './AdminVideoRequests';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar
@@ -143,9 +144,9 @@ const CAT_COLORS: Record<string, string> = {
 };
 
 /* ─── Nav items ─── */
-export type NavTab = 'overview' | 'notifications' | 'banners' | 'hero-models' | 'products' | 'inventory' | 'categories' | 'billing' | 'orders' | 'canceled-orders' | 'customers' | 'reviews' | 'payments' | 'analytics';
+export type NavTab = 'overview' | 'notifications' | 'banners' | 'hero-models' | 'products' | 'inventory' | 'categories' | 'billing' | 'orders' | 'canceled-orders' | 'customers' | 'reviews' | 'video-requests' | 'payments' | 'analytics';
 export const VALID_TABS: readonly NavTab[] = [
-  'overview', 'notifications', 'banners', 'hero-models', 'products', 'inventory', 'categories', 'billing', 'orders', 'canceled-orders', 'customers', 'reviews', 'payments', 'analytics'
+  'overview', 'notifications', 'banners', 'hero-models', 'products', 'inventory', 'categories', 'billing', 'orders', 'canceled-orders', 'customers', 'reviews', 'video-requests', 'payments', 'analytics'
 ] as const;
 export const isValidTab = (tab: any): tab is NavTab => VALID_TABS.includes(tab);
 
@@ -157,11 +158,12 @@ const NAV_ITEMS: { id: NavTab; label: string; icon: React.ReactNode }[] = [
   { id: 'inventory', label: 'Inventory Stock', icon: <Boxes className="w-5 h-5" /> },
   { id: 'categories', label: 'Categories', icon: <Tags className="w-5 h-5" /> },
   { id: 'orders', label: 'Orders', icon: <ClipboardList className="w-5 h-5" /> },
-  { id: 'canceled-orders', label: 'Canceled Orders', icon: <Ban className="w-5 h-5 text-rose-500" /> },
+  { id: 'canceled-orders', label: 'Canceled Orders', icon: <XCircle className="w-5 h-5" /> },
   { id: 'customers', label: 'Customers', icon: <Users className="w-5 h-5" /> },
-  { id: 'reviews', label: 'Customer Reviews', icon: <Star className="w-5 h-5 text-amber-500 fill-amber-400" /> },
+  { id: 'reviews', label: 'Customer Reviews', icon: <MessageSquareQuote className="w-5 h-5" /> },
+  { id: 'video-requests', label: 'Video Requests', icon: <Video className="w-5 h-5" /> },
   { id: 'payments', label: 'Payments', icon: <CreditCard className="w-5 h-5" /> },
-  { id: 'analytics', label: 'Website Analytics', icon: <TrendingUp className="w-5 h-5 text-emerald-600" /> },
+  { id: 'analytics', label: 'Website Analytics', icon: <BarChart3 className="w-5 h-5" /> },
 ];
 
 /* ─── Customer name extraction helper ─── */
@@ -226,6 +228,7 @@ export function AdminAanyaPage() {
     if (path.endsWith('/canceled-orders') || path.endsWith('/cancelled-orders')) return 'canceled-orders';
     if (path.endsWith('/customers')) return 'customers';
     if (path.endsWith('/reviews')) return 'reviews';
+    if (path.endsWith('/video-requests') || path.endsWith('/videocalls') || path.endsWith('/video')) return 'video-requests';
     if (path.endsWith('/payments')) return 'payments';
     if (path.endsWith('/analytics')) return 'analytics';
     if (path.endsWith('/dashboard') || path.endsWith('/overview')) return 'overview';
@@ -3694,6 +3697,11 @@ export function AdminAanyaPage() {
           {/* ─── TAB: CUSTOMER REVIEWS ─── */}
           {activeTab === 'reviews' && (
             <AdminReviews />
+          )}
+
+          {/* ─── TAB: VIDEO CALL REQUESTS ─── */}
+          {activeTab === 'video-requests' && (
+            <AdminVideoRequests />
           )}
 
         </main>
