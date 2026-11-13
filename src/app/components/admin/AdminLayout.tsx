@@ -40,9 +40,7 @@ export function AdminLayout() {
     : [];
 
   const notifications = [
-    { id: 1, text: 'New Order #1234 received', time: '5m ago', unread: true },
-    { id: 2, text: 'Inventory low: Maroon Silk Saree', time: '1h ago', unread: true },
-    { id: 3, text: 'Customer review received ★★★★☆', time: '3h ago', unread: false },
+    { id: 1, text: 'Store operational and running', time: 'Just now', unread: false },
   ];
 
   return (

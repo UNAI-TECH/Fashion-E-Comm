@@ -98,6 +98,7 @@ export const router = createBrowserRouter([
           { path: "billing", Component: AdminAanyaPage },
           { path: "pos", Component: AdminAanyaPage },
           { path: "canceled-orders", Component: AdminAanyaPage },
+          { path: "reviews", Component: AdminAanyaPage },
           {
             path: "",
             Component: AdminLayout,

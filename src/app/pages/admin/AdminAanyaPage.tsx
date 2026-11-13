@@ -15,6 +15,7 @@ import { AdminNotificationsSection } from './AdminNotificationsSection';
 import { AdminBillingSection } from './AdminBillingSection';
 import { AdminCategories } from './AdminCategories';
 import { AdminInventorySection } from './AdminInventorySection';
+import { AdminReviews } from './AdminReviews';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar
@@ -140,9 +141,9 @@ const CAT_COLORS: Record<string, string> = {
 };
 
 /* ─── Nav items ─── */
-export type NavTab = 'overview' | 'notifications' | 'banners' | 'hero-models' | 'products' | 'inventory' | 'categories' | 'billing' | 'orders' | 'canceled-orders' | 'customers' | 'payments';
+export type NavTab = 'overview' | 'notifications' | 'banners' | 'hero-models' | 'products' | 'inventory' | 'categories' | 'billing' | 'orders' | 'canceled-orders' | 'customers' | 'reviews' | 'payments';
 export const VALID_TABS: readonly NavTab[] = [
-  'overview', 'notifications', 'banners', 'hero-models', 'products', 'inventory', 'categories', 'billing', 'orders', 'canceled-orders', 'customers', 'payments'
+  'overview', 'notifications', 'banners', 'hero-models', 'products', 'inventory', 'categories', 'billing', 'orders', 'canceled-orders', 'customers', 'reviews', 'payments'
 ] as const;
 export const isValidTab = (tab: any): tab is NavTab => VALID_TABS.includes(tab);
 
@@ -156,6 +157,7 @@ const NAV_ITEMS: { id: NavTab; label: string; icon: React.ReactNode }[] = [
   { id: 'orders', label: 'Orders', icon: <ClipboardList className="w-5 h-5" /> },
   { id: 'canceled-orders', label: 'Canceled Orders', icon: <Ban className="w-5 h-5 text-rose-500" /> },
   { id: 'customers', label: 'Customers', icon: <Users className="w-5 h-5" /> },
+  { id: 'reviews', label: 'Customer Reviews', icon: <Star className="w-5 h-5 text-amber-500 fill-amber-400" /> },
   { id: 'payments', label: 'Payments', icon: <CreditCard className="w-5 h-5" /> },
 ];
 
@@ -220,6 +222,7 @@ export function AdminAanyaPage() {
     if (path.endsWith('/orders')) return 'orders';
     if (path.endsWith('/canceled-orders') || path.endsWith('/cancelled-orders')) return 'canceled-orders';
     if (path.endsWith('/customers')) return 'customers';
+    if (path.endsWith('/reviews')) return 'reviews';
     if (path.endsWith('/payments')) return 'payments';
     if (path.endsWith('/dashboard') || path.endsWith('/overview')) return 'overview';
 
@@ -1982,6 +1985,32 @@ export function AdminAanyaPage() {
                       <p className="text-[9.5px] text-gray-400 mt-0.5">₹{totalRevenue.toLocaleString('en-IN')}</p>
                     </div>
                   </motion.button>
+
+                  {/* BENTO CARD 8: Customer Reviews */}
+                  <motion.button
+                    type="button"
+                    variants={{
+                      hidden: { opacity: 0, y: 12, scale: 0.96 },
+                      show: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 350, damping: 25 } }
+                    }}
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => setActiveTab('reviews')}
+                    className="group relative overflow-hidden rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 bg-gradient-to-br from-amber-500/10 via-white to-white border border-amber-500/20 shadow-xs hover:shadow-md text-left transition-all cursor-pointer"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
+                        <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-amber-400 text-amber-500" />
+                      </div>
+                      <span className="text-[9.5px] sm:text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-full border border-amber-200">
+                        Ratings
+                      </span>
+                    </div>
+                    <div className="mt-2">
+                      <h4 className="font-bold text-xs text-gray-900 group-hover:text-amber-600 transition-colors">Customer Reviews</h4>
+                      <p className="text-[9.5px] text-gray-400 mt-0.5">Moderate & photos</p>
+                    </div>
+                  </motion.button>
                 </motion.div>
               </div>
 
@@ -3617,6 +3646,11 @@ export function AdminAanyaPage() {
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
               <AdminCategories onSelectCategory={(catName) => { setSearchQuery(catName); setActiveTab("products"); }} />
             </div>
+          )}
+
+          {/* ─── TAB: CUSTOMER REVIEWS ─── */}
+          {activeTab === 'reviews' && (
+            <AdminReviews />
           )}
 
         </main>
