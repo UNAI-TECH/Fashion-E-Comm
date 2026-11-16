@@ -2,15 +2,46 @@
  * Real-Time Website Analytics Service for Aanya Fashions
  * Tracks real users, sign-ins, pageviews, visitor sessions, and product clicks.
  * ZERO mock data - 100% driven by real events and Supabase database.
+ * Google Analytics 4 Measurement ID: G-CR84KB4TS4
  */
 
 import { supabase } from './supabase';
+
+export const GA_MEASUREMENT_ID =
+  import.meta.env.VITE_GA_MEASUREMENT_ID || 'G-CR84KB4TS4';
 
 declare global {
   interface Window {
     dataLayer: any[];
     gtag?: (...args: any[]) => void;
   }
+}
+
+/**
+ * Ensure GA4 gtag is available — guards against SSR or missing script.
+ * Also re-inits dynamically if script was not yet injected.
+ */
+export function ensureGtag(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (typeof window.gtag === 'function') return true;
+
+  // Fallback: inject gtag if not already in DOM
+  if (!document.getElementById('ga4-script')) {
+    const script = document.createElement('script');
+    script.id = 'ga4-script';
+    script.async = true;
+    script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
+    document.head.appendChild(script);
+
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = function gtag() { window.dataLayer.push(arguments); };
+    window.gtag('js', new Date());
+    window.gtag('config', GA_MEASUREMENT_ID, {
+      send_page_view: true,
+      cookie_flags: 'SameSite=None;Secure',
+    });
+  }
+  return typeof window.gtag === 'function';
 }
 
 export type AnalyticsEventType =
@@ -306,8 +337,8 @@ export function trackUserSignIn(user: { id?: string; email?: string; name?: stri
   broadcastEvent(event);
 
   // Send to GA4
-  if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
-    window.gtag('event', 'login', { method: 'email' });
+  if (ensureGtag()) {
+    window.gtag!('event', 'login', { method: 'email', user_id: user.id });
   }
 }
 
@@ -349,8 +380,8 @@ export function trackPageView(path = window.location.pathname, title = document.
   broadcastEvent(event);
 
   // GA4 Event
-  if (typeof window.gtag === 'function') {
-    window.gtag('event', 'page_view', {
+  if (ensureGtag()) {
+    window.gtag!('event', 'page_view', {
       page_path: path,
       page_title: title,
       page_location: window.location.href,
@@ -384,8 +415,8 @@ export function trackProductClick(product: {
   broadcastEvent(event);
 
   // GA4 Event
-  if (typeof window.gtag === 'function') {
-    window.gtag('event', 'select_item', {
+  if (ensureGtag()) {
+    window.gtag!('event', 'select_item', {
       item_list_name: 'Product Catalog',
       items: [
         {
@@ -413,8 +444,8 @@ export function trackProductView(product: {
   trackProductClick(product, customUser);
 
   // GA4 Event
-  if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
-    window.gtag('event', 'view_item', {
+  if (typeof window !== 'undefined' && ensureGtag()) {
+    window.gtag!('event', 'view_item', {
       currency: 'INR',
       value: product.price,
       items: [
@@ -455,8 +486,8 @@ export function trackAddToCart(product: {
 
   broadcastEvent(event);
 
-  if (typeof window.gtag === 'function') {
-    window.gtag('event', 'add_to_cart', {
+  if (ensureGtag()) {
+    window.gtag!('event', 'add_to_cart', {
       currency: 'INR',
       value: (product.price || 0) * (product.quantity || 1),
       items: [
@@ -486,8 +517,8 @@ export function trackBeginCheckout(amount: number, itemsCount: number, customUse
 
   broadcastEvent(event);
 
-  if (typeof window.gtag === 'function') {
-    window.gtag('event', 'begin_checkout', {
+  if (ensureGtag()) {
+    window.gtag!('event', 'begin_checkout', {
       currency: 'INR',
       value: amount,
     });
@@ -519,8 +550,8 @@ export function trackPurchase(order: {
 
   broadcastEvent(event);
 
-  if (typeof window.gtag === 'function') {
-    window.gtag('event', 'purchase', {
+  if (ensureGtag()) {
+    window.gtag!('event', 'purchase', {
       transaction_id: order.id,
       value: actualAmount,
       currency: 'INR',
