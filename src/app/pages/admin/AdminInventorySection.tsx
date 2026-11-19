@@ -94,6 +94,14 @@ export function AdminInventorySection({
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.access_token) {
         headers['Authorization'] = `Bearer ${session.access_token}`;
+      } else {
+        const rawAdminInfo = localStorage.getItem('admin_info');
+        if (rawAdminInfo) {
+          const parsed = JSON.parse(rawAdminInfo);
+          if (parsed?.token) {
+            headers['Authorization'] = `Bearer ${parsed.token}`;
+          }
+        }
       }
     } catch (e) {}
     headers['x-admin-role'] = 'admin';

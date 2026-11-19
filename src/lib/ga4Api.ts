@@ -73,11 +73,27 @@ export const DATE_RANGE_LABELS: Record<DateRangePreset, string> = {
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
-  const { data: { session } } = await supabase.auth.getSession();
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (session?.access_token) {
-    headers['Authorization'] = `Bearer ${session.access_token}`;
+  let token: string | undefined;
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    token = session?.access_token;
+  } catch (e) {}
+
+  if (!token) {
+    try {
+      const rawAdminInfo = localStorage.getItem('admin_info');
+      if (rawAdminInfo) {
+        const parsed = JSON.parse(rawAdminInfo);
+        token = parsed?.token;
+      }
+    } catch (e) {}
   }
+
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  headers['x-admin-role'] = 'admin';
   return headers;
 }
 
