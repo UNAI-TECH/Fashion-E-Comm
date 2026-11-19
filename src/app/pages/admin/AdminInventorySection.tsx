@@ -112,7 +112,7 @@ export function AdminInventorySection({
       const a = document.createElement('a');
       a.href = url;
       const dateStr = new Date().toISOString().split('T')[0];
-      a.download = `products_export_${dateStr}.xlsx`;
+      a.download = `aanya-inventory-${dateStr}.xlsx`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);

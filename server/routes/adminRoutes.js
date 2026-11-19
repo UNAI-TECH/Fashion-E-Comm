@@ -22,7 +22,7 @@ router.route('/stats').get(protect, admin, getAdminStats);
 
 // Section 10 Recommended API Design Endpoints:
 // GET /api/admin/products/export
-router.get('/products/export', exportProductsExcel);
+router.get('/products/export', protect, admin, exportProductsExcel);
 
 // POST /api/admin/products/images/optimize & GET .../:jobId
 router.post('/products/images/optimize', protect, admin, optimizeProductImages);

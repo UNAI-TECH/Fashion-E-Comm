@@ -222,13 +222,13 @@ export const getOptimizeJobStatus = async (req, res) => {
 };
 
 // @desc    Export all products to downloadable Excel workbook (.xlsx)
-// @route   GET /api/admin/products/export (and GET /api/products/export)
-// @access  Public or Admin
+// @route   GET /api/admin/products/export
+// @access  Private/Admin
 export const exportProductsExcel = async (req, res) => {
   try {
     const workbook = await generateProductsExcelWorkbook();
     const dateStr = new Date().toISOString().split('T')[0];
-    const filename = `products_export_${dateStr}.xlsx`;
+    const filename = `aanya-inventory-${dateStr}.xlsx`;
 
     res.setHeader(
       'Content-Type',
@@ -238,9 +238,11 @@ export const exportProductsExcel = async (req, res) => {
       'Content-Disposition',
       `attachment; filename="${filename}"`
     );
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
 
-    await workbook.xlsx.write(res);
-    res.end();
+    const buffer = await workbook.xlsx.writeBuffer();
+    res.send(buffer);
   } catch (error) {
     console.error('[exportProductsExcel error]:', error);
     res.status(500).json({ success: false, message: error.message });
