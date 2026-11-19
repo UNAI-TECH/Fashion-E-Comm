@@ -50,7 +50,7 @@ export const protect = async (req, res, next) => {
               return next();
             }
           }
-        } catch (jwtErr) {}
+        } catch (jwtErr) { }
       }
 
       return res.status(401).json({ success: false, message: 'Not authorized, token failed' });
@@ -73,9 +73,9 @@ export const admin = (req, res, next) => {
   if (
     req.user &&
     (req.user.role === 'admin' ||
-     req.user.email === 'admin@aanyafashion.com' ||
-     req.user.role === 'authenticated' ||
-     req.headers['x-admin-role'] === 'admin')
+      req.user.email === 'admin@aanyafashion.com' ||
+      req.user.role === 'authenticated' ||
+      req.headers['x-admin-role'] === 'admin')
   ) {
     return next();
   }
